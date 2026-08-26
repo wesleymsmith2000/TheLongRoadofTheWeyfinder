@@ -2,21 +2,31 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 import { stepVehicle } from '../src/core/physics.js';
-import { createRoadCamera, stepRoadCamera } from '../src/core/camera.js';
+import { createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from '../src/core/camera.js';
 
 test('road camera lags vehicle movement so screen position remains readable', () => {
   const vehicle = createStartingVehicle();
-  const camera = createRoadCamera(vehicle);
+  const road = createRoadFrame(vehicle);
+  const camera = createRoadCamera(road);
   stepVehicle(vehicle, { x: 0, y: -1, turn: 0, brake: false }, 0.25);
-  stepRoadCamera(camera, vehicle, 0.25);
+  stepRoadCamera(camera, road, vehicle, 0.25);
   assert.equal(Math.abs(vehicle.y - camera.y) > 1, true);
 });
 
-test('road camera rotates toward vehicle heading', () => {
+test('road frame advances constantly in its forward direction', () => {
   const vehicle = createStartingVehicle();
-  const camera = createRoadCamera(vehicle);
-  vehicle.heading = Math.PI / 2;
-  stepRoadCamera(camera, vehicle, 0.1);
+  const road = createRoadFrame(vehicle);
+  const delta = stepRoadFrame(road, 1);
+  assert.equal(road.y < vehicle.y, true);
+  assert.equal(delta.dy < 0, true);
+});
+
+test('road camera rotates toward road heading', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  const camera = createRoadCamera(road);
+  road.heading = Math.PI / 2;
+  stepRoadCamera(camera, road, vehicle, 0.1);
   assert.equal(camera.heading > 0, true);
-  assert.equal(camera.heading < vehicle.heading, true);
+  assert.equal(camera.heading < road.heading, true);
 });

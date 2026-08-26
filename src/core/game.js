@@ -4,15 +4,17 @@ import { createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
 import { distanceSquared } from './math.js';
 import { Rng } from './rng.js';
-import { createRoadCamera, stepRoadCamera } from './camera.js';
+import { createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from './camera.js';
 
 export function createGame(seed = 1147) {
   const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
   return {
     rng: new Rng(seed),
     vehicle,
-    camera: createRoadCamera(vehicle),
-    enemy: { x: 250, y: -210, vx: 0, vy: 0, radius: 22, fireTimer: 0.4, burstTimer: 5.5 },
+    road,
+    camera: createRoadCamera(road),
+    enemy: { x: road.x + 250, y: road.y - 210, vx: 0, vy: 0, radius: 22, fireTimer: 0.4, burstTimer: 5.5 },
     playerProjectiles: [],
     enemyProjectiles: [],
     autofire: true,
@@ -29,6 +31,8 @@ export function stepGame(game, input, dt) {
   if (input.resetPressed) return createGame(1147);
   if (input.fireTogglePressed) game.autofire = !game.autofire;
 
+  const roadDelta = stepRoadFrame(game.road, dt);
+  carryRoadObjects(game, roadDelta);
   stepVehicle(game.vehicle, input, dt);
   stepEnemy(game, dt);
   stepPlayerGun(game, dt);
@@ -37,9 +41,17 @@ export function stepGame(game, input, dt) {
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   handleCollisions(game);
   recalculateVehicle(game.vehicle);
-  stepRoadCamera(game.camera, game.vehicle, dt);
+  stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   game.gameOver = !game.vehicle.alive;
   return game;
+}
+
+function carryRoadObjects(game, delta) {
+  const objects = [game.vehicle, game.enemy, ...game.playerProjectiles, ...game.enemyProjectiles, ...game.vehicle.detachedPieces];
+  for (const object of objects) {
+    object.x += delta.dx;
+    object.y += delta.dy;
+  }
 }
 
 function stepPlayerGun(game, dt) {
