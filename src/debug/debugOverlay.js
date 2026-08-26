@@ -25,6 +25,7 @@ export function drawDebugOverlay(ctx, game) {
     `autofire ${game.autofire ? 'on' : 'off'}`,
     `secondary ${game.secondary.selected} ${game.secondary.ammo[game.secondary.selected] ?? '-'} heat ${game.secondary.heat.toFixed(0)}`,
     `damage ${game.score.damageDone}`,
+    `level ${game.level} enemies ${game.enemies.filter((enemy) => !enemy.destroyed).length}`,
   ].filter(Boolean);
 
   ctx.save();

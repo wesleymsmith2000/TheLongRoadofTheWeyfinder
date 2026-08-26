@@ -44,7 +44,7 @@ export class CanvasRenderer {
     applyCameraTransform(ctx, game.camera, w, h);
     drawRoad(ctx, game.camera, w, h, game.time);
     drawRoadLane(ctx, game.road);
-    drawEnemy(ctx, game.enemy);
+    for (const enemy of game.enemies) drawEnemy(ctx, enemy);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
     drawVehicle(ctx, game.vehicle);

@@ -29,7 +29,7 @@ export function stepSecondaryWeapon(game, input, dt) {
   secondary.cooldown = Math.max(0, secondary.cooldown - dt);
   secondary.heat = Math.max(0, secondary.heat - 22 * dt);
   if (secondary.selected === 'none') return false;
-  if (!input.secondaryFirePressed && !(secondary.autofire && !game.enemy.destroyed)) return false;
+  if (!input.secondaryFirePressed && !(secondary.autofire && game.enemies.some((enemy) => !enemy.destroyed))) return false;
   return fireSecondary(game);
 }
 

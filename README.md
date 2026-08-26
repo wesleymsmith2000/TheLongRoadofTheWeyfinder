@@ -25,6 +25,10 @@ https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
 npm test
 ```
 
+## Current Loop
+
+Destroy every enemy to clear the level, then use `Start Next Level` to continue. Each new level adds one more enemy. The run ends when the Core is lost and reports total levels completed.
+
 ## Controls
 
 - `WASD` or arrow keys: thrust / strafe

@@ -4,7 +4,15 @@ import { createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
 import { distanceSquared } from './math.js';
 import { Rng } from './rng.js';
-import { containVehicleInRoadFrame, createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from './camera.js';
+import {
+  containVehicleInRoadFrame,
+  createRoadCamera,
+  createRoadFrame,
+  roadOffsetToWorld,
+  stepRoadCamera,
+  stepRoadFrame,
+  worldToRoadOffset,
+} from './camera.js';
 import { CELL_SIZE } from './voxelMask.js';
 import { stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
@@ -19,7 +27,7 @@ export function createGame(seed = 1147) {
     vehicle,
     road,
     camera: createRoadCamera(road),
-    enemy: createEnemy(road.x + 250, road.y - 210),
+    enemies: createLevelEnemies(road, 1),
     boost: createBoostState(),
     secondary: createSecondaryState(),
     playerProjectiles: [],
@@ -28,6 +36,10 @@ export function createGame(seed = 1147) {
     playerFireTimer: 0,
     levelComplete: false,
     levelTime: 0,
+    level: 1,
+    levelStartTime: 0,
+    levelTimes: [],
+    levelsCompleted: 0,
     score: { damageDone: 0 },
     time: 0,
     fps: 60,
@@ -39,6 +51,7 @@ export function stepGame(game, input, dt) {
   dt = Math.min(dt, 0.033);
   game.time += dt;
   if (input.resetPressed) return createGame(1147);
+  if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
   if (game.levelComplete || game.gameOver) {
     stepRoadCamera(game.camera, game.road, game.vehicle, dt);
     return game;
@@ -50,8 +63,8 @@ export function stepGame(game, input, dt) {
   carryRoadObjects(game, roadDelta);
   stepVehicle(game.vehicle, input, dt, game.road.heading);
   stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
-  stepTurretAim(game.vehicle, [game.enemy], input, dt);
-  stepEnemy(game, dt);
+  stepTurretAim(game.vehicle, activeEnemies(game), input, dt);
+  stepEnemies(game, dt);
   stepPlayerGun(game, dt);
   stepSecondaryWeapon(game, input, dt);
 
@@ -62,15 +75,43 @@ export function stepGame(game, input, dt) {
   recalculateVehicle(game.vehicle);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   game.gameOver = !game.vehicle.alive;
-  if (game.enemy.destroyed) {
+  if (activeEnemies(game).length === 0) {
     game.levelComplete = true;
-    game.levelTime = game.time;
+    game.levelTime = game.time - game.levelStartTime;
+    game.levelTimes.push(game.levelTime);
+    game.levelsCompleted = game.level;
   }
   return game;
 }
 
+export function startNextLevel(game) {
+  game.level += 1;
+  game.levelComplete = false;
+  game.levelTime = 0;
+  game.levelStartTime = game.time;
+  game.enemies = createLevelEnemies(game.road, game.level);
+  game.playerProjectiles = [];
+  game.enemyProjectiles = [];
+  return game;
+}
+
+export function createLevelEnemies(road, count) {
+  const enemies = [];
+  for (let i = 0; i < count; i += 1) {
+    const spread = count === 1 ? 0 : (i - (count - 1) / 2) * 90;
+    const row = Math.floor(i / 4) * 70;
+    const world = roadOffsetToWorld({ x: spread, y: -190 - row }, road);
+    enemies.push(createEnemy(world.x, world.y));
+  }
+  return enemies;
+}
+
+function activeEnemies(game) {
+  return game.enemies.filter((enemy) => !enemy.destroyed);
+}
+
 function carryRoadObjects(game, delta) {
-  const objects = [game.vehicle, game.enemy, ...game.playerProjectiles, ...game.enemyProjectiles, ...game.vehicle.detachedPieces];
+  const objects = [game.vehicle, ...game.enemies, ...game.playerProjectiles, ...game.enemyProjectiles, ...game.vehicle.detachedPieces];
   for (const object of objects) {
     object.x += delta.dx;
     object.y += delta.dy;
@@ -96,9 +137,13 @@ function stepPlayerGun(game, dt) {
   game.playerFireTimer = 0.18;
 }
 
-function stepEnemy(game, dt) {
-  const enemy = game.enemy;
+function stepEnemies(game, dt) {
+  for (const enemy of game.enemies) stepEnemy(game, enemy, dt);
+}
+
+function stepEnemy(game, enemy, dt) {
   if (enemy.destroyed) return;
+  steerEnemyBackToLaneCenter(enemy, game.road, dt);
   enemy.fireTimer -= dt;
   enemy.burstTimer -= dt;
   const target = game.vehicle;
@@ -132,6 +177,10 @@ function stepEnemy(game, dt) {
     }
     enemy.burstTimer = 6.8;
   }
+  enemy.x += enemy.vx * dt;
+  enemy.y += enemy.vy * dt;
+  enemy.vx *= Math.pow(0.78, dt);
+  enemy.vy *= Math.pow(0.78, dt);
 }
 
 function handleCollisions(game) {
@@ -146,18 +195,33 @@ function handleCollisions(game) {
 
   for (const projectile of game.playerProjectiles) {
     if (projectile.lifetime <= 0) continue;
-    if (distanceSquared(projectile, game.enemy) < (game.enemy.radius + projectile.radius) ** 2) {
-      const hit = applyEnemyDamage(game.enemy, projectile);
+    for (const enemy of activeEnemies(game)) {
+      if (distanceSquared(projectile, enemy) >= (enemy.radius + projectile.radius) ** 2) continue;
+      const hit = applyEnemyDamage(enemy, projectile);
       if (hit.hit) {
-        game.score.damageDone = Math.round(game.enemy.damageTaken);
+        game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
         projectile.lifetime = 0;
-        game.enemy.vx += projectile.vx * 0.004;
-        game.enemy.vy += projectile.vy * 0.004;
+        enemy.vx += projectile.vx * 0.004;
+        enemy.vy += projectile.vy * 0.004;
+        break;
       }
     }
   }
-  game.enemy.x += game.enemy.vx * 0.016;
-  game.enemy.y += game.enemy.vy * 0.016;
-  game.enemy.vx *= 0.96;
-  game.enemy.vy *= 0.96;
+}
+
+function steerEnemyBackToLaneCenter(enemy, road, dt) {
+  const offset = worldToRoadOffset(enemy, road);
+  const centerHalfWidth = road.halfWidth * 0.48;
+  const centerHalfHeight = road.halfHeight * 0.44;
+  if (Math.abs(offset.x) <= centerHalfWidth && Math.abs(offset.y) <= centerHalfHeight) return;
+  const target = {
+    x: Math.max(-centerHalfWidth, Math.min(centerHalfWidth, offset.x)),
+    y: Math.max(-centerHalfHeight, Math.min(centerHalfHeight, offset.y)),
+  };
+  const dx = target.x - offset.x;
+  const dy = target.y - offset.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const accel = roadOffsetToWorld({ x: dx / length, y: dy / length }, { ...road, x: 0, y: 0 });
+  enemy.vx += accel.x * 90 * dt;
+  enemy.vy += accel.y * 90 * dt;
 }

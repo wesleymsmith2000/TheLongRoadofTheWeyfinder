@@ -65,7 +65,19 @@
         font-weight: 800;
         letter-spacing: 0;
         text-align: center;
-        pointer-events: none;
+        pointer-events: auto;
+      }
+
+      .game-over button {
+        min-height: 42px;
+        margin-top: 18px;
+        padding: 0 18px;
+        border: 1px solid rgb(244 238 228 / 0.35);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.82);
+        color: #f4eee4;
+        font-size: 16px;
+        font-weight: 700;
       }
 
       .hidden {
@@ -219,8 +231,20 @@
       </div>
       <div>Damage <span id="scoreDamage">0</span></div>
     </div>
-    <div id="levelComplete" class="game-over hidden">Enemy Destroyed<br /><span style="font-size: 18px">Time <span id="levelTime">0.0</span>s - Press R</span></div>
-    <div id="gameOver" class="game-over hidden">Core Lost<br /><span style="font-size: 18px">Press R</span></div>
+    <div id="levelComplete" class="game-over hidden">
+      <div>
+        Level <span id="levelNumber">1</span> Clear<br />
+        <span style="font-size: 18px">Time <span id="levelTime">0.0</span>s</span><br />
+        <button id="nextLevelButton" type="button">Start Next Level</button>
+      </div>
+    </div>
+    <div id="gameOver" class="game-over hidden">
+      <div>
+        Core Lost<br />
+        <span style="font-size: 18px">Levels completed: <span id="levelsCompleted">0</span></span><br />
+        <button id="restartButton" type="button">Restart Run</button>
+      </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

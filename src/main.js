@@ -20,6 +20,10 @@ const secondaryHeat = document.querySelector('#secondaryHeat');
 const scoreDamage = document.querySelector('#scoreDamage');
 const levelComplete = document.querySelector('#levelComplete');
 const levelTime = document.querySelector('#levelTime');
+const levelNumber = document.querySelector('#levelNumber');
+const levelsCompleted = document.querySelector('#levelsCompleted');
+const nextLevelButton = document.querySelector('#nextLevelButton');
+const restartButton = document.querySelector('#restartButton');
 const renderer = new CanvasRenderer(canvas);
 const keyboard = createKeyboardInput(window);
 const gamepad = createGamepadInput();
@@ -60,8 +64,9 @@ function frame(now) {
     brake: keyInput.brake || padInput.brake,
     debugTogglePressed: keyInput.debugTogglePressed,
     fireTogglePressed: keyInput.fireTogglePressed,
-    resetPressed: keyInput.resetPressed,
+    resetPressed: keyInput.resetPressed || restartButtonPressed.consume(),
     controlsTogglePressed: keyInput.controlsTogglePressed || padInput.controlsTogglePressed,
+    nextLevelPressed: nextLevelButtonPressed.consume(),
     dodgePressed: keyInput.dodgePressed || padInput.dodgePressed || touchBoost.consume(),
     dodgeX: keyInput.dodgeX || padInput.dodgeX || mouseInput.x,
     dodgeY: keyInput.dodgeY || padInput.dodgeY || mouseInput.y,
@@ -79,6 +84,8 @@ function frame(now) {
   gameOver.classList.toggle('hidden', !game.gameOver);
   levelComplete.classList.toggle('hidden', !game.levelComplete);
   levelTime.textContent = game.levelTime.toFixed(1);
+  levelNumber.textContent = game.level;
+  levelsCompleted.textContent = game.levelsCompleted;
   boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
   secondarySelect.value = game.secondary.selected;
   const selectedAmmo = game.secondary.ammo[game.secondary.selected];
@@ -92,7 +99,23 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 controlsToggle.addEventListener('click', toggleControls);
+const nextLevelButtonPressed = createButtonPress(nextLevelButton);
+const restartButtonPressed = createButtonPress(restartButton);
 
 function toggleControls() {
   controlsPanel.classList.toggle('hidden');
+}
+
+function createButtonPress(button) {
+  let pending = false;
+  button.addEventListener('click', () => {
+    pending = true;
+  });
+  return {
+    consume() {
+      const value = pending;
+      pending = false;
+      return value;
+    },
+  };
 }
