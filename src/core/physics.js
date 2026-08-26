@@ -1,6 +1,6 @@
-import { rotatePoint } from './math.js';
+import { angleDelta, rotatePoint } from './math.js';
 
-export function stepVehicle(vehicle, input, dt) {
+export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading) {
   if (!vehicle.alive) return;
   const engineCount = vehicle.cells.filter((cell) => cell.attached && cell.type === 'engine' && cell.state.deviceIntegrity > 0.1).length;
   const wheelCount = vehicle.cells.filter((cell) => cell.attached && cell.type === 'wheel' && cell.state.deviceIntegrity > 0.1).length;
@@ -13,10 +13,11 @@ export function stepVehicle(vehicle, input, dt) {
 
   const localAx = (input.x * 360 * propulsion) / massPenalty;
   const localAy = (input.y * 360 * propulsion) / massPenalty;
-  const accel = rotatePoint(localAx, localAy, vehicle.heading);
+  const accel = rotatePoint(localAx, localAy, roadHeading);
   vehicle.vx += accel.x * dt;
   vehicle.vy += accel.y * dt;
-  vehicle.angularVelocity += (input.turn * 4.4 + input.y * pull) * dt;
+  const roadAlignment = angleDelta(vehicle.heading, roadHeading) * 1.4;
+  vehicle.angularVelocity += (input.turn * 3.6 + input.y * pull * 0.45 + roadAlignment) * dt;
 
   if (input.brake) {
     vehicle.vx *= Math.pow(0.04, dt);

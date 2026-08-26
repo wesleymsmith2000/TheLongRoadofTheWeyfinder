@@ -33,7 +33,7 @@ export function stepGame(game, input, dt) {
 
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
-  stepVehicle(game.vehicle, input, dt);
+  stepVehicle(game.vehicle, input, dt, game.road.heading);
   stepEnemy(game, dt);
   stepPlayerGun(game, dt);
 
