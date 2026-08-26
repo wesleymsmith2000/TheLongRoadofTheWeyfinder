@@ -26,6 +26,17 @@ npm test
 - `D`: toggle debug overlay
 - `R`: reset scene
 
+## Controller
+
+Standard browser gamepads are supported, including Xbox controllers in the `standard` layout.
+
+- Left stick: move within the road lane
+- Right stick X, left/right bumpers, or left/right triggers: rotate
+- `A`: brake and stabilize
+- `B`: toggle autofire
+- `X` or View/Back: toggle debug overlay
+- `Y` or Menu/Start: reset scene
+
 ## Prototype Scope
 
 Implemented for Milestone 1:

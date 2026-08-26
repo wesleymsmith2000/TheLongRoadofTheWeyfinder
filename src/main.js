@@ -2,13 +2,14 @@ import { createGame, stepGame } from './core/game.js';
 import { configureRoadLaneForViewport } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
-import { readGamepadInput } from './input/gamepad.js';
+import { createGamepadInput } from './input/gamepad.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
 
 const canvas = document.querySelector('#game');
 const gameOver = document.querySelector('#gameOver');
 const renderer = new CanvasRenderer(canvas);
 const keyboard = createKeyboardInput(window);
+const gamepad = createGamepadInput();
 const debug = createDebugOverlay();
 
 let game = createGame();
@@ -18,7 +19,7 @@ function frame(now) {
   const dt = (now - previous) / 1000;
   previous = now;
   const keyInput = keyboard.read();
-  const padInput = readGamepadInput();
+  const padInput = gamepad.read();
   const input = {
     x: keyInput.x || padInput.x,
     y: keyInput.y || padInput.y,
