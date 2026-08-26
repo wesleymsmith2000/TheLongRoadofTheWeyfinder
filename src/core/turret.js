@@ -1,6 +1,8 @@
 import { angleDelta, distanceSquared } from './math.js';
 
 export function stepTurretAim(vehicle, enemies, input, dt) {
+  if (input.manualAimActive) vehicle.manualAimGrace = 0.45;
+  else vehicle.manualAimGrace = Math.max(0, (vehicle.manualAimGrace ?? 0) - dt);
   const desired = resolveTurretAim(vehicle, enemies, input);
   if (desired == null) return vehicle.turretHeading;
   const maxTurn = 8 * dt;
@@ -14,6 +16,7 @@ export function resolveTurretAim(vehicle, enemies, input) {
   if (Math.hypot(input.aimX ?? 0, input.aimY ?? 0) > 0.2) {
     return Math.atan2(input.aimY, input.aimX);
   }
+  if ((vehicle.manualAimGrace ?? 0) > 0) return vehicle.turretHeading;
   return gunnerAim(vehicle, enemies);
 }
 

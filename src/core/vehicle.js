@@ -29,6 +29,7 @@ export function createStartingVehicle() {
     heading: 0,
     angularVelocity: 0,
     turretHeading: -Math.PI / 2,
+    manualAimGrace: 0,
     cells,
     connections,
     detachedPieces: [],

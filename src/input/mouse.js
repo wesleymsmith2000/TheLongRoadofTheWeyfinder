@@ -61,6 +61,21 @@ export function createMouseInput(target, toWorld) {
   };
 }
 
+export function createPointerButtonInput(target) {
+  let pending = false;
+  target.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    pending = true;
+  });
+  return {
+    consume() {
+      const value = pending;
+      pending = false;
+      return value;
+    },
+  };
+}
+
 function releasePointer(state, pointerId) {
   if (pointerId === state.movePointerId) {
     state.movePointerId = null;

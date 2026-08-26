@@ -24,3 +24,11 @@ test('turret aim rotates toward desired heading over time', () => {
   assert.equal(vehicle.turretHeading > 0, true);
   assert.equal(vehicle.turretHeading < Math.PI / 2, true);
 });
+
+test('manual turret aim holds briefly before gunner AI takes over', () => {
+  const vehicle = createStartingVehicle();
+  vehicle.turretHeading = Math.PI;
+  stepTurretAim(vehicle, [{ x: 100, y: 0 }], { manualAimActive: true, aimWorld: { x: -100, y: 0 } }, 0.1);
+  const held = stepTurretAim(vehicle, [{ x: 100, y: 0 }], {}, 0.1);
+  assert.equal(held > 2, true);
+});

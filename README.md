@@ -23,6 +23,7 @@ npm test
 - Mouse: aim turret
 - Mouse button / touch aim: fire turret
 - `Q` / `E`: rotate
+- Double-tap a move direction: dodge/boost
 - `Space`: brake and stabilize
 - `F`: toggle autofire
 - `D`: toggle debug overlay
@@ -37,7 +38,8 @@ Standard browser gamepads are supported, including Xbox controllers in the `stan
 - Right stick: aim turret
 - Left/right bumpers or left/right triggers: rotate
 - `A`: brake and stabilize
-- `B`: toggle autofire
+- `B`: dodge/boost in the current left-stick direction
+- D-pad up: toggle autofire
 - `X`: toggle debug overlay
 - `Y`: reset scene
 - View/Back or Menu/Start: controls panel
@@ -46,6 +48,7 @@ Mobile touch:
 
 - Left side drag: virtual movement stick
 - Right side touch/drag: aim and fire turret
+- `BOOST` button: dodge/boost in the current movement direction
 
 ## Prototype Scope
 

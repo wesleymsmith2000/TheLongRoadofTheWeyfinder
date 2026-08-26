@@ -7,6 +7,7 @@ import { Rng } from './rng.js';
 import { containVehicleInRoadFrame, createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from './camera.js';
 import { CELL_SIZE } from './voxelMask.js';
 import { stepTurretAim } from './turret.js';
+import { createBoostState, stepBoost } from './boost.js';
 
 export function createGame(seed = 1147) {
   const vehicle = createStartingVehicle();
@@ -17,6 +18,7 @@ export function createGame(seed = 1147) {
     road,
     camera: createRoadCamera(road),
     enemy: { x: road.x + 250, y: road.y - 210, vx: 0, vy: 0, radius: 22, fireTimer: 0.4, burstTimer: 5.5 },
+    boost: createBoostState(),
     playerProjectiles: [],
     enemyProjectiles: [],
     autofire: true,
@@ -37,6 +39,7 @@ export function stepGame(game, input, dt) {
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
   stepVehicle(game.vehicle, input, dt, game.road.heading);
+  stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
   stepTurretAim(game.vehicle, [game.enemy], input, dt);
   stepEnemy(game, dt);
   stepPlayerGun(game, dt);

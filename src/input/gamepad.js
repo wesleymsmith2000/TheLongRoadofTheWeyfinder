@@ -38,9 +38,12 @@ export function mapStandardGamepad(pad, previousButtons = new Set()) {
     aimY,
     brake: buttonPressed(pad.buttons[0]) || buttonPressed(pad.buttons[10]),
     debugTogglePressed: buttonJustPressed(pad, previousButtons, 2),
-    fireTogglePressed: buttonJustPressed(pad, previousButtons, 1),
+    fireTogglePressed: buttonJustPressed(pad, previousButtons, 12),
     resetPressed: buttonJustPressed(pad, previousButtons, 3),
     controlsTogglePressed: buttonJustPressed(pad, previousButtons, 8) || buttonJustPressed(pad, previousButtons, 9),
+    dodgePressed: buttonJustPressed(pad, previousButtons, 1),
+    dodgeX: axes[0] ?? 0,
+    dodgeY: axes[1] ?? 0,
   };
 }
 
@@ -60,6 +63,9 @@ function emptyInput() {
     fireTogglePressed: false,
     resetPressed: false,
     controlsTogglePressed: false,
+    dodgePressed: false,
+    dodgeX: 0,
+    dodgeY: 0,
   };
 }
 

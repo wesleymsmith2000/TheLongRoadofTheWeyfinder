@@ -9,20 +9,24 @@ test('standard gamepad maps left stick to movement', () => {
 });
 
 test('standard gamepad exposes Xbox-style button actions', () => {
-  const input = mapStandardGamepad(createPad({ pressed: [0, 1, 2, 3, 8] }));
+  const input = mapStandardGamepad(createPad({ axes: [0.5, -0.5, 0, 0], pressed: [0, 1, 2, 3, 8, 12] }));
   assert.equal(input.brake, true);
   assert.equal(input.fireTogglePressed, true);
   assert.equal(input.debugTogglePressed, true);
   assert.equal(input.resetPressed, true);
   assert.equal(input.controlsTogglePressed, true);
+  assert.equal(input.dodgePressed, true);
+  assert.equal(input.dodgeX > 0, true);
+  assert.equal(input.dodgeY < 0, true);
 });
 
 test('standard gamepad button toggles only fire on the press edge', () => {
-  const input = mapStandardGamepad(createPad({ pressed: [1, 2, 3, 8] }), new Set([1, 2, 3, 8]));
+  const input = mapStandardGamepad(createPad({ pressed: [1, 2, 3, 8, 12] }), new Set([1, 2, 3, 8, 12]));
   assert.equal(input.fireTogglePressed, false);
   assert.equal(input.debugTogglePressed, false);
   assert.equal(input.resetPressed, false);
   assert.equal(input.controlsTogglePressed, false);
+  assert.equal(input.dodgePressed, false);
 });
 
 test('standard gamepad uses triggers and bumpers for turning', () => {
