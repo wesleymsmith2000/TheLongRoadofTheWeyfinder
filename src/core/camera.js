@@ -24,6 +24,11 @@ export function roadForward(road) {
   return rotatePoint(0, -1, road.heading);
 }
 
+export function configureRoadLaneForViewport(road, width, height) {
+  road.halfWidth = Math.max(230, width * 0.43);
+  road.halfHeight = Math.max(155, height * 0.36);
+}
+
 export function createRoadCamera(road) {
   return {
     x: road.x,

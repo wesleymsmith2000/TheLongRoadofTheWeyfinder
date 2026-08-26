@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 import { stepVehicle } from '../src/core/physics.js';
 import {
+  configureRoadLaneForViewport,
   containVehicleInRoadFrame,
   createRoadCamera,
   createRoadFrame,
@@ -47,4 +48,12 @@ test('vehicle is contained inside the road play lane', () => {
   const offset = worldToRoadOffset(vehicle, road);
   assert.equal(offset.x <= road.halfWidth, true);
   assert.equal(vehicle.vx < 0, true);
+});
+
+test('road play lane scales to fill most of the viewport', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  configureRoadLaneForViewport(road, 1000, 700);
+  assert.equal(road.halfWidth, 430);
+  assert.equal(road.halfHeight, 252);
 });

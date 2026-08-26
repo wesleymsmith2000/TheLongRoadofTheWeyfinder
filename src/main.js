@@ -1,4 +1,5 @@
 import { createGame, stepGame } from './core/game.js';
+import { configureRoadLaneForViewport } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
 import { readGamepadInput } from './input/gamepad.js';
@@ -27,6 +28,7 @@ function frame(now) {
     fireTogglePressed: keyInput.fireTogglePressed,
     resetPressed: keyInput.resetPressed,
   };
+  configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) debug.visible = !debug.visible;
   const next = stepGame(game, input, dt);
   if (next !== game) game = next;
