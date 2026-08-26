@@ -32,6 +32,8 @@ export function createKeyboardInput(target = window) {
         dodgePressed: dodgeInput.pressed,
         dodgeX: dodgeInput.x,
         dodgeY: dodgeInput.y,
+        secondaryCycle: pressed.has('KeyZ') ? -1 : pressed.has('KeyX') ? 1 : 0,
+        secondaryFirePressed: pressed.has('ShiftLeft') || pressed.has('ShiftRight') || pressed.has('Mouse0'),
       };
       pressed.clear();
       return snapshot;

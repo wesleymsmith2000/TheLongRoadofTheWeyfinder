@@ -25,7 +25,7 @@ export function mapStandardGamepad(pad, previousButtons = new Set()) {
   const axes = pad.axes.map((value) => deadzone(value));
   const leftTrigger = buttonValue(pad.buttons[6]);
   const rightTrigger = buttonValue(pad.buttons[7]);
-  const bumperTurn = (buttonPressed(pad.buttons[5]) ? 1 : 0) - (buttonPressed(pad.buttons[4]) ? 1 : 0);
+  const bumperTurn = 0;
   const triggerTurn = rightTrigger - leftTrigger;
   const aimX = axes[2] ?? 0;
   const aimY = axes[3] ?? 0;
@@ -44,6 +44,8 @@ export function mapStandardGamepad(pad, previousButtons = new Set()) {
     dodgePressed: buttonJustPressed(pad, previousButtons, 1),
     dodgeX: axes[0] ?? 0,
     dodgeY: axes[1] ?? 0,
+    secondaryCycle: buttonJustPressed(pad, previousButtons, 5) ? 1 : buttonJustPressed(pad, previousButtons, 4) ? -1 : 0,
+    secondaryFirePressed: buttonJustPressed(pad, previousButtons, 10) || buttonJustPressed(pad, previousButtons, 11),
   };
 }
 
@@ -66,6 +68,8 @@ function emptyInput() {
     dodgePressed: false,
     dodgeX: 0,
     dodgeY: 0,
+    secondaryCycle: 0,
+    secondaryFirePressed: false,
   };
 }
 

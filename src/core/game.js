@@ -8,6 +8,8 @@ import { containVehicleInRoadFrame, createRoadCamera, createRoadFrame, stepRoadC
 import { CELL_SIZE } from './voxelMask.js';
 import { stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
+import { applyEnemyDamage, createEnemy } from './enemy.js';
+import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
 
 export function createGame(seed = 1147) {
   const vehicle = createStartingVehicle();
@@ -17,12 +19,16 @@ export function createGame(seed = 1147) {
     vehicle,
     road,
     camera: createRoadCamera(road),
-    enemy: { x: road.x + 250, y: road.y - 210, vx: 0, vy: 0, radius: 22, fireTimer: 0.4, burstTimer: 5.5 },
+    enemy: createEnemy(road.x + 250, road.y - 210),
     boost: createBoostState(),
+    secondary: createSecondaryState(),
     playerProjectiles: [],
     enemyProjectiles: [],
     autofire: true,
     playerFireTimer: 0,
+    levelComplete: false,
+    levelTime: 0,
+    score: { damageDone: 0 },
     time: 0,
     fps: 60,
     gameOver: false,
@@ -33,6 +39,10 @@ export function stepGame(game, input, dt) {
   dt = Math.min(dt, 0.033);
   game.time += dt;
   if (input.resetPressed) return createGame(1147);
+  if (game.levelComplete || game.gameOver) {
+    stepRoadCamera(game.camera, game.road, game.vehicle, dt);
+    return game;
+  }
   if (input.fireTogglePressed) game.autofire = !game.autofire;
   game.inputFireHeld = Boolean(input.fireHeld);
 
@@ -43,6 +53,7 @@ export function stepGame(game, input, dt) {
   stepTurretAim(game.vehicle, [game.enemy], input, dt);
   stepEnemy(game, dt);
   stepPlayerGun(game, dt);
+  stepSecondaryWeapon(game, input, dt);
 
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
@@ -51,6 +62,10 @@ export function stepGame(game, input, dt) {
   recalculateVehicle(game.vehicle);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   game.gameOver = !game.vehicle.alive;
+  if (game.enemy.destroyed) {
+    game.levelComplete = true;
+    game.levelTime = game.time;
+  }
   return game;
 }
 
@@ -83,6 +98,7 @@ function stepPlayerGun(game, dt) {
 
 function stepEnemy(game, dt) {
   const enemy = game.enemy;
+  if (enemy.destroyed) return;
   enemy.fireTimer -= dt;
   enemy.burstTimer -= dt;
   const target = game.vehicle;
@@ -131,9 +147,17 @@ function handleCollisions(game) {
   for (const projectile of game.playerProjectiles) {
     if (projectile.lifetime <= 0) continue;
     if (distanceSquared(projectile, game.enemy) < (game.enemy.radius + projectile.radius) ** 2) {
-      projectile.lifetime = 0;
-      game.enemy.x += projectile.vx * 0.01;
-      game.enemy.y += projectile.vy * 0.01;
+      const hit = applyEnemyDamage(game.enemy, projectile);
+      if (hit.hit) {
+        game.score.damageDone = Math.round(game.enemy.damageTaken);
+        projectile.lifetime = 0;
+        game.enemy.vx += projectile.vx * 0.004;
+        game.enemy.vy += projectile.vy * 0.004;
+      }
     }
   }
+  game.enemy.x += game.enemy.vx * 0.016;
+  game.enemy.y += game.enemy.vy * 0.016;
+  game.enemy.vx *= 0.96;
+  game.enemy.vy *= 0.96;
 }

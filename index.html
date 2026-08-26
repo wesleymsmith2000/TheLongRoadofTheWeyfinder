@@ -141,6 +141,49 @@
         letter-spacing: 0;
         touch-action: none;
       }
+
+      .combat-panel {
+        position: fixed;
+        left: 14px;
+        bottom: 14px;
+        width: min(320px, calc(100vw - 110px));
+        padding: 10px;
+        border: 1px solid rgb(244 238 228 / 0.2);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.74);
+        color: #f4eee4;
+        font-size: 12px;
+      }
+
+      .combat-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .combat-row select,
+      .combat-row button {
+        min-height: 32px;
+        border: 1px solid rgb(244 238 228 / 0.24);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.86);
+        color: #f4eee4;
+      }
+
+      .heat-meter {
+        flex: 1;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 8px;
+        background: rgb(255 255 255 / 0.1);
+      }
+
+      .heat-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #f7c06a, #ff7461);
+      }
     </style>
   </head>
   <body>
@@ -158,6 +201,25 @@
     </div>
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>
+    <div class="combat-panel">
+      <div class="combat-row">
+        <label for="secondarySelect">Secondary</label>
+        <select id="secondarySelect">
+          <option value="none">None</option>
+          <option value="rocket" selected>Rocket</option>
+          <option value="cannon">Cannon</option>
+          <option value="beam">Particle Beam</option>
+        </select>
+        <button id="secondaryFire" type="button">Fire</button>
+      </div>
+      <div class="combat-row">
+        <label><input id="secondaryAutofire" type="checkbox" /> Auto</label>
+        <span>Ammo <span id="secondaryAmmo">12</span></span>
+        <div class="heat-meter" aria-label="Secondary heat"><div id="secondaryHeat" class="heat-fill"></div></div>
+      </div>
+      <div>Damage <span id="scoreDamage">0</span></div>
+    </div>
+    <div id="levelComplete" class="game-over hidden">Enemy Destroyed<br /><span style="font-size: 18px">Time <span id="levelTime">0.0</span>s - Press R</span></div>
     <div id="gameOver" class="game-over hidden">Core Lost<br /><span style="font-size: 18px">Press R</span></div>
     <script type="module" src="/src/main.js"></script>
   </body>

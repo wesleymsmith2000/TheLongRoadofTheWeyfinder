@@ -44,7 +44,7 @@ export class CanvasRenderer {
     applyCameraTransform(ctx, game.camera, w, h);
     drawRoad(ctx, game.camera, w, h, game.time);
     drawRoadLane(ctx, game.road);
-    drawEnemy(ctx, game.enemy, game.time);
+    drawEnemy(ctx, game.enemy);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
     drawVehicle(ctx, game.vehicle);
@@ -192,23 +192,21 @@ function drawComMarker(ctx, com) {
   ctx.stroke();
 }
 
-function drawEnemy(ctx, enemy, time) {
+function drawEnemy(ctx, enemy) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
-  ctx.rotate(time * 0.6);
-  ctx.fillStyle = '#513f46';
-  ctx.strokeStyle = '#f1a267';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.rect(-enemy.radius, -enemy.radius, enemy.radius * 2, enemy.radius * 2);
-  ctx.fill();
-  ctx.stroke();
+  for (const cell of enemy.cells) {
+    if (!cell.state.destroyed) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, enemy.destroyed ? 0.35 : 1);
+  }
+  ctx.strokeStyle = enemy.destroyed ? '#8a4640' : '#f1a267';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-CELL_SIZE * 1.7, -CELL_SIZE * 1.7, CELL_SIZE * 3.4, CELL_SIZE * 3.4);
   ctx.restore();
 }
 
 function drawProjectiles(ctx, projectiles, color) {
-  ctx.fillStyle = color;
   for (const projectile of projectiles) {
+    ctx.fillStyle = projectile.weapon === 'rocket' ? '#ff7461' : projectile.weapon === 'cannon' ? '#fff1a8' : projectile.weapon === 'beam' ? '#83f7ff' : color;
     ctx.beginPath();
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();

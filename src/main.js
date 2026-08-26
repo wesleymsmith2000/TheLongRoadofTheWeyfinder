@@ -12,11 +12,20 @@ const controlsToggle = document.querySelector('#controlsToggle');
 const controlsPanel = document.querySelector('#controlsPanel');
 const boostButton = document.querySelector('#boostButton');
 const boostFill = document.querySelector('#boostFill');
+const secondarySelect = document.querySelector('#secondarySelect');
+const secondaryAutofire = document.querySelector('#secondaryAutofire');
+const secondaryFire = document.querySelector('#secondaryFire');
+const secondaryAmmo = document.querySelector('#secondaryAmmo');
+const secondaryHeat = document.querySelector('#secondaryHeat');
+const scoreDamage = document.querySelector('#scoreDamage');
+const levelComplete = document.querySelector('#levelComplete');
+const levelTime = document.querySelector('#levelTime');
 const renderer = new CanvasRenderer(canvas);
 const keyboard = createKeyboardInput(window);
 const gamepad = createGamepadInput();
 const mouse = createMouseInput(canvas, (screen) => screenToWorld(screen, game.camera, { width: window.innerWidth, height: window.innerHeight }));
 const touchBoost = createPointerButtonInput(boostButton);
+const touchSecondary = createPointerButtonInput(secondaryFire);
 const debug = createDebugOverlay();
 
 let game = createGame();
@@ -56,6 +65,10 @@ function frame(now) {
     dodgePressed: keyInput.dodgePressed || padInput.dodgePressed || touchBoost.consume(),
     dodgeX: keyInput.dodgeX || padInput.dodgeX || mouseInput.x,
     dodgeY: keyInput.dodgeY || padInput.dodgeY || mouseInput.y,
+    secondarySelect: secondarySelect.value,
+    secondaryAutofire: secondaryAutofire.checked,
+    secondaryCycle: keyInput.secondaryCycle || padInput.secondaryCycle,
+    secondaryFirePressed: keyInput.secondaryFirePressed || padInput.secondaryFirePressed || touchSecondary.consume(),
   };
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) debug.visible = !debug.visible;
@@ -64,7 +77,14 @@ function frame(now) {
   if (next !== game) game = next;
   game.fps = game.fps * 0.9 + (1 / Math.max(dt, 0.001)) * 0.1;
   gameOver.classList.toggle('hidden', !game.gameOver);
+  levelComplete.classList.toggle('hidden', !game.levelComplete);
+  levelTime.textContent = game.levelTime.toFixed(1);
   boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
+  secondarySelect.value = game.secondary.selected;
+  const selectedAmmo = game.secondary.ammo[game.secondary.selected];
+  secondaryAmmo.textContent = selectedAmmo == null ? '-' : selectedAmmo;
+  secondaryHeat.style.width = `${game.secondary.heat}%`;
+  scoreDamage.textContent = game.score.damageDone;
   renderer.draw(game, debug);
   requestAnimationFrame(frame);
 }

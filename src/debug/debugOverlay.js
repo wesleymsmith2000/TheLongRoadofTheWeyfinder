@@ -23,6 +23,8 @@ export function drawDebugOverlay(ctx, game) {
     `connected ${vehicle.cells.filter((cell) => cell.attached && !cell.state.destroyed).length}`,
     `detached ${vehicle.detachedPieces.length + vehicle.cells.filter((cell) => !cell.attached).length}`,
     `autofire ${game.autofire ? 'on' : 'off'}`,
+    `secondary ${game.secondary.selected} ${game.secondary.ammo[game.secondary.selected] ?? '-'} heat ${game.secondary.heat.toFixed(0)}`,
+    `damage ${game.score.damageDone}`,
   ].filter(Boolean);
 
   ctx.save();

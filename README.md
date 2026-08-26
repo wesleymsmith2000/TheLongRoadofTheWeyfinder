@@ -11,6 +11,14 @@ npm run dev
 
 Open the forwarded Vite preview on port `5173`.
 
+## Public Playtest
+
+The `main` branch deploys to GitHub Pages:
+
+```text
+https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
+```
+
 ## Test
 
 ```bash
@@ -29,6 +37,8 @@ npm test
 - `D`: toggle debug overlay
 - `R`: reset scene
 - `H` or `?`: controls panel
+- `Z` / `X`: cycle secondary weapon
+- `Shift`: fire secondary weapon
 
 ## Controller
 
@@ -36,7 +46,9 @@ Standard browser gamepads are supported, including Xbox controllers in the `stan
 
 - Left stick: move within the road lane
 - Right stick: aim turret
-- Left/right bumpers or left/right triggers: rotate
+- Left/right triggers: rotate
+- Left/right bumpers: cycle secondary weapon
+- Stick press: fire secondary weapon
 - `A`: brake and stabilize
 - `B`: dodge/boost in the current left-stick direction
 - D-pad up: toggle autofire

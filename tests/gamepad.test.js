@@ -29,11 +29,12 @@ test('standard gamepad button toggles only fire on the press edge', () => {
   assert.equal(input.dodgePressed, false);
 });
 
-test('standard gamepad uses triggers and bumpers for turning', () => {
+test('standard gamepad uses triggers for turning and bumpers for secondary cycling', () => {
   const triggerInput = mapStandardGamepad(createPad({ buttons: { 7: 0.8 } }));
   const bumperInput = mapStandardGamepad(createPad({ pressed: [4] }));
   assert.equal(triggerInput.turn > 0.7, true);
-  assert.equal(bumperInput.turn, -1);
+  assert.equal(bumperInput.turn, 0);
+  assert.equal(bumperInput.secondaryCycle, -1);
 });
 
 test('standard gamepad maps right stick to turret aim instead of turn', () => {
