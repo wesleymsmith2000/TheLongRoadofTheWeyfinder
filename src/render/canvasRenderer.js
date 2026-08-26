@@ -1,5 +1,4 @@
 import { CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
-import { localToWorld } from '../core/math.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
 
 const COLORS = {
@@ -103,7 +102,27 @@ function drawVehicle(ctx, vehicle) {
   drawVehicleEdges(ctx, vehicle);
   const attached = vehicle.cells.filter((cell) => cell.attached && !cell.state.destroyed);
   for (const cell of attached) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, 1);
+  drawTurret(ctx, vehicle);
   drawComMarker(ctx, vehicle.centerOfMass);
+  ctx.restore();
+}
+
+function drawTurret(ctx, vehicle) {
+  const gun = vehicle.cells.find((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed);
+  if (!gun) return;
+  ctx.save();
+  const localHeading = vehicle.turretHeading - vehicle.heading;
+  const baseX = gun.gridX * CELL_SIZE;
+  const baseY = gun.gridY * CELL_SIZE;
+  const dx = Math.cos(localHeading) * CELL_SIZE * 1.1;
+  const dy = Math.sin(localHeading) * CELL_SIZE * 1.1;
+  ctx.strokeStyle = '#f7c06a';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(baseX, baseY);
+  ctx.lineTo(baseX + dx, baseY + dy);
+  ctx.stroke();
   ctx.restore();
 }
 

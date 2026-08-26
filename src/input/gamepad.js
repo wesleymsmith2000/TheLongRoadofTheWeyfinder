@@ -27,16 +27,20 @@ export function mapStandardGamepad(pad, previousButtons = new Set()) {
   const rightTrigger = buttonValue(pad.buttons[7]);
   const bumperTurn = (buttonPressed(pad.buttons[5]) ? 1 : 0) - (buttonPressed(pad.buttons[4]) ? 1 : 0);
   const triggerTurn = rightTrigger - leftTrigger;
-  const stickTurn = axes[2] ?? 0;
+  const aimX = axes[2] ?? 0;
+  const aimY = axes[3] ?? 0;
 
   return {
     x: axes[0] ?? 0,
     y: axes[1] ?? 0,
-    turn: strongestAxis(stickTurn, bumperTurn, triggerTurn),
+    turn: strongestAxis(bumperTurn, triggerTurn),
+    aimX,
+    aimY,
     brake: buttonPressed(pad.buttons[0]) || buttonPressed(pad.buttons[10]),
-    debugTogglePressed: buttonJustPressed(pad, previousButtons, 2) || buttonJustPressed(pad, previousButtons, 8),
+    debugTogglePressed: buttonJustPressed(pad, previousButtons, 2),
     fireTogglePressed: buttonJustPressed(pad, previousButtons, 1),
-    resetPressed: buttonJustPressed(pad, previousButtons, 3) || buttonJustPressed(pad, previousButtons, 9),
+    resetPressed: buttonJustPressed(pad, previousButtons, 3),
+    controlsTogglePressed: buttonJustPressed(pad, previousButtons, 8) || buttonJustPressed(pad, previousButtons, 9),
   };
 }
 
@@ -50,9 +54,12 @@ function emptyInput() {
     y: 0,
     turn: 0,
     brake: false,
+    aimX: 0,
+    aimY: 0,
     debugTogglePressed: false,
     fireTogglePressed: false,
     resetPressed: false,
+    controlsTogglePressed: false,
   };
 }
 

@@ -27,6 +27,7 @@
         width: 100vw;
         height: 100vh;
         background: #171a1b;
+        touch-action: none;
       }
 
       .hud {
@@ -70,6 +71,42 @@
       .hidden {
         display: none;
       }
+
+      .controls-toggle {
+        position: fixed;
+        right: 14px;
+        top: 14px;
+        width: 36px;
+        height: 36px;
+        border: 1px solid rgb(244 238 228 / 0.3);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.78);
+        color: #f4eee4;
+        font-size: 20px;
+      }
+
+      .controls-panel {
+        position: fixed;
+        right: 14px;
+        top: 58px;
+        width: min(320px, calc(100vw - 28px));
+        padding: 12px 14px;
+        border: 1px solid rgb(244 238 228 / 0.22);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.9);
+        color: #f4eee4;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .controls-panel h2 {
+        margin: 0 0 8px;
+        font-size: 14px;
+      }
+
+      .controls-panel p {
+        margin: 0 0 6px;
+      }
     </style>
   </head>
   <body>
@@ -77,6 +114,13 @@
     <div class="hud">
       <h1 class="title">The Long Road of the Weyfinder</h1>
       <p class="sub">Drive the machine. Lose the machine. Keep the Core moving.</p>
+    </div>
+    <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
+    <div id="controlsPanel" class="controls-panel hidden">
+      <h2>Controls</h2>
+      <p>Keyboard: WASD/arrows move, mouse aims, hold click/touch to fire, Q/E rotate.</p>
+      <p>Controller: left stick moves, right stick aims, bumpers/triggers rotate, A brakes.</p>
+      <p>Mobile: left side drags movement, right side aims and fires.</p>
     </div>
     <div id="gameOver" class="game-over hidden">Core Lost<br /><span style="font-size: 18px">Press R</span></div>
     <script type="module" src="/src/main.js"></script>

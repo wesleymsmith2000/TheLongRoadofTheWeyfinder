@@ -19,10 +19,13 @@ export function createKeyboardInput(target = window) {
         x,
         y,
         turn,
+        aimX: 0,
+        aimY: 0,
         brake: keys.has('Space'),
         debugTogglePressed: pressed.has('KeyD'),
         fireTogglePressed: pressed.has('KeyF'),
         resetPressed: pressed.has('KeyR'),
+        controlsTogglePressed: pressed.has('KeyH') || pressed.has('Slash'),
       };
       pressed.clear();
       return snapshot;

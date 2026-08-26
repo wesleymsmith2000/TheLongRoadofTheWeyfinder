@@ -6,6 +6,7 @@ import { distanceSquared } from './math.js';
 import { Rng } from './rng.js';
 import { containVehicleInRoadFrame, createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from './camera.js';
 import { CELL_SIZE } from './voxelMask.js';
+import { stepTurretAim } from './turret.js';
 
 export function createGame(seed = 1147) {
   const vehicle = createStartingVehicle();
@@ -31,10 +32,12 @@ export function stepGame(game, input, dt) {
   game.time += dt;
   if (input.resetPressed) return createGame(1147);
   if (input.fireTogglePressed) game.autofire = !game.autofire;
+  game.inputFireHeld = Boolean(input.fireHeld);
 
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
   stepVehicle(game.vehicle, input, dt, game.road.heading);
+  stepTurretAim(game.vehicle, [game.enemy], input, dt);
   stepEnemy(game, dt);
   stepPlayerGun(game, dt);
 
@@ -58,11 +61,11 @@ function carryRoadObjects(game, delta) {
 
 function stepPlayerGun(game, dt) {
   game.playerFireTimer -= dt;
-  if (!game.autofire || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
+  if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return;
   const speed = 430;
-  const angle = game.vehicle.heading - Math.PI / 2;
+  const angle = game.vehicle.turretHeading;
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
       team: 'player',

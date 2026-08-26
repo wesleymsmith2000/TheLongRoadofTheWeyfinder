@@ -28,6 +28,7 @@ export function createStartingVehicle() {
     vy: 0,
     heading: 0,
     angularVelocity: 0,
+    turretHeading: -Math.PI / 2,
     cells,
     connections,
     detachedPieces: [],
@@ -115,10 +116,11 @@ export function hasFunctionalGun(vehicle) {
   return vehicle.cells.some((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed && cell.state.deviceIntegrity > 0.15);
 }
 
-export function gunMuzzleWorld(vehicle) {
+export function gunMuzzleWorld(vehicle, aimHeading = vehicle.turretHeading) {
   const gun = vehicle.cells.find((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed);
   if (!gun) return null;
-  return localToWorld({ x: gun.gridX * CELL_SIZE, y: gun.gridY * CELL_SIZE - CELL_SIZE * 0.62 }, vehicle);
+  const base = localToWorld({ x: gun.gridX * CELL_SIZE, y: gun.gridY * CELL_SIZE }, vehicle);
+  return { x: base.x + Math.cos(aimHeading) * CELL_SIZE * 0.72, y: base.y + Math.sin(aimHeading) * CELL_SIZE * 0.72 };
 }
 
 export function applyImpulse(vehicle, worldPoint, direction, impulse) {

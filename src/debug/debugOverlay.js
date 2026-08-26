@@ -12,6 +12,7 @@ export function drawDebugOverlay(ctx, game) {
     `inertia ${vehicle.momentOfInertia.toFixed(0)}`,
     `speed ${Math.hypot(vehicle.vx, vehicle.vy).toFixed(1)}`,
     `angular ${vehicle.angularVelocity.toFixed(2)}`,
+    `turret ${vehicle.turretHeading.toFixed(2)}`,
     `road ${game.road.x.toFixed(0)}, ${game.road.y.toFixed(0)} ${game.road.speed.toFixed(0)}`,
     `lane ${game.road.halfWidth.toFixed(0)} x ${game.road.halfHeight.toFixed(0)}`,
     `camera ${game.camera.x.toFixed(0)}, ${game.camera.y.toFixed(0)} ${game.camera.heading.toFixed(2)}`,

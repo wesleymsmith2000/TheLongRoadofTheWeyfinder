@@ -20,22 +20,32 @@ npm test
 ## Controls
 
 - `WASD` or arrow keys: thrust / strafe
+- Mouse: aim turret
+- Mouse button / touch aim: fire turret
 - `Q` / `E`: rotate
 - `Space`: brake and stabilize
 - `F`: toggle autofire
 - `D`: toggle debug overlay
 - `R`: reset scene
+- `H` or `?`: controls panel
 
 ## Controller
 
 Standard browser gamepads are supported, including Xbox controllers in the `standard` layout.
 
 - Left stick: move within the road lane
-- Right stick X, left/right bumpers, or left/right triggers: rotate
+- Right stick: aim turret
+- Left/right bumpers or left/right triggers: rotate
 - `A`: brake and stabilize
 - `B`: toggle autofire
-- `X` or View/Back: toggle debug overlay
-- `Y` or Menu/Start: reset scene
+- `X`: toggle debug overlay
+- `Y`: reset scene
+- View/Back or Menu/Start: controls panel
+
+Mobile touch:
+
+- Left side drag: virtual movement stick
+- Right side touch/drag: aim and fire turret
 
 ## Prototype Scope
 
