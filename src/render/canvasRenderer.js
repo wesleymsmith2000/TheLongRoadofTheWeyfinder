@@ -118,10 +118,13 @@ function drawDetachedPiece(ctx, piece) {
 function drawCell(ctx, cell, x, y, alpha) {
   const unit = CELL_SIZE / VOXELS;
   const base = COLORS[cell.type] ?? '#bcc2b1';
+  const depth = CELL_SIZE * 0.11;
+  const shadowOffset = CELL_SIZE * 0.15;
+  const gap = Math.max(0.5, unit * 0.11);
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.fillStyle = COLORS.shadow;
-  ctx.fillRect(x - CELL_SIZE / 2 + 5, y - CELL_SIZE / 2 + 8, CELL_SIZE, CELL_SIZE);
+  ctx.fillRect(x - CELL_SIZE / 2 + shadowOffset, y - CELL_SIZE / 2 + shadowOffset * 1.6, CELL_SIZE, CELL_SIZE);
   for (let vy = VOXELS - 1; vy >= 0; vy -= 1) {
     for (let vx = 0; vx < VOXELS; vx += 1) {
       const voxel = cell.mask[vy][vx];
@@ -129,18 +132,18 @@ function drawCell(ctx, cell, x, y, alpha) {
       const fraction = voxel.hp / voxel.maxHp;
       const px = x - CELL_SIZE / 2 + vx * unit;
       const py = y - CELL_SIZE / 2 + vy * unit;
-      const lift = 4 + fraction * 5;
+      const lift = depth + fraction * depth;
       ctx.fillStyle = shade(base, ROLE_SHADE[voxel.role] ?? 0);
-      ctx.fillRect(px + 1, py + 1 - lift, unit - 2, unit - 2);
+      ctx.fillRect(px + gap, py + gap - lift, unit - gap * 2, unit - gap * 2);
       ctx.fillStyle = shade(base, -36);
-      ctx.fillRect(px + 1, py + unit - 3 - lift, unit - 2, 4);
+      ctx.fillRect(px + gap, py + unit - gap * 2 - lift, unit - gap * 2, Math.max(1, depth * 0.65));
       ctx.fillStyle = 'rgb(255 255 255 / 0.12)';
-      ctx.fillRect(px + 2, py + 2 - lift, unit - 4, 2);
+      ctx.fillRect(px + gap * 1.5, py + gap * 1.5 - lift, Math.max(1, unit - gap * 3), Math.max(1, depth * 0.3));
     }
   }
   ctx.strokeStyle = cell.type === 'core' ? '#fff4a8' : 'rgb(255 255 255 / 0.16)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2 - 4, CELL_SIZE, CELL_SIZE);
+  ctx.strokeRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2 - depth, CELL_SIZE, CELL_SIZE);
   ctx.restore();
 }
 

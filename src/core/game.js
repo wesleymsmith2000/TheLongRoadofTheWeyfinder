@@ -5,6 +5,7 @@ import { hitVehicleWithProjectile } from './damage.js';
 import { distanceSquared } from './math.js';
 import { Rng } from './rng.js';
 import { containVehicleInRoadFrame, createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from './camera.js';
+import { CELL_SIZE } from './voxelMask.js';
 
 export function createGame(seed = 1147) {
   const vehicle = createStartingVehicle();
@@ -114,7 +115,8 @@ function stepEnemy(game, dt) {
 function handleCollisions(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
-    if (distanceSquared(projectile, game.vehicle) < 150 * 150) {
+    const vehicleHitRange = CELL_SIZE * 3.8 + projectile.radius;
+    if (distanceSquared(projectile, game.vehicle) < vehicleHitRange * vehicleHitRange) {
       const hit = hitVehicleWithProjectile(game.vehicle, projectile);
       if (hit.hit) projectile.lifetime = 0;
     }
