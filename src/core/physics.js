@@ -9,12 +9,13 @@ export function stepVehicle(vehicle, input, dt) {
     .filter((cell) => cell.attached && cell.type === 'wheel')
     .reduce((sum, cell) => sum + cell.gridX * cell.state.deviceIntegrity, 0);
   const pull = turnBalance * 0.35;
+  const massPenalty = Math.sqrt(vehicle.totalMass / 120);
 
-  const localAx = input.x * 260 * propulsion;
-  const localAy = input.y * 260 * propulsion;
+  const localAx = (input.x * 360 * propulsion) / massPenalty;
+  const localAy = (input.y * 360 * propulsion) / massPenalty;
   const accel = rotatePoint(localAx, localAy, vehicle.heading);
-  vehicle.vx += (accel.x / vehicle.totalMass) * dt;
-  vehicle.vy += (accel.y / vehicle.totalMass) * dt;
+  vehicle.vx += accel.x * dt;
+  vehicle.vy += accel.y * dt;
   vehicle.angularVelocity += (input.turn * 4.4 + input.y * pull) * dt;
 
   if (input.brake) {
