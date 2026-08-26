@@ -26,3 +26,11 @@ export function distanceSquared(a, b) {
   const dy = a.y - b.y;
   return dx * dx + dy * dy;
 }
+
+export function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+export function angleDelta(from, to) {
+  return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+}

@@ -12,6 +12,7 @@ export function drawDebugOverlay(ctx, game) {
     `inertia ${vehicle.momentOfInertia.toFixed(0)}`,
     `speed ${Math.hypot(vehicle.vx, vehicle.vy).toFixed(1)}`,
     `angular ${vehicle.angularVelocity.toFixed(2)}`,
+    `camera ${game.camera.x.toFixed(0)}, ${game.camera.y.toFixed(0)} ${game.camera.heading.toFixed(2)}`,
     `last hit ${lastHit?.id ?? 'none'}`,
     lastHit ? `structure ${lastHit.state.structureIntegrity.toFixed(2)}` : '',
     lastHit ? `anchors ${Object.entries(lastHit.state.anchorIntegrity).map(([k, v]) => `${k[0]}:${v.toFixed(2)}`).join(' ')}` : '',

@@ -39,9 +39,11 @@ export class CanvasRenderer {
     const w = window.innerWidth;
     const h = window.innerHeight;
     ctx.clearRect(0, 0, w, h);
-    drawRoad(ctx, w, h, game.time);
+    ctx.fillStyle = '#171a1b';
+    ctx.fillRect(0, 0, w, h);
     ctx.save();
-    ctx.translate(w / 2 - game.vehicle.x, h / 2 - game.vehicle.y);
+    applyCameraTransform(ctx, game.camera, w, h);
+    drawRoad(ctx, game.camera, w, h, game.time);
     drawEnemy(ctx, game.enemy, game.time);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
@@ -52,23 +54,32 @@ export class CanvasRenderer {
   }
 }
 
-function drawRoad(ctx, w, h, time) {
-  ctx.fillStyle = '#171a1b';
-  ctx.fillRect(0, 0, w, h);
+function applyCameraTransform(ctx, camera, w, h) {
+  ctx.translate(w / 2, h * 0.58);
+  ctx.rotate(-camera.heading);
+  ctx.translate(-camera.x, -camera.y);
+}
+
+function drawRoad(ctx, camera, w, h, time) {
   ctx.strokeStyle = '#29302e';
   ctx.lineWidth = 1;
   const spacing = 64;
-  const offset = (time * 18) % spacing;
-  for (let x = -spacing; x < w + spacing; x += spacing) {
+  const range = Math.max(w, h) * 1.9;
+  const minX = Math.floor((camera.x - range) / spacing) * spacing;
+  const maxX = Math.ceil((camera.x + range) / spacing) * spacing;
+  const minY = Math.floor((camera.y - range) / spacing) * spacing;
+  const maxY = Math.ceil((camera.y + range) / spacing) * spacing;
+  const offset = (time * 12) % spacing;
+  for (let x = minX; x <= maxX; x += spacing) {
     ctx.beginPath();
-    ctx.moveTo(x + offset, 0);
-    ctx.lineTo(x + offset - 160, h);
+    ctx.moveTo(x + offset, minY);
+    ctx.lineTo(x + offset - range * 0.18, maxY);
     ctx.stroke();
   }
-  for (let y = -spacing; y < h + spacing; y += spacing) {
+  for (let y = minY; y <= maxY; y += spacing) {
     ctx.beginPath();
-    ctx.moveTo(0, y + offset);
-    ctx.lineTo(w, y + offset);
+    ctx.moveTo(minX, y + offset);
+    ctx.lineTo(maxX, y + offset);
     ctx.stroke();
   }
 }
