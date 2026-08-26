@@ -2,7 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 import { stepVehicle } from '../src/core/physics.js';
-import { createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from '../src/core/camera.js';
+import {
+  containVehicleInRoadFrame,
+  createRoadCamera,
+  createRoadFrame,
+  stepRoadCamera,
+  stepRoadFrame,
+  worldToRoadOffset,
+} from '../src/core/camera.js';
 
 test('road camera lags vehicle movement so screen position remains readable', () => {
   const vehicle = createStartingVehicle();
@@ -29,4 +36,15 @@ test('road camera rotates toward road heading', () => {
   stepRoadCamera(camera, road, vehicle, 0.1);
   assert.equal(camera.heading > 0, true);
   assert.equal(camera.heading < road.heading, true);
+});
+
+test('vehicle is contained inside the road play lane', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  vehicle.x = road.x + road.halfWidth + 80;
+  vehicle.vx = 120;
+  containVehicleInRoadFrame(vehicle, road);
+  const offset = worldToRoadOffset(vehicle, road);
+  assert.equal(offset.x <= road.halfWidth, true);
+  assert.equal(vehicle.vx < 0, true);
 });

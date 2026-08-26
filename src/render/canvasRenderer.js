@@ -44,6 +44,7 @@ export class CanvasRenderer {
     ctx.save();
     applyCameraTransform(ctx, game.camera, w, h);
     drawRoad(ctx, game.camera, w, h, game.time);
+    drawRoadLane(ctx, game.road);
     drawEnemy(ctx, game.enemy, game.time);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
@@ -82,6 +83,17 @@ function drawRoad(ctx, camera, w, h, time) {
     ctx.lineTo(maxX, y + offset);
     ctx.stroke();
   }
+}
+
+function drawRoadLane(ctx, road) {
+  ctx.save();
+  ctx.translate(road.x, road.y);
+  ctx.rotate(road.heading);
+  ctx.strokeStyle = 'rgb(233 242 223 / 0.16)';
+  ctx.setLineDash([16, 14]);
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-road.halfWidth, -road.halfHeight, road.halfWidth * 2, road.halfHeight * 2);
+  ctx.restore();
 }
 
 function drawVehicle(ctx, vehicle) {

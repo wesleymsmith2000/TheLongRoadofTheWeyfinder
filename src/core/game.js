@@ -4,7 +4,7 @@ import { createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
 import { distanceSquared } from './math.js';
 import { Rng } from './rng.js';
-import { createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from './camera.js';
+import { containVehicleInRoadFrame, createRoadCamera, createRoadFrame, stepRoadCamera, stepRoadFrame } from './camera.js';
 
 export function createGame(seed = 1147) {
   const vehicle = createStartingVehicle();
@@ -40,6 +40,7 @@ export function stepGame(game, input, dt) {
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   handleCollisions(game);
+  containVehicleInRoadFrame(game.vehicle, game.road);
   recalculateVehicle(game.vehicle);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   game.gameOver = !game.vehicle.alive;
