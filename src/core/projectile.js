@@ -9,6 +9,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     angle: options.angle ?? Math.atan2(vy, vx),
     length: options.length ?? 0,
     radius: options.radius ?? 4,
+    maxRadius: options.maxRadius ?? options.radius ?? 4,
     damage: options.damage ?? 7,
     impulse: options.impulse ?? 240,
     team: options.team ?? 'enemy',
@@ -16,6 +17,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     behavior: options.behavior ?? 'ballistic',
     lifetime: options.lifetime ?? 4,
     maxLifetime: options.lifetime ?? 4,
+    frames: options.frames ?? 0,
     turnRate: options.turnRate ?? 0,
     acceleration: options.acceleration ?? 0,
   };
@@ -26,7 +28,7 @@ export function stepProjectiles(projectiles, dt, targets = []) {
     projectile.previousX = projectile.x;
     projectile.previousY = projectile.y;
     if (projectile.behavior === 'homing') stepHomingProjectile(projectile, targets, dt);
-    if (projectile.behavior === 'beam') {
+    if (projectile.behavior === 'beam' || projectile.behavior === 'blast') {
       projectile.lifetime -= dt;
       continue;
     }

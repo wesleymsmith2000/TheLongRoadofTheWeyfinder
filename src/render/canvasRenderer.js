@@ -210,11 +210,42 @@ function drawProjectiles(ctx, projectiles, color) {
       drawBeam(ctx, projectile);
       continue;
     }
-    ctx.fillStyle = projectile.weapon === 'rocket' ? '#ff7461' : projectile.weapon === 'cannon' ? '#fff1a8' : projectile.weapon === 'beam' ? '#83f7ff' : color;
+    if (projectile.behavior === 'blast') {
+      drawBlast(ctx, projectile);
+      continue;
+    }
+    ctx.fillStyle =
+      projectile.weapon === 'rocket'
+        ? '#ff7461'
+        : projectile.weapon === 'cannon'
+          ? '#fff1a8'
+          : projectile.weapon === 'cannon-shrapnel'
+            ? '#ffd37a'
+            : projectile.weapon === 'beam'
+              ? '#83f7ff'
+              : color;
     ctx.beginPath();
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawBlast(ctx, projectile) {
+  const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
+  const radius = projectile.radius + (projectile.maxRadius - projectile.radius) * age;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, 1 - age);
+  ctx.strokeStyle = '#fff1a8';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(projectile.x, projectile.y, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = '#ff8f61';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(projectile.x, projectile.y, radius * 0.58, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawBeam(ctx, projectile) {

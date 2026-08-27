@@ -6,8 +6,8 @@ export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam'];
 const DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
   rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 260, damage: 18, radius: 6, impulse: 420 },
-  cannon: { ammo: 18, heat: 20, cooldown: 0.55, projectileSpeed: 520, damage: 14, radius: 5, impulse: 560 },
-  beam: { ammo: 40, heat: 18, cooldown: 0.45, projectileSpeed: 0, damage: 10, radius: 2, impulse: 90 },
+  cannon: { ammo: 18, heat: 24, cooldown: 0.62, projectileSpeed: 500, damage: 18, radius: 8, impulse: 680 },
+  beam: { ammo: 40, heat: 22, cooldown: 0.55, projectileSpeed: 0, damage: 5, radius: 2, impulse: 90 },
 };
 
 export function createSecondaryState() {
@@ -56,7 +56,8 @@ export function fireSecondary(game) {
       radius: def.radius,
       damage: def.damage,
       impulse: def.impulse,
-      lifetime: secondary.selected === 'rocket' ? 5.8 : secondary.selected === 'beam' ? 0.28 : 1.6,
+      frames: secondary.selected === 'beam' ? 9 : 0,
+      lifetime: secondary.selected === 'rocket' ? 5.8 : secondary.selected === 'beam' ? 9 / 60 : 1.6,
     }),
   );
   secondary.ammo[secondary.selected] -= 1;

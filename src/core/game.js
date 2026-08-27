@@ -199,6 +199,7 @@ function handleCollisions(game) {
       hitEnemiesWithBeam(game, projectile);
       continue;
     }
+    if (projectile.behavior === 'blast') continue;
     for (const enemy of activeEnemies(game)) {
       if (distanceSquared(projectile, enemy) >= (enemy.radius + projectile.radius) ** 2) continue;
       const hit = applyEnemyDamage(enemy, projectile);
@@ -207,6 +208,7 @@ function handleCollisions(game) {
         projectile.lifetime = 0;
         enemy.vx += projectile.vx * 0.004;
         enemy.vy += projectile.vy * 0.004;
+        if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile, enemy);
         break;
       }
     }
@@ -214,17 +216,73 @@ function handleCollisions(game) {
 }
 
 function hitEnemiesWithBeam(game, projectile) {
-  projectile.hitApplied ??= false;
   const trace = traceEnemyVoxelRay(activeEnemies(game), projectile, projectile.angle, projectile.length);
   projectile.renderEndX = trace.x;
   projectile.renderEndY = trace.y;
-  if (!trace.enemy || projectile.hitApplied) return;
-  projectile.hitApplied = true;
-  const hit = applyEnemyDamage(trace.enemy, { ...projectile, x: trace.x, y: trace.y });
+  if (!trace.enemy) return;
+  const scale = beamDamageScale(projectile);
+  const hit = applyEnemyDamage(trace.enemy, {
+    ...projectile,
+    x: trace.x,
+    y: trace.y,
+    damage: projectile.damage * scale,
+    radius: projectile.radius + (CELL_SIZE / 6) * Math.max(0, scale - 1),
+  });
   if (hit.hit) {
-    game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
-    trace.enemy.vx += Math.cos(projectile.angle) * projectile.impulse * 0.01;
-    trace.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.01;
+    game.score.damageDone += Math.round(projectile.damage * scale + hit.removed * 3);
+    trace.enemy.vx += Math.cos(projectile.angle) * projectile.impulse * 0.004 * scale;
+    trace.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.004 * scale;
+  }
+}
+
+function beamDamageScale(projectile) {
+  const frames = projectile.frames || 9;
+  const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
+  const frame = Math.max(0, Math.min(frames - 1, Math.floor(age * frames)));
+  const centerDistance = Math.abs(frame - (frames - 1) / 2);
+  if (centerDistance <= 1) return 3;
+  return 1 + (1 - centerDistance / ((frames - 1) / 2)) * 2;
+}
+
+function spawnCannonImpact(game, projectile, enemy) {
+  game.playerProjectiles.push(
+    createProjectile(projectile.x, projectile.y, 0, 0, {
+      team: 'player',
+      weapon: 'cannon-blast',
+      behavior: 'blast',
+      radius: 1,
+      maxRadius: projectile.radius * 3.2,
+      damage: 0,
+      impulse: 0,
+      lifetime: 0.18,
+    }),
+  );
+
+  const blast = {
+    ...projectile,
+    damage: projectile.damage * 0.65,
+    radius: projectile.radius * 2.4,
+    impulse: projectile.impulse * 0.35,
+  };
+  const hit = applyEnemyDamage(enemy, blast);
+  if (hit.hit) game.score.damageDone += Math.round(blast.damage + hit.removed * 3);
+
+  const fragmentCount = 28;
+  const baseAngle = projectile.angle;
+  for (let index = 0; index < fragmentCount; index += 1) {
+    const fan = ((index / (fragmentCount - 1)) - 0.5) * Math.PI * 1.35;
+    const angle = baseAngle + fan + game.rng.range(-0.08, 0.08);
+    const speed = game.rng.range(170, 310);
+    game.playerProjectiles.push(
+      createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+        team: 'player',
+        weapon: 'cannon-shrapnel',
+        radius: game.rng.range(1.4, 2.2),
+        damage: projectile.damage * game.rng.range(0.1, 0.18),
+        impulse: projectile.impulse * 0.08,
+        lifetime: game.rng.range(0.22, 0.42),
+      }),
+    );
   }
 }
 

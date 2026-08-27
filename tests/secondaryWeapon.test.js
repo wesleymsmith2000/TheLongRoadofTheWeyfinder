@@ -24,6 +24,7 @@ test('beam secondary creates a short beam blast instead of a traveling shot', ()
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'beam');
   assert.equal(game.playerProjectiles[0].length > 300, true);
+  assert.equal(game.playerProjectiles[0].frames, 9);
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
 });
 
@@ -46,4 +47,30 @@ test('beam stores a render endpoint when it hits an enemy voxel', () => {
   const beam = game.playerProjectiles.find((projectile) => projectile.behavior === 'beam');
   const tracedLength = Math.hypot(beam.renderEndX - beam.x, beam.renderEndY - beam.y);
   assert.equal(tracedLength < beam.length, true);
+});
+
+test('beam applies repeated contact damage over its firing frames', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.vehicle.turretHeading = 0;
+  game.enemies[0].x = game.vehicle.x + 60;
+  game.enemies[0].y = game.vehicle.y;
+  fireSecondary(game);
+  for (let i = 0; i < 5; i += 1) stepGame(game, { secondarySelect: 'beam' }, 1 / 60);
+  assert.equal(game.enemies[0].damageTaken > 25, true);
+});
+
+test('cannon impact creates blast shrapnel', () => {
+  const game = createGame();
+  game.secondary.selected = 'cannon';
+  game.vehicle.turretHeading = 0;
+  game.enemies[0].x = game.vehicle.x + 45;
+  game.enemies[0].y = game.vehicle.y;
+  fireSecondary(game);
+  stepGame(game, { secondarySelect: 'cannon' }, 0.08);
+  const shrapnel = game.playerProjectiles.filter((projectile) => projectile.weapon === 'cannon-shrapnel');
+  const blast = game.playerProjectiles.find((projectile) => projectile.weapon === 'cannon-blast');
+  assert.equal(shrapnel.length >= 20, true);
+  assert.equal(blast.behavior, 'blast');
+  assert.equal(game.score.damageDone > 18, true);
 });
