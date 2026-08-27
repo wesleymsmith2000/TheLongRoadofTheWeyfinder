@@ -413,11 +413,12 @@
           linear-gradient(90deg, rgb(12 13 13 / 0.86), rgb(12 13 13 / 0.5)),
           center / cover no-repeat var(--level-complete-art);
         color: #fff6e7;
-        pointer-events: auto;
+        pointer-events: none;
         z-index: 5;
       }
 
       .launch-panel {
+        position: relative;
         display: grid;
         gap: 12px;
         width: min(420px, calc(100vw - 32px));
@@ -425,6 +426,8 @@
         border: 1px solid rgb(244 238 228 / 0.24);
         border-radius: 8px;
         background: rgb(20 23 24 / 0.82);
+        pointer-events: auto;
+        z-index: 7;
       }
 
       .launch-panel h2 {
@@ -447,6 +450,7 @@
         color: #fff6e7;
         font-size: 16px;
         font-weight: 800;
+        touch-action: manipulation;
       }
 
       @media (max-width: 700px), (pointer: coarse) {

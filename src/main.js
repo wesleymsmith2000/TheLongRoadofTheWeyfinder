@@ -97,7 +97,6 @@ function frame(now) {
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
   const mouseInput = mouse.read();
-  const launchPressed = launchButtonPressed.consume();
   const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
   const touchBoostPressed = touchBoost.consume();
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
@@ -146,11 +145,6 @@ function frame(now) {
       touchSecondaryFloating.consume(),
   };
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
-  if (launchPressed) {
-    awaitingLaunch = false;
-    game.levelStartTime = game.time;
-    previous = now;
-  }
   if (input.debugTogglePressed) toggleDebug();
   if (input.controlsTogglePressed) toggleControls();
   if (!awaitingLaunch) {
@@ -187,7 +181,7 @@ requestAnimationFrame(frame);
 debugToggle.addEventListener('click', toggleDebug);
 hudToggle.addEventListener('click', toggleCombatHud);
 controlsToggle.addEventListener('click', toggleControls);
-const launchButtonPressed = createButtonPress(launchButton);
+launchButton.addEventListener('click', launchVehicle);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
 const shopRepairPressed = createButtonPress(shopRepairButton);
@@ -207,6 +201,14 @@ function toggleDebug() {
 function toggleCombatHud() {
   combatPanel.classList.toggle('hidden');
   hudToggle.setAttribute('aria-pressed', String(!combatPanel.classList.contains('hidden')));
+}
+
+function launchVehicle() {
+  if (!awaitingLaunch) return;
+  awaitingLaunch = false;
+  game.levelStartTime = game.time;
+  previous = performance.now();
+  launchScreen.classList.add('hidden');
 }
 
 function createButtonPress(button) {
