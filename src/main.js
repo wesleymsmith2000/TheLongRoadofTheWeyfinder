@@ -178,10 +178,10 @@ function frame(now) {
 
 requestAnimationFrame(frame);
 
-debugToggle.addEventListener('click', toggleDebug);
-hudToggle.addEventListener('click', toggleCombatHud);
-controlsToggle.addEventListener('click', toggleControls);
-launchButton.addEventListener('click', launchVehicle);
+bindButtonActivation(debugToggle, toggleDebug);
+bindButtonActivation(hudToggle, toggleCombatHud);
+bindButtonActivation(controlsToggle, toggleControls);
+bindButtonActivation(launchButton, launchVehicle);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
 const shopRepairPressed = createButtonPress(shopRepairButton);
@@ -209,6 +209,22 @@ function launchVehicle() {
   game.levelStartTime = game.time;
   previous = performance.now();
   launchScreen.classList.add('hidden');
+}
+
+function bindButtonActivation(button, handler) {
+  let pointerHandled = false;
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    pointerHandled = true;
+    handler();
+  });
+  button.addEventListener('click', () => {
+    if (pointerHandled) {
+      pointerHandled = false;
+      return;
+    }
+    handler();
+  });
 }
 
 function createButtonPress(button) {
