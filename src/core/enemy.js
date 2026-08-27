@@ -129,17 +129,25 @@ export function harvestEnemyScrap(enemy, rng) {
   return pickups;
 }
 
-export function traceEnemyVoxelRay(enemies, start, angle, maxLength) {
+export function traceEnemyVoxelRay(enemies, start, angle, maxLength, pierce = 0) {
   const step = CELL_SIZE / VOXELS / 2;
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
+  const pierced = new Set();
   for (let distance = 0; distance <= maxLength; distance += step) {
     const point = {
       x: start.x + dx * distance,
       y: start.y + dy * distance,
     };
     const hit = findEnemyVoxelAt(enemies, point);
-    if (hit) return { ...hit, x: point.x, y: point.y, distance };
+    if (!hit) continue;
+    const key = enemyVoxelKey(hit);
+    if (pierced.has(key)) continue;
+    if (pierced.size < pierce) {
+      pierced.add(key);
+      continue;
+    }
+    return { ...hit, x: point.x, y: point.y, distance };
   }
   return {
     enemy: null,
@@ -149,6 +157,10 @@ export function traceEnemyVoxelRay(enemies, start, angle, maxLength) {
     y: start.y + dy * maxLength,
     distance: maxLength,
   };
+}
+
+function enemyVoxelKey(hit) {
+  return `${hit.enemy.x}:${hit.enemy.y}:${hit.cell.id}:${hit.voxelIndex?.x ?? ''}:${hit.voxelIndex?.y ?? ''}`;
 }
 
 function findEnemyVoxelAt(enemies, worldPoint) {
@@ -164,7 +176,7 @@ function findEnemyVoxelAt(enemies, worldPoint) {
       const voxelX = Math.floor(((cellLocalX + CELL_SIZE / 2) / CELL_SIZE) * VOXELS);
       const voxelY = Math.floor(((cellLocalY + CELL_SIZE / 2) / CELL_SIZE) * VOXELS);
       const voxel = cell.mask[voxelY]?.[voxelX];
-      if (voxel?.hp > 0) return { enemy, cell, voxel };
+      if (voxel?.hp > 0) return { enemy, cell, voxel, voxelIndex: { x: voxelX, y: voxelY } };
     }
   }
   return null;

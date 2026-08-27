@@ -7,5 +7,14 @@ test('standard turret bullets use boosted damage', () => {
   game.autofire = true;
   stepGame(game, {}, 1 / 60);
   const bullet = game.playerProjectiles.find((projectile) => projectile.weapon === 'bullet');
-  assert.equal(bullet.damage, 10);
+  assert.equal(bullet.damage, 8);
+});
+
+test('main gun damage upgrade increases bullet damage', () => {
+  const game = createGame();
+  game.upgrades.gunDamage = 1;
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+  const bullet = game.playerProjectiles.find((projectile) => projectile.weapon === 'bullet');
+  assert.equal(bullet.damage.toFixed(1), '8.8');
 });

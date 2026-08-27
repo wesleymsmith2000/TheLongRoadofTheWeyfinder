@@ -27,15 +27,18 @@ test('beam secondary creates a short beam blast instead of a traveling shot', ()
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'beam');
   assert.equal(game.playerProjectiles[0].length > 300, true);
-  assert.equal(game.playerProjectiles[0].frames, 9);
+  assert.equal(game.playerProjectiles[0].frames, 5);
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
 });
 
 test('rocket secondary creates a homing missile with longer flight time', () => {
   const game = createGame();
+  game.vehicle.vx = 12;
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'homing');
+  assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
+  assert.equal(game.playerProjectiles[0].maxSpeed, 260);
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
 });
 
@@ -97,7 +100,17 @@ test('cannon uses boosted base damage', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage, 36);
+  assert.equal(game.playerProjectiles[0].damage, 18);
+});
+
+test('secondary upgrades alter projectile stats', () => {
+  const game = createGame();
+  game.secondary.selected = 'cannon';
+  game.upgrades.cannonImpactDamage = 1;
+  game.upgrades.cannonShrapnelCount = 2;
+  fireSecondary(game);
+  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '19.8');
+  assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
 });
 
 test('beam stays locked to the moving turret while firing', () => {

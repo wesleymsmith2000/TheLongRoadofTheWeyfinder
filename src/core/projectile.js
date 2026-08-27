@@ -20,6 +20,14 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     frames: options.frames ?? 0,
     turnRate: options.turnRate ?? 0,
     acceleration: options.acceleration ?? 0,
+    maxSpeed: options.maxSpeed ?? Infinity,
+    targetHint: options.targetHint ?? null,
+    blastDamage: options.blastDamage ?? 0,
+    blastRadius: options.blastRadius ?? 0,
+    blastKnockback: options.blastKnockback ?? 0,
+    shrapnelCount: options.shrapnelCount ?? 0,
+    shrapnelDamageScale: options.shrapnelDamageScale ?? 1,
+    pierce: options.pierce ?? 0,
   };
 }
 
@@ -47,16 +55,17 @@ function stepHomingProjectile(projectile, targets, dt) {
     projectile.angle += Math.max(-projectile.turnRate * dt, Math.min(projectile.turnRate * dt, delta));
   }
   const speed = Math.hypot(projectile.vx, projectile.vy);
-  const nextSpeed = speed + projectile.acceleration * dt;
+  const nextSpeed = Math.min(projectile.maxSpeed, speed + projectile.acceleration * dt);
   projectile.vx = Math.cos(projectile.angle) * nextSpeed;
   projectile.vy = Math.sin(projectile.angle) * nextSpeed;
 }
 
 function nearestTarget(projectile, targets) {
+  const reference = projectile.targetHint ?? projectile;
   return targets.reduce((nearest, target) => {
     if (target.destroyed) return nearest;
     if (!nearest) return target;
-    return distanceSquared(projectile, target) < distanceSquared(projectile, nearest) ? target : nearest;
+    return distanceSquared(reference, target) < distanceSquared(reference, nearest) ? target : nearest;
   }, null);
 }
 

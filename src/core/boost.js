@@ -4,24 +4,30 @@ export function createBoostState() {
   return {
     fuel: 100,
     maxFuel: 100,
-    cost: 34,
-    rechargeRate: 24,
+    cost: 51,
+    rechargeRate: 16,
+    acceleration: 140,
     cooldown: 0,
+    cooldownDuration: 20 / 60,
+    activeTime: 0,
+    maxDuration: 5 / 60,
   };
 }
 
 export function stepBoost(vehicle, boost, input, roadHeading, dt) {
   boost.cooldown = Math.max(0, boost.cooldown - dt);
+  boost.activeTime = Math.max(0, boost.activeTime - dt);
   boost.fuel = clamp(boost.fuel + boost.rechargeRate * boostRechargeFactor(vehicle) * dt, 0, boost.maxFuel);
   if (!input.dodgePressed || boost.cooldown > 0 || boost.fuel < boost.cost) return false;
 
   const direction = dodgeDirection(input);
   const world = rotatePoint(direction.x, direction.y, roadHeading);
-  vehicle.vx += world.x * 280;
-  vehicle.vy += world.y * 280;
+  vehicle.vx += world.x * boost.acceleration;
+  vehicle.vy += world.y * boost.acceleration;
   vehicle.angularVelocity *= 0.55;
   boost.fuel -= boost.cost;
-  boost.cooldown = 0.26;
+  boost.cooldown = boost.cooldownDuration;
+  boost.activeTime = boost.maxDuration;
   return true;
 }
 

@@ -1,19 +1,21 @@
 import { createProjectile } from './projectile.js';
 import { gunMuzzleWorld } from './vehicle.js';
+import { CELL_SIZE } from './voxelMask.js';
 
 export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam'];
 
 export const SECONDARY_DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
   rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 260, damage: 36, radius: 6, impulse: 420 },
-  cannon: { ammo: 18, heat: 24, cooldown: 0.62, projectileSpeed: 500, damage: 36, radius: 8, impulse: 680 },
-  beam: { ammo: 40, heat: 22, cooldown: 0.55, projectileSpeed: 0, damage: 5, radius: 2, impulse: 90 },
+  cannon: { ammo: 18, heat: 24, cooldown: 0.93, projectileSpeed: 500, damage: 18, radius: 8, impulse: 680 },
+  beam: { ammo: 40, heat: 44, cooldown: 0.55, projectileSpeed: 0, damage: 2.5, radius: 1, impulse: 90 },
 };
 
 export function createSecondaryState() {
   return {
     selected: 'rocket',
     ammo: { rocket: 12, cannon: 18, beam: 40 },
+    ammoBonus: {},
     heat: 0,
     maxHeat: 100,
     cooldown: 0,
@@ -27,7 +29,7 @@ export function stepSecondaryWeapon(game, input, dt) {
   if (input.secondaryCycle) cycleSecondary(secondary, input.secondaryCycle);
   secondary.autofire = Boolean(input.secondaryAutofire);
   secondary.cooldown = Math.max(0, secondary.cooldown - dt);
-  secondary.heat = Math.max(0, secondary.heat - 22 * dt);
+  secondary.heat = Math.max(0, secondary.heat - heatSinkRate(game) * dt);
   if (secondary.selected === 'none') return false;
   if (!input.secondaryFirePressed && !(secondary.autofire && game.enemies.some((enemy) => !enemy.destroyed))) return false;
   return fireSecondary(game);
@@ -35,15 +37,16 @@ export function stepSecondaryWeapon(game, input, dt) {
 
 export function fireSecondary(game) {
   const secondary = game.secondary;
-  const def = SECONDARY_DEFINITIONS[secondary.selected];
+  const def = upgradedSecondaryDefinition(game, secondary.selected);
   if (!def || secondary.cooldown > 0 || secondary.heat + def.heat > secondary.maxHeat) return false;
   if ((secondary.ammo[secondary.selected] ?? 0) <= 0) return false;
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return false;
   const angle = game.vehicle.turretHeading;
   const behavior = secondary.selected === 'rocket' ? 'homing' : secondary.selected === 'beam' ? 'beam' : 'ballistic';
+  const droppedRocket = secondary.selected === 'rocket';
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * def.projectileSpeed + game.vehicle.vx, Math.sin(angle) * def.projectileSpeed + game.vehicle.vy, {
+    createProjectile(muzzle.x, muzzle.y, projectileVelocityX(game, angle, def, droppedRocket), projectileVelocityY(game, angle, def, droppedRocket), {
       team: 'player',
       weapon: secondary.selected,
       behavior,
@@ -51,18 +54,26 @@ export function fireSecondary(game) {
       startX: muzzle.x,
       startY: muzzle.y,
       length: secondary.selected === 'beam' ? 640 : 0,
-      turnRate: secondary.selected === 'rocket' ? 2.5 : 0,
-      acceleration: secondary.selected === 'rocket' ? 18 : 0,
+      turnRate: secondary.selected === 'rocket' ? def.turnRate : 0,
+      acceleration: secondary.selected === 'rocket' ? def.acceleration : 0,
+      maxSpeed: secondary.selected === 'rocket' ? def.maxSpeed : Infinity,
+      targetHint: secondary.selected === 'rocket' ? game.aimReticle : null,
       radius: def.radius,
       damage: def.damage,
       impulse: def.impulse,
-      frames: secondary.selected === 'beam' ? 9 : 0,
-      lifetime: secondary.selected === 'rocket' ? 5.8 : secondary.selected === 'beam' ? 9 / 60 : 1.6,
+      blastDamage: def.blastDamage ?? 0,
+      blastRadius: def.blastRadius ?? 0,
+      blastKnockback: def.blastKnockback ?? 0,
+      shrapnelCount: def.shrapnelCount ?? 0,
+      shrapnelDamageScale: def.shrapnelDamageScale ?? 1,
+      pierce: def.pierce ?? 0,
+      frames: secondary.selected === 'beam' ? def.frames : 0,
+      lifetime: secondary.selected === 'rocket' ? 5.8 : secondary.selected === 'beam' ? def.frames / 60 : 1.6,
     }),
   );
   secondary.ammo[secondary.selected] -= 1;
   secondary.heat += def.heat;
-  secondary.cooldown = def.cooldown;
+  secondary.cooldown = def.cooldown * heatCooldownScale(secondary);
   return true;
 }
 
@@ -74,4 +85,76 @@ function cycleSecondary(secondary, direction) {
   const current = SECONDARY_WEAPONS.indexOf(secondary.selected);
   const next = (current + direction + SECONDARY_WEAPONS.length) % SECONDARY_WEAPONS.length;
   secondary.selected = SECONDARY_WEAPONS[next];
+}
+
+function upgradedSecondaryDefinition(game, weapon) {
+  const base = SECONDARY_DEFINITIONS[weapon];
+  if (!base) return null;
+  if (weapon === 'cannon') {
+    return {
+      ...base,
+      cooldown: base.cooldown / multiplier(game, 'cannonFireRate', 0.1),
+      damage: base.damage * multiplier(game, 'cannonImpactDamage', 0.1),
+      impulse: base.impulse * multiplier(game, 'cannonKnockback', 0.05),
+      blastDamage: 9 * multiplier(game, 'cannonBlastDamage', 0.1),
+      blastRadius: CELL_SIZE * 2.55 * multiplier(game, 'cannonBlastRadius', 0.1),
+      blastKnockback: 110 * multiplier(game, 'cannonKnockback', 0.05),
+      shrapnelCount: 28 + level(game, 'cannonShrapnelCount'),
+      shrapnelDamageScale: multiplier(game, 'cannonShrapnelDamage', 0.1),
+    };
+  }
+  if (weapon === 'rocket') {
+    return {
+      ...base,
+      cooldown: base.cooldown / multiplier(game, 'rocketFireRate', 0.1),
+      damage: base.damage * multiplier(game, 'rocketImpactDamage', 0.1),
+      impulse: base.impulse * multiplier(game, 'rocketKnockback', 0.05),
+      blastDamage: 4.5 * multiplier(game, 'rocketBlastDamage', 0.1),
+      blastRadius: CELL_SIZE * 1.275 * multiplier(game, 'rocketBlastRadius', 0.1),
+      blastKnockback: 55 * multiplier(game, 'rocketKnockback', 0.05),
+      maxSpeed: base.projectileSpeed * multiplier(game, 'rocketMaxVelocity', 0.1),
+      turnRate: 2.5 * multiplier(game, 'rocketTurning', 0.1),
+      acceleration: 180,
+    };
+  }
+  if (weapon === 'beam') {
+    return {
+      ...base,
+      cooldown: base.cooldown / multiplier(game, 'beamFireRate', 0.1),
+      heat: Math.max(1, base.heat * reduction(game, 'beamHeatEfficiency', 0.1)),
+      damage: base.damage * multiplier(game, 'beamDamage', 0.1),
+      radius: base.radius + level(game, 'beamWidth') * (CELL_SIZE / 6),
+      frames: Math.max(1, Math.round(5 * multiplier(game, 'beamFireTime', 0.1))),
+      pierce: level(game, 'beamPierce'),
+    };
+  }
+  return base;
+}
+
+function projectileVelocityX(game, angle, def, droppedRocket) {
+  return droppedRocket ? game.vehicle.vx : Math.cos(angle) * def.projectileSpeed + game.vehicle.vx;
+}
+
+function projectileVelocityY(game, angle, def, droppedRocket) {
+  return droppedRocket ? game.vehicle.vy : Math.sin(angle) * def.projectileSpeed + game.vehicle.vy;
+}
+
+function heatSinkRate(game) {
+  return 22 * multiplier(game, 'beamHeatSink', 0.1);
+}
+
+function heatCooldownScale(secondary) {
+  return 1 / Math.max(0.08, 1 - secondary.heat / secondary.maxHeat);
+}
+
+function level(game, id) {
+  return game.upgrades?.[id] ?? 0;
+}
+
+function multiplier(game, id, amount) {
+  return (1 + amount) ** level(game, id);
+}
+
+function reduction(game, id, amount) {
+  return (1 - amount) ** level(game, id);
 }

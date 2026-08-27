@@ -5,8 +5,17 @@ import { createKeyboardInput } from './input/keyboard.js';
 import { createGamepadInput } from './input/gamepad.js';
 import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
-import { SHOP_COSTS, ammoRefillCost, ammoStatus, repairStatus, replacementStatus } from './core/economy.js';
-import { secondaryAmmoCapacity } from './core/secondaryWeapon.js';
+import {
+  SHOP_COSTS,
+  UPGRADE_DEFINITIONS,
+  ammoCapacityWithUpgrades,
+  ammoRefillCost,
+  ammoStatus,
+  repairStatus,
+  replacementStatus,
+  upgradeCost,
+  upgradeStatus,
+} from './core/economy.js';
 import { countDetachedVehicleCells, hasRepairableVehicleDamage } from './core/vehicle.js';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import levelFailArt from '../assets/images/level_fail_screen.png';
@@ -46,6 +55,10 @@ const shopScrapAvailable = document.querySelector('#shopScrapAvailable');
 const shopRepairStatus = document.querySelector('#shopRepairStatus');
 const shopReplaceStatus = document.querySelector('#shopReplaceStatus');
 const shopAmmoStatus = document.querySelector('#shopAmmoStatus');
+const shopUpgradeSelect = document.querySelector('#shopUpgradeSelect');
+const shopBuyUpgradeButton = document.querySelector('#shopBuyUpgradeButton');
+const shopUpgradeCost = document.querySelector('#shopUpgradeCost');
+const shopUpgradeStatus = document.querySelector('#shopUpgradeStatus');
 const restartButton = document.querySelector('#restartButton');
 const renderer = new CanvasRenderer(canvas);
 const keyboard = createKeyboardInput(window);
@@ -68,6 +81,7 @@ document.documentElement.style.setProperty('--level-complete-art', `url("${level
 document.documentElement.style.setProperty('--level-fail-art', `url("${levelFailArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
+populateUpgradeSelect();
 
 function frame(now) {
   const dt = (now - previous) / 1000;
@@ -91,6 +105,7 @@ function frame(now) {
     aimX: 0,
     aimY: 0,
     aimWorld,
+    aimSource: mouseInput.aimWorld ? 'pointer' : 'gamepad',
     manualAimActive: stickAimActive || Boolean(mouseInput.aimWorld),
     manualAimHold: stickAimActive ? 5 : 0.45,
     gunnerEnabled: gunnerToggle.checked,
@@ -105,7 +120,9 @@ function frame(now) {
     shopRepairPressed: shopRepairPressed.consume(),
     shopReplacePressed: shopReplacePressed.consume(),
     shopRefillAmmoPressed: shopRefillAmmoPressed.consume(),
+    shopBuyUpgradePressed: shopBuyUpgradePressed.consume(),
     shopAmmoWeapon: secondarySelect.value,
+    shopUpgradeId: shopUpgradeSelect.value,
     dodgePressed: Boolean(dodgeSource),
     dodgeX: dodgeSource?.dodgeX ?? dodgeSource?.x ?? 0,
     dodgeY: dodgeSource?.dodgeY ?? dodgeSource?.y ?? -1,
@@ -151,6 +168,7 @@ const restartButtonPressed = createButtonPress(restartButton);
 const shopRepairPressed = createButtonPress(shopRepairButton);
 const shopReplacePressed = createButtonPress(shopReplaceButton);
 const shopRefillAmmoPressed = createButtonPress(shopRefillAmmoButton);
+const shopBuyUpgradePressed = createButtonPress(shopBuyUpgradeButton);
 
 function toggleControls() {
   controlsPanel.classList.toggle('hidden');
@@ -197,19 +215,32 @@ function viewport() {
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
+function populateUpgradeSelect() {
+  for (const upgrade of UPGRADE_DEFINITIONS) {
+    const option = document.createElement('option');
+    option.value = upgrade.id;
+    option.textContent = `${upgrade.system}: ${upgrade.label}`;
+    shopUpgradeSelect.append(option);
+  }
+}
+
 function updateShopUi() {
   const ammoCost = ammoRefillCost(game.secondary.selected);
   const ammo = game.secondary.ammo[game.secondary.selected];
-  const ammoCapacity = secondaryAmmoCapacity(game.secondary.selected);
+  const ammoCapacity = ammoCapacityWithUpgrades(game, game.secondary.selected);
+  const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
   shopRepairCost.textContent = SHOP_COSTS.repair;
   shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
+  shopUpgradeCost.textContent = Number.isFinite(selectedUpgradeCost) ? selectedUpgradeCost : '-';
   shopScrapAvailable.textContent = game.scrap;
   shopSelectedAmmo.textContent = game.secondary.selected;
   shopRepairStatus.textContent = repairStatus(game);
   shopReplaceStatus.textContent = replacementStatus(game);
   shopAmmoStatus.textContent = ammoStatus(game, game.secondary.selected);
+  shopUpgradeStatus.textContent = upgradeStatus(game, shopUpgradeSelect.value);
   shopRepairButton.disabled = game.scrap < SHOP_COSTS.repair || !hasRepairableVehicleDamage(game.vehicle);
   shopReplaceButton.disabled = game.scrap < SHOP_COSTS.replaceDetached || countDetachedVehicleCells(game.vehicle) === 0;
   shopRefillAmmoButton.disabled = !Number.isFinite(ammoCost) || game.scrap < ammoCost || ammo == null || ammo >= ammoCapacity;
+  shopBuyUpgradeButton.disabled = !Number.isFinite(selectedUpgradeCost) || game.scrap < selectedUpgradeCost;
 }

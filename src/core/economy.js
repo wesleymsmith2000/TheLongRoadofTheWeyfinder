@@ -1,5 +1,7 @@
 import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairVehicleDamage, replaceDetachedVehicleCell } from './vehicle.js';
 import { secondaryAmmoCapacity } from './secondaryWeapon.js';
+import { recalculateCell } from './cell.js';
+import { Roles } from './voxelMask.js';
 
 export const SHOP_COSTS = {
   repair: 2,
@@ -7,9 +9,90 @@ export const SHOP_COSTS = {
   ammoRefillFraction: 0.5,
   ammoModuleMultiplier: 4,
   scrapMagnetVoxels: 30,
+  upgradeBaseFraction: 0.25,
+  upgradeCostGrowth: 1.25,
 };
 
 const REPAIR_POWER_PER_SCRAP = 16;
+
+export const UPGRADE_DEFINITIONS = [
+  { id: 'gunAccuracy', label: 'Main Gun Accuracy', system: 'Main Gun' },
+  { id: 'gunFireRate', label: 'Main Gun Fire Rate', system: 'Main Gun' },
+  { id: 'gunDamage', label: 'Main Gun Damage', system: 'Main Gun' },
+  { id: 'cannonAmmo', label: 'Cannon Ammo Capacity', system: 'Cannon' },
+  { id: 'cannonImpactDamage', label: 'Cannon Impact Damage', system: 'Cannon' },
+  { id: 'cannonBlastDamage', label: 'Cannon Blast Damage', system: 'Cannon' },
+  { id: 'cannonBlastRadius', label: 'Cannon Blast Radius', system: 'Cannon' },
+  { id: 'cannonShrapnelCount', label: 'Cannon Shrapnel Count', system: 'Cannon' },
+  { id: 'cannonShrapnelDamage', label: 'Cannon Shrapnel Damage', system: 'Cannon' },
+  { id: 'cannonKnockback', label: 'Cannon Knockback', system: 'Cannon' },
+  { id: 'cannonFireRate', label: 'Cannon Fire Rate', system: 'Cannon' },
+  { id: 'rocketAmmo', label: 'Rocket Ammo Capacity', system: 'Rocket' },
+  { id: 'rocketImpactDamage', label: 'Rocket Impact Damage', system: 'Rocket' },
+  { id: 'rocketBlastDamage', label: 'Rocket Blast Damage', system: 'Rocket' },
+  { id: 'rocketBlastRadius', label: 'Rocket Blast Radius', system: 'Rocket' },
+  { id: 'rocketMaxVelocity', label: 'Rocket Max Velocity', system: 'Rocket' },
+  { id: 'rocketTurning', label: 'Rocket Turning', system: 'Rocket' },
+  { id: 'rocketKnockback', label: 'Rocket Knockback', system: 'Rocket' },
+  { id: 'rocketFireRate', label: 'Rocket Fire Rate', system: 'Rocket' },
+  { id: 'beamHeatEfficiency', label: 'Beam Heat Efficiency', system: 'Particle Beam' },
+  { id: 'beamHeatSink', label: 'Beam Heat Sink', system: 'Particle Beam' },
+  { id: 'beamDamage', label: 'Beam Damage', system: 'Particle Beam' },
+  { id: 'beamPierce', label: 'Beam Pierce', system: 'Particle Beam' },
+  { id: 'beamWidth', label: 'Beam Width', system: 'Particle Beam' },
+  { id: 'beamFireTime', label: 'Beam Fire Time', system: 'Particle Beam' },
+  { id: 'beamFireRate', label: 'Beam Fire Rate', system: 'Particle Beam' },
+  { id: 'armorToughness', label: 'Armor Toughness', system: 'Armor' },
+  { id: 'boostAcceleration', label: 'Booster Acceleration', system: 'Boosters' },
+  { id: 'boostDuration', label: 'Booster Max Duration', system: 'Boosters' },
+  { id: 'boostEfficiency', label: 'Booster Efficiency', system: 'Boosters' },
+  { id: 'boostRecharge', label: 'Booster Recharge Rate', system: 'Boosters' },
+  { id: 'boostCapacity', label: 'Booster Charge Capacity', system: 'Boosters' },
+  { id: 'boostRamDamage', label: 'Booster Ram Damage', system: 'Boosters' },
+  { id: 'boostRecoilDamage', label: 'Booster Recoil Damage Dampening', system: 'Boosters' },
+  { id: 'boostRecoilKnockback', label: 'Booster Recoil Knockback Dampening', system: 'Boosters' },
+  { id: 'boostShielding', label: 'Booster Damage Shielding', system: 'Boosters' },
+  { id: 'boostCooldown', label: 'Booster Cooldown', system: 'Boosters' },
+];
+
+export function createUpgradeState() {
+  return Object.fromEntries(UPGRADE_DEFINITIONS.map((upgrade) => [upgrade.id, 0]));
+}
+
+export function upgradeLevel(game, id) {
+  return game.upgrades?.[id] ?? 0;
+}
+
+export function upgradeCost(game, id) {
+  if (!UPGRADE_DEFINITIONS.some((upgrade) => upgrade.id === id)) return Infinity;
+  const base = Math.ceil(SHOP_COSTS.replaceDetached * SHOP_COSTS.upgradeBaseFraction);
+  return Math.ceil(base * SHOP_COSTS.upgradeCostGrowth ** upgradeLevel(game, id));
+}
+
+export function upgradeMultiplier(game, id, amount = 0.1) {
+  return (1 + amount) ** upgradeLevel(game, id);
+}
+
+export function upgradeReduction(game, id, amount = 0.1) {
+  return (1 - amount) ** upgradeLevel(game, id);
+}
+
+export function upgradeStatus(game, id) {
+  const cost = upgradeCost(game, id);
+  if (!Number.isFinite(cost)) return 'Unavailable';
+  const level = upgradeLevel(game, id);
+  return game.scrap >= cost ? `Level ${level}, ready` : `Level ${level}, need ${cost - game.scrap}`;
+}
+
+export function buyUpgradeWithScrap(game, id) {
+  const cost = upgradeCost(game, id);
+  if (!Number.isFinite(cost) || game.scrap < cost) return false;
+  game.scrap -= cost;
+  game.upgrades ??= createUpgradeState();
+  game.upgrades[id] = upgradeLevel(game, id) + 1;
+  applyUpgradeSideEffects(game, id);
+  return true;
+}
 
 export function repairVehicleWithScrap(game) {
   if (game.scrap < SHOP_COSTS.repair || !hasRepairableVehicleDamage(game.vehicle)) return false;
@@ -33,7 +116,7 @@ export function replacementStatus(game) {
 
 export function ammoStatus(game, weapon = game.secondary.selected) {
   const cost = ammoRefillCost(weapon);
-  const capacity = secondaryAmmoCapacity(weapon);
+  const capacity = ammoCapacityWithUpgrades(game, weapon);
   const ammo = game.secondary.ammo[weapon];
   if (!Number.isFinite(cost) || ammo == null) return 'No ammo reserve';
   if (ammo >= capacity) return 'Full';
@@ -49,7 +132,7 @@ export function replaceDetachedWithScrap(game) {
 }
 
 export function refillAmmoWithScrap(game, weapon = game.secondary.selected) {
-  const capacity = secondaryAmmoCapacity(weapon);
+  const capacity = ammoCapacityWithUpgrades(game, weapon);
   if (!Number.isFinite(capacity) || capacity <= 0) return false;
   const cost = ammoRefillCost(weapon);
   if (game.scrap < cost || game.secondary.ammo[weapon] >= capacity) return false;
@@ -68,4 +151,34 @@ export function ammoModuleCost(weapon) {
   const capacity = secondaryAmmoCapacity(weapon);
   if (!Number.isFinite(capacity) || capacity <= 0) return Infinity;
   return Math.ceil(capacity * SHOP_COSTS.ammoModuleMultiplier);
+}
+
+function applyUpgradeSideEffects(game, id) {
+  if (id === 'cannonAmmo') growAmmoReserve(game, 'cannon');
+  if (id === 'rocketAmmo') growAmmoReserve(game, 'rocket');
+  if (id === 'armorToughness') thickenArmorVoxels(game);
+}
+
+function growAmmoReserve(game, weapon) {
+  const added = Math.ceil(secondaryAmmoCapacity(weapon) * 0.25);
+  game.secondary.ammoBonus ??= {};
+  game.secondary.ammoBonus[weapon] = (game.secondary.ammoBonus[weapon] ?? 0) + added;
+  game.secondary.ammo[weapon] = Math.min(ammoCapacityWithUpgrades(game, weapon), (game.secondary.ammo[weapon] ?? 0) + added);
+}
+
+export function ammoCapacityWithUpgrades(game, weapon) {
+  return secondaryAmmoCapacity(weapon) + (game.secondary?.ammoBonus?.[weapon] ?? 0);
+}
+
+function thickenArmorVoxels(game) {
+  for (const cell of game.vehicle.cells) {
+    if (cell.type !== 'armor') continue;
+    for (const voxel of cell.mask.flat()) {
+      if (voxel.role !== Roles.ARMOR) continue;
+      const oldMax = voxel.maxHp;
+      voxel.maxHp *= 1.1;
+      voxel.hp += voxel.maxHp - oldMax;
+    }
+    recalculateCell(cell);
+  }
 }

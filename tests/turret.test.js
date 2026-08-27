@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createGame, stepGame } from '../src/core/game.js';
 import { createStartingVehicle, gunMuzzleWorld } from '../src/core/vehicle.js';
 import { compensatedAimHeading, gunnerAim, resolveTurretAim, stepTurretAim } from '../src/core/turret.js';
 
@@ -72,4 +73,13 @@ test('manual aim compensation can be disabled', () => {
   const direct = resolveTurretAim(vehicle, [], { aimWorld: target, compensatedAim: false });
   const compensated = resolveTurretAim(vehicle, [], { aimWorld: target, compensatedAim: true });
   assert.notEqual(direct.toFixed(4), compensated.toFixed(4));
+});
+
+test('gunner AI moves an aim reticle when manual aim is idle', () => {
+  const game = createGame();
+  game.enemies[0].x = game.vehicle.x + 200;
+  game.enemies[0].y = game.vehicle.y;
+  stepGame(game, { gunnerEnabled: true }, 1 / 60);
+  assert.equal(game.aimReticle.source, 'ai');
+  assert.equal(game.aimReticle.x > game.vehicle.x, true);
 });

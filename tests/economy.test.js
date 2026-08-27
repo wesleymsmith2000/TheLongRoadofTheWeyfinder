@@ -3,13 +3,17 @@ import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
 import {
   SHOP_COSTS,
+  ammoCapacityWithUpgrades,
   ammoModuleCost,
   ammoRefillCost,
+  buyUpgradeWithScrap,
   refillAmmoWithScrap,
   repairStatus,
   repairVehicleWithScrap,
   replacementStatus,
   replaceDetachedWithScrap,
+  upgradeCost,
+  upgradeStatus,
 } from '../src/core/economy.js';
 import { applyVehicleDamage } from '../src/core/vehicle.js';
 
@@ -89,4 +93,34 @@ test('level-complete shop actions are accepted before next level starts', () => 
   stepGame(game, { shopRefillAmmoPressed: true, shopAmmoWeapon: 'cannon' }, 1 / 60);
   assert.equal(game.secondary.ammo.cannon, 18);
   assert.equal(game.levelComplete, true);
+});
+
+test('upgrade shop spends scrap and scales the next cost geometrically', () => {
+  const game = createGame();
+  game.scrap = upgradeCost(game, 'gunDamage');
+  const bought = buyUpgradeWithScrap(game, 'gunDamage');
+  assert.equal(bought, true);
+  assert.equal(game.upgrades.gunDamage, 1);
+  assert.equal(game.scrap, 0);
+  assert.equal(upgradeCost(game, 'gunDamage'), 5);
+  assert.equal(upgradeStatus(game, 'gunDamage'), 'Level 1, need 5');
+});
+
+test('ammo capacity upgrades expand the matching reserve', () => {
+  const game = createGame();
+  game.scrap = upgradeCost(game, 'rocketAmmo');
+  const bought = buyUpgradeWithScrap(game, 'rocketAmmo');
+  assert.equal(bought, true);
+  assert.equal(ammoCapacityWithUpgrades(game, 'rocket'), 15);
+  assert.equal(game.secondary.ammo.rocket, 15);
+});
+
+test('armor toughness upgrade thickens armor voxels', () => {
+  const game = createGame();
+  const armor = game.vehicle.cells.find((cell) => cell.id === 'armor-left');
+  const before = Math.max(...armor.mask.flat().map((voxel) => voxel.maxHp));
+  game.scrap = upgradeCost(game, 'armorToughness');
+  buyUpgradeWithScrap(game, 'armorToughness');
+  const after = Math.max(...armor.mask.flat().map((voxel) => voxel.maxHp));
+  assert.equal(after > before, true);
 });

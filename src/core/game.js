@@ -1,8 +1,8 @@
-import { createStartingVehicle, gunMuzzleWorld, hasFunctionalGun, recalculateVehicle } from './vehicle.js';
+import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, hasFunctionalGun, recalculateVehicle } from './vehicle.js';
 import { stepVehicle } from './physics.js';
 import { createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
-import { distanceSquared } from './math.js';
+import { clamp, distanceSquared } from './math.js';
 import { Rng } from './rng.js';
 import {
   containVehicleInRoadFrame,
@@ -18,7 +18,17 @@ import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
 import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
 import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
-import { SHOP_COSTS, refillAmmoWithScrap, repairVehicleWithScrap, replaceDetachedWithScrap } from './economy.js';
+import {
+  SHOP_COSTS,
+  buyUpgradeWithScrap,
+  createUpgradeState,
+  refillAmmoWithScrap,
+  repairVehicleWithScrap,
+  replaceDetachedWithScrap,
+  upgradeLevel,
+  upgradeMultiplier,
+  upgradeReduction,
+} from './economy.js';
 
 export function createGame(seed = 1147) {
   const vehicle = createStartingVehicle();
@@ -31,6 +41,7 @@ export function createGame(seed = 1147) {
     enemies: createLevelEnemies(road, 1),
     boost: createBoostState(),
     secondary: createSecondaryState(),
+    upgrades: createUpgradeState(),
     scrap: 0,
     scrapPickups: [],
     playerProjectiles: [],
@@ -44,6 +55,8 @@ export function createGame(seed = 1147) {
     levelTimes: [],
     levelsCompleted: 0,
     score: { damageDone: 0 },
+    aiAimReticle: null,
+    aimReticle: null,
     time: 0,
     fps: 60,
     gameOver: false,
@@ -67,10 +80,13 @@ export function stepGame(game, input, dt) {
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
   stepVehicle(game.vehicle, input, dt, game.road.heading);
+  configureBoostFromUpgrades(game);
   stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
-  stepTurretAim(game.vehicle, activeEnemies(game), input, dt);
+  const turretInput = aimInputForTurret(game, input, dt);
+  stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
   stepEnemies(game, dt);
   stepPlayerGun(game, dt);
+  handleBoostRams(game);
   stepSecondaryWeapon(game, input, dt);
 
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
@@ -172,6 +188,52 @@ function stepShop(game, input) {
   if (input.shopRepairPressed) repairVehicleWithScrap(game);
   if (input.shopReplacePressed) replaceDetachedWithScrap(game);
   if (input.shopRefillAmmoPressed) refillAmmoWithScrap(game, input.shopAmmoWeapon ?? game.secondary.selected);
+  if (input.shopBuyUpgradePressed) buyUpgradeWithScrap(game, input.shopUpgradeId);
+}
+
+function aimInputForTurret(game, input, dt) {
+  if (input.aimWorld) {
+    game.aimReticle = { ...input.aimWorld, active: true, source: input.aimSource ?? 'manual' };
+    return input;
+  }
+  if (input.gunnerEnabled === false || (game.vehicle.manualAimGrace ?? 0) > 0 || activeEnemies(game).length === 0) {
+    game.aimReticle = null;
+    return input;
+  }
+
+  const target = gunnerAimTarget(game);
+  if (!target) return input;
+  game.aiAimReticle = moveToward(game.aiAimReticle ?? { x: game.vehicle.x, y: game.vehicle.y }, target, 520 * dt);
+  game.aimReticle = { ...game.aiAimReticle, active: true, source: 'ai' };
+  return { ...input, aimWorld: game.aiAimReticle, manualAimActive: false };
+}
+
+function gunnerAimTarget(game) {
+  const target = activeEnemies(game).reduce((nearest, enemy) => {
+    if (!nearest) return enemy;
+    return distanceSquared(game.vehicle, enemy) < distanceSquared(game.vehicle, nearest) ? enemy : nearest;
+  }, null);
+  if (!target) return null;
+  const distance = Math.hypot(target.x - game.vehicle.x, target.y - game.vehicle.y);
+  const leadTime = Math.min(0.75, distance / PRIMARY_PROJECTILE_SPEED);
+  return { x: target.x + (target.vx ?? 0) * leadTime, y: target.y + (target.vy ?? 0) * leadTime };
+}
+
+function moveToward(from, to, maxDistance) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance <= maxDistance || distance <= 0.001) return { ...to };
+  return { x: from.x + (dx / distance) * maxDistance, y: from.y + (dy / distance) * maxDistance };
+}
+
+function configureBoostFromUpgrades(game) {
+  game.boost.maxFuel = 100 * upgradeMultiplier(game, 'boostCapacity', 0.1);
+  game.boost.cost = 51 * upgradeReduction(game, 'boostEfficiency', 0.1);
+  game.boost.rechargeRate = 16 * upgradeMultiplier(game, 'boostRecharge', 0.1);
+  game.boost.acceleration = 140 * upgradeMultiplier(game, 'boostAcceleration', 0.1);
+  game.boost.maxDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration', 0.1);
+  game.boost.cooldownDuration = (20 / 60) * upgradeReduction(game, 'boostCooldown', 0.1);
 }
 
 function stepPlayerGun(game, dt) {
@@ -179,17 +241,25 @@ function stepPlayerGun(game, dt) {
   if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return;
-  const angle = game.vehicle.turretHeading;
+  const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy', 0.1);
+  const angle = game.vehicle.turretHeading + game.rng.range(-spread, spread);
+  const damage = 8 * upgradeMultiplier(game, 'gunDamage', 0.1);
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vx, Math.sin(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vy, {
       team: 'player',
       radius: 3,
-      damage: 10,
+      damage,
       impulse: 120,
       lifetime: 2.2,
     }),
   );
-  game.playerFireTimer = 0.18;
+  game.playerFireTimer = playerGunFireInterval(game);
+}
+
+function playerGunFireInterval(game) {
+  const level = upgradeLevel(game, 'gunFireRate');
+  const speed = 1 + 2 * (1 - 0.82 ** level);
+  return 0.22 / speed;
 }
 
 function stepEnemies(game, dt) {
@@ -238,12 +308,44 @@ function stepEnemy(game, enemy, dt) {
   enemy.vy *= Math.pow(0.78, dt);
 }
 
+function handleBoostRams(game) {
+  if (game.boost.activeTime <= 0) return;
+  for (const enemy of activeEnemies(game)) {
+    const range = enemy.radius + CELL_SIZE * 1.6;
+    if (distanceSquared(enemy, game.vehicle) > range * range) continue;
+    if (enemy.lastRammedAt != null && game.time - enemy.lastRammedAt < 0.24) continue;
+    enemy.lastRammedAt = game.time;
+
+    const direction = directionFromTo(game.vehicle, enemy);
+    const damage = 18 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
+    const hit = applyEnemyDamage(enemy, {
+      x: enemy.x,
+      y: enemy.y,
+      radius: 8,
+      damage,
+      vx: direction.x * 500,
+      vy: direction.y * 500,
+    });
+    if (hit.hit) game.score.damageDone += Math.round(damage + hit.removed * 3);
+    if (hit.destroyedNow) explodeEnemy(game, enemy);
+    enemy.vx += direction.x * 220 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
+    enemy.vy += direction.y * 220 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
+
+    const recoilDamage = damage * 0.25 * upgradeReduction(game, 'boostRecoilDamage', 0.1);
+    const recoilImpulse = 220 * upgradeReduction(game, 'boostRecoilKnockback', 0.1);
+    applyVehicleDamage(game.vehicle, game.vehicle, CELL_SIZE * 0.5, recoilDamage, recoilImpulse, {
+      x: -direction.x,
+      y: -direction.y,
+    });
+  }
+}
+
 function handleCollisions(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
     const vehicleHitRange = CELL_SIZE * 3.8 + projectile.radius;
     if (distanceSquared(projectile, game.vehicle) < vehicleHitRange * vehicleHitRange) {
-      const hit = hitVehicleWithProjectile(game.vehicle, projectile);
+      const hit = hitVehicleWithProjectile(game.vehicle, shieldedProjectile(game, projectile));
       if (hit.hit) projectile.lifetime = 0;
     }
   }
@@ -265,14 +367,21 @@ function handleCollisions(game) {
         enemy.vy += projectile.vy * 0.004;
         if (hit.destroyedNow) explodeEnemy(game, enemy);
         if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile, enemy);
+        if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile, enemy);
         break;
       }
     }
   }
 }
 
+function shieldedProjectile(game, projectile) {
+  if (game.boost.activeTime <= 0) return projectile;
+  const shield = clamp(0.25 * upgradeMultiplier(game, 'boostShielding', 0.1), 0, 0.8);
+  return { ...projectile, damage: projectile.damage * (1 - shield), impulse: projectile.impulse * (1 - shield) };
+}
+
 function hitEnemiesWithBeam(game, projectile) {
-  const trace = traceEnemyVoxelRay(activeEnemies(game), projectile, projectile.angle, projectile.length);
+  const trace = traceEnemyVoxelRay(activeEnemies(game), projectile, projectile.angle, projectile.length, projectile.pierce ?? 0);
   projectile.renderEndX = trace.x;
   projectile.renderEndY = trace.y;
   if (!trace.enemy) return;
@@ -322,14 +431,14 @@ function spawnCannonImpact(game, projectile, enemy) {
       weapon: 'cannon-blast',
       behavior: 'blast',
       radius: 1,
-      maxRadius: CELL_SIZE * 3.4,
+      maxRadius: projectile.blastRadius || CELL_SIZE * 2.55,
       damage: 0,
       impulse: 0,
       lifetime: 0.22,
     }),
   );
 
-  const blastRadius = CELL_SIZE * 3.34;
+  const blastRadius = projectile.blastRadius || CELL_SIZE * 2.55;
   for (const blastTarget of activeEnemies(game)) {
     const distance = Math.hypot(blastTarget.x - projectile.x, blastTarget.y - projectile.y);
     if (distance > blastRadius + blastTarget.radius) continue;
@@ -338,16 +447,16 @@ function spawnCannonImpact(game, projectile, enemy) {
       closeVoxelDistance: 5,
       closePenetration: 3,
       farPenetration: 1,
-      damage: projectile.damage * 0.56,
+      damage: projectile.blastDamage || projectile.damage * 0.28,
     });
     if (hit.hit) {
-      game.score.damageDone += Math.round(projectile.damage * 0.22 + hit.removed * 3);
+      game.score.damageDone += Math.round((projectile.blastDamage || projectile.damage * 0.28) * 0.22 + hit.removed * 3);
       if (hit.destroyedNow) explodeEnemy(game, blastTarget);
     }
-    knockEnemyFromPoint(blastTarget, projectile, CELL_SIZE * 4.6, 220);
+    knockEnemyFromPoint(blastTarget, projectile, CELL_SIZE * 4.6, projectile.blastKnockback || 110);
   }
 
-  const fragmentCount = 28;
+  const fragmentCount = projectile.shrapnelCount || 28;
   const baseAngle = projectile.angle;
   for (let index = 0; index < fragmentCount; index += 1) {
     const fan = ((index / (fragmentCount - 1)) - 0.5) * Math.PI * 1.35;
@@ -358,11 +467,44 @@ function spawnCannonImpact(game, projectile, enemy) {
         team: 'player',
         weapon: 'cannon-shrapnel',
         radius: game.rng.range(1.4, 2.2),
-        damage: projectile.damage * game.rng.range(0.1, 0.18),
+        damage: projectile.damage * (projectile.shrapnelDamageScale ?? 1) * game.rng.range(0.1, 0.18),
         impulse: projectile.impulse * 0.08,
         lifetime: game.rng.range(0.22, 0.42),
       }),
     );
+  }
+}
+
+function spawnRocketImpact(game, projectile, enemy) {
+  if ((projectile.blastRadius ?? 0) <= 0) return;
+  game.playerProjectiles.push(
+    createProjectile(projectile.x, projectile.y, 0, 0, {
+      team: 'player',
+      weapon: 'rocket-blast',
+      behavior: 'blast',
+      radius: 1,
+      maxRadius: projectile.blastRadius,
+      damage: 0,
+      impulse: 0,
+      lifetime: 0.18,
+    }),
+  );
+
+  for (const blastTarget of activeEnemies(game)) {
+    const distance = Math.hypot(blastTarget.x - projectile.x, blastTarget.y - projectile.y);
+    if (distance > projectile.blastRadius + blastTarget.radius) continue;
+    const hit = applyEnemyBlastDamage(blastTarget, projectile, {
+      maxVoxelDistance: Math.max(1, projectile.blastRadius / (CELL_SIZE / 6)),
+      closeVoxelDistance: 3,
+      closePenetration: 2,
+      farPenetration: 1,
+      damage: projectile.blastDamage,
+    });
+    if (hit.hit) {
+      game.score.damageDone += Math.round(projectile.blastDamage * 0.22 + hit.removed * 3);
+      if (hit.destroyedNow) explodeEnemy(game, blastTarget);
+    }
+    knockEnemyFromPoint(blastTarget, projectile, projectile.blastRadius + CELL_SIZE, projectile.blastKnockback);
   }
 }
 
@@ -398,6 +540,14 @@ function knockEnemyFromPoint(enemy, point, radius, impulse) {
   const falloff = 1 - distance / radius;
   enemy.vx += (dx / distance) * impulse * falloff;
   enemy.vy += (dy / distance) * impulse * falloff;
+}
+
+function directionFromTo(from, to) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance <= 0.001) return { x: 0, y: -1 };
+  return { x: dx / distance, y: dy / distance };
 }
 
 function steerEnemyBackToLaneCenter(enemy, road, dt) {
