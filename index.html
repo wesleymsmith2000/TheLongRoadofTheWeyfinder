@@ -299,6 +299,11 @@
         margin: 0;
       }
 
+      .shop-panel button span:last-child {
+        font-weight: 500;
+        color: #d7ceb8;
+      }
+
       .shop-summary {
         display: flex;
         align-items: center;
@@ -363,13 +368,19 @@
             <strong id="shopScrapAvailable">0</strong>
           </div>
           <button id="shopRepairButton" type="button">
-            <span class="icon-sprite" data-icon="repair" aria-hidden="true"></span> Repair Systems (<span id="shopRepairCost">2</span>)
+            <span class="icon-sprite" data-icon="repair" aria-hidden="true"></span>
+            Repair Systems
+            <span>Cost <span id="shopRepairCost">2</span> scrap, <span id="shopRepairStatus">Ready</span></span>
           </button>
           <button id="shopReplaceButton" type="button">
-            <span class="icon-sprite" data-icon="replace" aria-hidden="true"></span> Replace Detached (<span id="shopReplaceCost">16</span>)
+            <span class="icon-sprite" data-icon="replace" aria-hidden="true"></span>
+            Replace Detached
+            <span>Cost <span id="shopReplaceCost">16</span> scrap each, <span id="shopReplaceStatus">None missing</span></span>
           </button>
           <button id="shopRefillAmmoButton" type="button">
-            <span class="icon-sprite" data-icon="ammo" aria-hidden="true"></span> Refill <span id="shopSelectedAmmo">rocket</span> Ammo (<span id="shopAmmoCost">6</span>)
+            <span class="icon-sprite" data-icon="ammo" aria-hidden="true"></span>
+            Refill <span id="shopSelectedAmmo">rocket</span> Ammo
+            <span>Cost <span id="shopAmmoCost">6</span> scrap, <span id="shopAmmoStatus">Full</span></span>
           </button>
         </div>
         <button id="nextLevelButton" type="button">Start Next Level</button>

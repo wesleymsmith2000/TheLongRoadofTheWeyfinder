@@ -160,15 +160,23 @@ export function repairVehicleDamage(vehicle, repairPower) {
 }
 
 export function replaceDetachedVehicleCell(vehicle) {
-  const piece = vehicle.detachedPieces.find((candidate) => !candidate.cell.attached);
-  if (!piece) return null;
-  piece.cell.mask = createVoxelMask(piece.cell.type);
-  piece.cell.attached = true;
-  recalculateCell(piece.cell);
-  vehicle.detachedPieces = vehicle.detachedPieces.filter((candidate) => candidate !== piece);
+  const cell = vehicle.cells.find((candidate) => !candidate.attached);
+  if (!cell) return null;
+  cell.mask = createVoxelMask(cell.type);
+  cell.attached = true;
+  recalculateCell(cell);
+  vehicle.detachedPieces = vehicle.detachedPieces.filter((piece) => piece.cell !== cell);
   updateStructure(vehicle);
   recalculateVehicle(vehicle);
-  return piece.cell;
+  return cell;
+}
+
+export function countDetachedVehicleCells(vehicle) {
+  return vehicle.cells.filter((cell) => !cell.attached).length;
+}
+
+export function hasRepairableVehicleDamage(vehicle) {
+  return vehicle.cells.some((cell) => cell.attached && cell.mask.some((row) => row.some((voxel) => voxel.hp < voxel.maxHp)));
 }
 
 function spawnDetachedPiece(vehicle, cell) {

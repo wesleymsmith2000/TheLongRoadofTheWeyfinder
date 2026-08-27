@@ -1,7 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
-import { SHOP_COSTS, ammoModuleCost, ammoRefillCost, refillAmmoWithScrap, repairVehicleWithScrap, replaceDetachedWithScrap } from '../src/core/economy.js';
+import {
+  SHOP_COSTS,
+  ammoModuleCost,
+  ammoRefillCost,
+  refillAmmoWithScrap,
+  repairStatus,
+  repairVehicleWithScrap,
+  replacementStatus,
+  replaceDetachedWithScrap,
+} from '../src/core/economy.js';
 import { applyVehicleDamage } from '../src/core/vehicle.js';
 
 test('repair shop spends scrap to restore damaged attached voxels', () => {
@@ -36,6 +45,26 @@ test('replacement shop restores one detached module at folded repair cost', () =
   assert.equal(replaced, true);
   assert.equal(wheel.attached, true);
   assert.equal(game.scrap, 0);
+});
+
+test('replacement shop restores missing modules after debris expires', () => {
+  const game = createGame();
+  const wheel = game.vehicle.cells.find((candidate) => candidate.id === 'wheel-left');
+  wheel.attached = false;
+  game.vehicle.detachedPieces = [];
+  game.scrap = SHOP_COSTS.replaceDetached;
+  const replaced = replaceDetachedWithScrap(game);
+  assert.equal(replaced, true);
+  assert.equal(wheel.attached, true);
+});
+
+test('shop status text reports scrap shortfalls and missing modules', () => {
+  const game = createGame();
+  const wheel = game.vehicle.cells.find((candidate) => candidate.id === 'wheel-left');
+  wheel.attached = false;
+  game.scrap = 4;
+  assert.equal(replacementStatus(game), '1 missing, need 12');
+  assert.equal(repairStatus(game), 'No damage');
 });
 
 test('ammo refill uses half of a standard ammo load cost', () => {
