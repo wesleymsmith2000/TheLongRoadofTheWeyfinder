@@ -1,5 +1,5 @@
 import { createCell, recalculateCell } from './cell.js';
-import { applyDamage, CELL_SIZE } from './voxelMask.js';
+import { applyDamage, CELL_SIZE, VOXELS } from './voxelMask.js';
 
 const ENEMY_GRID = [
   ['armor', 'armor', 'armor'],
@@ -50,6 +50,47 @@ export function applyEnemyDamage(enemy, projectile) {
   enemy.damageTaken += projectile.damage + result.removed * 3;
   updateEnemyDestroyed(enemy);
   return { hit: true, cell, removed: result.removed };
+}
+
+export function traceEnemyVoxelRay(enemies, start, angle, maxLength) {
+  const step = CELL_SIZE / VOXELS / 2;
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  for (let distance = 0; distance <= maxLength; distance += step) {
+    const point = {
+      x: start.x + dx * distance,
+      y: start.y + dy * distance,
+    };
+    const hit = findEnemyVoxelAt(enemies, point);
+    if (hit) return { ...hit, x: point.x, y: point.y, distance };
+  }
+  return {
+    enemy: null,
+    cell: null,
+    voxel: null,
+    x: start.x + dx * maxLength,
+    y: start.y + dy * maxLength,
+    distance: maxLength,
+  };
+}
+
+function findEnemyVoxelAt(enemies, worldPoint) {
+  for (const enemy of enemies) {
+    if (enemy.destroyed) continue;
+    const localX = worldPoint.x - enemy.x;
+    const localY = worldPoint.y - enemy.y;
+    for (const cell of enemy.cells) {
+      if (cell.state.destroyed) continue;
+      const cellLocalX = localX - cell.gridX * CELL_SIZE;
+      const cellLocalY = localY - cell.gridY * CELL_SIZE;
+      if (Math.abs(cellLocalX) > CELL_SIZE / 2 || Math.abs(cellLocalY) > CELL_SIZE / 2) continue;
+      const voxelX = Math.floor(((cellLocalX + CELL_SIZE / 2) / CELL_SIZE) * VOXELS);
+      const voxelY = Math.floor(((cellLocalY + CELL_SIZE / 2) / CELL_SIZE) * VOXELS);
+      const voxel = cell.mask[voxelY]?.[voxelX];
+      if (voxel?.hp > 0) return { enemy, cell, voxel };
+    }
+  }
+  return null;
 }
 
 export function updateEnemyDestroyed(enemy) {

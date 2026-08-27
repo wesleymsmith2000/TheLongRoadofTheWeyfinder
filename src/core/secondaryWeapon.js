@@ -7,7 +7,7 @@ const DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
   rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 260, damage: 18, radius: 6, impulse: 420 },
   cannon: { ammo: 18, heat: 20, cooldown: 0.55, projectileSpeed: 520, damage: 14, radius: 5, impulse: 560 },
-  beam: { ammo: 40, heat: 18, cooldown: 0.38, projectileSpeed: 0, damage: 10, radius: 5, impulse: 90 },
+  beam: { ammo: 40, heat: 18, cooldown: 0.45, projectileSpeed: 0, damage: 10, radius: 2, impulse: 90 },
 };
 
 export function createSecondaryState() {
@@ -48,13 +48,15 @@ export function fireSecondary(game) {
       weapon: secondary.selected,
       behavior,
       angle,
+      startX: muzzle.x,
+      startY: muzzle.y,
       length: secondary.selected === 'beam' ? 640 : 0,
       turnRate: secondary.selected === 'rocket' ? 2.5 : 0,
       acceleration: secondary.selected === 'rocket' ? 18 : 0,
       radius: def.radius,
       damage: def.damage,
       impulse: def.impulse,
-      lifetime: secondary.selected === 'rocket' ? 5.8 : secondary.selected === 'beam' ? 0.12 : 1.6,
+      lifetime: secondary.selected === 'rocket' ? 5.8 : secondary.selected === 'beam' ? 0.28 : 1.6,
     }),
   );
   secondary.ammo[secondary.selected] -= 1;

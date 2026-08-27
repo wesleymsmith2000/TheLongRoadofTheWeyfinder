@@ -218,18 +218,22 @@ function drawProjectiles(ctx, projectiles, color) {
 }
 
 function drawBeam(ctx, projectile) {
-  const fade = Math.max(0, projectile.lifetime / projectile.maxLifetime);
+  const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
+  const widthEnvelope = Math.sin(age * Math.PI);
+  const voxelWidth = 1 + widthEnvelope * 4;
+  const endX = projectile.renderEndX ?? projectile.x + Math.cos(projectile.angle) * projectile.length;
+  const endY = projectile.renderEndY ?? projectile.y + Math.sin(projectile.angle) * projectile.length;
   ctx.save();
-  ctx.globalAlpha = 0.25 + fade * 0.75;
+  ctx.globalAlpha = 0.35 + widthEnvelope * 0.65;
   ctx.strokeStyle = '#83f7ff';
-  ctx.lineWidth = 8;
+  ctx.lineWidth = (CELL_SIZE / VOXELS) * voxelWidth;
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(projectile.x, projectile.y);
-  ctx.lineTo(projectile.x + Math.cos(projectile.angle) * projectile.length, projectile.y + Math.sin(projectile.angle) * projectile.length);
+  ctx.lineTo(endX, endY);
   ctx.stroke();
   ctx.strokeStyle = '#f4fffb';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = Math.max(1, (CELL_SIZE / VOXELS) * Math.min(1.5, voxelWidth * 0.35));
   ctx.stroke();
   ctx.restore();
 }
