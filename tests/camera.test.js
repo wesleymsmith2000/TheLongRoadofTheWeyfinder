@@ -47,7 +47,18 @@ test('vehicle is contained inside the road play lane', () => {
   containVehicleInRoadFrame(vehicle, road);
   const offset = worldToRoadOffset(vehicle, road);
   assert.equal(offset.x <= road.halfWidth, true);
-  assert.equal(vehicle.vx < 0, true);
+  assert.equal(vehicle.vx <= 0, true);
+});
+
+test('lane containment kills downward edge drift without pinning the craft', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  vehicle.y = road.y + road.halfHeight + 60;
+  vehicle.vy = 140;
+  containVehicleInRoadFrame(vehicle, road, 1 / 60);
+  const offset = worldToRoadOffset(vehicle, road);
+  assert.equal(offset.y <= road.halfHeight, true);
+  assert.equal(vehicle.vy <= 0, true);
 });
 
 test('road play lane scales to fill most of the viewport', () => {

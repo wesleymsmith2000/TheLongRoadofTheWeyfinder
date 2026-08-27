@@ -44,27 +44,40 @@ export function stepRoadCamera(camera, road, vehicle, dt) {
   camera.y = lerp(camera.y, road.y, follow);
 }
 
-export function containVehicleInRoadFrame(vehicle, road) {
+export function containVehicleInRoadFrame(vehicle, road, dt = 0) {
   const offset = worldToRoadOffset(vehicle, road);
+  const localVelocity = rotatePoint(vehicle.vx, vehicle.vy, -road.heading);
+  applyLaneEdgeCorrection(localVelocity, offset.x, road.halfWidth, dt, 'x');
+  applyLaneEdgeCorrection(localVelocity, offset.y, road.halfHeight, dt, 'y');
+
   const clampedX = clamp(offset.x, -road.halfWidth, road.halfWidth);
   const clampedY = clamp(offset.y, -road.halfHeight, road.halfHeight);
-  if (clampedX === offset.x && clampedY === offset.y) return false;
+  const clamped = clampedX !== offset.x || clampedY !== offset.y;
 
-  const correctedWorld = roadOffsetToWorld({ x: clampedX, y: clampedY }, road);
-  vehicle.x = correctedWorld.x;
-  vehicle.y = correctedWorld.y;
+  if (clamped) {
+    const correctedWorld = roadOffsetToWorld({ x: clampedX, y: clampedY }, road);
+    vehicle.x = correctedWorld.x;
+    vehicle.y = correctedWorld.y;
 
-  const localVelocity = rotatePoint(vehicle.vx, vehicle.vy, -road.heading);
-  if ((offset.x < -road.halfWidth && localVelocity.x < 0) || (offset.x > road.halfWidth && localVelocity.x > 0)) {
-    localVelocity.x *= -0.18;
-  }
-  if ((offset.y < -road.halfHeight && localVelocity.y < 0) || (offset.y > road.halfHeight && localVelocity.y > 0)) {
-    localVelocity.y *= -0.18;
+    if ((offset.x < -road.halfWidth && localVelocity.x < 0) || (offset.x > road.halfWidth && localVelocity.x > 0)) {
+      localVelocity.x = 0;
+    }
+    if ((offset.y < -road.halfHeight && localVelocity.y < 0) || (offset.y > road.halfHeight && localVelocity.y > 0)) {
+      localVelocity.y = 0;
+    }
   }
   const worldVelocity = rotatePoint(localVelocity.x, localVelocity.y, road.heading);
   vehicle.vx = worldVelocity.x;
   vehicle.vy = worldVelocity.y;
-  return true;
+  return clamped;
+}
+
+function applyLaneEdgeCorrection(localVelocity, value, halfSize, dt, axis) {
+  const softLimit = halfSize * 0.82;
+  const distance = Math.abs(value);
+  if (dt <= 0 || distance <= softLimit) return;
+  const pressure = clamp((distance - softLimit) / Math.max(1, halfSize - softLimit), 0, 1);
+  localVelocity[axis] -= Math.sign(value) * pressure * 210 * dt;
 }
 
 export function worldToRoadOffset(point, road) {

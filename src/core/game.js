@@ -71,7 +71,7 @@ export function stepGame(game, input, dt) {
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   handleCollisions(game);
-  containVehicleInRoadFrame(game.vehicle, game.road);
+  containVehicleInRoadFrame(game.vehicle, game.road, dt);
   recalculateVehicle(game.vehicle);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   game.gameOver = !game.vehicle.alive;

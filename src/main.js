@@ -43,6 +43,8 @@ function frame(now) {
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
   const mouseInput = mouse.read();
+  const touchBoostPressed = touchBoost.consume();
+  const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
   const stickAimWorld = stickAimActive
     ? screenToWorld(
@@ -69,9 +71,9 @@ function frame(now) {
     resetPressed: keyInput.resetPressed || restartButtonPressed.consume(),
     controlsTogglePressed: keyInput.controlsTogglePressed || padInput.controlsTogglePressed,
     nextLevelPressed: nextLevelButtonPressed.consume(),
-    dodgePressed: keyInput.dodgePressed || padInput.dodgePressed || touchBoost.consume(),
-    dodgeX: keyInput.dodgeX || padInput.dodgeX || mouseInput.x,
-    dodgeY: keyInput.dodgeY || padInput.dodgeY || mouseInput.y,
+    dodgePressed: Boolean(dodgeSource),
+    dodgeX: dodgeSource?.dodgeX ?? dodgeSource?.x ?? 0,
+    dodgeY: dodgeSource?.dodgeY ?? dodgeSource?.y ?? -1,
     secondarySelect: secondarySelect.value,
     secondaryAutofire: secondaryAutofire.checked,
     secondaryCycle: keyInput.secondaryCycle || padInput.secondaryCycle,
