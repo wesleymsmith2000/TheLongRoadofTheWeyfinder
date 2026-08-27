@@ -96,6 +96,7 @@ export function stepGame(game, input, dt) {
   stepScrapPickups(game, dt);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
   recalculateVehicle(game.vehicle);
+  syncBeamProjectiles(game);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   game.gameOver = !game.vehicle.alive;
   if (activeEnemies(game).length === 0 && game.scrapPickups.length === 0) {
@@ -194,6 +195,7 @@ function stepShop(game, input) {
 function aimInputForTurret(game, input, dt) {
   if (input.aimWorld) {
     game.aimReticle = { ...input.aimWorld, active: true, source: input.aimSource ?? 'manual' };
+    if ((input.secondarySelect ?? game.secondary.selected) === 'beam') return { ...input, compensatedAim: false };
     return input;
   }
   if (input.gunnerEnabled === false || (game.vehicle.manualAimGrace ?? 0) > 0 || activeEnemies(game).length === 0) {

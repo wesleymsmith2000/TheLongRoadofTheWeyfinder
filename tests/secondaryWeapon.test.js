@@ -126,3 +126,44 @@ test('beam stays locked to the moving turret while firing', () => {
   assert.equal(Math.abs(beam.y - muzzle.y) < 0.001, true);
   assert.equal(beam.angle, game.vehicle.turretHeading);
 });
+
+test('beam stays locked after lane containment moves a fast vehicle', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.vehicle.turretHeading = 0;
+  game.road.halfWidth = 20;
+  game.road.halfHeight = 20;
+  game.vehicle.x = game.road.x + 80;
+  game.vehicle.vx = 240;
+  fireSecondary(game);
+  stepGame(game, { secondarySelect: 'beam', gunnerEnabled: false }, 1 / 60);
+  const beam = game.playerProjectiles.find((projectile) => projectile.behavior === 'beam');
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  assert.equal(Math.abs(beam.x - muzzle.x) < 0.001, true);
+  assert.equal(Math.abs(beam.y - muzzle.y) < 0.001, true);
+});
+
+test('beam-selected manual aim ignores ballistic compensation at high vehicle velocity', () => {
+  const beamGame = createGame();
+  const cannonGame = createGame();
+  beamGame.secondary.selected = 'beam';
+  cannonGame.secondary.selected = 'cannon';
+  beamGame.vehicle.vx = 220;
+  beamGame.vehicle.vy = -180;
+  cannonGame.vehicle.vx = 220;
+  cannonGame.vehicle.vy = -180;
+  const target = { x: beamGame.vehicle.x + 160, y: beamGame.vehicle.y - 40 };
+  for (let i = 0; i < 14; i += 1) {
+    stepGame(
+      beamGame,
+      { secondarySelect: 'beam', aimWorld: target, manualAimActive: true, gunnerEnabled: false, compensatedAim: true },
+      1 / 60,
+    );
+    stepGame(
+      cannonGame,
+      { secondarySelect: 'cannon', aimWorld: target, manualAimActive: true, gunnerEnabled: false, compensatedAim: true },
+      1 / 60,
+    );
+  }
+  assert.equal(beamGame.vehicle.turretHeading < cannonGame.vehicle.turretHeading, true);
+});
