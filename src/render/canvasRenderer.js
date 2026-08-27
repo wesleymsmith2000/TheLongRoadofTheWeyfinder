@@ -49,10 +49,31 @@ export class CanvasRenderer {
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
     drawVehicle(ctx, game.vehicle);
+    drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
     if (debug.visible) drawDebugOverlay(ctx, game);
   }
+}
+
+function drawAimReticle(ctx, reticle) {
+  if (!reticle?.active) return;
+  ctx.save();
+  ctx.translate(reticle.x, reticle.y);
+  ctx.strokeStyle = reticle.source === 'gamepad' ? '#f7c06a' : '#83f7ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, 10, 0, Math.PI * 2);
+  ctx.moveTo(-16, 0);
+  ctx.lineTo(-6, 0);
+  ctx.moveTo(6, 0);
+  ctx.lineTo(16, 0);
+  ctx.moveTo(0, -16);
+  ctx.lineTo(0, -6);
+  ctx.moveTo(0, 6);
+  ctx.lineTo(0, 16);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawScrapPickups(ctx, pickups) {

@@ -27,6 +27,7 @@ const secondaryTouchFire = document.querySelector('#secondaryTouchFire');
 const secondaryAmmo = document.querySelector('#secondaryAmmo');
 const secondaryHeat = document.querySelector('#secondaryHeat');
 const gunnerToggle = document.querySelector('#gunnerToggle');
+const compensatedAimToggle = document.querySelector('#compensatedAimToggle');
 const scrapCount = document.querySelector('#scrapCount');
 const scoreDamage = document.querySelector('#scoreDamage');
 const levelComplete = document.querySelector('#levelComplete');
@@ -57,6 +58,12 @@ const debug = createDebugOverlay();
 
 let game = createGame();
 let previous = performance.now();
+const padReticle = {
+  x: window.innerWidth / 2,
+  y: window.innerHeight * 0.42,
+  active: false,
+  idle: Infinity,
+};
 document.documentElement.style.setProperty('--level-complete-art', `url("${levelCompleteArt}")`);
 document.documentElement.style.setProperty('--level-fail-art', `url("${levelFailArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
@@ -73,26 +80,21 @@ function frame(now) {
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
   if (keyInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
-  const stickAimWorld = stickAimActive
-    ? screenToWorld(
-        {
-          x: window.innerWidth / 2 + padInput.aimX * 100,
-          y: window.innerHeight * 0.58 + padInput.aimY * 100,
-        },
-        game.camera,
-        { width: window.innerWidth, height: window.innerHeight },
-      )
-    : null;
+  updatePadReticle(padReticle, padInput, dt);
+  const padAimWorld = padReticle.active && padReticle.idle <= 5 ? screenToWorld(padReticle, game.camera, viewport()) : null;
+  const aimWorld = mouseInput.aimWorld ?? padAimWorld;
+  game.aimReticle = aimWorld ? { ...aimWorld, active: true, source: mouseInput.aimWorld ? 'pointer' : 'gamepad' } : null;
   const input = {
     x: movementSource.x,
     y: movementSource.y,
     turn: keyInput.turn || padInput.turn,
     aimX: 0,
     aimY: 0,
-    aimWorld: stickAimWorld ?? mouseInput.aimWorld,
+    aimWorld,
     manualAimActive: stickAimActive || Boolean(mouseInput.aimWorld),
     manualAimHold: stickAimActive ? 5 : 0.45,
     gunnerEnabled: gunnerToggle.checked,
+    compensatedAim: compensatedAimToggle.checked,
     fireHeld: false,
     brake: keyInput.brake || padInput.brake,
     debugTogglePressed: keyInput.debugTogglePressed,
@@ -177,6 +179,22 @@ function chooseMovementSource(keyInput, mouseInput, padInput) {
 
 function axisMagnitude(input) {
   return Math.hypot(input.x ?? 0, input.y ?? 0);
+}
+
+function updatePadReticle(reticle, input, dt) {
+  const strength = Math.hypot(input.aimX ?? 0, input.aimY ?? 0);
+  if (strength > 0.2) {
+    reticle.active = true;
+    reticle.idle = 0;
+    reticle.x = Math.max(18, Math.min(window.innerWidth - 18, reticle.x + input.aimX * 520 * dt));
+    reticle.y = Math.max(18, Math.min(window.innerHeight - 18, reticle.y + input.aimY * 520 * dt));
+    return;
+  }
+  if (reticle.active) reticle.idle += dt;
+}
+
+function viewport() {
+  return { width: window.innerWidth, height: window.innerHeight };
 }
 
 function updateShopUi() {

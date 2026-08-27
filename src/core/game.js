@@ -14,7 +14,7 @@ import {
   worldToRoadOffset,
 } from './camera.js';
 import { CELL_SIZE } from './voxelMask.js';
-import { stepTurretAim } from './turret.js';
+import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
 import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
 import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
@@ -179,10 +179,9 @@ function stepPlayerGun(game, dt) {
   if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return;
-  const speed = 430;
   const angle = game.vehicle.turretHeading;
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
+    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vx, Math.sin(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vy, {
       team: 'player',
       radius: 3,
       damage: 10,

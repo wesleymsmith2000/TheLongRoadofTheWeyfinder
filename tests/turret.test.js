@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStartingVehicle } from '../src/core/vehicle.js';
-import { gunnerAim, resolveTurretAim, stepTurretAim } from '../src/core/turret.js';
+import { createStartingVehicle, gunMuzzleWorld } from '../src/core/vehicle.js';
+import { compensatedAimHeading, gunnerAim, resolveTurretAim, stepTurretAim } from '../src/core/turret.js';
 
 test('turret can aim at a mouse world point', () => {
   const vehicle = createStartingVehicle();
@@ -46,4 +46,30 @@ test('disabled gunner AI leaves turret heading alone without manual aim', () => 
   vehicle.turretHeading = Math.PI;
   const angle = resolveTurretAim(vehicle, [{ x: 100, y: 0 }], { gunnerEnabled: false });
   assert.equal(angle, vehicle.turretHeading);
+});
+
+test('compensated mouse aim fires through the cursor point after vehicle velocity', () => {
+  const vehicle = createStartingVehicle();
+  vehicle.vx = 0;
+  vehicle.vy = -180;
+  const target = { x: 160, y: -40 };
+  const angle = compensatedAimHeading(vehicle, target, 430);
+  vehicle.turretHeading = angle;
+  const muzzle = gunMuzzleWorld(vehicle);
+  const shot = {
+    x: Math.cos(angle) * 430 + vehicle.vx,
+    y: Math.sin(angle) * 430 + vehicle.vy,
+  };
+  const toTarget = { x: target.x - muzzle.x, y: target.y - muzzle.y };
+  const cross = shot.x * toTarget.y - shot.y * toTarget.x;
+  assert.equal(Math.abs(cross) < 0.001, true);
+});
+
+test('manual aim compensation can be disabled', () => {
+  const vehicle = createStartingVehicle();
+  vehicle.vy = -180;
+  const target = { x: 160, y: -40 };
+  const direct = resolveTurretAim(vehicle, [], { aimWorld: target, compensatedAim: false });
+  const compensated = resolveTurretAim(vehicle, [], { aimWorld: target, compensatedAim: true });
+  assert.notEqual(direct.toFixed(4), compensated.toFixed(4));
 });

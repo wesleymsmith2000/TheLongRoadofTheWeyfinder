@@ -328,6 +328,7 @@
       <p>Keyboard: WASD/arrows move, mouse aims, click fires secondary, Q/E cycles secondary, G toggles gunner AI.</p>
       <p>Controller: left stick moves, right stick aims, triggers rotate, bumpers cycle secondary.</p>
       <p>Mobile: left side drags movement, right side aims and fires.</p>
+      <p>Right stick moves an aim reticle. Comp aim bends manual aim against vehicle velocity so shots pass through the selected point.</p>
       <h3>Combat</h3>
       <p>Primary fire can use gunner AI. Secondary weapons trade ammo, heat, cooldown, and impact style.</p>
       <p>Destroyed enemies stop blocking shots, explode, and scatter nearby enemies away from the firing lane.</p>
@@ -353,6 +354,7 @@
       <div class="combat-row">
         <label><input id="secondaryAutofire" type="checkbox" /> Auto</label>
         <label><input id="gunnerToggle" type="checkbox" checked /> Gunner</label>
+        <label><input id="compensatedAimToggle" type="checkbox" checked /> Comp Aim</label>
         <span><span class="icon-sprite" data-icon="ammo" aria-hidden="true"></span> Ammo <span id="secondaryAmmo">12</span></span>
         <div class="heat-meter" aria-label="Secondary heat"><div id="secondaryHeat" class="heat-fill"></div></div>
       </div>

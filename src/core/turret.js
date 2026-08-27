@@ -1,4 +1,7 @@
 import { angleDelta, distanceSquared } from './math.js';
+import { gunMuzzleWorld } from './vehicle.js';
+
+export const PRIMARY_PROJECTILE_SPEED = 430;
 
 export function stepTurretAim(vehicle, enemies, input, dt) {
   if (input.manualAimActive) vehicle.manualAimGrace = input.manualAimHold ?? 0.45;
@@ -12,7 +15,11 @@ export function stepTurretAim(vehicle, enemies, input, dt) {
 }
 
 export function resolveTurretAim(vehicle, enemies, input) {
-  if (input.aimWorld) return Math.atan2(input.aimWorld.y - vehicle.y, input.aimWorld.x - vehicle.x);
+  if (input.aimWorld) {
+    return input.compensatedAim === false
+      ? directAimHeading(vehicle, input.aimWorld)
+      : compensatedAimHeading(vehicle, input.aimWorld, input.aimProjectileSpeed ?? PRIMARY_PROJECTILE_SPEED);
+  }
   if (Math.hypot(input.aimX ?? 0, input.aimY ?? 0) > 0.2) {
     return Math.atan2(input.aimY, input.aimX);
   }
@@ -21,10 +28,37 @@ export function resolveTurretAim(vehicle, enemies, input) {
   return gunnerAim(vehicle, enemies);
 }
 
+export function directAimHeading(vehicle, target) {
+  return Math.atan2(target.y - vehicle.y, target.x - vehicle.x);
+}
+
+export function compensatedAimHeading(vehicle, target, projectileSpeed = PRIMARY_PROJECTILE_SPEED) {
+  let heading = directAimHeading(vehicle, target);
+  for (let i = 0; i < 12; i += 1) heading = compensatedAimFromMuzzle(vehicle, target, projectileSpeed, heading);
+  return heading;
+}
+
+function compensatedAimFromMuzzle(vehicle, target, projectileSpeed, currentHeading) {
+  const muzzle = gunMuzzleWorld(vehicle, currentHeading) ?? vehicle;
+  const dx = target.x - muzzle.x;
+  const dy = target.y - muzzle.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 0.001 || projectileSpeed <= 0) return directAimHeading(vehicle, target);
+
+  const ux = dx / distance;
+  const uy = dy / distance;
+  const sidewaysVehicleSpeed = vehicle.vx * uy - vehicle.vy * ux;
+  const requiredSideways = Math.max(-1, Math.min(1, sidewaysVehicleSpeed / projectileSpeed));
+  const forward = Math.sqrt(Math.max(0, 1 - requiredSideways * requiredSideways));
+  const aimX = ux * forward - uy * requiredSideways;
+  const aimY = uy * forward + ux * requiredSideways;
+  return Math.atan2(aimY, aimX);
+}
+
 export function gunnerAim(vehicle, enemies) {
   const target = nearestEnemy(vehicle, enemies);
   if (!target) return vehicle.turretHeading;
-  const projectileSpeed = 430;
+  const projectileSpeed = PRIMARY_PROJECTILE_SPEED;
   const dx = target.x - vehicle.x;
   const dy = target.y - vehicle.y;
   const distance = Math.hypot(dx, dy);
