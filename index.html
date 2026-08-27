@@ -154,6 +154,21 @@
         touch-action: none;
       }
 
+      .secondary-touch-button {
+        position: fixed;
+        right: 18px;
+        bottom: 96px;
+        width: 68px;
+        height: 54px;
+        border: 1px solid rgb(244 238 228 / 0.32);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.72);
+        color: #f4eee4;
+        font-weight: 800;
+        letter-spacing: 0;
+        touch-action: none;
+      }
+
       .combat-panel {
         position: fixed;
         left: 14px;
@@ -207,11 +222,12 @@
     <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
     <div id="controlsPanel" class="controls-panel hidden">
       <h2>Controls</h2>
-      <p>Keyboard: WASD/arrows move, mouse aims, hold click/touch to fire, Q/E rotate.</p>
-      <p>Controller: left stick moves, right stick aims, bumpers/triggers rotate, A brakes.</p>
+      <p>Keyboard: WASD/arrows move, mouse aims, click fires secondary, Q/E cycles secondary.</p>
+      <p>Controller: left stick moves, right stick aims, triggers rotate, bumpers cycle secondary.</p>
       <p>Mobile: left side drags movement, right side aims and fires.</p>
     </div>
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
+    <button id="secondaryTouchFire" class="secondary-touch-button" type="button" aria-label="Fire secondary weapon">2ND</button>
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>
     <div class="combat-panel">
       <div class="combat-row">

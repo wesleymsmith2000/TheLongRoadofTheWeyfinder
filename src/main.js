@@ -15,6 +15,7 @@ const boostFill = document.querySelector('#boostFill');
 const secondarySelect = document.querySelector('#secondarySelect');
 const secondaryAutofire = document.querySelector('#secondaryAutofire');
 const secondaryFire = document.querySelector('#secondaryFire');
+const secondaryTouchFire = document.querySelector('#secondaryTouchFire');
 const secondaryAmmo = document.querySelector('#secondaryAmmo');
 const secondaryHeat = document.querySelector('#secondaryHeat');
 const scoreDamage = document.querySelector('#scoreDamage');
@@ -30,6 +31,7 @@ const gamepad = createGamepadInput();
 const mouse = createMouseInput(canvas, (screen) => screenToWorld(screen, game.camera, { width: window.innerWidth, height: window.innerHeight }));
 const touchBoost = createPointerButtonInput(boostButton);
 const touchSecondary = createPointerButtonInput(secondaryFire);
+const touchSecondaryFloating = createPointerButtonInput(secondaryTouchFire);
 const debug = createDebugOverlay();
 
 let game = createGame();
@@ -60,7 +62,7 @@ function frame(now) {
     aimY: 0,
     aimWorld: stickAimWorld ?? mouseInput.aimWorld,
     manualAimActive: stickAimActive || Boolean(mouseInput.aimWorld),
-    fireHeld: mouseInput.fireHeld,
+    fireHeld: false,
     brake: keyInput.brake || padInput.brake,
     debugTogglePressed: keyInput.debugTogglePressed,
     fireTogglePressed: keyInput.fireTogglePressed,
@@ -73,7 +75,12 @@ function frame(now) {
     secondarySelect: secondarySelect.value,
     secondaryAutofire: secondaryAutofire.checked,
     secondaryCycle: keyInput.secondaryCycle || padInput.secondaryCycle,
-    secondaryFirePressed: keyInput.secondaryFirePressed || padInput.secondaryFirePressed || touchSecondary.consume(),
+    secondaryFirePressed:
+      keyInput.secondaryFirePressed ||
+      padInput.secondaryFirePressed ||
+      mouseInput.firePressed ||
+      touchSecondary.consume() ||
+      touchSecondaryFloating.consume(),
   };
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) debug.visible = !debug.visible;

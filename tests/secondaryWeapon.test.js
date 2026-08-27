@@ -16,3 +16,21 @@ test('secondary weapon can cycle selection', () => {
   stepSecondaryWeapon(game, { secondaryCycle: 1 }, 0.016);
   assert.equal(game.secondary.selected, 'cannon');
 });
+
+test('beam secondary creates a short beam blast instead of a traveling shot', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  const fired = fireSecondary(game);
+  assert.equal(fired, true);
+  assert.equal(game.playerProjectiles[0].behavior, 'beam');
+  assert.equal(game.playerProjectiles[0].length > 300, true);
+  assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
+});
+
+test('rocket secondary creates a homing missile with longer flight time', () => {
+  const game = createGame();
+  const fired = fireSecondary(game);
+  assert.equal(fired, true);
+  assert.equal(game.playerProjectiles[0].behavior, 'homing');
+  assert.equal(game.playerProjectiles[0].lifetime > 5, true);
+});

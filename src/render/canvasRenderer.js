@@ -206,11 +206,32 @@ function drawEnemy(ctx, enemy) {
 
 function drawProjectiles(ctx, projectiles, color) {
   for (const projectile of projectiles) {
+    if (projectile.behavior === 'beam') {
+      drawBeam(ctx, projectile);
+      continue;
+    }
     ctx.fillStyle = projectile.weapon === 'rocket' ? '#ff7461' : projectile.weapon === 'cannon' ? '#fff1a8' : projectile.weapon === 'beam' ? '#83f7ff' : color;
     ctx.beginPath();
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawBeam(ctx, projectile) {
+  const fade = Math.max(0, projectile.lifetime / projectile.maxLifetime);
+  ctx.save();
+  ctx.globalAlpha = 0.25 + fade * 0.75;
+  ctx.strokeStyle = '#83f7ff';
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(projectile.x, projectile.y);
+  ctx.lineTo(projectile.x + Math.cos(projectile.angle) * projectile.length, projectile.y + Math.sin(projectile.angle) * projectile.length);
+  ctx.stroke();
+  ctx.strokeStyle = '#f4fffb';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function shade(hex, amount) {

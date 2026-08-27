@@ -68,7 +68,7 @@ export function stepGame(game, input, dt) {
   stepPlayerGun(game, dt);
   stepSecondaryWeapon(game, input, dt);
 
-  game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt);
+  game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   handleCollisions(game);
   containVehicleInRoadFrame(game.vehicle, game.road);
@@ -195,6 +195,10 @@ function handleCollisions(game) {
 
   for (const projectile of game.playerProjectiles) {
     if (projectile.lifetime <= 0) continue;
+    if (projectile.behavior === 'beam') {
+      hitEnemiesWithBeam(game, projectile);
+      continue;
+    }
     for (const enemy of activeEnemies(game)) {
       if (distanceSquared(projectile, enemy) >= (enemy.radius + projectile.radius) ** 2) continue;
       const hit = applyEnemyDamage(enemy, projectile);
@@ -207,6 +211,38 @@ function handleCollisions(game) {
       }
     }
   }
+}
+
+function hitEnemiesWithBeam(game, projectile) {
+  if (projectile.hitApplied) return;
+  projectile.hitApplied = true;
+  const beamEnd = {
+    x: projectile.x + Math.cos(projectile.angle) * projectile.length,
+    y: projectile.y + Math.sin(projectile.angle) * projectile.length,
+  };
+  for (const enemy of activeEnemies(game)) {
+    if (distanceToSegment(enemy, projectile, beamEnd) > enemy.radius + projectile.radius) continue;
+    const hitPoint = closestPointOnSegment(enemy, projectile, beamEnd);
+    const hit = applyEnemyDamage(enemy, { ...projectile, x: hitPoint.x, y: hitPoint.y });
+    if (hit.hit) {
+      game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
+      enemy.vx += Math.cos(projectile.angle) * projectile.impulse * 0.01;
+      enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.01;
+    }
+  }
+}
+
+function distanceToSegment(point, start, end) {
+  const closest = closestPointOnSegment(point, start, end);
+  return Math.hypot(point.x - closest.x, point.y - closest.y);
+}
+
+function closestPointOnSegment(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSq = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSq));
+  return { x: start.x + dx * t, y: start.y + dy * t };
 }
 
 function steerEnemyBackToLaneCenter(enemy, road, dt) {

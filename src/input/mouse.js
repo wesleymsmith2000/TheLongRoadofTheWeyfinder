@@ -4,6 +4,7 @@ export function createMouseInput(target, toWorld) {
     y: 0,
     active: false,
     fireHeld: false,
+    firePressed: false,
     touchMove: { x: 0, y: 0 },
     movePointerId: null,
     aimPointerId: null,
@@ -19,6 +20,7 @@ export function createMouseInput(target, toWorld) {
     } else {
       state.aimPointerId = event.pointerId;
       state.fireHeld = true;
+      state.firePressed = true;
       setAim(state, event);
     }
   });
@@ -56,9 +58,16 @@ export function createMouseInput(target, toWorld) {
         y: state.touchMove.y,
         aimWorld: state.active ? toWorld({ x: state.x, y: state.y }) : null,
         fireHeld: state.fireHeld,
+        firePressed: consumeFirePressed(state),
       };
     },
   };
+}
+
+function consumeFirePressed(state) {
+  const value = state.firePressed;
+  state.firePressed = false;
+  return value;
 }
 
 export function createPointerButtonInput(target) {

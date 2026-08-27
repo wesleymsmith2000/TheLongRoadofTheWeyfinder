@@ -16,7 +16,7 @@ export function createKeyboardInput(target = window) {
     read() {
       const x = axis(keys, 'KeyD', 'ArrowRight') - axis(keys, 'KeyA', 'ArrowLeft');
       const y = axis(keys, 'KeyS', 'ArrowDown') - axis(keys, 'KeyW', 'ArrowUp');
-      const turn = axis(keys, 'KeyE') - axis(keys, 'KeyQ');
+      const turn = 0;
       const dodgeInput = dodge.consume();
       const snapshot = {
         x,
@@ -32,8 +32,8 @@ export function createKeyboardInput(target = window) {
         dodgePressed: dodgeInput.pressed,
         dodgeX: dodgeInput.x,
         dodgeY: dodgeInput.y,
-        secondaryCycle: pressed.has('KeyZ') ? -1 : pressed.has('KeyX') ? 1 : 0,
-        secondaryFirePressed: pressed.has('ShiftLeft') || pressed.has('ShiftRight') || pressed.has('Mouse0'),
+        secondaryCycle: pressed.has('KeyQ') ? -1 : pressed.has('KeyE') ? 1 : pressed.has('KeyZ') ? -1 : pressed.has('KeyX') ? 1 : 0,
+        secondaryFirePressed: pressed.has('ShiftLeft') || pressed.has('ShiftRight'),
       };
       pressed.clear();
       return snapshot;

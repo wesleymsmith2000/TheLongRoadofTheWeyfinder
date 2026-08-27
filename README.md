@@ -33,8 +33,8 @@ Destroy every enemy to clear the level, then use `Start Next Level` to continue.
 
 - `WASD` or arrow keys: thrust / strafe
 - Mouse: aim turret
-- Mouse button / touch aim: fire turret
-- `Q` / `E`: rotate
+- Mouse click: fire selected secondary weapon
+- `Q` / `E`: cycle secondary weapon
 - Double-tap a move direction: dodge/boost
 - `Space`: brake and stabilize
 - `F`: toggle autofire
