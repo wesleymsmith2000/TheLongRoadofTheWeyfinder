@@ -90,6 +90,7 @@ document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
 populateUpgradeSelect();
 if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) combatPanel.classList.add('hidden');
+syncLaunchScreen();
 
 function frame(now) {
   const dt = (now - previous) / 1000;
@@ -157,7 +158,7 @@ function frame(now) {
     game = createGame();
   }
   game.fps = game.fps * 0.9 + (1 / Math.max(dt, 0.001)) * 0.1;
-  launchScreen.classList.toggle('hidden', !awaitingLaunch);
+  syncLaunchScreen();
   gameOver.classList.toggle('hidden', !game.gameOver);
   levelComplete.classList.toggle('hidden', !game.levelComplete);
   levelTime.textContent = game.levelTime.toFixed(1);
@@ -208,7 +209,15 @@ function launchVehicle() {
   awaitingLaunch = false;
   game.levelStartTime = game.time;
   previous = performance.now();
-  launchScreen.classList.add('hidden');
+  syncLaunchScreen();
+}
+
+function syncLaunchScreen() {
+  const visible = awaitingLaunch;
+  launchScreen.hidden = !visible;
+  launchScreen.classList.toggle('hidden', !visible);
+  launchScreen.style.display = visible ? 'grid' : 'none';
+  launchScreen.setAttribute('aria-hidden', String(!visible));
 }
 
 function bindButtonActivation(button, handler) {
