@@ -9,7 +9,7 @@ test('boost dodge spends fuel and pushes in the requested direction', () => {
   const used = stepBoost(vehicle, boost, { dodgePressed: true, dodgeX: 1, dodgeY: 0 }, 0, 0.016);
   assert.equal(used, true);
   assert.equal(boost.fuel < boost.maxFuel, true);
-  assert.equal(vehicle.vx > 100, true);
+  assert.equal(vehicle.vx > 50, true);
   assert.equal(boost.activeTime > 0, true);
 });
 

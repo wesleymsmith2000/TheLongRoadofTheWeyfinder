@@ -63,6 +63,22 @@ test('replacement shop restores missing modules after debris expires', () => {
   assert.equal(wheel.attached, true);
 });
 
+test('replacement shop restores core-connected modules before outer modules', () => {
+  const game = createGame();
+  const gun = game.vehicle.cells.find((candidate) => candidate.id === 'gun');
+  const armor = game.vehicle.cells.find((candidate) => candidate.id === 'armor-left');
+  gun.attached = false;
+  armor.attached = false;
+  game.scrap = SHOP_COSTS.replaceDetached * 2;
+  const replacedFirst = replaceDetachedWithScrap(game);
+  assert.equal(replacedFirst, true);
+  assert.equal(gun.attached, true);
+  assert.equal(armor.attached, false);
+  const replacedSecond = replaceDetachedWithScrap(game);
+  assert.equal(replacedSecond, true);
+  assert.equal(armor.attached, true);
+});
+
 test('shop status text reports scrap shortfalls and missing modules', () => {
   const game = createGame();
   const wheel = game.vehicle.cells.find((candidate) => candidate.id === 'wheel-left');
@@ -94,6 +110,17 @@ test('level-complete shop actions are accepted before next level starts', () => 
   stepGame(game, { shopRefillAmmoPressed: true, shopAmmoWeapon: 'cannon' }, 1 / 60);
   assert.equal(game.secondary.ammo.cannon, 18);
   assert.equal(game.levelComplete, true);
+});
+
+test('level-complete shop can buy upgrades that persist into the next level', () => {
+  const game = createGame();
+  game.levelComplete = true;
+  game.scrap = upgradeCost(game, 'gunDamage');
+  stepGame(game, { shopBuyUpgradePressed: true, shopUpgradeId: 'gunDamage' }, 1 / 60);
+  assert.equal(game.upgrades.gunDamage, 1);
+  stepGame(game, { nextLevelPressed: true }, 1 / 60);
+  assert.equal(game.levelComplete, false);
+  assert.equal(game.upgrades.gunDamage, 1);
 });
 
 test('upgrade shop spends scrap and scales the next cost geometrically', () => {

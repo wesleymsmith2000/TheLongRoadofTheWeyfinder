@@ -39,7 +39,7 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'homing');
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
-  assert.equal(game.playerProjectiles[0].maxSpeed, 260);
+  assert.equal(game.playerProjectiles[0].maxSpeed, 130);
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
 });
 

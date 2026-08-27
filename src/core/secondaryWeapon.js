@@ -6,8 +6,8 @@ export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam'];
 
 export const SECONDARY_DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
-  rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 260, damage: 36, radius: 6, impulse: 420 },
-  cannon: { ammo: 18, heat: 24, cooldown: 0.93, projectileSpeed: 500, damage: 18, radius: 8, impulse: 680 },
+  rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 130, damage: 36, radius: 3, impulse: 210 },
+  cannon: { ammo: 18, heat: 24, cooldown: 0.93, projectileSpeed: 250, damage: 18, radius: 4, impulse: 340 },
   beam: { ammo: 40, heat: 44, cooldown: 0.55, projectileSpeed: 0, damage: 2.5, radius: 1, impulse: 90 },
 };
 
@@ -114,7 +114,7 @@ function upgradedSecondaryDefinition(game, weapon) {
       blastKnockback: 55 * multiplier(game, 'rocketKnockback', 0.05),
       maxSpeed: base.projectileSpeed * multiplier(game, 'rocketMaxVelocity', 0.1),
       turnRate: 2.5 * multiplier(game, 'rocketTurning', 0.1),
-      acceleration: 180,
+      acceleration: 90,
     };
   }
   if (weapon === 'beam') {

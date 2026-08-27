@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
 import { createStartingVehicle, gunMuzzleWorld } from '../src/core/vehicle.js';
-import { compensatedAimHeading, gunnerAim, resolveTurretAim, stepTurretAim } from '../src/core/turret.js';
+import { PRIMARY_PROJECTILE_SPEED, compensatedAimHeading, gunnerAim, resolveTurretAim, stepTurretAim } from '../src/core/turret.js';
 
 test('turret can aim at a mouse world point', () => {
   const vehicle = createStartingVehicle();
@@ -54,12 +54,12 @@ test('compensated mouse aim fires through the cursor point after vehicle velocit
   vehicle.vx = 0;
   vehicle.vy = -180;
   const target = { x: 160, y: -40 };
-  const angle = compensatedAimHeading(vehicle, target, 430);
+  const angle = compensatedAimHeading(vehicle, target, PRIMARY_PROJECTILE_SPEED);
   vehicle.turretHeading = angle;
   const muzzle = gunMuzzleWorld(vehicle);
   const shot = {
-    x: Math.cos(angle) * 430 + vehicle.vx,
-    y: Math.sin(angle) * 430 + vehicle.vy,
+    x: Math.cos(angle) * PRIMARY_PROJECTILE_SPEED + vehicle.vx,
+    y: Math.sin(angle) * PRIMARY_PROJECTILE_SPEED + vehicle.vy,
   };
   const toTarget = { x: target.x - muzzle.x, y: target.y - muzzle.y };
   const cross = shot.x * toTarget.y - shot.y * toTarget.x;

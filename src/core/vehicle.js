@@ -160,7 +160,7 @@ export function repairVehicleDamage(vehicle, repairPower) {
 }
 
 export function replaceDetachedVehicleCell(vehicle) {
-  const cell = vehicle.cells.find((candidate) => !candidate.attached);
+  const cell = nextReplaceableDetachedCell(vehicle);
   if (!cell) return null;
   cell.mask = createVoxelMask(cell.type);
   cell.attached = true;
@@ -169,6 +169,22 @@ export function replaceDetachedVehicleCell(vehicle) {
   updateStructure(vehicle);
   recalculateVehicle(vehicle);
   return cell;
+}
+
+function nextReplaceableDetachedCell(vehicle) {
+  return vehicle.cells.find((candidate) => !candidate.attached && canAttachReplacement(vehicle, candidate));
+}
+
+function canAttachReplacement(vehicle, candidate) {
+  if (candidate.type === 'core') return true;
+  const connected = connectedFromCore(vehicle.cells.filter((cell) => cell.attached && !cell.state.destroyed), vehicle.connections);
+  return vehicle.connections.some((edge) => {
+    if (edge.a !== candidate.id && edge.b !== candidate.id) return false;
+    const neighborId = edge.a === candidate.id ? edge.b : edge.a;
+    const neighborSide = edge.a === candidate.id ? edge.bSide : edge.aSide;
+    const neighbor = vehicle.cells.find((cell) => cell.id === neighborId);
+    return connected.has(neighborId) && neighbor?.attached && !neighbor.state.destroyed && neighbor.state.anchorIntegrity[neighborSide] > 0.45;
+  });
 }
 
 export function countDetachedVehicleCells(vehicle) {

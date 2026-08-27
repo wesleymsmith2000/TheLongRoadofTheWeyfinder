@@ -6,7 +6,7 @@ export function createBoostState() {
     maxFuel: 100,
     cost: 51,
     rechargeRate: 16,
-    acceleration: 140,
+    acceleration: 70,
     cooldown: 0,
     cooldownDuration: 20 / 60,
     activeTime: 0,

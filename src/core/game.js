@@ -166,8 +166,8 @@ function stepScrapPickups(game, dt) {
     const distance = Math.hypot(dx, dy);
     if (distance > 0 && distance <= magnetRange) {
       const pull = 1 - distance / magnetRange;
-      pickup.vx += (dx / distance) * (260 + pull * 520) * dt;
-      pickup.vy += (dy / distance) * (260 + pull * 520) * dt;
+      pickup.vx += (dx / distance) * (130 + pull * 260) * dt;
+      pickup.vy += (dy / distance) * (130 + pull * 260) * dt;
     }
     pickup.x += pickup.vx * dt;
     pickup.y += pickup.vy * dt;
@@ -203,7 +203,7 @@ function aimInputForTurret(game, input, dt) {
 
   const target = gunnerAimTarget(game);
   if (!target) return input;
-  game.aiAimReticle = moveToward(game.aiAimReticle ?? { x: game.vehicle.x, y: game.vehicle.y }, target, 520 * dt);
+  game.aiAimReticle = moveToward(game.aiAimReticle ?? { x: game.vehicle.x, y: game.vehicle.y }, target, 260 * dt);
   game.aimReticle = { ...game.aiAimReticle, active: true, source: 'ai' };
   return { ...input, aimWorld: game.aiAimReticle, manualAimActive: false };
 }
@@ -231,7 +231,7 @@ function configureBoostFromUpgrades(game) {
   game.boost.maxFuel = 100 * upgradeMultiplier(game, 'boostCapacity', 0.1);
   game.boost.cost = 51 * upgradeReduction(game, 'boostEfficiency', 0.1);
   game.boost.rechargeRate = 16 * upgradeMultiplier(game, 'boostRecharge', 0.1);
-  game.boost.acceleration = 140 * upgradeMultiplier(game, 'boostAcceleration', 0.1);
+  game.boost.acceleration = 70 * upgradeMultiplier(game, 'boostAcceleration', 0.1);
   game.boost.maxDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration', 0.1);
   game.boost.cooldownDuration = (20 / 60) * upgradeReduction(game, 'boostCooldown', 0.1);
 }
@@ -249,7 +249,7 @@ function stepPlayerGun(game, dt) {
       team: 'player',
       radius: 3,
       damage,
-      impulse: 120,
+      impulse: 60,
       lifetime: 2.2,
     }),
   );
@@ -275,13 +275,13 @@ function stepEnemy(game, enemy, dt) {
   const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
   if (enemy.fireTimer <= 0) {
     const spread = game.rng.range(-0.12, 0.12);
-    const speed = 210;
+    const speed = 105;
     game.enemyProjectiles.push(
       createProjectile(enemy.x, enemy.y, Math.cos(angle + spread) * speed, Math.sin(angle + spread) * speed, {
         team: 'enemy',
         radius: 5,
         damage: 10,
-        impulse: 350,
+        impulse: 175,
         lifetime: 4,
       }),
     );
@@ -291,11 +291,11 @@ function stepEnemy(game, enemy, dt) {
     for (let i = 0; i < 12; i += 1) {
       const a = (Math.PI * 2 * i) / 12 + game.rng.range(-0.04, 0.04);
       game.enemyProjectiles.push(
-        createProjectile(enemy.x, enemy.y, Math.cos(a) * 160, Math.sin(a) * 160, {
+        createProjectile(enemy.x, enemy.y, Math.cos(a) * 80, Math.sin(a) * 80, {
           team: 'enemy',
           radius: 4,
           damage: 7,
-          impulse: 210,
+          impulse: 105,
           lifetime: 4,
         }),
       );
@@ -323,16 +323,16 @@ function handleBoostRams(game) {
       y: enemy.y,
       radius: 8,
       damage,
-      vx: direction.x * 500,
-      vy: direction.y * 500,
+      vx: direction.x * 250,
+      vy: direction.y * 250,
     });
     if (hit.hit) game.score.damageDone += Math.round(damage + hit.removed * 3);
     if (hit.destroyedNow) explodeEnemy(game, enemy);
-    enemy.vx += direction.x * 220 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
-    enemy.vy += direction.y * 220 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
+    enemy.vx += direction.x * 110 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
+    enemy.vy += direction.y * 110 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
 
     const recoilDamage = damage * 0.25 * upgradeReduction(game, 'boostRecoilDamage', 0.1);
-    const recoilImpulse = 220 * upgradeReduction(game, 'boostRecoilKnockback', 0.1);
+    const recoilImpulse = 110 * upgradeReduction(game, 'boostRecoilKnockback', 0.1);
     applyVehicleDamage(game.vehicle, game.vehicle, CELL_SIZE * 0.5, recoilDamage, recoilImpulse, {
       x: -direction.x,
       y: -direction.y,
@@ -453,7 +453,7 @@ function spawnCannonImpact(game, projectile, enemy) {
       game.score.damageDone += Math.round((projectile.blastDamage || projectile.damage * 0.28) * 0.22 + hit.removed * 3);
       if (hit.destroyedNow) explodeEnemy(game, blastTarget);
     }
-    knockEnemyFromPoint(blastTarget, projectile, CELL_SIZE * 4.6, projectile.blastKnockback || 110);
+    knockEnemyFromPoint(blastTarget, projectile, CELL_SIZE * 4.6, projectile.blastKnockback || 55);
   }
 
   const fragmentCount = projectile.shrapnelCount || 28;
@@ -461,7 +461,7 @@ function spawnCannonImpact(game, projectile, enemy) {
   for (let index = 0; index < fragmentCount; index += 1) {
     const fan = ((index / (fragmentCount - 1)) - 0.5) * Math.PI * 1.35;
     const angle = baseAngle + fan + game.rng.range(-0.08, 0.08);
-    const speed = game.rng.range(170, 310);
+    const speed = game.rng.range(85, 155);
     game.playerProjectiles.push(
       createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
@@ -525,7 +525,7 @@ function explodeEnemy(game, enemy) {
   );
 
   const radius = CELL_SIZE * 7.5;
-  const impulse = 390;
+  const impulse = 195;
   for (const other of game.enemies) {
     if (other === enemy || other.destroyed) continue;
     knockEnemyFromPoint(other, enemy, radius, impulse);
@@ -563,6 +563,6 @@ function steerEnemyBackToLaneCenter(enemy, road, dt) {
   const dy = target.y - offset.y;
   const length = Math.hypot(dx, dy) || 1;
   const accel = roadOffsetToWorld({ x: dx / length, y: dy / length }, { ...road, x: 0, y: 0 });
-  enemy.vx += accel.x * 90 * dt;
-  enemy.vy += accel.y * 90 * dt;
+  enemy.vx += accel.x * 45 * dt;
+  enemy.vy += accel.y * 45 * dt;
 }

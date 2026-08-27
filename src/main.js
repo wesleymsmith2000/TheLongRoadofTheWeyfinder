@@ -213,8 +213,8 @@ function updatePadReticle(reticle, input, dt) {
   if (strength > 0.2) {
     reticle.active = true;
     reticle.idle = 0;
-    reticle.x = Math.max(18, Math.min(window.innerWidth - 18, reticle.x + input.aimX * 520 * dt));
-    reticle.y = Math.max(18, Math.min(window.innerHeight - 18, reticle.y + input.aimY * 520 * dt));
+    reticle.x = Math.max(18, Math.min(window.innerWidth - 18, reticle.x + input.aimX * 260 * dt));
+    reticle.y = Math.max(18, Math.min(window.innerHeight - 18, reticle.y + input.aimY * 260 * dt));
     return;
   }
   if (reticle.active) reticle.idle += dt;
@@ -228,9 +228,18 @@ function populateUpgradeSelect() {
   for (const upgrade of UPGRADE_DEFINITIONS) {
     const option = document.createElement('option');
     option.value = upgrade.id;
-    option.textContent = `${upgrade.system}: ${upgrade.label}`;
     shopUpgradeSelect.append(option);
   }
+  refreshUpgradeOptions();
+}
+
+function refreshUpgradeOptions() {
+  const selected = shopUpgradeSelect.value;
+  for (const option of shopUpgradeSelect.options) {
+    const upgrade = UPGRADE_DEFINITIONS.find((candidate) => candidate.id === option.value);
+    option.textContent = `${upgrade.system}: ${upgrade.label} Lv ${game.upgrades?.[upgrade.id] ?? 0}`;
+  }
+  shopUpgradeSelect.value = selected || UPGRADE_DEFINITIONS[0]?.id || '';
 }
 
 function updateShopUi() {
@@ -238,6 +247,7 @@ function updateShopUi() {
   const ammo = game.secondary.ammo[game.secondary.selected];
   const ammoCapacity = ammoCapacityWithUpgrades(game, game.secondary.selected);
   const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
+  refreshUpgradeOptions();
   shopRepairCost.textContent = SHOP_COSTS.repair;
   shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
