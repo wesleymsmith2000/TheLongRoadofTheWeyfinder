@@ -8,7 +8,7 @@ test('a component detached from the core stops contributing weapon fire', () => 
   const vehicle = createStartingVehicle();
   assert.equal(hasFunctionalGun(vehicle), true);
   const mount = localToWorld({ x: 0, y: -CELL_SIZE / 2 }, vehicle);
-  const hit = applyVehicleDamage(vehicle, mount, 15, 100, 0, { x: 0, y: -1 });
+  const hit = applyVehicleDamage(vehicle, mount, CELL_SIZE * 0.3, 100, 0, { x: 0, y: -1 });
   assert.equal(hit.detached.some((cell) => cell.id === 'gun'), true);
   assert.equal(hasFunctionalGun(vehicle), false);
 });

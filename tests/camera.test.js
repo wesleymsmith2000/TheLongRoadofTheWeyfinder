@@ -65,6 +65,6 @@ test('road play lane scales to fill most of the viewport', () => {
   const vehicle = createStartingVehicle();
   const road = createRoadFrame(vehicle);
   configureRoadLaneForViewport(road, 1000, 700);
-  assert.equal(road.halfWidth, 430);
-  assert.equal(road.halfHeight, 252);
+  assert.equal(road.halfWidth, 340);
+  assert.equal(road.halfHeight, 168);
 });

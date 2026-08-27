@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the forwarded Vite preview on port `5173`.
+Open the forwarded Vite preview. Vite starts on port `5173`, or the next open port if `5173` is already busy.
 
 ## Public Playtest
 
@@ -66,6 +66,7 @@ Mobile touch:
 - Left side drag: virtual movement stick
 - Right side touch/drag: aim and fire turret
 - `BOOST` button: dodge/boost in the current movement direction
+- `HUD` button: show or hide the vehicle/combat panel
 
 ## Help And Economy Notes
 

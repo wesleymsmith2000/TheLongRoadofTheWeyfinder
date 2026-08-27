@@ -33,7 +33,7 @@ test('destroyed enemies explode and knock nearby enemies back', () => {
   const game = createGame();
   game.road.halfWidth = 1000;
   game.road.halfHeight = 1000;
-  game.enemies = [createEnemy(0, 0), createEnemy(80, 0), createEnemy(260, 0)];
+  game.enemies = [createEnemy(0, 0), createEnemy(CELL_SIZE * 4, 0), createEnemy(CELL_SIZE * 13, 0)];
   game.playerProjectiles = [createProjectile(0, 0, 0, 0, { team: 'player', damage: 1000, radius: 12 })];
   stepGame(game, {}, 1 / 60);
   assert.equal(game.enemies[0].destroyed, true);

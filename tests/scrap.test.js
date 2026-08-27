@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
+import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('vehicle collects scrap pickups by driving over them', () => {
   const game = createGame();
@@ -26,7 +27,7 @@ test('level completion waits until dropped scrap is collected or gone', () => {
 test('nearby scrap magnetizes toward the vehicle before collection', () => {
   const game = createGame();
   game.enemies = [];
-  game.scrapPickups = [{ x: game.vehicle.x + 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 3, life: 8 }];
+  game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 4, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 3, life: 8 }];
   const before = Math.abs(game.scrapPickups[0].x - game.vehicle.x);
   stepGame(game, {}, 1 / 60);
   const after = Math.abs(game.scrapPickups[0].x - game.vehicle.x);

@@ -6,8 +6,8 @@ export function createRoadFrame(vehicle) {
     y: vehicle.y,
     heading: vehicle.heading,
     speed: 120,
-    halfWidth: 210,
-    halfHeight: 145,
+    halfWidth: 120,
+    halfHeight: 92,
   };
 }
 
@@ -25,8 +25,8 @@ export function roadForward(road) {
 }
 
 export function configureRoadLaneForViewport(road, width, height) {
-  road.halfWidth = Math.max(230, width * 0.43);
-  road.halfHeight = Math.max(155, height * 0.36);
+  road.halfWidth = clamp(width * 0.34, 110, 360);
+  road.halfHeight = clamp(height * 0.24, 84, 230);
 }
 
 export function createRoadCamera(road) {

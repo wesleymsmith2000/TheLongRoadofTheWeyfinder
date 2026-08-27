@@ -24,6 +24,8 @@ import weaponIconSheet from '../assets/images/weapon_and_ammo_icon_spritesheet.p
 
 const canvas = document.querySelector('#game');
 const gameOver = document.querySelector('#gameOver');
+const hudToggle = document.querySelector('#hudToggle');
+const combatPanel = document.querySelector('#combatPanel');
 const controlsToggle = document.querySelector('#controlsToggle');
 const controlsPanel = document.querySelector('#controlsPanel');
 const boostButton = document.querySelector('#boostButton');
@@ -82,6 +84,7 @@ document.documentElement.style.setProperty('--level-fail-art', `url("${levelFail
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
 populateUpgradeSelect();
+if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) combatPanel.classList.add('hidden');
 
 function frame(now) {
   const dt = (now - previous) / 1000;
@@ -162,6 +165,7 @@ function frame(now) {
 
 requestAnimationFrame(frame);
 
+hudToggle.addEventListener('click', toggleCombatHud);
 controlsToggle.addEventListener('click', toggleControls);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
@@ -172,6 +176,11 @@ const shopBuyUpgradePressed = createButtonPress(shopBuyUpgradeButton);
 
 function toggleControls() {
   controlsPanel.classList.toggle('hidden');
+}
+
+function toggleCombatHud() {
+  combatPanel.classList.toggle('hidden');
+  hudToggle.setAttribute('aria-pressed', String(!combatPanel.classList.contains('hidden')));
 }
 
 function createButtonPress(button) {

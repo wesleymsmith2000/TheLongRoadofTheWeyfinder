@@ -111,6 +111,21 @@
         font-size: 20px;
       }
 
+      .hud-toggle {
+        position: fixed;
+        left: 14px;
+        bottom: 14px;
+        min-width: 54px;
+        height: 38px;
+        border: 1px solid rgb(244 238 228 / 0.3);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.78);
+        color: #f4eee4;
+        font-weight: 800;
+        letter-spacing: 0;
+        z-index: 4;
+      }
+
       .controls-panel {
         position: fixed;
         right: 14px;
@@ -194,7 +209,7 @@
       .combat-panel {
         position: fixed;
         left: 14px;
-        bottom: 14px;
+        bottom: 60px;
         width: min(350px, calc(100vw - 110px));
         padding: 12px;
         border: 1px solid rgb(244 238 228 / 0.2);
@@ -202,6 +217,7 @@
         background: rgb(20 23 24 / 0.74);
         color: #f4eee4;
         font-size: 13px;
+        z-index: 3;
       }
 
       .combat-row {
@@ -328,6 +344,65 @@
         background: rgb(20 23 24 / 0.86);
         color: #f4eee4;
       }
+
+      @media (max-width: 700px), (pointer: coarse) {
+        .hud {
+          display: none;
+        }
+
+        .controls-toggle {
+          right: 10px;
+          top: 10px;
+        }
+
+        .controls-panel {
+          right: 10px;
+          top: 52px;
+          width: calc(100vw - 20px);
+          font-size: 12px;
+        }
+
+        .combat-panel {
+          left: 10px;
+          bottom: 60px;
+          width: calc(100vw - 20px);
+          max-height: 34vh;
+          overflow: auto;
+          padding: 8px;
+          font-size: 12px;
+        }
+
+        .combat-row {
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .icon-sprite {
+          width: 28px;
+          height: 28px;
+        }
+
+        .boost-gauge {
+          bottom: 12px;
+          width: min(220px, calc(100vw - 154px));
+        }
+
+        .boost-button {
+          right: 12px;
+          bottom: 12px;
+          width: 58px;
+          height: 58px;
+          font-size: 11px;
+        }
+
+        .secondary-touch-button {
+          right: 12px;
+          bottom: 82px;
+          width: 58px;
+          height: 48px;
+          font-size: 11px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -336,6 +411,7 @@
       <h1 class="title">The Long Road of the Weyfinder</h1>
       <p class="sub">Drive the machine. Lose the machine. Keep the Core moving.</p>
     </div>
+    <button id="hudToggle" class="hud-toggle" type="button" aria-label="Toggle vehicle info">HUD</button>
     <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
     <div id="controlsPanel" class="controls-panel hidden">
       <h2>Help</h2>
@@ -354,7 +430,7 @@
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
     <button id="secondaryTouchFire" class="secondary-touch-button" type="button" aria-label="Fire secondary weapon">2ND</button>
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>
-    <div class="combat-panel">
+    <div id="combatPanel" class="combat-panel">
       <div class="combat-row">
         <span id="secondaryIcon" class="icon-sprite" data-icon="rocket" aria-hidden="true"></span>
         <label for="secondarySelect">Secondary</label>

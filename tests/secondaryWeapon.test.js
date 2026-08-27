@@ -4,6 +4,7 @@ import { createGame, stepGame } from '../src/core/game.js';
 import { createEnemy } from '../src/core/enemy.js';
 import { gunMuzzleWorld } from '../src/core/vehicle.js';
 import { fireSecondary, stepSecondaryWeapon } from '../src/core/secondaryWeapon.js';
+import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('secondary weapon can be fired manually and spends ammo', () => {
   const game = createGame();
@@ -70,7 +71,7 @@ test('cannon impact creates blast shrapnel', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   game.vehicle.turretHeading = 0;
-  game.enemies[0].x = game.vehicle.x + 45;
+  game.enemies[0].x = game.vehicle.x + CELL_SIZE * 2.25;
   game.enemies[0].y = game.vehicle.y;
   fireSecondary(game);
   stepGame(game, { secondarySelect: 'cannon' }, 0.08);
@@ -87,9 +88,9 @@ test('cannon impact blast shoves nearby enemies without requiring a direct hit',
   game.road.halfHeight = 1000;
   game.secondary.selected = 'cannon';
   game.vehicle.turretHeading = 0;
-  game.enemies[0].x = game.vehicle.x + 45;
+  game.enemies[0].x = game.vehicle.x + CELL_SIZE * 2.25;
   game.enemies[0].y = game.vehicle.y;
-  game.enemies.push(createEnemy(game.vehicle.x + 92, game.vehicle.y));
+  game.enemies.push(createEnemy(game.vehicle.x + CELL_SIZE * 4.6, game.vehicle.y));
   fireSecondary(game);
   stepGame(game, { secondarySelect: 'cannon' }, 0.08);
   assert.equal(game.enemies[1].vx > 0, true);

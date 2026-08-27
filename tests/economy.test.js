@@ -16,11 +16,12 @@ import {
   upgradeStatus,
 } from '../src/core/economy.js';
 import { applyVehicleDamage } from '../src/core/vehicle.js';
+import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('repair shop spends scrap to restore damaged attached voxels', () => {
   const game = createGame();
   const cell = game.vehicle.cells.find((candidate) => candidate.id === 'armor-left');
-  applyVehicleDamage(game.vehicle, { x: -20, y: -20 }, 9, 6);
+  applyVehicleDamage(game.vehicle, { x: -CELL_SIZE, y: -CELL_SIZE }, CELL_SIZE * 0.45, 6);
   const before = cell.state.mass;
   game.scrap = SHOP_COSTS.repair;
   const repaired = repairVehicleWithScrap(game);
