@@ -59,7 +59,9 @@
         inset: 0;
         display: grid;
         place-items: center;
-        background: rgb(12 13 13 / 0.64);
+        background:
+          linear-gradient(90deg, rgb(12 13 13 / 0.84), rgb(12 13 13 / 0.48)),
+          center / cover no-repeat var(--screen-art);
         color: #fff6e7;
         font-size: clamp(24px, 7vw, 68px);
         font-weight: 800;
@@ -82,6 +84,14 @@
 
       .game-over button:disabled {
         opacity: 0.45;
+      }
+
+      .level-complete-screen {
+        --screen-art: var(--level-complete-art);
+      }
+
+      .level-fail-screen {
+        --screen-art: var(--level-fail-art);
       }
 
       .hidden {
@@ -210,6 +220,48 @@
         color: #f4eee4;
       }
 
+      .icon-sprite {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        flex: 0 0 auto;
+        vertical-align: middle;
+        background-image: var(--weapon-icon-sheet);
+        background-size: 300% 300%;
+        background-repeat: no-repeat;
+        filter: drop-shadow(0 1px 4px rgb(0 0 0 / 0.5));
+      }
+
+      .icon-sprite[data-icon="repair"] {
+        background-position: 0% 0%;
+      }
+
+      .icon-sprite[data-icon="cannon"] {
+        background-position: 0% 100%;
+      }
+
+      .icon-sprite[data-icon="beam"] {
+        background-position: 100% 0%;
+      }
+
+      .icon-sprite[data-icon="rocket"] {
+        background-position: 50% 50%;
+      }
+
+      .icon-sprite[data-icon="ammo"] {
+        background-position: 50% 100%;
+      }
+
+      .icon-sprite[data-icon="scrap"],
+      .icon-sprite[data-icon="replace"] {
+        background-position: 100% 100%;
+      }
+
+      .icon-sprite[data-icon="none"] {
+        background-position: 0% 50%;
+        opacity: 0.55;
+      }
+
       .heat-meter {
         flex: 1;
         height: 8px;
@@ -232,11 +284,17 @@
         padding: 12px;
         border: 1px solid rgb(244 238 228 / 0.2);
         border-radius: 8px;
-        background: rgb(20 23 24 / 0.72);
+        background:
+          linear-gradient(90deg, rgb(20 23 24 / 0.9), rgb(20 23 24 / 0.7)),
+          center / cover no-repeat var(--repair-art);
         font-size: 13px;
       }
 
       .shop-panel button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         width: 100%;
         margin: 0;
       }
@@ -267,6 +325,7 @@
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>
     <div class="combat-panel">
       <div class="combat-row">
+        <span id="secondaryIcon" class="icon-sprite" data-icon="rocket" aria-hidden="true"></span>
         <label for="secondarySelect">Secondary</label>
         <select id="secondarySelect">
           <option value="none">None</option>
@@ -279,26 +338,30 @@
       <div class="combat-row">
         <label><input id="secondaryAutofire" type="checkbox" /> Auto</label>
         <label><input id="gunnerToggle" type="checkbox" checked /> Gunner</label>
-        <span>Ammo <span id="secondaryAmmo">12</span></span>
+        <span><span class="icon-sprite" data-icon="ammo" aria-hidden="true"></span> Ammo <span id="secondaryAmmo">12</span></span>
         <div class="heat-meter" aria-label="Secondary heat"><div id="secondaryHeat" class="heat-fill"></div></div>
       </div>
-      <div>Scrap <span id="scrapCount">0</span> Damage <span id="scoreDamage">0</span></div>
+      <div><span class="icon-sprite" data-icon="scrap" aria-hidden="true"></span> Scrap <span id="scrapCount">0</span> Damage <span id="scoreDamage">0</span></div>
     </div>
-    <div id="levelComplete" class="game-over hidden">
+    <div id="levelComplete" class="game-over level-complete-screen hidden">
       <div>
         Level <span id="levelNumber">1</span> Clear<br />
         <span style="font-size: 18px">Time <span id="levelTime">0.0</span>s</span><br />
         <div class="shop-panel">
-          <button id="shopRepairButton" type="button">Repair Systems (<span id="shopRepairCost">2</span>)</button>
-          <button id="shopReplaceButton" type="button">Replace Detached (<span id="shopReplaceCost">16</span>)</button>
+          <button id="shopRepairButton" type="button">
+            <span class="icon-sprite" data-icon="repair" aria-hidden="true"></span> Repair Systems (<span id="shopRepairCost">2</span>)
+          </button>
+          <button id="shopReplaceButton" type="button">
+            <span class="icon-sprite" data-icon="replace" aria-hidden="true"></span> Replace Detached (<span id="shopReplaceCost">16</span>)
+          </button>
           <button id="shopRefillAmmoButton" type="button">
-            Refill <span id="shopSelectedAmmo">rocket</span> Ammo (<span id="shopAmmoCost">6</span>)
+            <span class="icon-sprite" data-icon="ammo" aria-hidden="true"></span> Refill <span id="shopSelectedAmmo">rocket</span> Ammo (<span id="shopAmmoCost">6</span>)
           </button>
         </div>
         <button id="nextLevelButton" type="button">Start Next Level</button>
       </div>
     </div>
-    <div id="gameOver" class="game-over hidden">
+    <div id="gameOver" class="game-over level-fail-screen hidden">
       <div>
         Core Lost<br />
         <span style="font-size: 18px">Levels completed: <span id="levelsCompleted">0</span></span><br />

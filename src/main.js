@@ -7,6 +7,10 @@ import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
 import { SHOP_COSTS, ammoRefillCost } from './core/economy.js';
 import { secondaryAmmoCapacity } from './core/secondaryWeapon.js';
+import levelCompleteArt from '../assets/images/level_complete_screen.png';
+import levelFailArt from '../assets/images/level_fail_screen.png';
+import repairArt from '../assets/images/repair_screen.png';
+import weaponIconSheet from '../assets/images/weapon_and_ammo_icon_spritesheet.png';
 
 const canvas = document.querySelector('#game');
 const gameOver = document.querySelector('#gameOver');
@@ -15,6 +19,7 @@ const controlsPanel = document.querySelector('#controlsPanel');
 const boostButton = document.querySelector('#boostButton');
 const boostFill = document.querySelector('#boostFill');
 const secondarySelect = document.querySelector('#secondarySelect');
+const secondaryIcon = document.querySelector('#secondaryIcon');
 const secondaryAutofire = document.querySelector('#secondaryAutofire');
 const secondaryFire = document.querySelector('#secondaryFire');
 const secondaryTouchFire = document.querySelector('#secondaryTouchFire');
@@ -47,6 +52,10 @@ const debug = createDebugOverlay();
 
 let game = createGame();
 let previous = performance.now();
+document.documentElement.style.setProperty('--level-complete-art', `url("${levelCompleteArt}")`);
+document.documentElement.style.setProperty('--level-fail-art', `url("${levelFailArt}")`);
+document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
+document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
 
 function frame(now) {
   const dt = (now - previous) / 1000;
@@ -117,6 +126,7 @@ function frame(now) {
   updateShopUi();
   boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
   secondarySelect.value = game.secondary.selected;
+  secondaryIcon.dataset.icon = game.secondary.selected;
   const selectedAmmo = game.secondary.ammo[game.secondary.selected];
   secondaryAmmo.textContent = selectedAmmo == null ? '-' : selectedAmmo;
   secondaryHeat.style.width = `${game.secondary.heat}%`;
