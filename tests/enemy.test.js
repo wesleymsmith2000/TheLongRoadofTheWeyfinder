@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyEnemyDamage, createEnemy } from '../src/core/enemy.js';
+import { applyEnemyDamage, createEnemy, traceEnemyVoxelRay } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
+import { createGame, stepGame } from '../src/core/game.js';
 
 test('enemy takes voxel damage and records score damage', () => {
   const enemy = createEnemy(0, 0);
@@ -17,4 +18,25 @@ test('enemy destruction is detected when core is shredded', () => {
     applyEnemyDamage(enemy, createProjectile(0, 0, 0, 0, { damage: 100, radius: 12, team: 'player' }));
   }
   assert.equal(enemy.destroyed, true);
+});
+
+test('destroyed enemies no longer block beam ray tracing', () => {
+  const destroyed = createEnemy(40, 0);
+  const live = createEnemy(90, 0);
+  destroyed.destroyed = true;
+  const hit = traceEnemyVoxelRay([destroyed, live], { x: 0, y: 0 }, 0, 160);
+  assert.equal(hit.enemy, live);
+});
+
+test('destroyed enemies explode and knock nearby enemies back', () => {
+  const game = createGame();
+  game.road.halfWidth = 1000;
+  game.road.halfHeight = 1000;
+  game.enemies = [createEnemy(0, 0), createEnemy(80, 0), createEnemy(260, 0)];
+  game.playerProjectiles = [createProjectile(0, 0, 0, 0, { team: 'player', damage: 1000, radius: 12 })];
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.enemies[0].destroyed, true);
+  assert.equal(game.enemies[0].explosionStart, game.time);
+  assert.equal(game.enemies[1].vx > 0, true);
+  assert.equal(game.enemies[2].vx, 0);
 });

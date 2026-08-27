@@ -53,6 +53,7 @@ export function stepGame(game, input, dt) {
   if (input.resetPressed) return createGame(1147);
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
   if (game.levelComplete || game.gameOver) {
+    game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
     stepRoadCamera(game.camera, game.road, game.vehicle, dt);
     return game;
   }
@@ -109,6 +110,13 @@ export function createLevelEnemies(road, count) {
 
 function activeEnemies(game) {
   return game.enemies.filter((enemy) => !enemy.destroyed);
+}
+
+function decayNonBlockingEffects(projectiles, dt) {
+  for (const projectile of projectiles) {
+    if (projectile.behavior === 'blast' || projectile.behavior === 'beam') projectile.lifetime -= dt;
+  }
+  return projectiles.filter((projectile) => projectile.lifetime > 0 || (projectile.behavior !== 'blast' && projectile.behavior !== 'beam'));
 }
 
 function carryRoadObjects(game, delta) {
@@ -209,6 +217,7 @@ function handleCollisions(game) {
         projectile.lifetime = 0;
         enemy.vx += projectile.vx * 0.004;
         enemy.vy += projectile.vy * 0.004;
+        if (hit.destroyedNow) explodeEnemy(game, enemy);
         if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile, enemy);
         break;
       }
@@ -233,6 +242,7 @@ function hitEnemiesWithBeam(game, projectile) {
     game.score.damageDone += Math.round(projectile.damage * scale + hit.removed * 3);
     trace.enemy.vx += Math.cos(projectile.angle) * projectile.impulse * 0.004 * scale;
     trace.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.004 * scale;
+    if (hit.destroyedNow) explodeEnemy(game, trace.enemy);
   }
 }
 
@@ -280,7 +290,10 @@ function spawnCannonImpact(game, projectile, enemy) {
     impulse: projectile.impulse * 0.35,
   };
   const hit = applyEnemyDamage(enemy, blast);
-  if (hit.hit) game.score.damageDone += Math.round(blast.damage + hit.removed * 3);
+  if (hit.hit) {
+    game.score.damageDone += Math.round(blast.damage + hit.removed * 3);
+    if (hit.destroyedNow) explodeEnemy(game, enemy);
+  }
 
   const fragmentCount = 28;
   const baseAngle = projectile.angle;
@@ -298,6 +311,35 @@ function spawnCannonImpact(game, projectile, enemy) {
         lifetime: game.rng.range(0.22, 0.42),
       }),
     );
+  }
+}
+
+function explodeEnemy(game, enemy) {
+  enemy.explosionStart = game.time;
+  game.playerProjectiles.push(
+    createProjectile(enemy.x, enemy.y, 0, 0, {
+      team: 'player',
+      weapon: 'enemy-explosion',
+      behavior: 'blast',
+      radius: 1,
+      maxRadius: CELL_SIZE * 5.2,
+      damage: 0,
+      impulse: 0,
+      lifetime: 0.32,
+    }),
+  );
+
+  const radius = CELL_SIZE * 7.5;
+  const impulse = 780;
+  for (const other of game.enemies) {
+    if (other === enemy || other.destroyed) continue;
+    const dx = other.x - enemy.x;
+    const dy = other.y - enemy.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance <= 0 || distance > radius) continue;
+    const falloff = 1 - distance / radius;
+    other.vx += (dx / distance) * impulse * falloff;
+    other.vy += (dy / distance) * impulse * falloff;
   }
 }
 

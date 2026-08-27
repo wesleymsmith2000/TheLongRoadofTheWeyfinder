@@ -44,7 +44,7 @@ export class CanvasRenderer {
     applyCameraTransform(ctx, game.camera, w, h);
     drawRoad(ctx, game.camera, w, h, game.time);
     drawRoadLane(ctx, game.road);
-    for (const enemy of game.enemies) drawEnemy(ctx, enemy);
+    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
     drawVehicle(ctx, game.vehicle);
@@ -192,15 +192,39 @@ function drawComMarker(ctx, com) {
   ctx.stroke();
 }
 
-function drawEnemy(ctx, enemy) {
+function drawEnemy(ctx, enemy, time) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   for (const cell of enemy.cells) {
     if (!cell.state.destroyed) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, enemy.destroyed ? 0.35 : 1);
   }
-  ctx.strokeStyle = enemy.destroyed ? '#8a4640' : '#f1a267';
+  if (enemy.destroyed) {
+    drawEnemyExplosion(ctx, enemy, time);
+  } else {
+    ctx.strokeStyle = '#f1a267';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-CELL_SIZE * 1.7, -CELL_SIZE * 1.7, CELL_SIZE * 3.4, CELL_SIZE * 3.4);
+  }
+  ctx.restore();
+}
+
+function drawEnemyExplosion(ctx, enemy, time) {
+  if (enemy.explosionStart == null) return;
+  const age = time - enemy.explosionStart;
+  if (age < 0 || age > 0.48) return;
+  const t = age / 0.48;
+  ctx.save();
+  ctx.globalAlpha = 1 - t;
+  ctx.strokeStyle = '#ff7461';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(0, 0, CELL_SIZE * (1.4 + t * 4.4), 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = '#fff1a8';
   ctx.lineWidth = 2;
-  ctx.strokeRect(-CELL_SIZE * 1.7, -CELL_SIZE * 1.7, CELL_SIZE * 3.4, CELL_SIZE * 3.4);
+  ctx.beginPath();
+  ctx.arc(0, 0, CELL_SIZE * (0.8 + t * 2.3), 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 

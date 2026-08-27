@@ -25,6 +25,7 @@ export function createEnemy(x, y) {
     cells,
     damageTaken: 0,
     destroyed: false,
+    explosionStart: null,
   };
 }
 
@@ -37,7 +38,7 @@ export function applyEnemyDamage(enemy, projectile) {
     const minY = candidate.gridY * CELL_SIZE - CELL_SIZE / 2;
     return localX >= minX && localX <= minX + CELL_SIZE && localY >= minY && localY <= minY + CELL_SIZE;
   });
-  if (!cell) return { hit: false, removed: 0 };
+  if (!cell) return { hit: false, removed: 0, destroyedNow: false };
   const result = applyDamage(
     cell.mask,
     localX - cell.gridX * CELL_SIZE,
@@ -45,11 +46,12 @@ export function applyEnemyDamage(enemy, projectile) {
     projectile.radius * 3.4,
     projectile.damage,
   );
-  if (!result.hit) return { hit: false, removed: 0 };
+  if (!result.hit) return { hit: false, removed: 0, destroyedNow: false };
   recalculateCell(cell);
   enemy.damageTaken += projectile.damage + result.removed * 3;
+  const wasDestroyed = enemy.destroyed;
   updateEnemyDestroyed(enemy);
-  return { hit: true, cell, removed: result.removed };
+  return { hit: true, cell, removed: result.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
 }
 
 export function traceEnemyVoxelRay(enemies, start, angle, maxLength) {
