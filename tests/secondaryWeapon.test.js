@@ -8,6 +8,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles.length, 1);
+  assert.equal(game.playerProjectiles[0].damage, 36);
   assert.equal(game.secondary.ammo.rocket, 11);
 });
 
@@ -73,4 +74,11 @@ test('cannon impact creates blast shrapnel', () => {
   assert.equal(shrapnel.length >= 20, true);
   assert.equal(blast.behavior, 'blast');
   assert.equal(game.score.damageDone > 18, true);
+});
+
+test('cannon uses boosted base damage', () => {
+  const game = createGame();
+  game.secondary.selected = 'cannon';
+  fireSecondary(game);
+  assert.equal(game.playerProjectiles[0].damage, 36);
 });

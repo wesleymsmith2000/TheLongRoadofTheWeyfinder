@@ -129,7 +129,7 @@ function stepPlayerGun(game, dt) {
     createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
       team: 'player',
       radius: 3,
-      damage: 5,
+      damage: 10,
       impulse: 120,
       lifetime: 2.2,
     }),

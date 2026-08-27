@@ -5,8 +5,8 @@ export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam'];
 
 const DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
-  rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 260, damage: 18, radius: 6, impulse: 420 },
-  cannon: { ammo: 18, heat: 24, cooldown: 0.62, projectileSpeed: 500, damage: 18, radius: 8, impulse: 680 },
+  rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 260, damage: 36, radius: 6, impulse: 420 },
+  cannon: { ammo: 18, heat: 24, cooldown: 0.62, projectileSpeed: 500, damage: 36, radius: 8, impulse: 680 },
   beam: { ammo: 40, heat: 22, cooldown: 0.55, projectileSpeed: 0, damage: 5, radius: 2, impulse: 90 },
 };
 
