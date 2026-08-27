@@ -16,7 +16,7 @@ import {
 import { CELL_SIZE } from './voxelMask.js';
 import { stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
-import { applyEnemyDamage, createEnemy, traceEnemyVoxelRay } from './enemy.js';
+import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, traceEnemyVoxelRay } from './enemy.js';
 import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
 
 export function createGame(seed = 1147) {
@@ -276,23 +276,29 @@ function spawnCannonImpact(game, projectile, enemy) {
       weapon: 'cannon-blast',
       behavior: 'blast',
       radius: 1,
-      maxRadius: projectile.radius * 3.2,
+      maxRadius: CELL_SIZE * 3.4,
       damage: 0,
       impulse: 0,
-      lifetime: 0.18,
+      lifetime: 0.22,
     }),
   );
 
-  const blast = {
-    ...projectile,
-    damage: projectile.damage * 0.65,
-    radius: projectile.radius * 2.4,
-    impulse: projectile.impulse * 0.35,
-  };
-  const hit = applyEnemyDamage(enemy, blast);
-  if (hit.hit) {
-    game.score.damageDone += Math.round(blast.damage + hit.removed * 3);
-    if (hit.destroyedNow) explodeEnemy(game, enemy);
+  const blastRadius = CELL_SIZE * 3.34;
+  for (const blastTarget of activeEnemies(game)) {
+    const distance = Math.hypot(blastTarget.x - projectile.x, blastTarget.y - projectile.y);
+    if (distance > blastRadius + blastTarget.radius) continue;
+    const hit = applyEnemyBlastDamage(blastTarget, projectile, {
+      maxVoxelDistance: 20,
+      closeVoxelDistance: 5,
+      closePenetration: 3,
+      farPenetration: 1,
+      damage: projectile.damage * 0.56,
+    });
+    if (hit.hit) {
+      game.score.damageDone += Math.round(projectile.damage * 0.22 + hit.removed * 3);
+      if (hit.destroyedNow) explodeEnemy(game, blastTarget);
+    }
+    knockEnemyFromPoint(blastTarget, projectile, CELL_SIZE * 4.6, 220);
   }
 
   const fragmentCount = 28;
@@ -330,17 +336,21 @@ function explodeEnemy(game, enemy) {
   );
 
   const radius = CELL_SIZE * 7.5;
-  const impulse = 780;
+  const impulse = 390;
   for (const other of game.enemies) {
     if (other === enemy || other.destroyed) continue;
-    const dx = other.x - enemy.x;
-    const dy = other.y - enemy.y;
-    const distance = Math.hypot(dx, dy);
-    if (distance <= 0 || distance > radius) continue;
-    const falloff = 1 - distance / radius;
-    other.vx += (dx / distance) * impulse * falloff;
-    other.vy += (dy / distance) * impulse * falloff;
+    knockEnemyFromPoint(other, enemy, radius, impulse);
   }
+}
+
+function knockEnemyFromPoint(enemy, point, radius, impulse) {
+  const dx = enemy.x - point.x;
+  const dy = enemy.y - point.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance <= 0 || distance > radius) return;
+  const falloff = 1 - distance / radius;
+  enemy.vx += (dx / distance) * impulse * falloff;
+  enemy.vy += (dy / distance) * impulse * falloff;
 }
 
 function steerEnemyBackToLaneCenter(enemy, road, dt) {

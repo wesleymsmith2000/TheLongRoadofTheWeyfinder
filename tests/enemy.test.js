@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyEnemyDamage, createEnemy, traceEnemyVoxelRay } from '../src/core/enemy.js';
+import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, traceEnemyVoxelRay } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, stepGame } from '../src/core/game.js';
+import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('enemy takes voxel damage and records score damage', () => {
   const enemy = createEnemy(0, 0);
@@ -38,5 +39,16 @@ test('destroyed enemies explode and knock nearby enemies back', () => {
   assert.equal(game.enemies[0].destroyed, true);
   assert.equal(game.enemies[0].explosionStart, game.time);
   assert.equal(game.enemies[1].vx > 0, true);
+  assert.equal(game.enemies[1].vx < 220, true);
   assert.equal(game.enemies[2].vx, 0);
+});
+
+test('cannon-style blast strips nearby outer shell voxels with shallow penetration', () => {
+  const enemy = createEnemy(0, 0);
+  const result = applyEnemyBlastDamage(enemy, { x: -CELL_SIZE * 1.7, y: 0 }, { damage: 24 });
+  const core = enemy.cells.find((cell) => cell.type === 'core');
+  const coreRemoved = core.mask.flat().filter((voxel) => voxel.hp <= 0).length;
+  assert.equal(result.hit, true);
+  assert.equal(result.removed > 0, true);
+  assert.equal(coreRemoved, 0);
 });

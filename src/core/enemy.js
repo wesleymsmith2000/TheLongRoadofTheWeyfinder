@@ -1,5 +1,6 @@
 import { createCell, recalculateCell } from './cell.js';
 import { applyDamage, CELL_SIZE, VOXELS } from './voxelMask.js';
+import { clamp } from './math.js';
 
 const ENEMY_GRID = [
   ['armor', 'armor', 'armor'],
@@ -54,6 +55,51 @@ export function applyEnemyDamage(enemy, projectile) {
   return { hit: true, cell, removed: result.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
 }
 
+export function applyEnemyBlastDamage(enemy, origin, options = {}) {
+  if (enemy.destroyed) return { hit: false, removed: 0, destroyedNow: false };
+  const voxelSize = CELL_SIZE / VOXELS;
+  const maxDistance = options.maxVoxelDistance ?? 20;
+  const closeDistance = options.closeVoxelDistance ?? 5;
+  const closePenetration = options.closePenetration ?? 3;
+  const farPenetration = options.farPenetration ?? 1;
+  const damage = options.damage ?? 18;
+  const wasDestroyed = enemy.destroyed;
+  let hit = false;
+  let removed = 0;
+
+  for (const cell of enemy.cells) {
+    if (cell.state.destroyed) continue;
+    let cellRemoved = 0;
+    let cellHit = false;
+    for (let vy = 0; vy < VOXELS; vy += 1) {
+      for (let vx = 0; vx < VOXELS; vx += 1) {
+        const voxel = cell.mask[vy][vx];
+        if (voxel.hp <= 0) continue;
+        const world = enemyVoxelWorldCenter(enemy, cell, vx, vy);
+        const distanceVoxels = Math.hypot(world.x - origin.x, world.y - origin.y) / voxelSize;
+        if (distanceVoxels > maxDistance) continue;
+        const penetration = blastPenetration(distanceVoxels, closeDistance, maxDistance, closePenetration, farPenetration);
+        if (enemyVoxelShellDepth(cell, vx, vy) > penetration) continue;
+        const before = voxel.hp;
+        const falloff = clamp(1 - distanceVoxels / maxDistance, 0.35, 1);
+        voxel.hp = Math.max(0, voxel.hp - damage * falloff);
+        hit = true;
+        cellHit = true;
+        if (before > 0 && voxel.hp <= 0) {
+          removed += 1;
+          cellRemoved += 1;
+        }
+      }
+    }
+    if (cellHit) recalculateCell(cell);
+    if (cellRemoved > 0) enemy.damageTaken += cellRemoved * 3;
+  }
+
+  if (hit) enemy.damageTaken += damage * 0.35;
+  updateEnemyDestroyed(enemy);
+  return { hit, removed, destroyedNow: !wasDestroyed && enemy.destroyed };
+}
+
 export function traceEnemyVoxelRay(enemies, start, angle, maxLength) {
   const step = CELL_SIZE / VOXELS / 2;
   const dx = Math.cos(angle);
@@ -93,6 +139,26 @@ function findEnemyVoxelAt(enemies, worldPoint) {
     }
   }
   return null;
+}
+
+function enemyVoxelWorldCenter(enemy, cell, vx, vy) {
+  const unit = CELL_SIZE / VOXELS;
+  return {
+    x: enemy.x + cell.gridX * CELL_SIZE + (vx + 0.5) * unit - CELL_SIZE / 2,
+    y: enemy.y + cell.gridY * CELL_SIZE + (vy + 0.5) * unit - CELL_SIZE / 2,
+  };
+}
+
+function blastPenetration(distanceVoxels, closeDistance, maxDistance, closePenetration, farPenetration) {
+  if (distanceVoxels <= closeDistance) return closePenetration;
+  const t = clamp((distanceVoxels - closeDistance) / Math.max(1, maxDistance - closeDistance), 0, 1);
+  return farPenetration + (closePenetration - farPenetration) * (1 - t);
+}
+
+function enemyVoxelShellDepth(cell, vx, vy) {
+  const gridX = (cell.gridX + 1) * VOXELS + vx;
+  const gridY = (cell.gridY + 1) * VOXELS + vy;
+  return Math.min(gridX, gridY, VOXELS * 3 - 1 - gridX, VOXELS * 3 - 1 - gridY) + 1;
 }
 
 export function updateEnemyDestroyed(enemy) {
