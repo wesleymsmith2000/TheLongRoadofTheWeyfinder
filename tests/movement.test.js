@@ -17,3 +17,10 @@ test('movement input is relative to the road frame, not craft spin', () => {
   assert.equal(vehicle.y < -1, true);
   assert.equal(Math.abs(vehicle.x) < 1, true);
 });
+
+test('vehicle physics tolerates partial input snapshots', () => {
+  const vehicle = createStartingVehicle();
+  stepVehicle(vehicle, {}, 1 / 60, 0);
+  assert.equal(Number.isFinite(vehicle.x), true);
+  assert.equal(Number.isFinite(vehicle.heading), true);
+});

@@ -222,7 +222,7 @@
     <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
     <div id="controlsPanel" class="controls-panel hidden">
       <h2>Controls</h2>
-      <p>Keyboard: WASD/arrows move, mouse aims, click fires secondary, Q/E cycles secondary.</p>
+      <p>Keyboard: WASD/arrows move, mouse aims, click fires secondary, Q/E cycles secondary, G toggles gunner AI.</p>
       <p>Controller: left stick moves, right stick aims, triggers rotate, bumpers cycle secondary.</p>
       <p>Mobile: left side drags movement, right side aims and fires.</p>
     </div>
@@ -242,6 +242,7 @@
       </div>
       <div class="combat-row">
         <label><input id="secondaryAutofire" type="checkbox" /> Auto</label>
+        <label><input id="gunnerToggle" type="checkbox" checked /> Gunner</label>
         <span>Ammo <span id="secondaryAmmo">12</span></span>
         <div class="heat-meter" aria-label="Secondary heat"><div id="secondaryHeat" class="heat-fill"></div></div>
       </div>

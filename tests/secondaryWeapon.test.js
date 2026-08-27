@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
+import { gunMuzzleWorld } from '../src/core/vehicle.js';
 import { fireSecondary, stepSecondaryWeapon } from '../src/core/secondaryWeapon.js';
 
 test('secondary weapon can be fired manually and spends ammo', () => {
@@ -44,7 +45,7 @@ test('beam stores a render endpoint when it hits an enemy voxel', () => {
   game.enemies[0].x = game.vehicle.x + 60;
   game.enemies[0].y = game.vehicle.y;
   fireSecondary(game);
-  stepGame(game, { secondarySelect: 'beam' }, 0.016);
+  stepGame(game, { secondarySelect: 'beam', gunnerEnabled: false }, 0.016);
   const beam = game.playerProjectiles.find((projectile) => projectile.behavior === 'beam');
   const tracedLength = Math.hypot(beam.renderEndX - beam.x, beam.renderEndY - beam.y);
   assert.equal(tracedLength < beam.length, true);
@@ -57,7 +58,7 @@ test('beam applies repeated contact damage over its firing frames', () => {
   game.enemies[0].x = game.vehicle.x + 60;
   game.enemies[0].y = game.vehicle.y;
   fireSecondary(game);
-  for (let i = 0; i < 5; i += 1) stepGame(game, { secondarySelect: 'beam' }, 1 / 60);
+  for (let i = 0; i < 5; i += 1) stepGame(game, { secondarySelect: 'beam', gunnerEnabled: false }, 1 / 60);
   assert.equal(game.enemies[0].damageTaken > 25, true);
 });
 
@@ -81,4 +82,17 @@ test('cannon uses boosted base damage', () => {
   game.secondary.selected = 'cannon';
   fireSecondary(game);
   assert.equal(game.playerProjectiles[0].damage, 36);
+});
+
+test('beam stays locked to the moving turret while firing', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.vehicle.turretHeading = 0;
+  fireSecondary(game);
+  stepGame(game, { x: 1, y: 0, secondarySelect: 'beam', gunnerEnabled: false }, 1 / 60);
+  const beam = game.playerProjectiles.find((projectile) => projectile.behavior === 'beam');
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  assert.equal(Math.abs(beam.x - muzzle.x) < 0.001, true);
+  assert.equal(Math.abs(beam.y - muzzle.y) < 0.001, true);
+  assert.equal(beam.angle, game.vehicle.turretHeading);
 });

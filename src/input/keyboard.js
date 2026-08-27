@@ -27,6 +27,7 @@ export function createKeyboardInput(target = window) {
         brake: keys.has('Space'),
         debugTogglePressed: pressed.has('KeyD'),
         fireTogglePressed: pressed.has('KeyF'),
+        gunnerTogglePressed: pressed.has('KeyG'),
         resetPressed: pressed.has('KeyR'),
         controlsTogglePressed: pressed.has('KeyH') || pressed.has('Slash'),
         dodgePressed: dodgeInput.pressed,

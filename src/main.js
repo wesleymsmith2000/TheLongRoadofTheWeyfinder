@@ -18,6 +18,7 @@ const secondaryFire = document.querySelector('#secondaryFire');
 const secondaryTouchFire = document.querySelector('#secondaryTouchFire');
 const secondaryAmmo = document.querySelector('#secondaryAmmo');
 const secondaryHeat = document.querySelector('#secondaryHeat');
+const gunnerToggle = document.querySelector('#gunnerToggle');
 const scoreDamage = document.querySelector('#scoreDamage');
 const levelComplete = document.querySelector('#levelComplete');
 const levelTime = document.querySelector('#levelTime');
@@ -47,6 +48,7 @@ function frame(now) {
   const touchBoostPressed = touchBoost.consume();
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
+  if (keyInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
   const stickAimWorld = stickAimActive
     ? screenToWorld(
         {
@@ -65,6 +67,8 @@ function frame(now) {
     aimY: 0,
     aimWorld: stickAimWorld ?? mouseInput.aimWorld,
     manualAimActive: stickAimActive || Boolean(mouseInput.aimWorld),
+    manualAimHold: stickAimActive ? 5 : 0.45,
+    gunnerEnabled: gunnerToggle.checked,
     fireHeld: false,
     brake: keyInput.brake || padInput.brake,
     debugTogglePressed: keyInput.debugTogglePressed,

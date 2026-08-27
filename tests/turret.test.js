@@ -32,3 +32,18 @@ test('manual turret aim holds briefly before gunner AI takes over', () => {
   const held = stepTurretAim(vehicle, [{ x: 100, y: 0 }], {}, 0.1);
   assert.equal(held > 2, true);
 });
+
+test('controller manual aim can hold gunner AI off for several seconds', () => {
+  const vehicle = createStartingVehicle();
+  vehicle.turretHeading = Math.PI;
+  stepTurretAim(vehicle, [{ x: 100, y: 0 }], { manualAimActive: true, aimX: -1, aimY: 0, manualAimHold: 5 }, 0.1);
+  stepTurretAim(vehicle, [{ x: 100, y: 0 }], {}, 4.8);
+  assert.equal(vehicle.turretHeading > 2, true);
+});
+
+test('disabled gunner AI leaves turret heading alone without manual aim', () => {
+  const vehicle = createStartingVehicle();
+  vehicle.turretHeading = Math.PI;
+  const angle = resolveTurretAim(vehicle, [{ x: 100, y: 0 }], { gunnerEnabled: false });
+  assert.equal(angle, vehicle.turretHeading);
+});

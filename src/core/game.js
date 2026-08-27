@@ -69,6 +69,7 @@ export function stepGame(game, input, dt) {
   stepSecondaryWeapon(game, input, dt);
 
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
+  syncBeamProjectiles(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   handleCollisions(game);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
@@ -232,6 +233,20 @@ function hitEnemiesWithBeam(game, projectile) {
     game.score.damageDone += Math.round(projectile.damage * scale + hit.removed * 3);
     trace.enemy.vx += Math.cos(projectile.angle) * projectile.impulse * 0.004 * scale;
     trace.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.004 * scale;
+  }
+}
+
+function syncBeamProjectiles(game) {
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  for (const projectile of game.playerProjectiles) {
+    if (projectile.behavior !== 'beam') continue;
+    if (!muzzle) {
+      projectile.lifetime = 0;
+      continue;
+    }
+    projectile.x = muzzle.x;
+    projectile.y = muzzle.y;
+    projectile.angle = game.vehicle.turretHeading;
   }
 }
 

@@ -63,6 +63,7 @@ function emptyInput() {
     aimY: 0,
     debugTogglePressed: false,
     fireTogglePressed: false,
+    gunnerTogglePressed: false,
     resetPressed: false,
     controlsTogglePressed: false,
     dodgePressed: false,
