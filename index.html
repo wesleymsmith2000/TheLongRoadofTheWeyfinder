@@ -80,6 +80,10 @@
         font-weight: 700;
       }
 
+      .game-over button:disabled {
+        opacity: 0.45;
+      }
+
       .hidden {
         display: none;
       }
@@ -219,6 +223,23 @@
         height: 100%;
         background: linear-gradient(90deg, #f7c06a, #ff7461);
       }
+
+      .shop-panel {
+        display: grid;
+        gap: 8px;
+        width: min(420px, calc(100vw - 32px));
+        margin-top: 14px;
+        padding: 12px;
+        border: 1px solid rgb(244 238 228 / 0.2);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.72);
+        font-size: 13px;
+      }
+
+      .shop-panel button {
+        width: 100%;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
@@ -238,8 +259,8 @@
       <p>Primary fire can use gunner AI. Secondary weapons trade ammo, heat, cooldown, and impact style.</p>
       <p>Destroyed enemies stop blocking shots, explode, and scatter nearby enemies away from the firing lane.</p>
       <h3>Scrap</h3>
-      <p>Surviving enemy voxels become scrap. Run over the gold pieces to collect them before starting the next level.</p>
-      <p>Next checkpoint: spend scrap between waves to repair systems, replace detached modules, replenish ammo, and buy ammo modules.</p>
+      <p>Surviving enemy voxels become scrap. Gold pieces magnetize toward the craft at about 30 voxel range.</p>
+      <p>Between levels, spend scrap to repair systems, replace detached modules, and replenish selected secondary ammo.</p>
     </div>
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
     <button id="secondaryTouchFire" class="secondary-touch-button" type="button" aria-label="Fire secondary weapon">2ND</button>
@@ -267,6 +288,13 @@
       <div>
         Level <span id="levelNumber">1</span> Clear<br />
         <span style="font-size: 18px">Time <span id="levelTime">0.0</span>s</span><br />
+        <div class="shop-panel">
+          <button id="shopRepairButton" type="button">Repair Systems (<span id="shopRepairCost">2</span>)</button>
+          <button id="shopReplaceButton" type="button">Replace Detached (<span id="shopReplaceCost">16</span>)</button>
+          <button id="shopRefillAmmoButton" type="button">
+            Refill <span id="shopSelectedAmmo">rocket</span> Ammo (<span id="shopAmmoCost">6</span>)
+          </button>
+        </div>
         <button id="nextLevelButton" type="button">Start Next Level</button>
       </div>
     </div>

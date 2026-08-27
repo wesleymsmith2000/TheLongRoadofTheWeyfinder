@@ -1,6 +1,6 @@
 import { createCell, recalculateCell } from './cell.js';
 import { createConnection, updateConnectionValidity, connectedFromCore } from './connections.js';
-import { applyDamage, CELL_SIZE } from './voxelMask.js';
+import { applyDamage, CELL_SIZE, createVoxelMask } from './voxelMask.js';
 import { localToWorld, rotatePoint, worldToLocal } from './math.js';
 
 export function createStartingVehicle() {
@@ -133,6 +133,41 @@ export function applyImpulse(vehicle, worldPoint, direction, impulse) {
   const localDir = rotatePoint(direction.x, direction.y, -vehicle.heading);
   const torque = r.x * localDir.y - r.y * localDir.x;
   vehicle.angularVelocity += (torque * impulse) / Math.max(vehicle.momentOfInertia, 1);
+}
+
+export function repairVehicleDamage(vehicle, repairPower) {
+  let repaired = 0;
+  for (const cell of vehicle.cells) {
+    if (!cell.attached || cell.state.destroyed) continue;
+    for (const row of cell.mask) {
+      for (const voxel of row) {
+        if (voxel.hp <= 0 || voxel.hp >= voxel.maxHp) continue;
+        const amount = Math.min(voxel.maxHp - voxel.hp, repairPower - repaired);
+        voxel.hp += amount;
+        repaired += amount;
+        if (repaired >= repairPower) {
+          recalculateCell(cell);
+          recalculateVehicle(vehicle);
+          return repaired;
+        }
+      }
+    }
+    recalculateCell(cell);
+  }
+  recalculateVehicle(vehicle);
+  return repaired;
+}
+
+export function replaceDetachedVehicleCell(vehicle) {
+  const piece = vehicle.detachedPieces.find((candidate) => !candidate.cell.attached);
+  if (!piece) return null;
+  piece.cell.mask = createVoxelMask(piece.cell.type);
+  piece.cell.attached = true;
+  recalculateCell(piece.cell);
+  vehicle.detachedPieces = vehicle.detachedPieces.filter((candidate) => candidate !== piece);
+  updateStructure(vehicle);
+  recalculateVehicle(vehicle);
+  return piece.cell;
 }
 
 function spawnDetachedPiece(vehicle, cell) {

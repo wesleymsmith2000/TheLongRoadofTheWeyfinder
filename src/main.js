@@ -5,6 +5,8 @@ import { createKeyboardInput } from './input/keyboard.js';
 import { createGamepadInput } from './input/gamepad.js';
 import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
+import { SHOP_COSTS, ammoRefillCost } from './core/economy.js';
+import { secondaryAmmoCapacity } from './core/secondaryWeapon.js';
 
 const canvas = document.querySelector('#game');
 const gameOver = document.querySelector('#gameOver');
@@ -26,6 +28,13 @@ const levelTime = document.querySelector('#levelTime');
 const levelNumber = document.querySelector('#levelNumber');
 const levelsCompleted = document.querySelector('#levelsCompleted');
 const nextLevelButton = document.querySelector('#nextLevelButton');
+const shopRepairButton = document.querySelector('#shopRepairButton');
+const shopReplaceButton = document.querySelector('#shopReplaceButton');
+const shopRefillAmmoButton = document.querySelector('#shopRefillAmmoButton');
+const shopRepairCost = document.querySelector('#shopRepairCost');
+const shopReplaceCost = document.querySelector('#shopReplaceCost');
+const shopAmmoCost = document.querySelector('#shopAmmoCost');
+const shopSelectedAmmo = document.querySelector('#shopSelectedAmmo');
 const restartButton = document.querySelector('#restartButton');
 const renderer = new CanvasRenderer(canvas);
 const keyboard = createKeyboardInput(window);
@@ -77,6 +86,10 @@ function frame(now) {
     resetPressed: keyInput.resetPressed || restartButtonPressed.consume(),
     controlsTogglePressed: keyInput.controlsTogglePressed || padInput.controlsTogglePressed,
     nextLevelPressed: nextLevelButtonPressed.consume(),
+    shopRepairPressed: shopRepairPressed.consume(),
+    shopReplacePressed: shopReplacePressed.consume(),
+    shopRefillAmmoPressed: shopRefillAmmoPressed.consume(),
+    shopAmmoWeapon: secondarySelect.value,
     dodgePressed: Boolean(dodgeSource),
     dodgeX: dodgeSource?.dodgeX ?? dodgeSource?.x ?? 0,
     dodgeY: dodgeSource?.dodgeY ?? dodgeSource?.y ?? -1,
@@ -101,6 +114,7 @@ function frame(now) {
   levelTime.textContent = game.levelTime.toFixed(1);
   levelNumber.textContent = game.level;
   levelsCompleted.textContent = game.levelsCompleted;
+  updateShopUi();
   boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
   secondarySelect.value = game.secondary.selected;
   const selectedAmmo = game.secondary.ammo[game.secondary.selected];
@@ -117,6 +131,9 @@ requestAnimationFrame(frame);
 controlsToggle.addEventListener('click', toggleControls);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
+const shopRepairPressed = createButtonPress(shopRepairButton);
+const shopReplacePressed = createButtonPress(shopReplaceButton);
+const shopRefillAmmoPressed = createButtonPress(shopRefillAmmoButton);
 
 function toggleControls() {
   controlsPanel.classList.toggle('hidden');
@@ -145,4 +162,17 @@ function chooseMovementSource(keyInput, mouseInput, padInput) {
 
 function axisMagnitude(input) {
   return Math.hypot(input.x ?? 0, input.y ?? 0);
+}
+
+function updateShopUi() {
+  const ammoCost = ammoRefillCost(game.secondary.selected);
+  const ammo = game.secondary.ammo[game.secondary.selected];
+  const ammoCapacity = secondaryAmmoCapacity(game.secondary.selected);
+  shopRepairCost.textContent = SHOP_COSTS.repair;
+  shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;
+  shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
+  shopSelectedAmmo.textContent = game.secondary.selected;
+  shopRepairButton.disabled = game.scrap < SHOP_COSTS.repair;
+  shopReplaceButton.disabled = game.scrap < SHOP_COSTS.replaceDetached || game.vehicle.detachedPieces.length === 0;
+  shopRefillAmmoButton.disabled = !Number.isFinite(ammoCost) || game.scrap < ammoCost || ammo == null || ammo >= ammoCapacity;
 }

@@ -22,3 +22,13 @@ test('level completion waits until dropped scrap is collected or gone', () => {
   stepGame(game, {}, 1 / 60);
   assert.equal(game.levelComplete, true);
 });
+
+test('nearby scrap magnetizes toward the vehicle before collection', () => {
+  const game = createGame();
+  game.enemies = [];
+  game.scrapPickups = [{ x: game.vehicle.x + 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 3, life: 8 }];
+  const before = Math.abs(game.scrapPickups[0].x - game.vehicle.x);
+  stepGame(game, {}, 1 / 60);
+  const after = Math.abs(game.scrapPickups[0].x - game.vehicle.x);
+  assert.equal(after < before, true);
+});

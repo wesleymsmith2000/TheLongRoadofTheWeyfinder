@@ -3,7 +3,7 @@ import { gunMuzzleWorld } from './vehicle.js';
 
 export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam'];
 
-const DEFINITIONS = {
+export const SECONDARY_DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
   rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 260, damage: 36, radius: 6, impulse: 420 },
   cannon: { ammo: 18, heat: 24, cooldown: 0.62, projectileSpeed: 500, damage: 36, radius: 8, impulse: 680 },
@@ -35,7 +35,7 @@ export function stepSecondaryWeapon(game, input, dt) {
 
 export function fireSecondary(game) {
   const secondary = game.secondary;
-  const def = DEFINITIONS[secondary.selected];
+  const def = SECONDARY_DEFINITIONS[secondary.selected];
   if (!def || secondary.cooldown > 0 || secondary.heat + def.heat > secondary.maxHeat) return false;
   if ((secondary.ammo[secondary.selected] ?? 0) <= 0) return false;
   const muzzle = gunMuzzleWorld(game.vehicle);
@@ -64,6 +64,10 @@ export function fireSecondary(game) {
   secondary.heat += def.heat;
   secondary.cooldown = def.cooldown;
   return true;
+}
+
+export function secondaryAmmoCapacity(weapon) {
+  return SECONDARY_DEFINITIONS[weapon]?.ammo ?? 0;
 }
 
 function cycleSecondary(secondary, direction) {

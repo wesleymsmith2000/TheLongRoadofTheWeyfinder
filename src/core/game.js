@@ -18,6 +18,7 @@ import { stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
 import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
 import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
+import { SHOP_COSTS, refillAmmoWithScrap, repairVehicleWithScrap, replaceDetachedWithScrap } from './economy.js';
 
 export function createGame(seed = 1147) {
   const vehicle = createStartingVehicle();
@@ -55,6 +56,7 @@ export function stepGame(game, input, dt) {
   if (input.resetPressed) return createGame(1147);
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
   if (game.levelComplete || game.gameOver) {
+    stepShop(game, input);
     game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
     stepRoadCamera(game.camera, game.road, game.vehicle, dt);
     return game;
@@ -140,8 +142,17 @@ function carryRoadObjects(game, delta) {
 
 function stepScrapPickups(game, dt) {
   const collectRange = CELL_SIZE * 2.1;
+  const magnetRange = (CELL_SIZE / 6) * SHOP_COSTS.scrapMagnetVoxels;
   const kept = [];
   for (const pickup of game.scrapPickups) {
+    const dx = game.vehicle.x - pickup.x;
+    const dy = game.vehicle.y - pickup.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 0 && distance <= magnetRange) {
+      const pull = 1 - distance / magnetRange;
+      pickup.vx += (dx / distance) * (260 + pull * 520) * dt;
+      pickup.vy += (dy / distance) * (260 + pull * 520) * dt;
+    }
     pickup.x += pickup.vx * dt;
     pickup.y += pickup.vy * dt;
     pickup.vx *= Math.pow(0.18, dt);
@@ -154,6 +165,13 @@ function stepScrapPickups(game, dt) {
     if (pickup.life > 0) kept.push(pickup);
   }
   game.scrapPickups = kept;
+}
+
+function stepShop(game, input) {
+  if (!game.levelComplete) return;
+  if (input.shopRepairPressed) repairVehicleWithScrap(game);
+  if (input.shopReplacePressed) replaceDetachedWithScrap(game);
+  if (input.shopRefillAmmoPressed) refillAmmoWithScrap(game, input.shopAmmoWeapon ?? game.secondary.selected);
 }
 
 function stepPlayerGun(game, dt) {

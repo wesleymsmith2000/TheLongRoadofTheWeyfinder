@@ -71,14 +71,14 @@ Mobile touch:
 
 The in-game `?` button opens the help panel with controls, combat notes, and the current scrap plan.
 
-Scrap collection is the first economy hook. When an enemy is destroyed, each surviving enemy voxel becomes a scrap pickup. Drive over pickups to collect them before the next level starts.
+Scrap collection is the first economy hook. When an enemy is destroyed, each surviving enemy voxel becomes a scrap pickup. Pickups magnetize toward the craft at about 30 voxel range. Drive over pickups to collect them before the next level starts.
 
-Planned between-wave costs:
+Current between-wave actions:
 
 - Repair damaged systems: about 1-2 scrap per repair step
 - Replace detached systems or pieces: about 2x the full repair cost
 - Refill one secondary weapon ammo reserve: about half of a full enemy worth of scrap
-- Buy an ammo module: about 4x a full ammo complement, adding one extra standard ammo load for that weapon
+- Buy an ammo module: planned at about 4x a full ammo complement, adding one extra standard ammo load for that weapon
 
 ## Prototype Scope
 
