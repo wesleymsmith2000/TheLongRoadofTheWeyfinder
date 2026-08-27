@@ -19,6 +19,7 @@ const secondaryTouchFire = document.querySelector('#secondaryTouchFire');
 const secondaryAmmo = document.querySelector('#secondaryAmmo');
 const secondaryHeat = document.querySelector('#secondaryHeat');
 const gunnerToggle = document.querySelector('#gunnerToggle');
+const scrapCount = document.querySelector('#scrapCount');
 const scoreDamage = document.querySelector('#scoreDamage');
 const levelComplete = document.querySelector('#levelComplete');
 const levelTime = document.querySelector('#levelTime');
@@ -105,6 +106,7 @@ function frame(now) {
   const selectedAmmo = game.secondary.ammo[game.secondary.selected];
   secondaryAmmo.textContent = selectedAmmo == null ? '-' : selectedAmmo;
   secondaryHeat.style.width = `${game.secondary.heat}%`;
+  scrapCount.textContent = game.scrap;
   scoreDamage.textContent = game.score.damageDone;
   renderer.draw(game, debug);
   requestAnimationFrame(frame);

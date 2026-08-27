@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, traceEnemyVoxelRay } from '../src/core/enemy.js';
+import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, stepGame } from '../src/core/game.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
@@ -51,4 +51,12 @@ test('cannon-style blast strips nearby outer shell voxels with shallow penetrati
   assert.equal(result.hit, true);
   assert.equal(result.removed > 0, true);
   assert.equal(coreRemoved, 0);
+});
+
+test('destroyed enemy remaining voxels become collectible scrap', () => {
+  const enemy = createEnemy(0, 0);
+  enemy.destroyed = true;
+  const pickups = harvestEnemyScrap(enemy);
+  assert.equal(pickups.length > 0, true);
+  assert.equal(enemy.cells.every((cell) => cell.mask.flat().every((voxel) => voxel.hp <= 0)), true);
 });

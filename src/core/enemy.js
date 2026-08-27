@@ -100,6 +100,35 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   return { hit, removed, destroyedNow: !wasDestroyed && enemy.destroyed };
 }
 
+export function harvestEnemyScrap(enemy, rng) {
+  const pickups = [];
+  const unit = CELL_SIZE / VOXELS;
+  for (const cell of enemy.cells) {
+    let changed = false;
+    for (let vy = 0; vy < VOXELS; vy += 1) {
+      for (let vx = 0; vx < VOXELS; vx += 1) {
+        const voxel = cell.mask[vy][vx];
+        if (voxel.hp <= 0) continue;
+        const world = enemyVoxelWorldCenter(enemy, cell, vx, vy);
+        const jitter = rng ? { x: rng.range(-unit, unit), y: rng.range(-unit, unit) } : { x: 0, y: 0 };
+        pickups.push({
+          x: world.x + jitter.x,
+          y: world.y + jitter.y,
+          vx: (rng?.range(-35, 35) ?? 0) + enemy.vx * 0.15,
+          vy: (rng?.range(-35, 35) ?? 0) + enemy.vy * 0.15,
+          value: 1,
+          radius: Math.max(2.2, unit * 0.55),
+          life: 18,
+        });
+        voxel.hp = 0;
+        changed = true;
+      }
+    }
+    if (changed) recalculateCell(cell);
+  }
+  return pickups;
+}
+
 export function traceEnemyVoxelRay(enemies, start, angle, maxLength) {
   const step = CELL_SIZE / VOXELS / 2;
   const dx = Math.cos(angle);

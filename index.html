@@ -101,7 +101,9 @@
         position: fixed;
         right: 14px;
         top: 58px;
-        width: min(320px, calc(100vw - 28px));
+        width: min(420px, calc(100vw - 28px));
+        max-height: calc(100vh - 74px);
+        overflow: auto;
         padding: 12px 14px;
         border: 1px solid rgb(244 238 228 / 0.22);
         border-radius: 8px;
@@ -114,6 +116,12 @@
       .controls-panel h2 {
         margin: 0 0 8px;
         font-size: 14px;
+      }
+
+      .controls-panel h3 {
+        margin: 12px 0 5px;
+        font-size: 12px;
+        color: #f7c06a;
       }
 
       .controls-panel p {
@@ -221,10 +229,17 @@
     </div>
     <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
     <div id="controlsPanel" class="controls-panel hidden">
-      <h2>Controls</h2>
+      <h2>Help</h2>
+      <h3>Controls</h3>
       <p>Keyboard: WASD/arrows move, mouse aims, click fires secondary, Q/E cycles secondary, G toggles gunner AI.</p>
       <p>Controller: left stick moves, right stick aims, triggers rotate, bumpers cycle secondary.</p>
       <p>Mobile: left side drags movement, right side aims and fires.</p>
+      <h3>Combat</h3>
+      <p>Primary fire can use gunner AI. Secondary weapons trade ammo, heat, cooldown, and impact style.</p>
+      <p>Destroyed enemies stop blocking shots, explode, and scatter nearby enemies away from the firing lane.</p>
+      <h3>Scrap</h3>
+      <p>Surviving enemy voxels become scrap. Run over the gold pieces to collect them before starting the next level.</p>
+      <p>Next checkpoint: spend scrap between waves to repair systems, replace detached modules, replenish ammo, and buy ammo modules.</p>
     </div>
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
     <button id="secondaryTouchFire" class="secondary-touch-button" type="button" aria-label="Fire secondary weapon">2ND</button>
@@ -246,7 +261,7 @@
         <span>Ammo <span id="secondaryAmmo">12</span></span>
         <div class="heat-meter" aria-label="Secondary heat"><div id="secondaryHeat" class="heat-fill"></div></div>
       </div>
-      <div>Damage <span id="scoreDamage">0</span></div>
+      <div>Scrap <span id="scrapCount">0</span> Damage <span id="scoreDamage">0</span></div>
     </div>
     <div id="levelComplete" class="game-over hidden">
       <div>

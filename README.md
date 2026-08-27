@@ -27,7 +27,7 @@ npm test
 
 ## Current Loop
 
-Destroy every enemy to clear the level, then use `Start Next Level` to continue. Each new level adds one more enemy. The run ends when the Core is lost and reports total levels completed.
+Destroy every enemy, collect the dropped scrap, then use `Start Next Level` to continue. Each new level adds one more enemy. The run ends when the Core is lost and reports total levels completed.
 
 ## Controls
 
@@ -41,6 +41,7 @@ Destroy every enemy to clear the level, then use `Start Next Level` to continue.
 - `D`: toggle debug overlay
 - `R`: reset scene
 - `H` or `?`: controls panel
+- `G`: toggle gunner AI
 - `Z` / `X`: cycle secondary weapon
 - `Shift`: fire secondary weapon
 
@@ -65,6 +66,19 @@ Mobile touch:
 - Left side drag: virtual movement stick
 - Right side touch/drag: aim and fire turret
 - `BOOST` button: dodge/boost in the current movement direction
+
+## Help And Economy Notes
+
+The in-game `?` button opens the help panel with controls, combat notes, and the current scrap plan.
+
+Scrap collection is the first economy hook. When an enemy is destroyed, each surviving enemy voxel becomes a scrap pickup. Drive over pickups to collect them before the next level starts.
+
+Planned between-wave costs:
+
+- Repair damaged systems: about 1-2 scrap per repair step
+- Replace detached systems or pieces: about 2x the full repair cost
+- Refill one secondary weapon ammo reserve: about half of a full enemy worth of scrap
+- Buy an ammo module: about 4x a full ammo complement, adding one extra standard ammo load for that weapon
 
 ## Prototype Scope
 

@@ -44,6 +44,7 @@ export class CanvasRenderer {
     applyCameraTransform(ctx, game.camera, w, h);
     drawRoad(ctx, game.camera, w, h, game.time);
     drawRoadLane(ctx, game.road);
+    drawScrapPickups(ctx, game.scrapPickups);
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
@@ -51,6 +52,21 @@ export class CanvasRenderer {
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
     if (debug.visible) drawDebugOverlay(ctx, game);
+  }
+}
+
+function drawScrapPickups(ctx, pickups) {
+  for (const pickup of pickups) {
+    ctx.save();
+    ctx.translate(pickup.x, pickup.y);
+    ctx.fillStyle = '#c9b66f';
+    ctx.strokeStyle = '#fff1a8';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(-pickup.radius, -pickup.radius, pickup.radius * 2, pickup.radius * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 }
 

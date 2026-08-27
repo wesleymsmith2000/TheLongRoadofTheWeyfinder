@@ -16,7 +16,7 @@ import {
 import { CELL_SIZE } from './voxelMask.js';
 import { stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
-import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, traceEnemyVoxelRay } from './enemy.js';
+import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
 import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
 
 export function createGame(seed = 1147) {
@@ -30,6 +30,8 @@ export function createGame(seed = 1147) {
     enemies: createLevelEnemies(road, 1),
     boost: createBoostState(),
     secondary: createSecondaryState(),
+    scrap: 0,
+    scrapPickups: [],
     playerProjectiles: [],
     enemyProjectiles: [],
     autofire: true,
@@ -73,11 +75,12 @@ export function stepGame(game, input, dt) {
   syncBeamProjectiles(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   handleCollisions(game);
+  stepScrapPickups(game, dt);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
   recalculateVehicle(game.vehicle);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   game.gameOver = !game.vehicle.alive;
-  if (activeEnemies(game).length === 0) {
+  if (activeEnemies(game).length === 0 && game.scrapPickups.length === 0) {
     game.levelComplete = true;
     game.levelTime = game.time - game.levelStartTime;
     game.levelTimes.push(game.levelTime);
@@ -94,6 +97,7 @@ export function startNextLevel(game) {
   game.enemies = createLevelEnemies(game.road, game.level);
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
+  game.scrapPickups = [];
   return game;
 }
 
@@ -120,11 +124,36 @@ function decayNonBlockingEffects(projectiles, dt) {
 }
 
 function carryRoadObjects(game, delta) {
-  const objects = [game.vehicle, ...game.enemies, ...game.playerProjectiles, ...game.enemyProjectiles, ...game.vehicle.detachedPieces];
+  const objects = [
+    game.vehicle,
+    ...game.enemies,
+    ...game.scrapPickups,
+    ...game.playerProjectiles,
+    ...game.enemyProjectiles,
+    ...game.vehicle.detachedPieces,
+  ];
   for (const object of objects) {
     object.x += delta.dx;
     object.y += delta.dy;
   }
+}
+
+function stepScrapPickups(game, dt) {
+  const collectRange = CELL_SIZE * 2.1;
+  const kept = [];
+  for (const pickup of game.scrapPickups) {
+    pickup.x += pickup.vx * dt;
+    pickup.y += pickup.vy * dt;
+    pickup.vx *= Math.pow(0.18, dt);
+    pickup.vy *= Math.pow(0.18, dt);
+    pickup.life -= dt;
+    if (distanceSquared(pickup, game.vehicle) <= (collectRange + pickup.radius) ** 2) {
+      game.scrap += pickup.value;
+      continue;
+    }
+    if (pickup.life > 0) kept.push(pickup);
+  }
+  game.scrapPickups = kept;
 }
 
 function stepPlayerGun(game, dt) {
@@ -322,6 +351,7 @@ function spawnCannonImpact(game, projectile, enemy) {
 
 function explodeEnemy(game, enemy) {
   enemy.explosionStart = game.time;
+  game.scrapPickups.push(...harvestEnemyScrap(enemy, game.rng));
   game.playerProjectiles.push(
     createProjectile(enemy.x, enemy.y, 0, 0, {
       team: 'player',
