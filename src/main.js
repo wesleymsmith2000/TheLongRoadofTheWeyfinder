@@ -43,6 +43,7 @@ function frame(now) {
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
   const mouseInput = mouse.read();
+  const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
   const touchBoostPressed = touchBoost.consume();
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
@@ -57,8 +58,8 @@ function frame(now) {
       )
     : null;
   const input = {
-    x: keyInput.x || padInput.x || mouseInput.x,
-    y: keyInput.y || padInput.y || mouseInput.y,
+    x: movementSource.x,
+    y: movementSource.y,
     turn: keyInput.turn || padInput.turn,
     aimX: 0,
     aimY: 0,
@@ -127,4 +128,15 @@ function createButtonPress(button) {
       return value;
     },
   };
+}
+
+function chooseMovementSource(keyInput, mouseInput, padInput) {
+  if (axisMagnitude(keyInput) > 0) return keyInput;
+  if (axisMagnitude(mouseInput) > 0.05) return mouseInput;
+  if (axisMagnitude(padInput) > 0.05) return padInput;
+  return { x: 0, y: 0 };
+}
+
+function axisMagnitude(input) {
+  return Math.hypot(input.x ?? 0, input.y ?? 0);
 }

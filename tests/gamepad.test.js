@@ -8,6 +8,12 @@ test('standard gamepad maps left stick to movement', () => {
   assert.equal(input.y < -0.4, true);
 });
 
+test('standard gamepad ignores common idle stick drift', () => {
+  const input = mapStandardGamepad(createPad({ axes: [-0.27, 0.26, 0, 0] }));
+  assert.equal(input.x, 0);
+  assert.equal(input.y, 0);
+});
+
 test('standard gamepad exposes Xbox-style button actions', () => {
   const input = mapStandardGamepad(createPad({ axes: [0.5, -0.5, 0, 0], pressed: [0, 1, 2, 3, 8, 12] }));
   assert.equal(input.brake, true);

@@ -1,4 +1,4 @@
-const DEADZONE = 0.22;
+const DEADZONE = 0.3;
 
 export function createGamepadInput(source = () => navigator.getGamepads?.() ?? []) {
   const previousButtons = new Set();
