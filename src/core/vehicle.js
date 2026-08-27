@@ -138,10 +138,10 @@ export function applyImpulse(vehicle, worldPoint, direction, impulse) {
 export function repairVehicleDamage(vehicle, repairPower) {
   let repaired = 0;
   for (const cell of vehicle.cells) {
-    if (!cell.attached || cell.state.destroyed) continue;
+    if (!cell.attached) continue;
     for (const row of cell.mask) {
       for (const voxel of row) {
-        if (voxel.hp <= 0 || voxel.hp >= voxel.maxHp) continue;
+        if (voxel.hp >= voxel.maxHp) continue;
         const amount = Math.min(voxel.maxHp - voxel.hp, repairPower - repaired);
         voxel.hp += amount;
         repaired += amount;
@@ -154,6 +154,7 @@ export function repairVehicleDamage(vehicle, repairPower) {
     }
     recalculateCell(cell);
   }
+  if (repaired > 0) updateStructure(vehicle);
   recalculateVehicle(vehicle);
   return repaired;
 }

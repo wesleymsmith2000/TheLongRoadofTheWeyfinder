@@ -195,13 +195,13 @@
         position: fixed;
         left: 14px;
         bottom: 14px;
-        width: min(320px, calc(100vw - 110px));
-        padding: 10px;
+        width: min(350px, calc(100vw - 110px));
+        padding: 12px;
         border: 1px solid rgb(244 238 228 / 0.2);
         border-radius: 8px;
         background: rgb(20 23 24 / 0.74);
         color: #f4eee4;
-        font-size: 12px;
+        font-size: 13px;
       }
 
       .combat-row {
@@ -222,8 +222,8 @@
 
       .icon-sprite {
         display: inline-block;
-        width: 28px;
-        height: 28px;
+        width: 34px;
+        height: 34px;
         flex: 0 0 auto;
         vertical-align: middle;
         background-image: var(--weapon-icon-sheet);
@@ -278,16 +278,16 @@
 
       .shop-panel {
         display: grid;
-        gap: 8px;
-        width: min(420px, calc(100vw - 32px));
+        gap: 10px;
+        width: min(460px, calc(100vw - 32px));
         margin-top: 14px;
-        padding: 12px;
+        padding: 14px;
         border: 1px solid rgb(244 238 228 / 0.2);
         border-radius: 8px;
         background:
           linear-gradient(90deg, rgb(20 23 24 / 0.9), rgb(20 23 24 / 0.7)),
           center / cover no-repeat var(--repair-art);
-        font-size: 13px;
+        font-size: 14px;
       }
 
       .shop-panel button {
@@ -297,6 +297,16 @@
         gap: 8px;
         width: 100%;
         margin: 0;
+      }
+
+      .shop-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.62);
       }
     </style>
   </head>
@@ -348,6 +358,10 @@
         Level <span id="levelNumber">1</span> Clear<br />
         <span style="font-size: 18px">Time <span id="levelTime">0.0</span>s</span><br />
         <div class="shop-panel">
+          <div class="shop-summary">
+            <span><span class="icon-sprite" data-icon="scrap" aria-hidden="true"></span> Scrap Available</span>
+            <strong id="shopScrapAvailable">0</strong>
+          </div>
           <button id="shopRepairButton" type="button">
             <span class="icon-sprite" data-icon="repair" aria-hidden="true"></span> Repair Systems (<span id="shopRepairCost">2</span>)
           </button>

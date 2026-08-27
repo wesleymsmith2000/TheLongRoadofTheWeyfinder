@@ -16,6 +16,16 @@ test('repair shop spends scrap to restore damaged attached voxels', () => {
   assert.equal(cell.state.mass > before, true);
 });
 
+test('repair shop can restore stripped attached voxels', () => {
+  const game = createGame();
+  const cell = game.vehicle.cells.find((candidate) => candidate.id === 'armor-left');
+  for (const voxel of cell.mask.flat()) voxel.hp = 0;
+  game.scrap = SHOP_COSTS.repair;
+  const repaired = repairVehicleWithScrap(game);
+  assert.equal(repaired, true);
+  assert.equal(cell.mask.flat().some((voxel) => voxel.hp > 0), true);
+});
+
 test('replacement shop restores one detached module at folded repair cost', () => {
   const game = createGame();
   const wheel = game.vehicle.cells.find((candidate) => candidate.id === 'wheel-left');

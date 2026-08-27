@@ -40,6 +40,7 @@ const shopRepairCost = document.querySelector('#shopRepairCost');
 const shopReplaceCost = document.querySelector('#shopReplaceCost');
 const shopAmmoCost = document.querySelector('#shopAmmoCost');
 const shopSelectedAmmo = document.querySelector('#shopSelectedAmmo');
+const shopScrapAvailable = document.querySelector('#shopScrapAvailable');
 const restartButton = document.querySelector('#restartButton');
 const renderer = new CanvasRenderer(canvas);
 const keyboard = createKeyboardInput(window);
@@ -181,6 +182,7 @@ function updateShopUi() {
   shopRepairCost.textContent = SHOP_COSTS.repair;
   shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
+  shopScrapAvailable.textContent = game.scrap;
   shopSelectedAmmo.textContent = game.secondary.selected;
   shopRepairButton.disabled = game.scrap < SHOP_COSTS.repair;
   shopReplaceButton.disabled = game.scrap < SHOP_COSTS.replaceDetached || game.vehicle.detachedPieces.length === 0;
