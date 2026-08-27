@@ -41,6 +41,7 @@ Destroy every enemy, collect the dropped scrap, then use `Start Next Level` to c
 - `D`: toggle debug overlay
 - `R`: reset scene
 - `H` or `?`: controls panel
+- `DBG` button or `D`: debug stats panel
 - `G`: toggle gunner AI
 - `Z` / `X`: cycle secondary weapon
 - `Shift`: fire secondary weapon
@@ -67,6 +68,8 @@ Mobile touch:
 - Right side touch/drag: aim and fire turret
 - `BOOST` button: dodge/boost in the current movement direction
 - `HUD` button: show or hide the vehicle/combat panel
+
+The run now starts paused on a launch screen so controls, HUD, and debug settings can be prepared before the first wave begins.
 
 ## Help And Economy Notes
 

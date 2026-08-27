@@ -1,5 +1,5 @@
 export function createDebugOverlay() {
-  return { visible: true };
+  return { visible: false };
 }
 
 export function drawDebugOverlay(ctx, game) {

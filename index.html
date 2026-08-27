@@ -109,6 +109,22 @@
         background: rgb(20 23 24 / 0.78);
         color: #f4eee4;
         font-size: 20px;
+        z-index: 6;
+      }
+
+      .debug-toggle {
+        position: fixed;
+        right: 58px;
+        top: 14px;
+        min-width: 44px;
+        height: 36px;
+        border: 1px solid rgb(244 238 228 / 0.3);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.78);
+        color: #f4eee4;
+        font-weight: 800;
+        letter-spacing: 0;
+        z-index: 6;
       }
 
       .hud-toggle {
@@ -123,7 +139,7 @@
         color: #f4eee4;
         font-weight: 800;
         letter-spacing: 0;
-        z-index: 4;
+        z-index: 6;
       }
 
       .controls-panel {
@@ -140,6 +156,7 @@
         color: #f4eee4;
         font-size: 13px;
         line-height: 1.45;
+        z-index: 6;
       }
 
       .controls-panel h2 {
@@ -217,7 +234,7 @@
         background: rgb(20 23 24 / 0.74);
         color: #f4eee4;
         font-size: 13px;
-        z-index: 3;
+        z-index: 6;
       }
 
       .combat-row {
@@ -238,8 +255,8 @@
 
       .icon-sprite {
         display: inline-block;
-        width: 34px;
-        height: 34px;
+        width: 42px;
+        height: 42px;
         flex: 0 0 auto;
         vertical-align: middle;
         background-image: var(--weapon-icon-sheet);
@@ -345,6 +362,93 @@
         color: #f4eee4;
       }
 
+      .upgrade-summary {
+        display: grid;
+        gap: 6px;
+        max-height: 26vh;
+        overflow: auto;
+        padding: 8px;
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.62);
+        text-align: left;
+      }
+
+      .upgrade-summary details {
+        border-top: 1px solid rgb(244 238 228 / 0.14);
+        padding-top: 5px;
+      }
+
+      .upgrade-summary details:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .upgrade-summary summary {
+        cursor: pointer;
+        color: #f7c06a;
+        font-weight: 700;
+      }
+
+      .upgrade-list {
+        display: grid;
+        gap: 4px;
+        margin-top: 6px;
+      }
+
+      .upgrade-line {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 8px;
+        align-items: center;
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .launch-screen {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(90deg, rgb(12 13 13 / 0.86), rgb(12 13 13 / 0.5)),
+          center / cover no-repeat var(--level-complete-art);
+        color: #fff6e7;
+        pointer-events: auto;
+        z-index: 5;
+      }
+
+      .launch-panel {
+        display: grid;
+        gap: 12px;
+        width: min(420px, calc(100vw - 32px));
+        padding: 16px;
+        border: 1px solid rgb(244 238 228 / 0.24);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.82);
+      }
+
+      .launch-panel h2 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .launch-panel p {
+        margin: 0;
+        color: #d7ceb8;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .launch-panel button {
+        min-height: 44px;
+        border: 1px solid rgb(244 238 228 / 0.35);
+        border-radius: 8px;
+        background: rgb(247 192 106 / 0.18);
+        color: #fff6e7;
+        font-size: 16px;
+        font-weight: 800;
+      }
+
       @media (max-width: 700px), (pointer: coarse) {
         .hud {
           display: none;
@@ -352,6 +456,11 @@
 
         .controls-toggle {
           right: 10px;
+          top: 10px;
+        }
+
+        .debug-toggle {
+          right: 54px;
           top: 10px;
         }
 
@@ -378,8 +487,8 @@
         }
 
         .icon-sprite {
-          width: 28px;
-          height: 28px;
+          width: 38px;
+          height: 38px;
         }
 
         .boost-gauge {
@@ -411,7 +520,15 @@
       <h1 class="title">The Long Road of the Weyfinder</h1>
       <p class="sub">Drive the machine. Lose the machine. Keep the Core moving.</p>
     </div>
+    <div id="launchScreen" class="launch-screen">
+      <div class="launch-panel">
+        <h2>Vehicle Ready</h2>
+        <p>Open HUD, help, or debug before launch. The road starts moving once the vehicle is deployed.</p>
+        <button id="launchButton" type="button">Launch Vehicle</button>
+      </div>
+    </div>
     <button id="hudToggle" class="hud-toggle" type="button" aria-label="Toggle vehicle info">HUD</button>
+    <button id="debugToggle" class="debug-toggle" type="button" aria-label="Toggle debug stats">DBG</button>
     <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
     <div id="controlsPanel" class="controls-panel hidden">
       <h2>Help</h2>
@@ -482,6 +599,7 @@
               <span>Cost <span id="shopUpgradeCost">4</span>, <span id="shopUpgradeStatus">Ready</span></span>
             </button>
           </div>
+          <div id="upgradeSummary" class="upgrade-summary" aria-label="Upgrade levels"></div>
         </div>
         <button id="nextLevelButton" type="button">Start Next Level</button>
       </div>

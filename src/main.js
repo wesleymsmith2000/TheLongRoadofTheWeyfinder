@@ -24,8 +24,11 @@ import weaponIconSheet from '../assets/images/weapon_and_ammo_icon_spritesheet.p
 
 const canvas = document.querySelector('#game');
 const gameOver = document.querySelector('#gameOver');
+const launchScreen = document.querySelector('#launchScreen');
+const launchButton = document.querySelector('#launchButton');
 const hudToggle = document.querySelector('#hudToggle');
 const combatPanel = document.querySelector('#combatPanel');
+const debugToggle = document.querySelector('#debugToggle');
 const controlsToggle = document.querySelector('#controlsToggle');
 const controlsPanel = document.querySelector('#controlsPanel');
 const boostButton = document.querySelector('#boostButton');
@@ -61,6 +64,7 @@ const shopUpgradeSelect = document.querySelector('#shopUpgradeSelect');
 const shopBuyUpgradeButton = document.querySelector('#shopBuyUpgradeButton');
 const shopUpgradeCost = document.querySelector('#shopUpgradeCost');
 const shopUpgradeStatus = document.querySelector('#shopUpgradeStatus');
+const upgradeSummary = document.querySelector('#upgradeSummary');
 const restartButton = document.querySelector('#restartButton');
 const renderer = new CanvasRenderer(canvas);
 const keyboard = createKeyboardInput(window);
@@ -73,6 +77,7 @@ const debug = createDebugOverlay();
 
 let game = createGame();
 let previous = performance.now();
+let awaitingLaunch = true;
 const padReticle = {
   x: window.innerWidth / 2,
   y: window.innerHeight * 0.42,
@@ -92,6 +97,7 @@ function frame(now) {
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
   const mouseInput = mouse.read();
+  const launchPressed = launchButtonPressed.consume();
   const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
   const touchBoostPressed = touchBoost.consume();
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
@@ -140,11 +146,24 @@ function frame(now) {
       touchSecondaryFloating.consume(),
   };
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
-  if (input.debugTogglePressed) debug.visible = !debug.visible;
+  if (launchPressed) {
+    awaitingLaunch = false;
+    game.levelStartTime = game.time;
+    previous = now;
+  }
+  if (input.debugTogglePressed) toggleDebug();
   if (input.controlsTogglePressed) toggleControls();
-  const next = stepGame(game, input, dt);
-  if (next !== game) game = next;
+  if (!awaitingLaunch) {
+    const next = stepGame(game, input, dt);
+    if (next !== game) {
+      game = next;
+      if (input.resetPressed) awaitingLaunch = true;
+    }
+  } else if (input.resetPressed) {
+    game = createGame();
+  }
   game.fps = game.fps * 0.9 + (1 / Math.max(dt, 0.001)) * 0.1;
+  launchScreen.classList.toggle('hidden', !awaitingLaunch);
   gameOver.classList.toggle('hidden', !game.gameOver);
   levelComplete.classList.toggle('hidden', !game.levelComplete);
   levelTime.textContent = game.levelTime.toFixed(1);
@@ -165,8 +184,10 @@ function frame(now) {
 
 requestAnimationFrame(frame);
 
+debugToggle.addEventListener('click', toggleDebug);
 hudToggle.addEventListener('click', toggleCombatHud);
 controlsToggle.addEventListener('click', toggleControls);
+const launchButtonPressed = createButtonPress(launchButton);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
 const shopRepairPressed = createButtonPress(shopRepairButton);
@@ -176,6 +197,11 @@ const shopBuyUpgradePressed = createButtonPress(shopBuyUpgradeButton);
 
 function toggleControls() {
   controlsPanel.classList.toggle('hidden');
+}
+
+function toggleDebug() {
+  debug.visible = !debug.visible;
+  debugToggle.setAttribute('aria-pressed', String(debug.visible));
 }
 
 function toggleCombatHud() {
@@ -242,12 +268,53 @@ function refreshUpgradeOptions() {
   shopUpgradeSelect.value = selected || UPGRADE_DEFINITIONS[0]?.id || '';
 }
 
+function refreshUpgradeSummary() {
+  const openSystems = new Set(
+    Array.from(upgradeSummary.querySelectorAll('details'))
+      .filter((details) => details.open)
+      .map((details) => details.dataset.system),
+  );
+  const groups = new Map();
+  for (const upgrade of UPGRADE_DEFINITIONS) {
+    if (!groups.has(upgrade.system)) groups.set(upgrade.system, []);
+    groups.get(upgrade.system).push(upgrade);
+  }
+  upgradeSummary.replaceChildren(
+    ...Array.from(groups.entries()).map(([system, upgrades]) => {
+      const details = document.createElement('details');
+      details.dataset.system = system;
+      details.open = openSystems.size === 0 ? system === 'Main Gun' : openSystems.has(system);
+      const summary = document.createElement('summary');
+      const systemLevel = upgrades.reduce((sum, upgrade) => sum + (game.upgrades?.[upgrade.id] ?? 0), 0);
+      summary.textContent = `${system} upgrades: ${systemLevel}`;
+      const list = document.createElement('div');
+      list.className = 'upgrade-list';
+      for (const upgrade of upgrades) {
+        const row = document.createElement('div');
+        row.className = 'upgrade-line';
+        const name = document.createElement('span');
+        name.textContent = upgrade.label;
+        const level = document.createElement('span');
+        level.textContent = `Lv ${game.upgrades?.[upgrade.id] ?? 0}`;
+        const cost = document.createElement('span');
+        const nextCost = upgradeCost(game, upgrade.id);
+        cost.textContent = Number.isFinite(nextCost) ? `${nextCost} scrap` : '-';
+        row.append(name, level, cost);
+        list.append(row);
+      }
+      details.append(summary, list);
+      return details;
+    }),
+  );
+}
+
 function updateShopUi() {
   const ammoCost = ammoRefillCost(game.secondary.selected);
   const ammo = game.secondary.ammo[game.secondary.selected];
   const ammoCapacity = ammoCapacityWithUpgrades(game, game.secondary.selected);
   const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
   refreshUpgradeOptions();
+  refreshUpgradeSummary();
   shopRepairCost.textContent = SHOP_COSTS.repair;
   shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
