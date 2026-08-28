@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "basic_turret",
+  "author": "Weyfinder prototype",
+  "provenance": "Converted from the Prototype 0 hard-coded enemy grid.",
+  "canonStatus": "CANON",
+  "tags": ["enemy", "turret", "prototype"],
+  "cells": [
+    { "id": "armor-left-top", "type": "armor", "gridX": -1, "gridY": -1 },
+    { "id": "armor-top", "type": "armor", "gridX": 0, "gridY": -1 },
+    { "id": "armor-right-top", "type": "armor", "gridX": 1, "gridY": -1 },
+    { "id": "armor-left", "type": "armor", "gridX": -1, "gridY": 0 },
+    { "id": "core", "type": "core", "gridX": 0, "gridY": 0 },
+    { "id": "armor-right", "type": "armor", "gridX": 1, "gridY": 0 },
+    { "id": "armor-left-bottom", "type": "armor", "gridX": -1, "gridY": 1 },
+    { "id": "armor-bottom", "type": "armor", "gridX": 0, "gridY": 1 },
+    { "id": "armor-right-bottom", "type": "armor", "gridX": 1, "gridY": 1 }
+  ],
+  "connections": [
+    { "a": "core", "b": "armor-left", "aSide": "left" },
+    { "a": "core", "b": "armor-right", "aSide": "right" },
+    { "a": "core", "b": "armor-top", "aSide": "top" },
+    { "a": "core", "b": "armor-bottom", "aSide": "bottom" },
+    { "a": "armor-top", "b": "armor-left-top", "aSide": "left" },
+    { "a": "armor-top", "b": "armor-right-top", "aSide": "right" },
+    { "a": "armor-bottom", "b": "armor-left-bottom", "aSide": "left" },
+    { "a": "armor-bottom", "b": "armor-right-bottom", "aSide": "right" }
+  ],
+  "modules": []
+}

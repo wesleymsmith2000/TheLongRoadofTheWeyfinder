@@ -25,6 +25,35 @@ https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
 npm test
 ```
 
+## Creator Tools
+
+Early editor work lives in this main game repo while Prototype 0 is hardening its shared runtime schemas. The current rule is:
+
+- put runtime-consumed schemas, validators, loaders, first-party content, and small vanilla editor pages in this repo
+- keep editor output identical to the JSON assets under `content/`
+- keep simulation code independent of Canvas, DOM, and editor UI
+- move a creator suite to a separate repo only when it needs its own release cycle, package/dependency stack, publishing flow, accounts, plugin system, or total-conversion launcher
+
+Open the first tool during local development at:
+
+```text
+http://127.0.0.1:5173/tools/construct-workshop.html
+```
+
+Shared content starts under:
+
+```text
+content/
+  constructs/
+  packs/
+```
+
+Creator architecture and content-pack guidance lives in:
+
+```text
+docs/
+```
+
 ## Current Loop
 
 Destroy every enemy, collect the dropped scrap, then use `Start Next Level` to continue. Each new level adds one more enemy. The run ends when the Core is lost and reports total levels completed.

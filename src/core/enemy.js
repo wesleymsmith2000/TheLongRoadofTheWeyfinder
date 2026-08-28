@@ -1,33 +1,33 @@
-import { createCell, recalculateCell } from './cell.js';
+import { recalculateCell } from './cell.js';
+import { instantiateConstruct } from './constructDefinition.js';
 import { applyDamage, CELL_SIZE, VOXELS } from './voxelMask.js';
 import { clamp } from './math.js';
+import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
 
-const ENEMY_GRID = [
-  ['armor', 'armor', 'armor'],
-  ['armor', 'core', 'armor'],
-  ['armor', 'armor', 'armor'],
-];
-
-export function createEnemy(x, y) {
-  const cells = [];
-  for (let gy = 0; gy < ENEMY_GRID.length; gy += 1) {
-    for (let gx = 0; gx < ENEMY_GRID[gy].length; gx += 1) {
-      cells.push(createCell(`enemy-${gx}-${gy}`, ENEMY_GRID[gy][gx], gx - 1, gy - 1));
-    }
-  }
+export function createEnemy(x, y, definition = basicTurretDefinition) {
+  const construct = instantiateConstruct(definition);
   return {
+    assetId: construct.assetId,
     x,
     y,
     vx: 0,
     vy: 0,
-    radius: CELL_SIZE * 2,
+    radius: constructRadius(construct.cells),
     fireTimer: 0.4,
     burstTimer: 5.5,
-    cells,
+    cells: construct.cells,
+    connections: construct.connections,
     damageTaken: 0,
     destroyed: false,
     explosionStart: null,
   };
+}
+
+function constructRadius(cells) {
+  return cells.reduce((radius, cell) => {
+    const distance = Math.hypot(cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE) + CELL_SIZE * 0.75;
+    return Math.max(radius, distance);
+  }, CELL_SIZE);
 }
 
 export function applyEnemyDamage(enemy, projectile) {

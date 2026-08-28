@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Construct Workshop - The Long Road of the Weyfinder</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #121616;
+        color: #f4eee4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(180deg, rgb(18 22 22 / 0.98), rgb(23 25 24 / 0.96)),
+          radial-gradient(circle at 22% 18%, rgb(111 224 191 / 0.12), transparent 32rem);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button,
+      select,
+      input,
+      textarea {
+        border: 1px solid rgb(244 238 228 / 0.22);
+        border-radius: 8px;
+        background: rgb(8 11 11 / 0.54);
+        color: #f4eee4;
+      }
+
+      button {
+        min-height: 36px;
+        padding: 0 12px;
+        font-weight: 760;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: rgb(247 192 106 / 0.55);
+      }
+
+      label {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input,
+      select {
+        min-height: 36px;
+        padding: 0 9px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 260px;
+        padding: 10px;
+        resize: vertical;
+        font-family: "Cascadia Code", Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgb(244 238 228 / 0.12);
+        background: rgb(8 11 11 / 0.58);
+      }
+
+      .title {
+        min-width: 0;
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      .title p {
+        margin: 3px 0 0;
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(260px, 330px) minmax(360px, 1fr) minmax(300px, 420px);
+        gap: 14px;
+        padding: 14px;
+        min-height: 0;
+      }
+
+      .panel {
+        min-width: 0;
+        min-height: 0;
+        border: 1px solid rgb(244 238 228 / 0.14);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.72);
+        overflow: hidden;
+      }
+
+      .panel h2 {
+        margin: 0;
+        padding: 12px;
+        border-bottom: 1px solid rgb(244 238 228 / 0.12);
+        font-size: 13px;
+        letter-spacing: 0;
+      }
+
+      .form {
+        display: grid;
+        gap: 11px;
+        padding: 12px;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .tool-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .canvas-panel {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+
+      .canvas-wrap {
+        display: grid;
+        place-items: center;
+        min-height: 0;
+        padding: 12px;
+      }
+
+      #constructCanvas {
+        width: min(100%, 640px);
+        aspect-ratio: 1;
+        border: 1px solid rgb(244 238 228 / 0.18);
+        border-radius: 8px;
+        background: #0d1010;
+      }
+
+      .status {
+        display: grid;
+        gap: 5px;
+        padding: 10px 12px;
+        border-top: 1px solid rgb(244 238 228 / 0.12);
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .status strong {
+        color: #f4eee4;
+      }
+
+      .status .error {
+        color: #ff9b89;
+      }
+
+      .status .warning {
+        color: #f7c06a;
+      }
+
+      .list {
+        display: grid;
+        gap: 6px;
+        max-height: 25vh;
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid rgb(244 238 228 / 0.1);
+        border-radius: 8px;
+        background: rgb(8 11 11 / 0.36);
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .item strong {
+        color: #f4eee4;
+      }
+
+      .danger {
+        color: #ffb6a8;
+      }
+
+      .output {
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      @media (max-width: 1050px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .list {
+          max-height: 220px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="title">
+          <h1>Construct Workshop</h1>
+          <p>Build construct assets using the same JSON shape consumed by the runtime.</p>
+        </div>
+        <div class="actions">
+          <a href="/"><button type="button">Game</button></a>
+          <button id="resetButton" type="button">Reset</button>
+          <button id="downloadButton" type="button">Download JSON</button>
+        </div>
+      </header>
+      <section class="workspace">
+        <aside class="panel">
+          <h2>Asset</h2>
+          <div class="form">
+            <label>
+              Asset ID
+              <input id="assetIdInput" autocomplete="off" />
+            </label>
+            <div class="split">
+              <label>
+                Schema
+                <input id="schemaInput" autocomplete="off" />
+              </label>
+              <label>
+                Status
+                <select id="canonStatusSelect"></select>
+              </label>
+            </div>
+            <label>
+              Tags
+              <input id="tagsInput" autocomplete="off" />
+            </label>
+            <label>
+              Cell Type
+              <select id="cellTypeSelect"></select>
+            </label>
+            <div class="tool-row">
+              <button id="paintButton" type="button" aria-pressed="true">Paint</button>
+              <button id="eraseButton" type="button" aria-pressed="false">Erase</button>
+              <button id="connectButton" type="button" aria-pressed="false">Connect</button>
+            </div>
+          </div>
+          <h2>Cells</h2>
+          <div id="cellList" class="list"></div>
+          <h2>Connections</h2>
+          <div id="connectionList" class="list"></div>
+        </aside>
+        <section class="panel canvas-panel">
+          <h2>Grid</h2>
+          <div class="canvas-wrap">
+            <canvas id="constructCanvas" width="720" height="720" aria-label="Construct grid"></canvas>
+          </div>
+          <div id="statusPanel" class="status"></div>
+        </section>
+        <aside class="panel output">
+          <h2>Runtime JSON</h2>
+          <div class="form">
+            <textarea id="jsonOutput" spellcheck="false"></textarea>
+            <div class="tool-row">
+              <button id="applyJsonButton" type="button">Apply JSON</button>
+              <button id="copyJsonButton" type="button">Copy</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="/src/editor/constructWorkshop.js"></script>
+  </body>
+</html>

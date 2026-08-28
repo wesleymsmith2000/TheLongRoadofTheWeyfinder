@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "0.1",
+  "packId": "canon.prototype0",
+  "displayName": "Prototype 0 Canon Content",
+  "author": "Weyfinder prototype",
+  "provenance": "Bundled with the canonical game repo.",
+  "canonStatus": "CANON",
+  "description": "First-party content used by the Prototype 0 play loop.",
+  "tags": ["canon", "prototype"],
+  "dependencies": [],
+  "assets": {
+    "constructs": ["../constructs/basic_turret.json"],
+    "weapons": [],
+    "patterns": [],
+    "behaviors": [],
+    "encounters": [],
+    "routes": []
+  }
+}
