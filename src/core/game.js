@@ -25,7 +25,6 @@ import {
   refillAmmoWithScrap,
   repairVehicleWithScrap,
   replaceDetachedWithScrap,
-  upgradeLevel,
   upgradeMultiplier,
   upgradeReduction,
 } from './economy.js';
@@ -87,6 +86,7 @@ export function stepGame(game, input, dt) {
   stepEnemies(game, dt);
   stepPlayerGun(game, dt);
   handleBoostRams(game);
+  handleBoostShieldRepel(game, dt);
   stepSecondaryWeapon(game, input, dt);
 
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
@@ -158,8 +158,9 @@ function carryRoadObjects(game, delta) {
 }
 
 function stepScrapPickups(game, dt) {
-  const collectRange = CELL_SIZE * 2.1;
-  const magnetRange = (CELL_SIZE / 6) * SHOP_COSTS.scrapMagnetVoxels;
+  const collectRange = CELL_SIZE * 2.1 * upgradeMultiplier(game, 'scrapCaptureRadius');
+  const magnetRange = (CELL_SIZE / 6) * SHOP_COSTS.scrapMagnetVoxels * upgradeMultiplier(game, 'scrapMagnetDistance');
+  const magnetStrength = upgradeMultiplier(game, 'scrapMagnetStrength');
   const kept = [];
   for (const pickup of game.scrapPickups) {
     const dx = game.vehicle.x - pickup.x;
@@ -167,8 +168,8 @@ function stepScrapPickups(game, dt) {
     const distance = Math.hypot(dx, dy);
     if (distance > 0 && distance <= magnetRange) {
       const pull = 1 - distance / magnetRange;
-      pickup.vx += (dx / distance) * (130 + pull * 260) * dt;
-      pickup.vy += (dy / distance) * (130 + pull * 260) * dt;
+      pickup.vx += (dx / distance) * (130 + pull * 260) * magnetStrength * dt;
+      pickup.vy += (dy / distance) * (130 + pull * 260) * magnetStrength * dt;
     }
     pickup.x += pickup.vx * dt;
     pickup.y += pickup.vy * dt;
@@ -186,7 +187,7 @@ function stepScrapPickups(game, dt) {
 
 function stepShop(game, input) {
   if (!game.levelComplete) return;
-  if (input.shopRepairPressed) repairVehicleWithScrap(game);
+  if (input.shopRepairPressed) repairVehicleWithScrap(game, input.shopRepairTarget);
   if (input.shopReplacePressed) replaceDetachedWithScrap(game);
   if (input.shopRefillAmmoPressed) refillAmmoWithScrap(game, input.shopAmmoWeapon ?? game.secondary.selected);
   if (input.shopBuyUpgradePressed) buyUpgradeWithScrap(game, input.shopUpgradeId);
@@ -230,12 +231,12 @@ function moveToward(from, to, maxDistance) {
 }
 
 function configureBoostFromUpgrades(game) {
-  game.boost.maxFuel = 100 * upgradeMultiplier(game, 'boostCapacity', 0.1);
-  game.boost.cost = 51 * upgradeReduction(game, 'boostEfficiency', 0.1);
-  game.boost.rechargeRate = 16 * upgradeMultiplier(game, 'boostRecharge', 0.1);
-  game.boost.acceleration = 70 * upgradeMultiplier(game, 'boostAcceleration', 0.1);
-  game.boost.maxDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration', 0.1);
-  game.boost.cooldownDuration = (20 / 60) * upgradeReduction(game, 'boostCooldown', 0.1);
+  game.boost.maxFuel = 100 * upgradeMultiplier(game, 'boostCapacity');
+  game.boost.cost = 51 * upgradeReduction(game, 'boostEfficiency');
+  game.boost.rechargeRate = 16 * upgradeMultiplier(game, 'boostRecharge');
+  game.boost.acceleration = 70 * upgradeMultiplier(game, 'boostAcceleration');
+  game.boost.maxDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration');
+  game.boost.cooldownDuration = (20 / 60) * upgradeReduction(game, 'boostCooldown');
 }
 
 function stepPlayerGun(game, dt) {
@@ -243,9 +244,9 @@ function stepPlayerGun(game, dt) {
   if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return;
-  const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy', 0.1);
+  const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy');
   const angle = game.vehicle.turretHeading + game.rng.range(-spread, spread);
-  const damage = 8 * upgradeMultiplier(game, 'gunDamage', 0.1);
+  const damage = 8 * upgradeMultiplier(game, 'gunDamage');
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vx, Math.sin(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vy, {
       team: 'player',
@@ -259,9 +260,7 @@ function stepPlayerGun(game, dt) {
 }
 
 function playerGunFireInterval(game) {
-  const level = upgradeLevel(game, 'gunFireRate');
-  const speed = 1 + 2 * (1 - 0.82 ** level);
-  return 0.22 / speed;
+  return 0.22 / upgradeMultiplier(game, 'gunFireRate');
 }
 
 function stepEnemies(game, dt) {
@@ -319,7 +318,7 @@ function handleBoostRams(game) {
     enemy.lastRammedAt = game.time;
 
     const direction = directionFromTo(game.vehicle, enemy);
-    const damage = 18 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
+    const damage = 18 * upgradeMultiplier(game, 'boostRamDamage');
     const hit = applyEnemyDamage(enemy, {
       x: enemy.x,
       y: enemy.y,
@@ -330,16 +329,43 @@ function handleBoostRams(game) {
     });
     if (hit.hit) game.score.damageDone += Math.round(damage + hit.removed * 3);
     if (hit.destroyedNow) explodeEnemy(game, enemy);
-    enemy.vx += direction.x * 110 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
-    enemy.vy += direction.y * 110 * upgradeMultiplier(game, 'boostRamDamage', 0.1);
+    enemy.vx += direction.x * 110 * upgradeMultiplier(game, 'boostRamDamage');
+    enemy.vy += direction.y * 110 * upgradeMultiplier(game, 'boostRamDamage');
 
-    const recoilDamage = damage * 0.25 * upgradeReduction(game, 'boostRecoilDamage', 0.1);
-    const recoilImpulse = 110 * upgradeReduction(game, 'boostRecoilKnockback', 0.1);
+    const recoilDamage = damage * 0.25 * upgradeReduction(game, 'boostRecoilDamage');
+    const recoilImpulse = 110 * upgradeReduction(game, 'boostRecoilKnockback');
     applyVehicleDamage(game.vehicle, game.vehicle, CELL_SIZE * 0.5, recoilDamage, recoilImpulse, {
       x: -direction.x,
       y: -direction.y,
     });
   }
+}
+
+function handleBoostShieldRepel(game, dt) {
+  if (game.boost.activeTime <= 0) return;
+  const radius = boostShieldRadius(game);
+  const enemyImpulse = 180 * upgradeMultiplier(game, 'boostShielding');
+  const projectileImpulse = 360 * upgradeMultiplier(game, 'boostShielding');
+  for (const enemy of activeEnemies(game)) knockEnemyFromPoint(enemy, game.vehicle, radius + enemy.radius, enemyImpulse * dt);
+  for (const projectile of game.enemyProjectiles) {
+    if (projectile.lifetime <= 0) continue;
+    const dx = projectile.x - game.vehicle.x;
+    const dy = projectile.y - game.vehicle.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance <= 0.001 || distance > radius + projectile.radius) continue;
+    const nx = dx / distance;
+    const ny = dy / distance;
+    const speed = Math.hypot(projectile.vx, projectile.vy);
+    projectile.vx = nx * Math.max(speed, projectileImpulse);
+    projectile.vy = ny * Math.max(speed, projectileImpulse);
+    projectile.x = game.vehicle.x + nx * (radius + projectile.radius + 0.5);
+    projectile.y = game.vehicle.y + ny * (radius + projectile.radius + 0.5);
+    projectile.lifetime *= 0.72;
+  }
+}
+
+function boostShieldRadius(game) {
+  return CELL_SIZE * 3.8 * upgradeMultiplier(game, 'boostShielding');
 }
 
 function handleCollisions(game) {
@@ -378,7 +404,7 @@ function handleCollisions(game) {
 
 function shieldedProjectile(game, projectile) {
   if (game.boost.activeTime <= 0) return projectile;
-  const shield = clamp(0.25 * upgradeMultiplier(game, 'boostShielding', 0.1), 0, 0.8);
+  const shield = clamp(0.25 * upgradeMultiplier(game, 'boostShielding'), 0, 0.8);
   return { ...projectile, damage: projectile.damage * (1 - shield), impulse: projectile.impulse * (1 - shield) };
 }
 

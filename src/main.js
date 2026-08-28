@@ -11,12 +11,13 @@ import {
   ammoCapacityWithUpgrades,
   ammoRefillCost,
   ammoStatus,
+  repairCost,
   repairStatus,
   replacementStatus,
   upgradeCost,
   upgradeStatus,
 } from './core/economy.js';
-import { countDetachedVehicleCells, hasRepairableVehicleDamage } from './core/vehicle.js';
+import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairTargetOptions } from './core/vehicle.js';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import levelFailArt from '../assets/images/level_fail_screen.png';
 import repairArt from '../assets/images/repair_screen.png';
@@ -60,6 +61,7 @@ const shopScrapAvailable = document.querySelector('#shopScrapAvailable');
 const shopRepairStatus = document.querySelector('#shopRepairStatus');
 const shopReplaceStatus = document.querySelector('#shopReplaceStatus');
 const shopAmmoStatus = document.querySelector('#shopAmmoStatus');
+const shopRepairTarget = document.querySelector('#shopRepairTarget');
 const shopUpgradeSelect = document.querySelector('#shopUpgradeSelect');
 const shopBuyUpgradeButton = document.querySelector('#shopBuyUpgradeButton');
 const shopUpgradeCost = document.querySelector('#shopUpgradeCost');
@@ -89,6 +91,7 @@ document.documentElement.style.setProperty('--level-fail-art', `url("${levelFail
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
 populateUpgradeSelect();
+refreshRepairTargets();
 if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) combatPanel.classList.add('hidden');
 syncLaunchScreen();
 
@@ -127,6 +130,7 @@ function frame(now) {
     controlsTogglePressed: keyInput.controlsTogglePressed || padInput.controlsTogglePressed,
     nextLevelPressed: nextLevelButtonPressed.consume(),
     shopRepairPressed: shopRepairPressed.consume(),
+    shopRepairTarget: shopRepairTarget.value,
     shopReplacePressed: shopReplacePressed.consume(),
     shopRefillAmmoPressed: shopRefillAmmoPressed.consume(),
     shopBuyUpgradePressed: shopBuyUpgradePressed.consume(),
@@ -295,6 +299,21 @@ function refreshUpgradeOptions() {
   shopUpgradeSelect.value = selected || UPGRADE_DEFINITIONS[0]?.id || '';
 }
 
+function refreshRepairTargets() {
+  const selected = shopRepairTarget.value;
+  shopRepairTarget.replaceChildren(
+    ...repairTargetOptions(game.vehicle).map((target) => {
+      const option = document.createElement('option');
+      const cost = repairCost(game, target.id);
+      option.value = target.id;
+      option.textContent = cost > 0 ? `${target.label} (${cost} scrap)` : `${target.label} (OK)`;
+      return option;
+    }),
+  );
+  shopRepairTarget.value =
+    Array.from(shopRepairTarget.options).some((option) => option.value === selected) ? selected : shopRepairTarget.options[0]?.value || 'all';
+}
+
 function refreshUpgradeSummary() {
   const openSystems = new Set(
     Array.from(upgradeSummary.querySelectorAll('details'))
@@ -340,19 +359,21 @@ function updateShopUi() {
   const ammo = game.secondary.ammo[game.secondary.selected];
   const ammoCapacity = ammoCapacityWithUpgrades(game, game.secondary.selected);
   const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
+  refreshRepairTargets();
+  const selectedRepairCost = repairCost(game, shopRepairTarget.value);
   refreshUpgradeOptions();
   refreshUpgradeSummary();
-  shopRepairCost.textContent = SHOP_COSTS.repair;
+  shopRepairCost.textContent = selectedRepairCost;
   shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
   shopUpgradeCost.textContent = Number.isFinite(selectedUpgradeCost) ? selectedUpgradeCost : '-';
   shopScrapAvailable.textContent = game.scrap;
   shopSelectedAmmo.textContent = game.secondary.selected;
-  shopRepairStatus.textContent = repairStatus(game);
+  shopRepairStatus.textContent = repairStatus(game, shopRepairTarget.value);
   shopReplaceStatus.textContent = replacementStatus(game);
   shopAmmoStatus.textContent = ammoStatus(game, game.secondary.selected);
   shopUpgradeStatus.textContent = upgradeStatus(game, shopUpgradeSelect.value);
-  shopRepairButton.disabled = game.scrap < SHOP_COSTS.repair || !hasRepairableVehicleDamage(game.vehicle);
+  shopRepairButton.disabled = selectedRepairCost <= 0 || game.scrap < selectedRepairCost || !hasRepairableVehicleDamage(game.vehicle, shopRepairTarget.value);
   shopReplaceButton.disabled = game.scrap < SHOP_COSTS.replaceDetached || countDetachedVehicleCells(game.vehicle) === 0;
   shopRefillAmmoButton.disabled = !Number.isFinite(ammoCost) || game.scrap < ammoCost || ammo == null || ammo >= ammoCapacity;
   shopBuyUpgradeButton.disabled = !Number.isFinite(selectedUpgradeCost) || game.scrap < selectedUpgradeCost;

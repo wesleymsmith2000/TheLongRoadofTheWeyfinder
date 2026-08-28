@@ -93,38 +93,38 @@ function upgradedSecondaryDefinition(game, weapon) {
   if (weapon === 'cannon') {
     return {
       ...base,
-      cooldown: base.cooldown / multiplier(game, 'cannonFireRate', 0.1),
-      damage: base.damage * multiplier(game, 'cannonImpactDamage', 0.1),
-      impulse: base.impulse * multiplier(game, 'cannonKnockback', 0.05),
-      blastDamage: 9 * multiplier(game, 'cannonBlastDamage', 0.1),
-      blastRadius: CELL_SIZE * 2.55 * multiplier(game, 'cannonBlastRadius', 0.1),
-      blastKnockback: 110 * multiplier(game, 'cannonKnockback', 0.05),
+      cooldown: base.cooldown / multiplier(game, 'cannonFireRate'),
+      damage: base.damage * multiplier(game, 'cannonImpactDamage'),
+      impulse: base.impulse * multiplier(game, 'cannonKnockback'),
+      blastDamage: 9 * multiplier(game, 'cannonBlastDamage'),
+      blastRadius: CELL_SIZE * 2.55 * multiplier(game, 'cannonBlastRadius'),
+      blastKnockback: 110 * multiplier(game, 'cannonKnockback'),
       shrapnelCount: 28 + level(game, 'cannonShrapnelCount'),
-      shrapnelDamageScale: multiplier(game, 'cannonShrapnelDamage', 0.1),
+      shrapnelDamageScale: multiplier(game, 'cannonShrapnelDamage'),
     };
   }
   if (weapon === 'rocket') {
     return {
       ...base,
-      cooldown: base.cooldown / multiplier(game, 'rocketFireRate', 0.1),
-      damage: base.damage * multiplier(game, 'rocketImpactDamage', 0.1),
-      impulse: base.impulse * multiplier(game, 'rocketKnockback', 0.05),
-      blastDamage: 4.5 * multiplier(game, 'rocketBlastDamage', 0.1),
-      blastRadius: CELL_SIZE * 1.275 * multiplier(game, 'rocketBlastRadius', 0.1),
-      blastKnockback: 55 * multiplier(game, 'rocketKnockback', 0.05),
-      maxSpeed: base.projectileSpeed * multiplier(game, 'rocketMaxVelocity', 0.1),
-      turnRate: 2.5 * multiplier(game, 'rocketTurning', 0.1),
+      cooldown: base.cooldown / multiplier(game, 'rocketFireRate'),
+      damage: base.damage * multiplier(game, 'rocketImpactDamage'),
+      impulse: base.impulse * multiplier(game, 'rocketKnockback'),
+      blastDamage: 4.5 * multiplier(game, 'rocketBlastDamage'),
+      blastRadius: CELL_SIZE * 1.275 * multiplier(game, 'rocketBlastRadius'),
+      blastKnockback: 55 * multiplier(game, 'rocketKnockback'),
+      maxSpeed: base.projectileSpeed * multiplier(game, 'rocketMaxVelocity'),
+      turnRate: 2.5 * multiplier(game, 'rocketTurning'),
       acceleration: 90,
     };
   }
   if (weapon === 'beam') {
     return {
       ...base,
-      cooldown: base.cooldown / multiplier(game, 'beamFireRate', 0.1),
-      heat: Math.max(1, base.heat * reduction(game, 'beamHeatEfficiency', 0.1)),
-      damage: base.damage * multiplier(game, 'beamDamage', 0.1),
+      cooldown: base.cooldown / multiplier(game, 'beamFireRate'),
+      heat: Math.max(1, base.heat * reduction(game, 'beamHeatEfficiency')),
+      damage: base.damage * multiplier(game, 'beamDamage'),
       radius: base.radius + level(game, 'beamWidth') * (CELL_SIZE / 6),
-      frames: Math.max(1, Math.round(5 * multiplier(game, 'beamFireTime', 0.1))),
+      frames: Math.max(1, Math.round(5 * multiplier(game, 'beamFireTime'))),
       pierce: level(game, 'beamPierce'),
     };
   }
@@ -151,10 +151,10 @@ function level(game, id) {
   return game.upgrades?.[id] ?? 0;
 }
 
-function multiplier(game, id, amount) {
+function multiplier(game, id, amount = 0.05) {
   return (1 + amount) ** level(game, id);
 }
 
-function reduction(game, id, amount) {
+function reduction(game, id, amount = 0.05) {
   return (1 - amount) ** level(game, id);
 }

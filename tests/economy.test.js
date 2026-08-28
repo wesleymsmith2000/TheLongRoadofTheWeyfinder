@@ -8,6 +8,7 @@ import {
   ammoRefillCost,
   buyUpgradeWithScrap,
   refillAmmoWithScrap,
+  repairCost,
   repairStatus,
   repairVehicleWithScrap,
   replacementStatus,
@@ -88,6 +89,29 @@ test('shop status text reports scrap shortfalls and missing modules', () => {
   assert.equal(repairStatus(game), 'No damage');
 });
 
+test('repair shop can target one damaged system', () => {
+  const game = createGame();
+  const armor = game.vehicle.cells.find((candidate) => candidate.id === 'armor-left');
+  const gun = game.vehicle.cells.find((candidate) => candidate.id === 'gun');
+  applyVehicleDamage(game.vehicle, { x: -CELL_SIZE, y: -CELL_SIZE }, CELL_SIZE * 0.45, 6);
+  applyVehicleDamage(game.vehicle, { x: 0, y: -CELL_SIZE }, CELL_SIZE * 0.45, 6);
+  const armorBefore = armor.state.mass;
+  const gunBefore = gun.state.mass;
+  game.scrap = repairCost(game, 'armor');
+  const repaired = repairVehicleWithScrap(game, 'armor');
+  assert.equal(repaired, true);
+  assert.equal(armor.state.mass > armorBefore, true);
+  assert.equal(gun.state.mass, gunBefore);
+});
+
+test('repair cost rises with total upgrade levels', () => {
+  const game = createGame();
+  applyVehicleDamage(game.vehicle, { x: -CELL_SIZE, y: -CELL_SIZE }, CELL_SIZE * 0.45, 6);
+  const base = repairCost(game);
+  game.upgrades.gunDamage = 50;
+  assert.equal(repairCost(game) > base, true);
+});
+
 test('ammo refill uses half of a standard ammo load cost', () => {
   const game = createGame();
   game.secondary.ammo.rocket = 1;
@@ -139,8 +163,8 @@ test('ammo capacity upgrades expand the matching reserve', () => {
   game.scrap = upgradeCost(game, 'rocketAmmo');
   const bought = buyUpgradeWithScrap(game, 'rocketAmmo');
   assert.equal(bought, true);
-  assert.equal(ammoCapacityWithUpgrades(game, 'rocket'), 15);
-  assert.equal(game.secondary.ammo.rocket, 15);
+  assert.equal(ammoCapacityWithUpgrades(game, 'rocket'), 13);
+  assert.equal(game.secondary.ammo.rocket, 13);
 });
 
 test('armor toughness upgrade thickens armor voxels', () => {

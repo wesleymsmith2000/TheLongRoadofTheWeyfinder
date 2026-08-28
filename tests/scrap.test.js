@@ -33,3 +33,19 @@ test('nearby scrap magnetizes toward the vehicle before collection', () => {
   const after = Math.abs(game.scrapPickups[0].x - game.vehicle.x);
   assert.equal(after < before, true);
 });
+
+test('scrap collection upgrades extend magnet pull and capture radius', () => {
+  const captureGame = createGame();
+  captureGame.enemies = [];
+  captureGame.upgrades.scrapCaptureRadius = 4;
+  captureGame.scrapPickups = [{ x: captureGame.vehicle.x + CELL_SIZE * 2.5, y: captureGame.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 }];
+  stepGame(captureGame, {}, 1 / 60);
+  assert.equal(captureGame.scrap, 1);
+
+  const magnetGame = createGame();
+  magnetGame.enemies = [];
+  magnetGame.upgrades.scrapMagnetDistance = 10;
+  magnetGame.scrapPickups = [{ x: magnetGame.vehicle.x + CELL_SIZE * 8, y: magnetGame.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 }];
+  stepGame(magnetGame, {}, 1 / 60);
+  assert.equal(magnetGame.scrapPickups[0].vx < 0, true);
+});

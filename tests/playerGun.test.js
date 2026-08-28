@@ -16,5 +16,5 @@ test('main gun damage upgrade increases bullet damage', () => {
   game.autofire = true;
   stepGame(game, {}, 1 / 60);
   const bullet = game.playerProjectiles.find((projectile) => projectile.weapon === 'bullet');
-  assert.equal(bullet.damage.toFixed(1), '8.8');
+  assert.equal(bullet.damage.toFixed(1), '8.4');
 });

@@ -53,6 +53,9 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'boostRecoilKnockback', label: 'Booster Recoil Knockback Dampening', system: 'Boosters' },
   { id: 'boostShielding', label: 'Booster Damage Shielding', system: 'Boosters' },
   { id: 'boostCooldown', label: 'Booster Cooldown', system: 'Boosters' },
+  { id: 'scrapMagnetDistance', label: 'Magnet Distance', system: 'Scrap Collection' },
+  { id: 'scrapMagnetStrength', label: 'Magnet Strength', system: 'Scrap Collection' },
+  { id: 'scrapCaptureRadius', label: 'Capture Radius', system: 'Scrap Collection' },
 ];
 
 export function createUpgradeState() {
@@ -69,11 +72,11 @@ export function upgradeCost(game, id) {
   return Math.ceil(base * SHOP_COSTS.upgradeCostGrowth ** upgradeLevel(game, id));
 }
 
-export function upgradeMultiplier(game, id, amount = 0.1) {
+export function upgradeMultiplier(game, id, amount = 0.05) {
   return (1 + amount) ** upgradeLevel(game, id);
 }
 
-export function upgradeReduction(game, id, amount = 0.1) {
+export function upgradeReduction(game, id, amount = 0.05) {
   return (1 - amount) ** upgradeLevel(game, id);
 }
 
@@ -94,17 +97,29 @@ export function buyUpgradeWithScrap(game, id) {
   return true;
 }
 
-export function repairVehicleWithScrap(game) {
-  if (game.scrap < SHOP_COSTS.repair || !hasRepairableVehicleDamage(game.vehicle)) return false;
-  const repaired = repairVehicleDamage(game.vehicle, SHOP_COSTS.repair * REPAIR_POWER_PER_SCRAP);
+export function repairCost(game, target = 'all') {
+  if (!hasRepairableVehicleDamage(game.vehicle, target)) return 0;
+  return Math.ceil(SHOP_COSTS.repair * repairInflation(game));
+}
+
+export function repairInflation(game) {
+  const totalUpgradeLevels = Object.values(game.upgrades ?? {}).reduce((sum, value) => sum + value, 0);
+  return 1.01 ** totalUpgradeLevels;
+}
+
+export function repairVehicleWithScrap(game, target = 'all') {
+  const cost = repairCost(game, target);
+  if (cost <= 0 || game.scrap < cost || !hasRepairableVehicleDamage(game.vehicle, target)) return false;
+  const repaired = repairVehicleDamage(game.vehicle, SHOP_COSTS.repair * REPAIR_POWER_PER_SCRAP, target);
   if (repaired <= 0) return false;
-  game.scrap -= SHOP_COSTS.repair;
+  game.scrap -= cost;
   return true;
 }
 
-export function repairStatus(game) {
-  if (!hasRepairableVehicleDamage(game.vehicle)) return 'No damage';
-  return game.scrap >= SHOP_COSTS.repair ? 'Ready' : `Need ${SHOP_COSTS.repair - game.scrap}`;
+export function repairStatus(game, target = 'all') {
+  const cost = repairCost(game, target);
+  if (cost <= 0) return 'No damage';
+  return game.scrap >= cost ? 'Ready' : `Need ${cost - game.scrap}`;
 }
 
 export function replacementStatus(game) {
@@ -160,7 +175,7 @@ function applyUpgradeSideEffects(game, id) {
 }
 
 function growAmmoReserve(game, weapon) {
-  const added = Math.ceil(secondaryAmmoCapacity(weapon) * 0.25);
+  const added = Math.max(1, Math.ceil(secondaryAmmoCapacity(weapon) * 0.05));
   game.secondary.ammoBonus ??= {};
   game.secondary.ammoBonus[weapon] = (game.secondary.ammoBonus[weapon] ?? 0) + added;
   game.secondary.ammo[weapon] = Math.min(ammoCapacityWithUpgrades(game, weapon), (game.secondary.ammo[weapon] ?? 0) + added);
@@ -176,7 +191,7 @@ function thickenArmorVoxels(game) {
     for (const voxel of cell.mask.flat()) {
       if (voxel.role !== Roles.ARMOR) continue;
       const oldMax = voxel.maxHp;
-      voxel.maxHp *= 1.1;
+      voxel.maxHp *= 1.05;
       voxel.hp += voxel.maxHp - oldMax;
     }
     recalculateCell(cell);

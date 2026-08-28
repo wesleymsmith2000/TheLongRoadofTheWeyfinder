@@ -135,10 +135,11 @@ export function applyImpulse(vehicle, worldPoint, direction, impulse) {
   vehicle.angularVelocity += (torque * impulse) / Math.max(vehicle.momentOfInertia, 1);
 }
 
-export function repairVehicleDamage(vehicle, repairPower) {
+export function repairVehicleDamage(vehicle, repairPower, target = 'all') {
   let repaired = 0;
   for (const cell of vehicle.cells) {
     if (!cell.attached) continue;
+    if (!cellMatchesRepairTarget(cell, target)) continue;
     for (const row of cell.mask) {
       for (const voxel of row) {
         if (voxel.hp >= voxel.maxHp) continue;
@@ -191,8 +192,35 @@ export function countDetachedVehicleCells(vehicle) {
   return vehicle.cells.filter((cell) => !cell.attached).length;
 }
 
-export function hasRepairableVehicleDamage(vehicle) {
-  return vehicle.cells.some((cell) => cell.attached && cell.mask.some((row) => row.some((voxel) => voxel.hp < voxel.maxHp)));
+export function hasRepairableVehicleDamage(vehicle, target = 'all') {
+  return vehicle.cells.some(
+    (cell) => cell.attached && cellMatchesRepairTarget(cell, target) && cell.mask.some((row) => row.some((voxel) => voxel.hp < voxel.maxHp)),
+  );
+}
+
+export function repairTargetOptions(vehicle) {
+  const targets = [{ id: 'all', label: 'All Systems' }];
+  const seen = new Set();
+  for (const cell of vehicle.cells) {
+    if (seen.has(cell.type)) continue;
+    seen.add(cell.type);
+    targets.push({ id: cell.type, label: repairTargetLabel(cell.type) });
+  }
+  return targets;
+}
+
+export function repairTargetLabel(target) {
+  if (target === 'all') return 'All Systems';
+  if (target === 'gun') return 'Main Gun';
+  if (target === 'wheel') return 'Wheels';
+  if (target === 'engine') return 'Engine';
+  if (target === 'core') return 'Core';
+  if (target === 'armor') return 'Armor';
+  return target;
+}
+
+function cellMatchesRepairTarget(cell, target) {
+  return target === 'all' || cell.type === target || cell.id === target;
 }
 
 function spawnDetachedPiece(vehicle, cell) {

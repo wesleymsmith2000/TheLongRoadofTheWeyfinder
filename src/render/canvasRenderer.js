@@ -48,7 +48,7 @@ export class CanvasRenderer {
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
-    drawVehicle(ctx, game.vehicle);
+    drawVehicle(ctx, game.vehicle, game.boost, game.time);
     drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
@@ -132,15 +132,41 @@ function drawRoadLane(ctx, road) {
   ctx.restore();
 }
 
-function drawVehicle(ctx, vehicle) {
+function drawVehicle(ctx, vehicle, boost, time) {
   ctx.save();
   ctx.translate(vehicle.x, vehicle.y);
   ctx.rotate(vehicle.heading);
+  drawBoostShield(ctx, boost, time);
   drawVehicleEdges(ctx, vehicle);
   const attached = vehicle.cells.filter((cell) => cell.attached && !cell.state.destroyed);
   for (const cell of attached) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, 1);
   drawTurret(ctx, vehicle);
   drawComMarker(ctx, vehicle.centerOfMass);
+  ctx.restore();
+}
+
+function drawBoostShield(ctx, boost, time) {
+  if (!boost || boost.activeTime <= 0) return;
+  const t = boost.activeTime / Math.max(boost.maxDuration, 0.001);
+  const shimmer = Math.sin(time * 48) * 0.5 + 0.5;
+  const radius = CELL_SIZE * (3.2 + shimmer * 0.42);
+  ctx.save();
+  ctx.rotate(-time * 1.6);
+  ctx.globalAlpha = 0.18 + t * 0.28;
+  const gradient = ctx.createRadialGradient(0, 0, radius * 0.45, 0, 0, radius);
+  gradient.addColorStop(0, 'rgb(131 247 255 / 0.03)');
+  gradient.addColorStop(0.72, 'rgb(131 247 255 / 0.18)');
+  gradient.addColorStop(1, 'rgb(247 192 106 / 0.28)');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgb(131 247 255 / 0.72)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([CELL_SIZE * 0.9, CELL_SIZE * 0.45]);
+  ctx.beginPath();
+  ctx.arc(0, 0, radius * (0.96 + shimmer * 0.05), 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 

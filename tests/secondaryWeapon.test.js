@@ -110,7 +110,7 @@ test('secondary upgrades alter projectile stats', () => {
   game.upgrades.cannonImpactDamage = 1;
   game.upgrades.cannonShrapnelCount = 2;
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '19.8');
+  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '18.9');
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
 });
 
