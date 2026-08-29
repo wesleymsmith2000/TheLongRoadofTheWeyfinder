@@ -50,6 +50,7 @@ Initial content kinds:
 - `constructs`: voxel/cell layouts, anchors, explicit connections, metadata
 - `weapons`: weapon definitions built from known projectile and beam primitives
 - `patterns`: bullet and firing patterns
+- `enemyArchetypes`: editor-facing enemy model descriptors that bind constructs, patterns, entry behavior, palette, and known runtime factories
 - `behaviors`: declarative movement/targeting/state primitives
 - `encounters`: enemy groups, spawn timing, route-relative placement
 - `routes`: road topology and stage flow
@@ -57,6 +58,7 @@ Initial content kinds:
 - `playerAccount`: player-owned unlock and saved-loadout data, provided by the game account/profile layer
 
 `constructs`, `weapons`, `patterns`, and `levels` are partially implemented today. Other kinds are reserved so file layouts and manifests do not need to be redesigned later.
+`enemyArchetypes` is implemented as a descriptor layer in Prototype 0; some enemy runtime behavior is still code-owned until encounter and behavior assets mature.
 
 ## Metadata
 
@@ -383,6 +385,69 @@ Available pattern emitters in Prototype 0:
 
 `sequentialRadial` fires one spoke per interval and keeps sequence state in the runtime pattern state. It may provide `sequenceRest` to pause after a full ring.
 
+## Current Enemy Archetype Contract
+
+Current enemy archetype assets live under:
+
+```text
+content/enemies/
+```
+
+Current runtime/editor entry points:
+
+```text
+src/core/enemyArchetypeDefinition.js
+src/core/enemy.js
+src/core/game.js
+docs/enemy-pattern-editor-handoff.md
+```
+
+Enemy archetype packs are descriptor assets. They expose stable enemy ids and editable knobs to companion editors while the current runtime factories continue to own some Prototype 0 behavior.
+
+A minimal archetype pack:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "assetId": "prototype0_enemy_archetypes",
+  "canonStatus": "CANON",
+  "archetypes": [
+    {
+      "id": "standard",
+      "displayName": "Standard Turret",
+      "runtimeFactory": "createEnemy",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "entry": { "kind": "aheadDrift", "speed": 35 },
+      "editable": ["construct", "patterns", "entry", "palette"]
+    }
+  ]
+}
+```
+
+Current helper API:
+
+```js
+validateEnemyArchetypePack(definition)
+listEnemyArchetypes(pack, filters)
+getEnemyArchetype(id, pack)
+editableEnemyKnobs(archetypeOrId, pack)
+```
+
+Current `runtimeFactory` values:
+
+- `createEnemy`
+- `createEnhancedEnemy`
+- `createBossEnemy`
+
+Current `entry.kind` values:
+
+- `aheadDrift`
+- `behindCharge`
+- `aheadBoss`
+
+Editors should update archetype descriptors when changing enemy art, patterns, palettes, entry behavior, or balance knobs. If a change needs a new simulation verb, add a named runtime primitive and then expose it in this descriptor layer.
+
 ## Current Level Contract
 
 Current level assets live under:
@@ -447,6 +512,7 @@ Current dependency kinds:
 - `construct`
 - `weapon`
 - `pattern`
+- `enemyArchetype`
 - `behavior`
 - `encounter`
 - `route`

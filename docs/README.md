@@ -9,6 +9,7 @@ Start here:
 - [Creator Extension API](./creator-extension-api.md)
 - [Content Pack Manifest](./content-pack-manifest.md)
 - [Level Editor Main Game Handoff](./level-editor-main-game-handoff.md)
+- [Enemy And Pattern Editor Handoff](./enemy-pattern-editor-handoff.md)
 
 Current priorities:
 

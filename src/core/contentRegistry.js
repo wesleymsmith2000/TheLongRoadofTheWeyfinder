@@ -1,17 +1,19 @@
 import { validateConstructDefinition } from './constructDefinition.js';
 import { CANON_STATUSES, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { collectLevelDependencies, validateLevelDefinition } from './levelDefinition.js';
+import { validateEnemyArchetypePack } from './enemyArchetypeDefinition.js';
 import { validatePatternDefinition } from './patternDefinition.js';
 import { validateWeaponDefinition } from './weaponDefinition.js';
 
-export const CONTENT_ASSET_KINDS = ['construct', 'weapon', 'pattern', 'behavior', 'encounter', 'route', 'level', 'image', 'sound', 'music', 'voxelModel'];
-export const CONTENT_MANIFEST_ASSET_KEYS = ['constructs', 'weapons', 'patterns', 'behaviors', 'encounters', 'routes', 'levels', 'images', 'sounds', 'music', 'voxelModels'];
+export const CONTENT_ASSET_KINDS = ['construct', 'weapon', 'pattern', 'enemyArchetype', 'behavior', 'encounter', 'route', 'level', 'image', 'sound', 'music', 'voxelModel'];
+export const CONTENT_MANIFEST_ASSET_KEYS = ['constructs', 'weapons', 'patterns', 'enemyArchetypes', 'behaviors', 'encounters', 'routes', 'levels', 'images', 'sounds', 'music', 'voxelModels'];
 export const RESOURCE_ASSET_KINDS = ['image', 'sound', 'music', 'voxelModel'];
 
 const KIND_TO_MANIFEST_KEY = Object.freeze({
   construct: 'constructs',
   weapon: 'weapons',
   pattern: 'patterns',
+  enemyArchetype: 'enemyArchetypes',
   behavior: 'behaviors',
   encounter: 'encounters',
   route: 'routes',
@@ -28,6 +30,7 @@ const VALIDATORS = Object.freeze({
   construct: validateConstructDefinition,
   weapon: validateWeaponDefinition,
   pattern: validatePatternDefinition,
+  enemyArchetype: validateEnemyArchetypePack,
   level: validateLevelDefinition,
 });
 

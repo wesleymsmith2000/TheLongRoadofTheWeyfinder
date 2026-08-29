@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "prototype0_enemy_archetypes",
+  "displayName": "Prototype 0 Enemy Archetypes",
+  "author": "Weyfinder prototype",
+  "provenance": "Bundled with the canonical game repo.",
+  "canonStatus": "CANON",
+  "tags": ["canon", "prototype", "enemy"],
+  "archetypes": [
+    {
+      "id": "standard",
+      "displayName": "Standard Turret",
+      "runtimeFactory": "createEnemy",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "entry": {
+        "kind": "aheadDrift",
+        "direction": "roadForward",
+        "speed": 35
+      },
+      "palette": {
+        "core": "#f5f5f5",
+        "armor": "#8fb3ff",
+        "gun": "#ffd166"
+      },
+      "editable": ["construct", "patterns", "entry", "palette"]
+    },
+    {
+      "id": "enhanced_charger",
+      "displayName": "Enhanced Charger",
+      "runtimeFactory": "createEnhancedEnemy",
+      "baseArchetype": "standard",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "entry": {
+        "kind": "behindCharge",
+        "direction": "roadBehind",
+        "warningLeadSeconds": 2.4,
+        "speed": 310
+      },
+      "charge": {
+        "acceleration": 165,
+        "duration": 1.15,
+        "idleSeconds": [4.2, 7.4],
+        "shieldArcRadians": 0.39269908169872414,
+        "shieldDamage": 16,
+        "shieldImpulse": 230
+      },
+      "editable": ["construct", "patterns", "entry", "charge", "palette"]
+    },
+    {
+      "id": "boss.octagon.prototype0",
+      "displayName": "Octagon Boss Prototype",
+      "runtimeFactory": "createBossEnemy",
+      "assetIdAlias": "boss.octopus.prototype0",
+      "entry": {
+        "kind": "aheadBoss",
+        "direction": "roadForward",
+        "warningLeadSeconds": 2.4
+      },
+      "palette": {
+        "core": "#8b0000",
+        "armor": "#08080a",
+        "gun": "#ff7a1a",
+        "missileBody": "#050505",
+        "missileTip": "#d01818"
+      },
+      "body": {
+        "centralCoreCells": 4,
+        "armorShape": "octagon",
+        "armorVolumeScale": 4
+      },
+      "arms": {
+        "count": 8,
+        "segmentsPerArm": 8,
+        "segmentCells": ["miniCore", "gun"],
+        "aimCenter": "stochasticPlayerBiased",
+        "wiggle": "randomWave",
+        "detonateOnDisconnect": true,
+        "detonationDamageTeams": ["player", "enemy"]
+      },
+      "centerPulse": {
+        "projectileKind": "boss-missile",
+        "count": 12,
+        "delayBeforeAcceleration": 3,
+        "stopBeforeAcceleration": true,
+        "acceleration": 140,
+        "accelerationSpreadRadians": 0.22,
+        "vanishOffscreen": true
+      },
+      "editable": ["palette", "body", "arms", "centerPulse", "entry"]
+    }
+  ]
+}
