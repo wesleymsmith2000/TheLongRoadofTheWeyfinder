@@ -22,6 +22,22 @@
     "acceleration": 90,
     "maxSpeed": 130,
     "usesVehicleVelocityOnly": true,
-    "targetHint": "aimReticle"
+    "targetHint": "aimReticle",
+    "destructible": true,
+    "shape": {
+      "kind": "cylinderCone",
+      "armorVoxelHp": 10,
+      "bodyLength": 12,
+      "coneLength": 5,
+      "halfWidth": 3,
+      "bodyVoxels": { "columns": 6, "rows": 3 },
+      "coneVoxels": { "columns": 3, "rows": 3 }
+    },
+    "contrail": {
+      "emissionMeanPerSevenFrames": 2,
+      "maxParticlesPerStep": 5,
+      "particleLifetimeFrames": [4, 5],
+      "colors": ["#8a8a86", "#1f2020", "#df6f2e"]
+    }
   }
 }

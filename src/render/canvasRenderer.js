@@ -46,6 +46,7 @@ export class CanvasRenderer {
     drawRoadLane(ctx, game.road);
     drawScrapPickups(ctx, game.scrapPickups);
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time);
+    drawSmokeParticles(ctx, game.smokeParticles);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
     drawVehicle(ctx, game.vehicle, game.boost, game.time);
@@ -301,6 +302,10 @@ function drawProjectiles(ctx, projectiles, color) {
       drawBlast(ctx, projectile);
       continue;
     }
+    if (projectile.weapon === 'rocket' && projectile.shape?.kind === 'cylinderCone') {
+      drawRocket(ctx, projectile);
+      continue;
+    }
     ctx.fillStyle =
       projectile.weapon === 'rocket'
         ? '#ff7461'
@@ -315,6 +320,82 @@ function drawProjectiles(ctx, projectiles, color) {
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawSmokeParticles(ctx, particles = []) {
+  for (const particle of particles) {
+    const age = 1 - Math.max(0, particle.lifetime / particle.maxLifetime);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 0.52 * (1 - age));
+    ctx.fillStyle = particle.color;
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawRocket(ctx, projectile) {
+  const shape = projectile.shape;
+  const bodyLength = shape.bodyLength ?? 12;
+  const coneLength = shape.coneLength ?? 5;
+  const halfWidth = shape.halfWidth ?? projectile.radius;
+  const bodyStart = -bodyLength / 2;
+  const bodyEnd = bodyLength / 2;
+  ctx.save();
+  ctx.translate(projectile.x, projectile.y);
+  ctx.rotate(projectile.angle);
+
+  const bodyIntegrity = sectionIntegrity(projectile.hull, 'cylinder');
+  const coneIntegrity = sectionIntegrity(projectile.hull, 'cone');
+  ctx.fillStyle = shade('#8a8a86', Math.round((bodyIntegrity - 1) * 74));
+  ctx.strokeStyle = '#202222';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.rect(bodyStart, -halfWidth, bodyLength, halfWidth * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = shade('#df6f2e', Math.round((coneIntegrity - 1) * 74));
+  ctx.beginPath();
+  ctx.moveTo(bodyEnd + coneLength, 0);
+  ctx.lineTo(bodyEnd, -halfWidth);
+  ctx.lineTo(bodyEnd, halfWidth);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgb(255 241 168 / 0.75)';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(bodyStart + 1, -halfWidth * 0.45);
+  ctx.lineTo(bodyEnd - 1, -halfWidth * 0.45);
+  ctx.stroke();
+
+  drawRocketHullVoxels(ctx, projectile.hull);
+  ctx.restore();
+}
+
+function drawRocketHullVoxels(ctx, hull) {
+  if (!hull) return;
+  for (const section of hull.sections) {
+    for (const voxel of section.voxels) {
+      if (voxel.hp <= 0) continue;
+      const fraction = voxel.hp / voxel.maxHp;
+      ctx.globalAlpha = 0.2 + fraction * 0.38;
+      ctx.fillStyle = '#f4fffb';
+      ctx.fillRect(voxel.x - 0.45, voxel.y - 0.45, 0.9, 0.9);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+function sectionIntegrity(hull, id) {
+  const section = hull?.sections.find((candidate) => candidate.id === id);
+  if (!section) return 1;
+  const total = section.voxels.reduce((sum, voxel) => sum + voxel.maxHp, 0);
+  const remaining = section.voxels.reduce((sum, voxel) => sum + voxel.hp, 0);
+  return total <= 0 ? 1 : remaining / total;
 }
 
 function drawBlast(ctx, projectile) {

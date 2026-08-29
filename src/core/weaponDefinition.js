@@ -64,6 +64,9 @@ export function runtimeWeaponDefinition(definition) {
     shrapnelDamageScale: projectile.shrapnelDamageScale ?? 1,
     pierce: projectile.pierce ?? 0,
     frames: projectile.frames ?? 0,
+    destructible: Boolean(projectile.destructible),
+    shape: projectile.shape ?? null,
+    contrail: projectile.contrail ?? null,
   };
 }
 

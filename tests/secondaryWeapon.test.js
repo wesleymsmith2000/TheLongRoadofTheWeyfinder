@@ -40,7 +40,42 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(game.playerProjectiles[0].behavior, 'homing');
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
   assert.equal(game.playerProjectiles[0].maxSpeed, 130);
+  assert.equal(game.playerProjectiles[0].radius, 3);
+  assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
+});
+
+test('enemy bullets can destroy a rocket and trigger its blast', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  fireSecondary(game);
+  const rocket = game.playerProjectiles[0];
+  rocket.x = 0;
+  rocket.y = 0;
+  rocket.vx = 0;
+  rocket.vy = 0;
+  rocket.angle = 0;
+  rocket.blastRadius = 20;
+  game.enemyProjectiles = [{ x: 6.5, y: 0, vx: 0, vy: 0, radius: 3, damage: 200, lifetime: 1, team: 'enemy', weapon: 'bullet' }];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(rocket.lifetime <= 0, true);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'rocket-blast'), true);
+  assert.equal(game.enemyProjectiles.every((projectile) => projectile.lifetime <= 0), true);
+});
+
+test('rocket contrail emits short-lived smoke particles', () => {
+  const game = createGame();
+  game.autofire = false;
+  fireSecondary(game);
+  const rocket = game.playerProjectiles[0];
+  rocket.contrail = { ...rocket.contrail, emissionMeanPerSevenFrames: 14 };
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.smokeParticles.length > 0, true);
+  assert.equal(game.smokeParticles.length <= 5, true);
+  rocket.lifetime = 0;
+  for (let index = 0; index < 6; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.smokeParticles.length, 0);
 });
 
 test('beam stores a render endpoint when it hits an enemy voxel', () => {

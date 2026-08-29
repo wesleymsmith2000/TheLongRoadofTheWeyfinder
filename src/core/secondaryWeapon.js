@@ -71,6 +71,9 @@ export function fireSecondary(game) {
       shrapnelDamageScale: def.shrapnelDamageScale ?? 1,
       pierce: def.pierce ?? 0,
       frames: def.behavior === 'beam' ? def.frames : 0,
+      destructible: def.destructible,
+      shape: def.shape,
+      contrail: def.contrail,
       lifetime: def.behavior === 'beam' ? def.frames / 60 : def.lifetime,
     }),
   );

@@ -18,7 +18,7 @@
       "team": "enemy",
       "weapon": "bullet",
       "behavior": "ballistic",
-      "radius": 5,
+      "radius": 2.5,
       "damage": 10,
       "impulse": 175,
       "lifetime": 4

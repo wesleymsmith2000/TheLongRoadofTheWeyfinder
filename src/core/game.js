@@ -1,6 +1,6 @@
 import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, hasFunctionalGun, recalculateVehicle } from './vehicle.js';
 import { stepVehicle } from './physics.js';
-import { createProjectile, stepProjectiles } from './projectile.js';
+import { applyRocketHullDamage, createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
 import { clamp, distanceSquared } from './math.js';
 import { Rng } from './rng.js';
@@ -47,6 +47,7 @@ export function createGame(seed = 1147, options = {}) {
     scrapPickups: [],
     playerProjectiles: [],
     enemyProjectiles: [],
+    smokeParticles: [],
     autofire: true,
     playerFireTimer: 0,
     levelComplete: false,
@@ -72,6 +73,7 @@ export function stepGame(game, input, dt) {
   if (game.levelComplete || game.gameOver) {
     stepShop(game, input);
     game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
+    stepSmokeParticles(game, dt);
     stepRoadCamera(game.camera, game.road, game.vehicle, dt);
     return game;
   }
@@ -94,6 +96,8 @@ export function stepGame(game, input, dt) {
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   syncBeamProjectiles(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
+  stepSmokeParticles(game, dt);
+  stepRocketContrails(game, dt);
   handleCollisions(game);
   stepScrapPickups(game, dt);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
@@ -118,6 +122,7 @@ export function startNextLevel(game) {
   game.enemies = createLevelEnemies(game.road, game.level);
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
+  game.smokeParticles = [];
   game.scrapPickups = [];
   return game;
 }
@@ -151,6 +156,7 @@ function carryRoadObjects(game, delta) {
     ...game.scrapPickups,
     ...game.playerProjectiles,
     ...game.enemyProjectiles,
+    ...game.smokeParticles,
     ...game.vehicle.detachedPieces,
   ];
   for (const object of objects) {
@@ -252,7 +258,7 @@ function stepPlayerGun(game, dt) {
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vx, Math.sin(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vy, {
       team: 'player',
-      radius: 3,
+      radius: 1.5,
       damage,
       impulse: 60,
       lifetime: 2.2,
@@ -350,6 +356,10 @@ function boostShieldRadius(game) {
 function handleCollisions(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
+    if (hitPlayerRocketWithProjectile(game, projectile)) {
+      projectile.lifetime = 0;
+      continue;
+    }
     const vehicleHitRange = CELL_SIZE * 3.8 + projectile.radius;
     if (distanceSquared(projectile, game.vehicle) < vehicleHitRange * vehicleHitRange) {
       const hit = hitVehicleWithProjectile(game.vehicle, shieldedProjectile(game, projectile));
@@ -379,6 +389,20 @@ function handleCollisions(game) {
       }
     }
   }
+}
+
+function hitPlayerRocketWithProjectile(game, enemyProjectile) {
+  for (const rocket of game.playerProjectiles) {
+    if (rocket.weapon !== 'rocket' || rocket.lifetime <= 0 || !rocket.hull) continue;
+    const hit = applyRocketHullDamage(rocket, enemyProjectile);
+    if (!hit.hit) continue;
+    if (hit.destroyed) {
+      rocket.lifetime = 0;
+      spawnRocketImpact(game, rocket);
+    }
+    return true;
+  }
+  return false;
 }
 
 function shieldedProjectile(game, projectile) {
@@ -513,6 +537,64 @@ function spawnRocketImpact(game, projectile, enemy) {
     }
     knockEnemyFromPoint(blastTarget, projectile, projectile.blastRadius + CELL_SIZE, projectile.blastKnockback);
   }
+}
+
+function stepRocketContrails(game, dt) {
+  const frameCount = Math.max(0, dt * 60);
+  for (const projectile of game.playerProjectiles) {
+    if (projectile.weapon !== 'rocket' || projectile.lifetime <= 0 || !projectile.contrail) continue;
+    const meanPerSevenFrames = projectile.contrail.emissionMeanPerSevenFrames ?? 2;
+    const mean = (meanPerSevenFrames / 7) * frameCount;
+    const count = Math.min(projectile.contrail.maxParticlesPerStep ?? 5, samplePoisson(game.rng, mean));
+    for (let index = 0; index < count; index += 1) spawnRocketSmokeParticle(game, projectile);
+  }
+}
+
+function spawnRocketSmokeParticle(game, projectile) {
+  const colors = projectile.contrail.colors ?? ['#8a8a86', '#1f2020', '#df6f2e'];
+  const angle = projectile.angle + Math.PI + game.rng.range(-0.42, 0.42);
+  const speed = game.rng.range(5, 18);
+  const backOffset = projectile.radius * game.rng.range(2.2, 4.1);
+  const sideOffset = game.rng.range(-projectile.radius, projectile.radius);
+  const cos = Math.cos(projectile.angle);
+  const sin = Math.sin(projectile.angle);
+  const lifetimeFrames = game.rng.chance(0.5) ? 4 : 5;
+  game.smokeParticles.push({
+    x: projectile.x - cos * backOffset - sin * sideOffset,
+    y: projectile.y - sin * backOffset + cos * sideOffset,
+    vx: Math.cos(angle) * speed + projectile.vx * 0.05,
+    vy: Math.sin(angle) * speed + projectile.vy * 0.05,
+    radius: game.rng.range(0.7, 1.6),
+    color: colors[Math.floor(game.rng.range(0, colors.length))] ?? colors[0],
+    lifetime: lifetimeFrames / 60,
+    maxLifetime: lifetimeFrames / 60,
+  });
+}
+
+function stepSmokeParticles(game, dt) {
+  const kept = [];
+  for (const particle of game.smokeParticles) {
+    particle.x += particle.vx * dt;
+    particle.y += particle.vy * dt;
+    particle.vx *= Math.pow(0.22, dt);
+    particle.vy *= Math.pow(0.22, dt);
+    particle.radius += 3.4 * dt;
+    particle.lifetime -= dt;
+    if (particle.lifetime > 0) kept.push(particle);
+  }
+  game.smokeParticles = kept;
+}
+
+function samplePoisson(rng, mean) {
+  if (mean <= 0) return 0;
+  const limit = Math.exp(-mean);
+  let product = 1;
+  let count = 0;
+  do {
+    count += 1;
+    product *= rng.next();
+  } while (product > limit);
+  return count - 1;
 }
 
 function explodeEnemy(game, enemy) {

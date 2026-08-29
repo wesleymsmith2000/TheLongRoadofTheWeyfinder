@@ -49,5 +49,5 @@ test('aimed pattern emits projectile toward target with deterministic spread', (
 test('radial pattern emits configured projectile count', () => {
   const projectiles = firePattern(radialPatternDefinition, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
   assert.equal(projectiles.length, 12);
-  assert.equal(projectiles.every((projectile) => projectile.radius === 4), true);
+  assert.equal(projectiles.every((projectile) => projectile.radius === 2), true);
 });
