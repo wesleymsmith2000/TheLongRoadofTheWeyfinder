@@ -279,7 +279,28 @@ A minimal weapon:
     "radius": 3,
     "damage": 36,
     "impulse": 210,
-    "lifetime": 5.8
+    "lifetime": 5.8,
+    "turnRate": 2.5,
+    "acceleration": 90,
+    "maxSpeed": 130,
+    "usesVehicleVelocityOnly": true,
+    "targetHint": "aimReticle",
+    "destructible": true,
+    "shape": {
+      "kind": "cylinderCone",
+      "armorVoxelHp": 10,
+      "bodyLength": 12,
+      "coneLength": 5,
+      "halfWidth": 3,
+      "bodyVoxels": { "columns": 6, "rows": 3 },
+      "coneVoxels": { "columns": 3, "rows": 3 }
+    },
+    "contrail": {
+      "emissionMeanPerSevenFrames": 2,
+      "maxParticlesPerStep": 5,
+      "particleLifetimeFrames": [4, 5],
+      "colors": ["#8a8a86", "#1f2020", "#df6f2e"]
+    }
   }
 }
 ```
@@ -290,6 +311,14 @@ Available projectile behaviors in Prototype 0:
 - `homing`
 - `beam`
 - `blast`
+
+Optional projectile presentation/simulation fields:
+
+- `destructible`: when true, the projectile has a damageable hull.
+- `shape`: currently supports `{ "kind": "cylinderCone" }` for rockets, with body/cone dimensions and voxel grid counts.
+- `contrail`: optional short-lived visual particle settings. This is render-facing metadata carried by the projectile definition, not editor UI state.
+
+Destructible projectile data must still validate through `src/core/weaponDefinition.js`; editors should not emit private rocket-shape fields outside this contract.
 
 ## Current Pattern Contract
 

@@ -29,6 +29,20 @@ test('weapon validation rejects unavailable projectile behavior', () => {
   assert.equal(report.errors.some((error) => error.includes('projectile.behavior')), true);
 });
 
+test('weapon validation rejects invalid destructible projectile shape data', () => {
+  const report = validateWeaponDefinition({
+    ...rocketDefinition,
+    projectile: {
+      ...rocketDefinition.projectile,
+      destructible: true,
+      shape: { ...rocketDefinition.projectile.shape, kind: 'blob', bodyVoxels: { columns: 0, rows: 3 } },
+    },
+  });
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('projectile.shape.kind')), true);
+  assert.equal(report.errors.some((error) => error.includes('projectile.shape.bodyVoxels.columns')), true);
+});
+
 test('canon enemy pattern assets validate and create timed pattern state', () => {
   for (const definition of [aimedPatternDefinition, radialPatternDefinition]) {
     const report = validatePatternDefinition(definition);

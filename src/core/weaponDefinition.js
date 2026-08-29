@@ -88,6 +88,8 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.lifetime, 'projectile.lifetime', errors, { min: 0 });
   if (projectile.behavior === 'homing' && (projectile.turnRate ?? 0) <= 0) warnings.push('Homing projectile has no positive turnRate.');
   if (projectile.behavior === 'homing' && (projectile.acceleration ?? 0) <= 0) warnings.push('Homing projectile has no positive acceleration.');
+  validateProjectileHull(projectile, errors, warnings);
+  validateContrail(projectile.contrail, errors);
 }
 
 function validateNumber(value, label, errors, options = {}) {
@@ -96,5 +98,53 @@ function validateNumber(value, label, errors, options = {}) {
     errors.push(`${label} must be a finite number.`);
     return;
   }
+  if (options.integer && !Number.isInteger(value)) errors.push(`${label} must be an integer.`);
   if (options.min != null && value < options.min) errors.push(`${label} must be at least ${options.min}.`);
+}
+
+function validateProjectileHull(projectile, errors, warnings) {
+  if (!projectile.destructible) {
+    if (projectile.shape != null) warnings.push('projectile.shape is ignored unless projectile.destructible is true.');
+    return;
+  }
+  if (!isPlainObject(projectile.shape)) {
+    errors.push('projectile.shape is required when projectile.destructible is true.');
+    return;
+  }
+  if (projectile.shape.kind !== 'cylinderCone') errors.push('projectile.shape.kind must be cylinderCone.');
+  validateNumber(projectile.shape.armorVoxelHp ?? 10, 'projectile.shape.armorVoxelHp', errors, { min: 0.001 });
+  validateNumber(projectile.shape.bodyLength ?? 12, 'projectile.shape.bodyLength', errors, { min: 0.001 });
+  validateNumber(projectile.shape.coneLength ?? 5, 'projectile.shape.coneLength', errors, { min: 0.001 });
+  validateNumber(projectile.shape.halfWidth ?? projectile.radius, 'projectile.shape.halfWidth', errors, { min: 0.001 });
+  validateVoxelGrid(projectile.shape.bodyVoxels, 'projectile.shape.bodyVoxels', errors);
+  validateVoxelGrid(projectile.shape.coneVoxels, 'projectile.shape.coneVoxels', errors);
+}
+
+function validateVoxelGrid(grid, label, errors) {
+  if (grid == null) return;
+  if (!isPlainObject(grid)) {
+    errors.push(`${label} must be an object when provided.`);
+    return;
+  }
+  validateNumber(grid.columns, `${label}.columns`, errors, { min: 1, integer: true });
+  validateNumber(grid.rows, `${label}.rows`, errors, { min: 1, integer: true });
+}
+
+function validateContrail(contrail, errors) {
+  if (contrail == null) return;
+  if (!isPlainObject(contrail)) {
+    errors.push('projectile.contrail must be an object when provided.');
+    return;
+  }
+  validateNumber(contrail.emissionMeanPerSevenFrames ?? 0, 'projectile.contrail.emissionMeanPerSevenFrames', errors, { min: 0 });
+  validateNumber(contrail.maxParticlesPerStep ?? 0, 'projectile.contrail.maxParticlesPerStep', errors, { min: 0, integer: true });
+  if (contrail.particleLifetimeFrames != null) {
+    if (!Array.isArray(contrail.particleLifetimeFrames) || contrail.particleLifetimeFrames.length !== 2) {
+      errors.push('projectile.contrail.particleLifetimeFrames must be a two-number array when provided.');
+    } else {
+      validateNumber(contrail.particleLifetimeFrames[0], 'projectile.contrail.particleLifetimeFrames[0]', errors, { min: 0 });
+      validateNumber(contrail.particleLifetimeFrames[1], 'projectile.contrail.particleLifetimeFrames[1]', errors, { min: 0 });
+    }
+  }
+  if (contrail.colors != null && !isStringArray(contrail.colors)) errors.push('projectile.contrail.colors must be an array of strings when provided.');
 }
