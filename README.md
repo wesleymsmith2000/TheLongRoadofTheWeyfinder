@@ -40,11 +40,28 @@ Open the first tool during local development at:
 http://127.0.0.1:5173/tools/construct-workshop.html
 ```
 
+Open the weapon and firing-pattern tool at:
+
+```text
+http://127.0.0.1:5173/tools/weapon-pattern-lab.html
+```
+
+Open the level editor framework at:
+
+```text
+http://127.0.0.1:5173/tools/level-editor.html
+```
+
+The launch screen includes the first in-game player vehicle editor. It uses local prototype account data for available equipment and edits the runtime vehicle construct before deployment.
+
 Shared content starts under:
 
 ```text
 content/
   constructs/
+  weapons/
+  patterns/
+  levels/
   packs/
 ```
 
@@ -53,6 +70,8 @@ Creator architecture and content-pack guidance lives in:
 ```text
 docs/
 ```
+
+The shared content registry starts in `src/core/contentRegistry.js`. It validates pack manifests, registers immutable asset definitions, and checks level dependencies before a level package is handed to future runtime level-runner code.
 
 ## Current Loop
 

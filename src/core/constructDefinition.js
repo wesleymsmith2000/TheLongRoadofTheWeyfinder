@@ -1,8 +1,9 @@
 import { createCell } from './cell.js';
 import { createConnection, OPPOSITE } from './connections.js';
+import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 
-export const CONSTRUCT_SCHEMA_VERSION = '0.1';
-export const CANON_STATUSES = ['CANON', 'EXPERIMENTAL', 'COMMUNITY', 'VARIANT', 'TOTAL_CONVERSION'];
+export const CONSTRUCT_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
+export { CANON_STATUSES };
 export const CELL_TYPES = ['armor', 'core', 'engine', 'gun', 'wheel'];
 export const CONNECTION_SIDES = ['top', 'right', 'bottom', 'left'];
 
@@ -90,20 +91,4 @@ export function instantiateConstruct(definition) {
     cells,
     connections,
   };
-}
-
-export function isCompatibleSchemaVersion(version) {
-  return typeof version === 'string' && version.startsWith('0.');
-}
-
-function isPlainObject(value) {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function isNonEmptyString(value) {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
-function isStringArray(value) {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }

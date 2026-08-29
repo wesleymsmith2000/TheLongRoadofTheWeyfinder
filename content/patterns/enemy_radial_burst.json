@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy_radial_burst",
+  "displayName": "Enemy Radial Burst",
+  "author": "Weyfinder prototype",
+  "provenance": "Converted from the Prototype 0 enemy burst loop.",
+  "canonStatus": "CANON",
+  "tags": ["enemy", "radial", "burst"],
+  "initialDelay": 5.5,
+  "interval": 6.8,
+  "emitter": {
+    "kind": "radial",
+    "count": 12,
+    "speed": 80,
+    "jitterRadians": 0.04,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "bullet",
+      "behavior": "ballistic",
+      "radius": 4,
+      "damage": 7,
+      "impulse": 105,
+      "lifetime": 4
+    }
+  }
+}

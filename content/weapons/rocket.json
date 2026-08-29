@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "rocket",
+  "displayName": "Rocket",
+  "author": "Weyfinder prototype",
+  "provenance": "Converted from the Prototype 0 secondary weapon table.",
+  "canonStatus": "CANON",
+  "tags": ["secondary", "homing"],
+  "ammo": 12,
+  "heat": 28,
+  "cooldown": 0.9,
+  "projectile": {
+    "team": "player",
+    "weapon": "rocket",
+    "behavior": "homing",
+    "projectileSpeed": 130,
+    "radius": 3,
+    "damage": 36,
+    "impulse": 210,
+    "lifetime": 5.8,
+    "turnRate": 2.5,
+    "acceleration": 90,
+    "maxSpeed": 130,
+    "usesVehicleVelocityOnly": true,
+    "targetHint": "aimReticle"
+  }
+}

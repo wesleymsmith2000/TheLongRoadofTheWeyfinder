@@ -1,10 +1,15 @@
 import { recalculateCell } from './cell.js';
 import { instantiateConstruct } from './constructDefinition.js';
+import { createPatternState } from './patternDefinition.js';
 import { applyDamage, CELL_SIZE, VOXELS } from './voxelMask.js';
 import { clamp } from './math.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
+import enemyAimedShotDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
+import enemyRadialBurstDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 
-export function createEnemy(x, y, definition = basicTurretDefinition) {
+const BASIC_ENEMY_PATTERNS = [enemyAimedShotDefinition, enemyRadialBurstDefinition];
+
+export function createEnemy(x, y, definition = basicTurretDefinition, patternDefinitions = BASIC_ENEMY_PATTERNS) {
   const construct = instantiateConstruct(definition);
   return {
     assetId: construct.assetId,
@@ -13,8 +18,7 @@ export function createEnemy(x, y, definition = basicTurretDefinition) {
     vx: 0,
     vy: 0,
     radius: constructRadius(construct.cells),
-    fireTimer: 0.4,
-    burstTimer: 5.5,
+    patterns: patternDefinitions.map((pattern) => createPatternState(pattern)),
     cells: construct.cells,
     connections: construct.connections,
     damageTaken: 0,

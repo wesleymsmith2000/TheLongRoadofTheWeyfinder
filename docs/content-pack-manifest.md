@@ -38,12 +38,13 @@ content/packs/canon.prototype0.json
   "tags": ["canon", "prototype"],
   "dependencies": [],
   "assets": {
-    "constructs": ["../constructs/basic_turret.json"],
-    "weapons": [],
-    "patterns": [],
+    "constructs": ["../constructs/basic_turret.json", "../constructs/starting_vehicle.json"],
+    "weapons": ["../weapons/rocket.json", "../weapons/cannon.json", "../weapons/beam.json"],
+    "patterns": ["../patterns/enemy_aimed_shot.json", "../patterns/enemy_radial_burst.json"],
     "behaviors": [],
     "encounters": [],
-    "routes": []
+    "routes": [],
+    "levels": ["../levels/prototype0_road_trial.json"]
   }
 }
 ```
@@ -75,6 +76,12 @@ Prototype 0 should prefer local bundled assets and local imported files. Remote 
 
 ## Pack Validation Rules
 
+Prototype 0 pack validation starts in:
+
+```text
+src/core/contentRegistry.js
+```
+
 Hard errors:
 
 - manifest is not an object
@@ -84,6 +91,8 @@ Hard errors:
 - missing `assets`
 - asset list is not an array
 - an asset path is not a string
+
+Level imports should be resolved jointly with dependencies declared inside the level asset. If a level depends on a construct, pattern, behavior, image, music track, or another pack, the importing runtime should load or prompt for the dependent pieces together rather than letting the level enter a half-installed state.
 
 Warnings:
 

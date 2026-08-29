@@ -1,14 +1,18 @@
 import { createProjectile } from './projectile.js';
 import { gunMuzzleWorld } from './vehicle.js';
 import { CELL_SIZE } from './voxelMask.js';
+import { runtimeWeaponDefinition } from './weaponDefinition.js';
+import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
+import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
+import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
 
 export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam'];
 
 export const SECONDARY_DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
-  rocket: { ammo: 12, heat: 28, cooldown: 0.9, projectileSpeed: 130, damage: 36, radius: 3, impulse: 210 },
-  cannon: { ammo: 18, heat: 24, cooldown: 0.93, projectileSpeed: 250, damage: 18, radius: 4, impulse: 340 },
-  beam: { ammo: 40, heat: 44, cooldown: 0.55, projectileSpeed: 0, damage: 2.5, radius: 1, impulse: 90 },
+  rocket: runtimeWeaponDefinition(rocketDefinition),
+  cannon: runtimeWeaponDefinition(cannonDefinition),
+  beam: runtimeWeaponDefinition(beamDefinition),
 };
 
 export function createSecondaryState() {
@@ -43,21 +47,20 @@ export function fireSecondary(game) {
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return false;
   const angle = game.vehicle.turretHeading;
-  const behavior = secondary.selected === 'rocket' ? 'homing' : secondary.selected === 'beam' ? 'beam' : 'ballistic';
-  const droppedRocket = secondary.selected === 'rocket';
+  const useVehicleVelocityOnly = Boolean(def.usesVehicleVelocityOnly);
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, projectileVelocityX(game, angle, def, droppedRocket), projectileVelocityY(game, angle, def, droppedRocket), {
+    createProjectile(muzzle.x, muzzle.y, projectileVelocityX(game, angle, def, useVehicleVelocityOnly), projectileVelocityY(game, angle, def, useVehicleVelocityOnly), {
       team: 'player',
       weapon: secondary.selected,
-      behavior,
+      behavior: def.behavior,
       angle,
       startX: muzzle.x,
       startY: muzzle.y,
-      length: secondary.selected === 'beam' ? 640 : 0,
-      turnRate: secondary.selected === 'rocket' ? def.turnRate : 0,
-      acceleration: secondary.selected === 'rocket' ? def.acceleration : 0,
-      maxSpeed: secondary.selected === 'rocket' ? def.maxSpeed : Infinity,
-      targetHint: secondary.selected === 'rocket' ? game.aimReticle : null,
+      length: def.length ?? 0,
+      turnRate: def.behavior === 'homing' ? def.turnRate : 0,
+      acceleration: def.behavior === 'homing' ? def.acceleration : 0,
+      maxSpeed: def.behavior === 'homing' ? def.maxSpeed : Infinity,
+      targetHint: def.targetHint === 'aimReticle' ? game.aimReticle : null,
       radius: def.radius,
       damage: def.damage,
       impulse: def.impulse,
@@ -67,8 +70,8 @@ export function fireSecondary(game) {
       shrapnelCount: def.shrapnelCount ?? 0,
       shrapnelDamageScale: def.shrapnelDamageScale ?? 1,
       pierce: def.pierce ?? 0,
-      frames: secondary.selected === 'beam' ? def.frames : 0,
-      lifetime: secondary.selected === 'rocket' ? 5.8 : secondary.selected === 'beam' ? def.frames / 60 : 1.6,
+      frames: def.behavior === 'beam' ? def.frames : 0,
+      lifetime: def.behavior === 'beam' ? def.frames / 60 : def.lifetime,
     }),
   );
   secondary.ammo[secondary.selected] -= 1;
@@ -131,12 +134,12 @@ function upgradedSecondaryDefinition(game, weapon) {
   return base;
 }
 
-function projectileVelocityX(game, angle, def, droppedRocket) {
-  return droppedRocket ? game.vehicle.vx : Math.cos(angle) * def.projectileSpeed + game.vehicle.vx;
+function projectileVelocityX(game, angle, def, useVehicleVelocityOnly) {
+  return useVehicleVelocityOnly ? game.vehicle.vx : Math.cos(angle) * def.projectileSpeed + game.vehicle.vx;
 }
 
-function projectileVelocityY(game, angle, def, droppedRocket) {
-  return droppedRocket ? game.vehicle.vy : Math.sin(angle) * def.projectileSpeed + game.vehicle.vy;
+function projectileVelocityY(game, angle, def, useVehicleVelocityOnly) {
+  return useVehicleVelocityOnly ? game.vehicle.vy : Math.sin(angle) * def.projectileSpeed + game.vehicle.vy;
 }
 
 function heatSinkRate(game) {

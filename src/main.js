@@ -5,6 +5,8 @@ import { createKeyboardInput } from './input/keyboard.js';
 import { createGamepadInput } from './input/gamepad.js';
 import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
+import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
+import { createPrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
 import {
   SHOP_COSTS,
   UPGRADE_DEFINITIONS,
@@ -27,6 +29,13 @@ const canvas = document.querySelector('#game');
 const gameOver = document.querySelector('#gameOver');
 const launchScreen = document.querySelector('#launchScreen');
 const launchButton = document.querySelector('#launchButton');
+const vehicleEditorCanvas = document.querySelector('#vehicleEditorCanvas');
+const vehiclePartSelect = document.querySelector('#vehiclePartSelect');
+const vehiclePlaceButton = document.querySelector('#vehiclePlaceButton');
+const vehicleEraseButton = document.querySelector('#vehicleEraseButton');
+const vehicleConnectButton = document.querySelector('#vehicleConnectButton');
+const vehicleResetButton = document.querySelector('#vehicleResetButton');
+const vehicleEditorStatus = document.querySelector('#vehicleEditorStatus');
 const hudToggle = document.querySelector('#hudToggle');
 const combatPanel = document.querySelector('#combatPanel');
 const debugToggle = document.querySelector('#debugToggle');
@@ -77,7 +86,9 @@ const touchSecondary = createPointerButtonInput(secondaryFire);
 const touchSecondaryFloating = createPointerButtonInput(secondaryTouchFire);
 const debug = createDebugOverlay();
 
-let game = createGame();
+let playerAccount = createPrototypePlayerAccountData();
+let playerVehicleDefinition = playerAccount.savedVehicle;
+let game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
 let previous = performance.now();
 let awaitingLaunch = true;
 const padReticle = {
@@ -93,6 +104,29 @@ document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weapon
 populateUpgradeSelect();
 refreshRepairTargets();
 if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) combatPanel.classList.add('hidden');
+const vehicleEditor = createPlayerVehicleLaunchEditor(
+  {
+    canvas: vehicleEditorCanvas,
+    partSelect: vehiclePartSelect,
+    placeButton: vehiclePlaceButton,
+    eraseButton: vehicleEraseButton,
+    connectButton: vehicleConnectButton,
+    resetButton: vehicleResetButton,
+    status: vehicleEditorStatus,
+  },
+  {
+    account: playerAccount,
+    definition: playerVehicleDefinition,
+    onChange(definition) {
+      playerVehicleDefinition = definition;
+      playerAccount = preparePlayerAccountForSave(playerAccount, definition);
+      if (awaitingLaunch) {
+        game = createGame(1147, { vehicleDefinition: playerVehicleDefinition });
+        refreshRepairTargets();
+      }
+    },
+  },
+);
 syncLaunchScreen();
 
 function frame(now) {
@@ -159,7 +193,7 @@ function frame(now) {
       if (input.resetPressed) awaitingLaunch = true;
     }
   } else if (input.resetPressed) {
-    game = createGame();
+    game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
   }
   game.fps = game.fps * 0.9 + (1 / Math.max(dt, 0.001)) * 0.1;
   syncLaunchScreen();

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "beam",
+  "displayName": "Particle Beam",
+  "author": "Weyfinder prototype",
+  "provenance": "Converted from the Prototype 0 secondary weapon table.",
+  "canonStatus": "CANON",
+  "tags": ["secondary", "beam"],
+  "ammo": 40,
+  "heat": 44,
+  "cooldown": 0.55,
+  "projectile": {
+    "team": "player",
+    "weapon": "beam",
+    "behavior": "beam",
+    "projectileSpeed": 0,
+    "radius": 1,
+    "damage": 2.5,
+    "impulse": 90,
+    "lifetime": 0.08333333333333333,
+    "length": 640,
+    "frames": 5,
+    "pierce": 0
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy_aimed_shot",
+  "displayName": "Enemy Aimed Shot",
+  "author": "Weyfinder prototype",
+  "provenance": "Converted from the Prototype 0 enemy fire loop.",
+  "canonStatus": "CANON",
+  "tags": ["enemy", "aimed"],
+  "initialDelay": 0.4,
+  "interval": 0.75,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 1,
+    "speed": 105,
+    "spreadRadians": 0.12,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "bullet",
+      "behavior": "ballistic",
+      "radius": 5,
+      "damage": 10,
+      "impulse": 175,
+      "lifetime": 4
+    }
+  }
+}

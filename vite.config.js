@@ -10,6 +10,8 @@ export default defineConfig({
       input: {
         main: resolve(root, 'index.html'),
         constructWorkshop: resolve(root, 'tools/construct-workshop.html'),
+        weaponPatternLab: resolve(root, 'tools/weapon-pattern-lab.html'),
+        levelEditor: resolve(root, 'tools/level-editor.html'),
       },
     },
   },

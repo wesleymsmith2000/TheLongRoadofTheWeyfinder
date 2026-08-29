@@ -454,7 +454,9 @@
         position: relative;
         display: grid;
         gap: 12px;
-        width: min(420px, calc(100vw - 32px));
+        width: min(820px, calc(100vw - 32px));
+        max-height: calc(100vh - 32px);
+        overflow: auto;
         padding: 16px;
         border: 1px solid rgb(244 238 228 / 0.24);
         border-radius: 8px;
@@ -484,6 +486,85 @@
         font-size: 16px;
         font-weight: 800;
         touch-action: manipulation;
+      }
+
+      .vehicle-editor {
+        display: grid;
+        grid-template-columns: minmax(260px, 360px) 1fr;
+        gap: 12px;
+        align-items: start;
+        padding-top: 4px;
+      }
+
+      .vehicle-editor-controls {
+        display: grid;
+        gap: 8px;
+      }
+
+      .vehicle-editor-controls label {
+        display: grid;
+        gap: 5px;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .vehicle-editor-controls select {
+        min-height: 38px;
+        border: 1px solid rgb(244 238 228 / 0.28);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.86);
+        color: #f4eee4;
+      }
+
+      .vehicle-editor-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .vehicle-editor-tools button {
+        flex: 1 1 82px;
+        min-height: 38px;
+        font-size: 13px;
+      }
+
+      .vehicle-editor-tools button[aria-pressed="true"] {
+        border-color: rgb(247 192 106 / 0.72);
+        background: rgb(247 192 106 / 0.18);
+      }
+
+      .vehicle-editor-status {
+        display: grid;
+        gap: 5px;
+        padding: 9px;
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.62);
+        color: #d7ceb8;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .vehicle-editor-status strong {
+        color: #f4eee4;
+      }
+
+      .vehicle-editor-status .error {
+        color: #ff9b89;
+      }
+
+      .vehicle-editor-status .warning {
+        color: #f7c06a;
+      }
+
+      .vehicle-editor-canvas {
+        width: 100%;
+        max-width: 360px;
+        aspect-ratio: 1;
+        justify-self: center;
+        border: 1px solid rgb(244 238 228 / 0.2);
+        border-radius: 8px;
+        background: #0d1010;
       }
 
       @media (max-width: 700px), (pointer: coarse) {
@@ -633,6 +714,22 @@
       <div class="launch-panel">
         <h2>Vehicle Ready</h2>
         <p>Open HUD, help, or debug before launch. The road starts moving once the vehicle is deployed.</p>
+        <div class="vehicle-editor">
+          <div class="vehicle-editor-controls">
+            <label for="vehiclePartSelect">
+              Equipment
+              <select id="vehiclePartSelect"></select>
+            </label>
+            <div class="vehicle-editor-tools">
+              <button id="vehiclePlaceButton" type="button" aria-pressed="true">Place</button>
+              <button id="vehicleEraseButton" type="button" aria-pressed="false">Erase</button>
+              <button id="vehicleConnectButton" type="button" aria-pressed="false">Connect</button>
+              <button id="vehicleResetButton" type="button">Reset</button>
+            </div>
+            <div id="vehicleEditorStatus" class="vehicle-editor-status"></div>
+          </div>
+          <canvas id="vehicleEditorCanvas" class="vehicle-editor-canvas" width="420" height="420" aria-label="Player vehicle editor"></canvas>
+        </div>
         <button id="launchButton" type="button">Launch Vehicle</button>
       </div>
     </div>

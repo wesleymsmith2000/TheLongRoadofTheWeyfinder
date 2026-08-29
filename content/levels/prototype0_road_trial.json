@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "prototype0_road_trial",
+  "displayName": "Prototype 0 Road Trial",
+  "author": "Weyfinder prototype",
+  "provenance": "Initial level-editor framework sample mirroring the current endless-road combat loop.",
+  "canonStatus": "CANON",
+  "dependencies": [
+    { "kind": "construct", "assetId": "basic_turret" },
+    { "kind": "pattern", "assetId": "enemy_aimed_shot" },
+    { "kind": "pattern", "assetId": "enemy_radial_burst" }
+  ],
+  "tags": ["prototype", "road", "level-editor"],
+  "background": {
+    "mode": "mixed",
+    "layers": [
+      {
+        "id": "road-grid",
+        "source": "procedural",
+        "generator": "road_grid",
+        "parallax": 0.2,
+        "seedOffset": 0
+      },
+      {
+        "id": "lane-frame",
+        "source": "procedural",
+        "generator": "lane_frame",
+        "parallax": 1,
+        "seedOffset": 17
+      }
+    ]
+  },
+  "route": {
+    "startHeading": -1.5707963267948966,
+    "segments": [
+      { "id": "opening", "length": 480, "turnRadians": 0 },
+      { "id": "left-bend", "length": 420, "turnRadians": -0.35 },
+      { "id": "straightaway", "length": 560, "turnRadians": 0 },
+      { "id": "right-bend", "length": 420, "turnRadians": 0.45 }
+    ]
+  },
+  "obstacles": [
+    {
+      "id": "scrap-field-a",
+      "kind": "procedural_field",
+      "atDistance": 260,
+      "laneOffset": -120,
+      "width": 90,
+      "height": 150,
+      "density": 0.16,
+      "assetRef": null
+    }
+  ],
+  "waves": [
+    {
+      "id": "opening-turret",
+      "atDistance": 190,
+      "spawn": [
+        {
+          "construct": "basic_turret",
+          "count": 1,
+          "laneOffset": 0,
+          "spacing": 90,
+          "patterns": ["enemy_aimed_shot", "enemy_radial_burst"]
+        }
+      ]
+    },
+    {
+      "id": "paired-turrets",
+      "atDistance": 620,
+      "spawn": [
+        {
+          "construct": "basic_turret",
+          "count": 2,
+          "laneOffset": -70,
+          "spacing": 140,
+          "patterns": ["enemy_aimed_shot", "enemy_radial_burst"]
+        }
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro-voiceover",
+      "kind": "voiceover",
+      "atDistance": 40,
+      "assetRef": "voiceover.prototype0.intro",
+      "once": true
+    },
+    {
+      "id": "turn-warning",
+      "kind": "cue",
+      "atDistance": 430,
+      "message": "Road turning left",
+      "once": true
+    }
+  ]
+}

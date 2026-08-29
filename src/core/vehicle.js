@@ -1,44 +1,12 @@
-import { createCell, recalculateCell } from './cell.js';
-import { createConnection, updateConnectionValidity, connectedFromCore } from './connections.js';
+import { recalculateCell } from './cell.js';
+import { updateConnectionValidity, connectedFromCore } from './connections.js';
+import { createVehicleFromConstructDefinition } from './playerVehicleEditor.js';
 import { applyDamage, CELL_SIZE, createVoxelMask } from './voxelMask.js';
 import { localToWorld, rotatePoint, worldToLocal } from './math.js';
+import startingVehicleDefinition from '../../content/constructs/starting_vehicle.json' with { type: 'json' };
 
-export function createStartingVehicle() {
-  const cells = [
-    createCell('armor-left', 'armor', -1, -1),
-    createCell('gun', 'gun', 0, -1),
-    createCell('armor-right', 'armor', 1, -1),
-    createCell('wheel-left', 'wheel', -1, 0),
-    createCell('core', 'core', 0, 0),
-    createCell('wheel-right', 'wheel', 1, 0),
-    createCell('engine', 'engine', 0, 1),
-  ];
-  const connections = [
-    createConnection('core', 'gun', 'top'),
-    createConnection('gun', 'armor-left', 'left', 'right'),
-    createConnection('gun', 'armor-right', 'right', 'left'),
-    createConnection('core', 'wheel-left', 'left'),
-    createConnection('core', 'wheel-right', 'right'),
-    createConnection('core', 'engine', 'bottom'),
-  ];
-  const vehicle = {
-    x: 0,
-    y: 0,
-    vx: 0,
-    vy: 0,
-    heading: 0,
-    angularVelocity: 0,
-    turretHeading: -Math.PI / 2,
-    manualAimGrace: 0,
-    cells,
-    connections,
-    detachedPieces: [],
-    totalMass: 1,
-    centerOfMass: { x: 0, y: 0 },
-    momentOfInertia: 1,
-    lastHitCellId: null,
-    alive: true,
-  };
+export function createStartingVehicle(definition = startingVehicleDefinition) {
+  const vehicle = createVehicleFromConstructDefinition(definition);
   recalculateVehicle(vehicle);
   return vehicle;
 }

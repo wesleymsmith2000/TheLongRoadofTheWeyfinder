@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "cannon",
+  "displayName": "Cannon",
+  "author": "Weyfinder prototype",
+  "provenance": "Converted from the Prototype 0 secondary weapon table.",
+  "canonStatus": "CANON",
+  "tags": ["secondary", "ballistic", "blast"],
+  "ammo": 18,
+  "heat": 24,
+  "cooldown": 0.93,
+  "projectile": {
+    "team": "player",
+    "weapon": "cannon",
+    "behavior": "ballistic",
+    "projectileSpeed": 250,
+    "radius": 4,
+    "damage": 18,
+    "impulse": 340,
+    "lifetime": 1.6,
+    "blastDamage": 9,
+    "blastRadiusCells": 2.55,
+    "blastKnockback": 110,
+    "shrapnelCount": 28,
+    "shrapnelDamageScale": 1
+  }
+}

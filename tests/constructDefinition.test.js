@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import basicTurretDefinition from '../content/constructs/basic_turret.json' with { type: 'json' };
+import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
 import { instantiateConstruct, validateConstructDefinition } from '../src/core/constructDefinition.js';
 
 test('basic turret content asset validates and instantiates runtime cells', () => {
@@ -13,6 +14,16 @@ test('basic turret content asset validates and instantiates runtime cells', () =
   assert.equal(construct.cells.length, 9);
   assert.equal(construct.connections.length, 8);
   assert.equal(construct.cells.some((cell) => cell.type === 'core'), true);
+});
+
+test('starting vehicle content asset validates and instantiates runtime cells', () => {
+  const report = validateConstructDefinition(startingVehicleDefinition);
+  assert.equal(report.valid, true);
+
+  const construct = instantiateConstruct(startingVehicleDefinition);
+  assert.equal(construct.assetId, 'starting_vehicle');
+  assert.equal(construct.cells.length, 7);
+  assert.equal(construct.connections.length, 6);
 });
 
 test('construct validation rejects incompatible schema versions', () => {

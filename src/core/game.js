@@ -17,6 +17,7 @@ import { CELL_SIZE } from './voxelMask.js';
 import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
 import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
+import { firePattern } from './patternDefinition.js';
 import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
 import {
   SHOP_COSTS,
@@ -29,11 +30,12 @@ import {
   upgradeReduction,
 } from './economy.js';
 
-export function createGame(seed = 1147) {
-  const vehicle = createStartingVehicle();
+export function createGame(seed = 1147, options = {}) {
+  const vehicle = createStartingVehicle(options.vehicleDefinition);
   const road = createRoadFrame(vehicle);
   return {
     rng: new Rng(seed),
+    vehicleDefinition: options.vehicleDefinition,
     vehicle,
     road,
     camera: createRoadCamera(road),
@@ -65,7 +67,7 @@ export function createGame(seed = 1147) {
 export function stepGame(game, input, dt) {
   dt = Math.min(dt, 0.033);
   game.time += dt;
-  if (input.resetPressed) return createGame(1147);
+  if (input.resetPressed) return createGame(1147, { vehicleDefinition: game.vehicleDefinition });
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
   if (game.levelComplete || game.gameOver) {
     stepShop(game, input);
@@ -270,43 +272,20 @@ function stepEnemies(game, dt) {
 function stepEnemy(game, enemy, dt) {
   if (enemy.destroyed) return;
   steerEnemyBackToLaneCenter(enemy, game.road, dt);
-  enemy.fireTimer -= dt;
-  enemy.burstTimer -= dt;
-  const target = game.vehicle;
-  const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-  if (enemy.fireTimer <= 0) {
-    const spread = game.rng.range(-0.12, 0.12);
-    const speed = 105;
-    game.enemyProjectiles.push(
-      createProjectile(enemy.x, enemy.y, Math.cos(angle + spread) * speed, Math.sin(angle + spread) * speed, {
-        team: 'enemy',
-        radius: 5,
-        damage: 10,
-        impulse: 175,
-        lifetime: 4,
-      }),
-    );
-    enemy.fireTimer = 0.75;
-  }
-  if (enemy.burstTimer <= 0) {
-    for (let i = 0; i < 12; i += 1) {
-      const a = (Math.PI * 2 * i) / 12 + game.rng.range(-0.04, 0.04);
-      game.enemyProjectiles.push(
-        createProjectile(enemy.x, enemy.y, Math.cos(a) * 80, Math.sin(a) * 80, {
-          team: 'enemy',
-          radius: 4,
-          damage: 7,
-          impulse: 105,
-          lifetime: 4,
-        }),
-      );
-    }
-    enemy.burstTimer = 6.8;
-  }
+  stepEnemyPatterns(game, enemy, dt);
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
   enemy.vx *= Math.pow(0.78, dt);
   enemy.vy *= Math.pow(0.78, dt);
+}
+
+function stepEnemyPatterns(game, enemy, dt) {
+  for (const patternState of enemy.patterns ?? []) {
+    patternState.timer -= dt;
+    if (patternState.timer > 0) continue;
+    game.enemyProjectiles.push(...firePattern(patternState.definition, enemy, game.vehicle, game.rng));
+    patternState.timer = patternState.definition.interval;
+  }
 }
 
 function handleBoostRams(game) {

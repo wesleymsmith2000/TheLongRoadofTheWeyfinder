@@ -16,6 +16,7 @@ The canonical game repo owns:
 - pure simulation primitives
 - first-party canon content
 - small vanilla editor prototypes that emit runtime assets
+- in-game editor surfaces that mutate runtime-compatible player assets
 - tests proving bundled content is valid
 
 Companion editor repos may own:
@@ -52,8 +53,10 @@ Initial content kinds:
 - `behaviors`: declarative movement/targeting/state primitives
 - `encounters`: enemy groups, spawn timing, route-relative placement
 - `routes`: road topology and stage flow
+- `levels`: scenario-level coordination of backgrounds, route turns, obstacles, waves, and triggers
+- `playerAccount`: player-owned unlock and saved-loadout data, provided by the game account/profile layer
 
-Only `constructs` are partially implemented today. Other kinds are reserved so file layouts and manifests do not need to be redesigned later.
+`constructs`, `weapons`, `patterns`, and `levels` are partially implemented today. Other kinds are reserved so file layouts and manifests do not need to be redesigned later.
 
 ## Metadata
 
@@ -145,6 +148,23 @@ Runtime loaders should:
 - preserve pure simulation boundaries
 - keep Canvas, DOM, and editor concerns out of `src/core`
 
+## Import And Bundle Resolution
+
+Level and scenario imports should resolve dependent content jointly. A level may reference simulation assets such as constructs, weapons, patterns, behaviors, encounters, and routes, and resource assets such as images, voxel models, sound effects, and music.
+
+The runtime should not allow a level to enter a half-installed state. Missing required simulation assets should be hard errors. Missing optional resources, such as voiceover or alternate background art, may be warnings when the level can still run.
+
+This is the target import flow:
+
+```text
+select level or pack
+  -> validate manifest and root assets
+  -> collect explicit and implied dependencies
+  -> resolve dependent packs/resources/assets together
+  -> register immutable definitions
+  -> make playable levels available to the game
+```
+
 ## Current Construct Contract
 
 Current construct assets live under:
@@ -179,22 +199,249 @@ A minimal construct:
 
 Grid adjacency is not structural truth. Structural connectivity is defined by explicit connection edges.
 
+## Current Player Vehicle Contract
+
+The default player vehicle is now a construct asset:
+
+```text
+content/constructs/starting_vehicle.json
+```
+
+Current runtime entry points:
+
+```text
+src/core/playerVehicleEditor.js
+src/core/playerAccount.js
+src/core/vehicle.js
+src/editor/playerVehicleLaunchEditor.js
+```
+
+The launch-screen vehicle editor edits a construct definition before deployment. Prototype 0 only allows adding, removing, and connecting equipment types already present in the starter vehicle:
+
+- `armor`
+- `gun`
+- `wheel`
+- `engine`
+
+The editor does not allow adding or removing `core`. Player vehicles must contain exactly one core.
+
+Available equipment is read from player account data rather than hard-coded into the editor. Prototype 0 uses local in-memory account data:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "accountId": "local.prototype0",
+  "displayName": "Local Pilot",
+  "equipment": {
+    "armor": { "unlocked": true, "quantity": 14 },
+    "gun": { "unlocked": true, "quantity": 3 },
+    "wheel": { "unlocked": true, "quantity": 4 },
+    "engine": { "unlocked": true, "quantity": 3 }
+  },
+  "savedVehicle": null
+}
+```
+
+A future account service should send and receive this shape or a versioned superset of it. Keep that service outside pure simulation code. The runtime/editor boundary should continue to accept plain account data objects so local play, tests, and future online profiles all feed the same vehicle editor rules.
+
+## Current Weapon Contract
+
+Current weapon assets live under:
+
+```text
+content/weapons/
+```
+
+Current runtime entry points:
+
+```text
+src/core/weaponDefinition.js
+src/core/secondaryWeapon.js
+src/editor/weaponPatternLab.js
+```
+
+A minimal weapon:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "assetId": "rocket",
+  "canonStatus": "CANON",
+  "tags": ["secondary"],
+  "ammo": 12,
+  "heat": 28,
+  "cooldown": 0.9,
+  "projectile": {
+    "team": "player",
+    "weapon": "rocket",
+    "behavior": "homing",
+    "projectileSpeed": 130,
+    "radius": 3,
+    "damage": 36,
+    "impulse": 210,
+    "lifetime": 5.8
+  }
+}
+```
+
+Available projectile behaviors in Prototype 0:
+
+- `ballistic`
+- `homing`
+- `beam`
+- `blast`
+
+## Current Pattern Contract
+
+Current pattern assets live under:
+
+```text
+content/patterns/
+```
+
+Current runtime entry points:
+
+```text
+src/core/patternDefinition.js
+src/core/game.js
+src/editor/weaponPatternLab.js
+```
+
+A minimal enemy pattern:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy_aimed_shot",
+  "canonStatus": "CANON",
+  "tags": ["enemy", "aimed"],
+  "initialDelay": 0.4,
+  "interval": 0.75,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 1,
+    "speed": 105,
+    "spreadRadians": 0.12,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "bullet",
+      "behavior": "ballistic",
+      "radius": 5,
+      "damage": 10,
+      "impulse": 175,
+      "lifetime": 4
+    }
+  }
+}
+```
+
+Available pattern emitters in Prototype 0:
+
+- `aimed`
+- `radial`
+
+## Current Level Contract
+
+Current level assets live under:
+
+```text
+content/levels/
+```
+
+Current runtime/editor entry points:
+
+```text
+src/core/levelDefinition.js
+src/core/contentRegistry.js
+src/editor/levelEditor.js
+tools/level-editor.html
+```
+
+A minimal level:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "assetId": "prototype0_road_trial",
+  "canonStatus": "CANON",
+  "dependencies": [
+    { "kind": "construct", "assetId": "basic_turret" },
+    { "kind": "pattern", "assetId": "enemy_aimed_shot" }
+  ],
+  "background": {
+    "mode": "mixed",
+    "layers": [
+      {
+        "id": "road-grid",
+        "source": "procedural",
+        "generator": "road_grid",
+        "parallax": 0.2,
+        "seedOffset": 0
+      }
+    ]
+  },
+  "route": {
+    "startHeading": -1.5707963267948966,
+    "segments": [
+      { "id": "opening", "length": 480, "turnRadians": 0 }
+    ]
+  },
+  "obstacles": [],
+  "waves": [],
+  "triggers": []
+}
+```
+
+Current background modes:
+
+- `procedural`
+- `prebaked`
+- `mixed`
+
+Current dependency kinds:
+
+- `pack`
+- `construct`
+- `weapon`
+- `pattern`
+- `behavior`
+- `encounter`
+- `route`
+- `level`
+- `image`
+- `sound`
+- `music`
+- `voxelModel`
+
+Level triggers currently validate as data only. Runtime event dispatch, voiceover playback, and trigger UX are future work.
+
+The first content registry slice is implemented in `src/core/contentRegistry.js`. It validates pack manifests, registers immutable construct/weapon/pattern/level/resource definitions, lists available content by kind, resolves level dependencies, and refuses to instantiate a level package while required dependencies are missing. It is not a full runtime level runner yet.
+
+For main-game coordination details, see:
+
+```text
+docs/level-editor-main-game-handoff.md
+```
+
 ## Near-Term Implementation Plan
 
 Recommended next runtime architecture cuts:
 
-1. Add a small content registry that loads bundled pack manifests.
+1. Add a small browser loader that reads bundled pack manifests into `src/core/contentRegistry.js`.
 2. Validate every bundled asset in tests.
-3. Route enemy construction through registered construct ids.
-4. Add weapon and pattern schemas before adding complex editor UI.
-5. Add encounter manifests so new enemies can be playtested without changing `game.js`.
+3. Resolve level dependency bundles before level import/playtest.
+4. Route enemy construction through registered construct ids.
+5. Persist and reload player account/loadout data through a small adapter around the existing account object shape.
+6. Add encounter manifests so new enemies can be playtested without changing `game.js`.
 
 Recommended next editor cuts:
 
 1. Expand Construct Workshop into a construct import/export loop.
-2. Add a Weapon + Bullet Pattern Lab using runtime weapon/pattern schemas.
-3. Add a Behavior Composer that emits declarative behavior assets.
-4. Add an Encounter Composer that references constructs, behaviors, and patterns by id.
+2. Add inventory-aware placement and richer attachment feedback to the in-game player vehicle editor.
+3. Expand Level Editor controls for background layers, route turns, obstacles, waves, and trigger events.
+4. Add a Behavior Composer that emits declarative behavior assets.
+5. Add an Encounter Composer that references constructs, behaviors, and patterns by id.
 
 ## Non-Goals For Now
 
