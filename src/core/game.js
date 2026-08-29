@@ -31,19 +31,27 @@ import {
 } from './economy.js';
 import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from './levelMusic.js';
 
+const LEVEL_TARGET_DURATION = 180;
+const SPAWN_WARNING_LEAD = 2.4;
+
 export function createGame(seed = 1147, options = {}) {
   const vehicle = createStartingVehicle(options.vehicleDefinition);
   const road = createRoadFrame(vehicle);
   const levelMusic = options.levelMusic ?? DEFAULT_LEVEL_MUSIC;
+  const rng = new Rng(seed);
+  const enemySpawnQueue = createLevelEnemySchedule(road, 1, levelMusic, rng);
+  const initialSpawns = dequeueReadySpawns(enemySpawnQueue, 0);
   return {
-    rng: new Rng(seed),
+    rng,
     levelMusic,
     currentMusic: musicForLevel(1, levelMusic),
     vehicleDefinition: options.vehicleDefinition,
     vehicle,
     road,
     camera: createRoadCamera(road),
-    enemies: createLevelEnemies(road, 1, levelMusic),
+    enemies: initialSpawns,
+    enemySpawnQueue,
+    incomingMarkers: [],
     boost: createBoostState(),
     secondary: createSecondaryState(),
     upgrades: createUpgradeState(),
@@ -72,7 +80,7 @@ export function createGame(seed = 1147, options = {}) {
 export function stepGame(game, input, dt) {
   dt = Math.min(dt, 0.033);
   game.time += dt;
-  if (input.resetPressed) return createGame(1147, { vehicleDefinition: game.vehicleDefinition });
+  if (input.resetPressed) return createGame(1147, { vehicleDefinition: game.vehicleDefinition, levelMusic: game.levelMusic });
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
   if (game.levelComplete || game.gameOver) {
     stepShop(game, input);
@@ -86,6 +94,7 @@ export function stepGame(game, input, dt) {
 
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
+  stepEnemySpawner(game, dt);
   stepVehicle(game.vehicle, input, dt, game.road.heading);
   configureBoostFromUpgrades(game);
   stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
@@ -111,7 +120,7 @@ export function stepGame(game, input, dt) {
   syncBeamProjectiles(game);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   game.gameOver = !game.vehicle.alive;
-  if (activeEnemies(game).length === 0 && game.scrapPickups.length === 0) {
+  if (activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0 && game.scrapPickups.length === 0) {
     game.levelComplete = true;
     game.levelTime = game.time - game.levelStartTime;
     game.levelTimes.push(game.levelTime);
@@ -126,12 +135,38 @@ export function startNextLevel(game) {
   game.levelTime = 0;
   game.levelStartTime = game.time;
   game.currentMusic = musicForLevel(game.level, game.levelMusic);
-  game.enemies = createLevelEnemies(game.road, game.level, game.levelMusic);
+  game.enemySpawnQueue = createLevelEnemySchedule(game.road, game.level, game.levelMusic, game.rng);
+  game.enemies = dequeueReadySpawns(game.enemySpawnQueue, 0);
+  game.incomingMarkers = [];
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
   game.smokeParticles = [];
   game.scrapPickups = [];
   return game;
+}
+
+export function createLevelEnemySchedule(road, level, levelMusic = DEFAULT_LEVEL_MUSIC, rng = new Rng(level * 9973)) {
+  const entries = createLevelEnemies(road, level, levelMusic);
+  const duration = LEVEL_TARGET_DURATION;
+  const meanInterval = duration / Math.max(1, entries.length + 1);
+  let at = 0;
+  return entries
+    .map((enemy, index) => {
+      if (index > 0) at += exponentialInterval(rng, meanInterval);
+      at = Math.min(duration - 6, Math.max(index * 0.45, at));
+      return { at, enemy, markerShown: false, type: enemy.kind ?? 'standard' };
+    })
+    .sort((a, b) => a.at - b.at);
+}
+
+function dequeueReadySpawns(queue, elapsed) {
+  const ready = [];
+  for (let index = queue.length - 1; index >= 0; index -= 1) {
+    if (queue[index].at > elapsed) continue;
+    ready.unshift(queue[index].enemy);
+    queue.splice(index, 1);
+  }
+  return ready;
 }
 
 export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC) {
@@ -143,11 +178,27 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
   for (let i = 0; i < count; i += 1) {
     const spread = count === 1 ? 0 : (i - (count - 1) / 2) * 90;
     const row = Math.floor(i / 4) * 70;
-    const world = roadOffsetToWorld({ x: spread, y: -190 - row }, road);
-    enemies.push(i < standardCount ? createEnemy(world.x, world.y) : createEnhancedEnemy(world.x, world.y));
+    const kind = i < standardCount ? 'standard' : 'enhanced';
+    const world =
+      kind === 'enhanced'
+        ? roadOffsetToWorld({ x: spread, y: road.halfHeight + 95 + row }, road)
+        : roadOffsetToWorld({ x: spread, y: -road.halfHeight - 95 - row }, road);
+    const enemy = kind === 'enhanced' ? createEnhancedEnemy(world.x, world.y) : createEnemy(world.x, world.y);
+    if (kind === 'enhanced') {
+      const velocity = roadDirectionToWorld(0, -1, road);
+      enemy.vx = velocity.x * 310;
+      enemy.vy = velocity.y * 310;
+      enemy.charge = { state: 'charging', timer: 1.15, x: velocity.x, y: velocity.y };
+      enemy.shieldActive = true;
+    } else {
+      const velocity = roadDirectionToWorld(0, 1, road);
+      enemy.vx = velocity.x * 35;
+      enemy.vy = velocity.y * 35;
+    }
+    enemies.push(enemy);
   }
   if (isBoss) {
-    const bossWorld = roadOffsetToWorld({ x: 0, y: -310 }, road);
+    const bossWorld = roadOffsetToWorld({ x: 0, y: -road.halfHeight - 180 }, road);
     enemies.push(createBossEnemy(bossWorld.x, bossWorld.y));
   }
   return enemies;
@@ -161,6 +212,43 @@ function activeEnemies(game) {
   return game.enemies.filter((enemy) => !enemy.destroyed);
 }
 
+function stepEnemySpawner(game, dt) {
+  const elapsed = game.time - game.levelStartTime;
+  for (const entry of game.enemySpawnQueue) {
+    if (!entry.markerShown && entry.at - elapsed <= SPAWN_WARNING_LEAD) {
+      entry.markerShown = true;
+      game.incomingMarkers.push(createIncomingMarker(entry.enemy, entry.type));
+    }
+  }
+  const ready = [];
+  const pending = [];
+  for (const entry of game.enemySpawnQueue) {
+    if (entry.at <= elapsed) ready.push(entry);
+    else pending.push(entry);
+  }
+  for (const entry of ready) game.enemies.push(entry.enemy);
+  game.enemySpawnQueue = pending;
+  stepIncomingMarkers(game, dt);
+}
+
+function createIncomingMarker(enemy, type) {
+  return {
+    x: enemy.x,
+    y: enemy.y,
+    type,
+    age: 0,
+    lifetime: SPAWN_WARNING_LEAD + 0.6,
+  };
+}
+
+function stepIncomingMarkers(game, dt) {
+  for (const marker of game.incomingMarkers) {
+    marker.age += dt;
+    marker.lifetime -= dt;
+  }
+  game.incomingMarkers = game.incomingMarkers.filter((marker) => marker.lifetime > 0);
+}
+
 function decayNonBlockingEffects(projectiles, dt) {
   for (const projectile of projectiles) {
     if (projectile.behavior === 'blast' || projectile.behavior === 'beam') projectile.lifetime -= dt;
@@ -172,10 +260,12 @@ function carryRoadObjects(game, delta) {
   const objects = [
     game.vehicle,
     ...game.enemies,
+    ...game.enemySpawnQueue.map((entry) => entry.enemy),
     ...game.scrapPickups,
     ...game.playerProjectiles,
     ...game.enemyProjectiles,
     ...game.smokeParticles,
+    ...game.incomingMarkers,
     ...game.vehicle.detachedPieces,
   ];
   for (const object of objects) {
@@ -890,4 +980,17 @@ function steerEnemyBackToLaneCenter(enemy, road, dt) {
   const accel = roadOffsetToWorld({ x: dx / length, y: dy / length }, { ...road, x: 0, y: 0 });
   enemy.vx += accel.x * 45 * dt;
   enemy.vy += accel.y * 45 * dt;
+}
+
+function roadDirectionToWorld(x, y, road) {
+  const cos = Math.cos(road.heading);
+  const sin = Math.sin(road.heading);
+  return {
+    x: x * cos - y * sin,
+    y: x * sin + y * cos,
+  };
+}
+
+function exponentialInterval(rng, mean) {
+  return -Math.log(Math.max(0.0001, 1 - rng.next())) * mean;
 }

@@ -53,6 +53,7 @@ export class CanvasRenderer {
     applyCameraTransform(ctx, game.camera, w, h);
     drawRoad(ctx, game.camera, w, h, game.time);
     drawRoadLane(ctx, game.road);
+    drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time);
     drawSmokeParticles(ctx, game.smokeParticles);
@@ -63,6 +64,33 @@ export class CanvasRenderer {
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
     if (debug.visible) drawDebugOverlay(ctx, game);
+  }
+}
+
+function drawIncomingMarkers(ctx, markers = [], time = 0) {
+  for (const marker of markers) {
+    const flash = Math.sin(time * 18) * 0.5 + 0.5;
+    const size = marker.type === 'boss' ? 22 : marker.type === 'enhanced' ? 17 : 13;
+    ctx.save();
+    ctx.translate(marker.x, marker.y);
+    ctx.globalAlpha = 0.32 + flash * 0.68;
+    ctx.strokeStyle = marker.type === 'boss' ? '#ff462e' : marker.type === 'enhanced' ? '#f7c06a' : '#83f7ff';
+    ctx.fillStyle = marker.type === 'boss' ? 'rgb(139 0 0 / 0.24)' : 'rgb(247 192 106 / 0.18)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size * 0.86, size * 0.5);
+    ctx.lineTo(-size * 0.86, size * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -size * 0.45);
+    ctx.lineTo(0, size * 0.25);
+    ctx.moveTo(-size * 0.35, size * 0.25);
+    ctx.lineTo(size * 0.35, size * 0.25);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
