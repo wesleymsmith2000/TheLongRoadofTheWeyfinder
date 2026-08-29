@@ -6,6 +6,8 @@ import { clamp } from './math.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
 import enemyAimedShotDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import enemyRadialBurstDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
+import { createCell } from './cell.js';
+import { createConnection } from './connections.js';
 
 const BASIC_ENEMY_PATTERNS = [enemyAimedShotDefinition, enemyRadialBurstDefinition];
 
@@ -21,6 +23,85 @@ export function createEnemy(x, y, definition = basicTurretDefinition, patternDef
     patterns: patternDefinitions.map((pattern) => createPatternState(pattern)),
     cells: construct.cells,
     connections: construct.connections,
+    damageTaken: 0,
+    destroyed: false,
+    explosionStart: null,
+    kind: 'standard',
+  };
+}
+
+export function createEnhancedEnemy(x, y) {
+  const enemy = createEnemy(x, y);
+  enemy.kind = 'enhanced';
+  enemy.charge = { state: 'idle', timer: 1.8, x: 0, y: 1 };
+  enemy.shieldActive = false;
+  return enemy;
+}
+
+export function createBossEnemy(x, y, rng) {
+  const cells = [];
+  const connections = [];
+  const addCell = (id, type, gridX, gridY) => {
+    const cell = createCell(id, type, gridX, gridY);
+    cells.push(cell);
+    return cell;
+  };
+  for (const [id, gridX, gridY] of [
+    ['core-a', 0, 0],
+    ['core-b', 1, 0],
+    ['core-c', 0, 1],
+    ['core-d', 1, 1],
+  ]) addCell(id, 'core', gridX, gridY);
+
+  let armorIndex = 0;
+  for (let yOffset = -2; yOffset <= 3; yOffset += 1) {
+    for (let xOffset = -2; xOffset <= 3; xOffset += 1) {
+      const inCore = xOffset >= 0 && xOffset <= 1 && yOffset >= 0 && yOffset <= 1;
+      const corner = (xOffset === -2 || xOffset === 3) && (yOffset === -2 || yOffset === 3);
+      if (!inCore && !corner) addCell(`boss-armor-${armorIndex++}`, 'armor', xOffset, yOffset);
+    }
+  }
+
+  const directions = [
+    { x: 0, y: -1 },
+    { x: 1, y: -1 },
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+    { x: -1, y: 1 },
+    { x: -1, y: 0 },
+    { x: -1, y: -1 },
+  ];
+  const arms = [];
+  for (let armIndex = 0; armIndex < directions.length; armIndex += 1) {
+    const direction = directions[armIndex];
+    const arm = { index: armIndex, direction, aim: { x: x + direction.x * CELL_SIZE * 8, y: y + direction.y * CELL_SIZE * 8 }, phase: rng?.range(0, Math.PI * 2) ?? 0 };
+    arms.push(arm);
+    let previousId = null;
+    for (let segment = 0; segment < 8; segment += 1) {
+      const gridX = Math.round(0.5 + direction.x * (4 + segment));
+      const gridY = Math.round(0.5 + direction.y * (4 + segment));
+      const core = addCell(`arm-${armIndex}-${segment}-core`, 'core', gridX, gridY);
+      const gun = addCell(`arm-${armIndex}-${segment}-gun`, 'gun', gridX + (direction.y || direction.x), gridY + (direction.x ? -direction.x : direction.y));
+      connections.push(createConnection(core.id, gun.id, 'right', 'left'));
+      if (previousId) connections.push(createConnection(previousId, core.id, 'right', 'left', 'tentacle'));
+      previousId = core.id;
+    }
+  }
+
+  return {
+    assetId: 'boss.octopus.prototype0',
+    kind: 'boss',
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    radius: constructRadius(cells),
+    patterns: [],
+    cells,
+    connections,
+    arms,
+    centerPulseTimer: 3.2,
     damageTaken: 0,
     destroyed: false,
     explosionStart: null,
@@ -207,6 +288,11 @@ function enemyVoxelShellDepth(cell, vx, vy) {
 }
 
 export function updateEnemyDestroyed(enemy) {
+  if (enemy.kind === 'boss') {
+    const centralCores = enemy.cells.filter((cell) => cell.id.startsWith('core-'));
+    enemy.destroyed = centralCores.length > 0 && centralCores.every((cell) => cell.state.destroyed);
+    return enemy.destroyed;
+  }
   const core = enemy.cells.find((cell) => cell.type === 'core');
   const surviving = enemy.cells.filter((cell) => !cell.state.destroyed);
   enemy.destroyed = Boolean(core?.state.destroyed || surviving.length <= 2);

@@ -24,6 +24,77 @@ import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import levelFailArt from '../assets/images/level_fail_screen.png';
 import repairArt from '../assets/images/repair_screen.png';
 import weaponIconSheet from '../assets/images/weapon_and_ammo_icon_spritesheet.png';
+import bossFight1Music from '../assets/music/BossFight_1.mp3';
+import bossFight2Music from '../assets/music/BossFight_2.mp3';
+import digitizedStream1Music from '../assets/music/DigitizedStream_1.mp3';
+import digitizedStream2Music from '../assets/music/DigitizedStream_2.mp3';
+import freedomsPassBossFightMusic from '../assets/music/FreedomsPass_BossFight.mp3';
+import freedomsPassDarkeningSkiesMusic from '../assets/music/FreedomsPass_DarkeningSkies.mp3';
+import freedomsPassJourneyMusic from '../assets/music/FreedomsPass_Journey.mp3';
+import freedomsPassStormsMusic from '../assets/music/FreedomsPass_StormsOfFatesShadow.mp3';
+import ghostForrestBoss1Music from '../assets/music/GhostForrestBanshee_BossFight_1.mp3';
+import ghostForrestBoss2Music from '../assets/music/GhostForrestBanshee_BossFight_2.mp3';
+import ghostForrestPath1Music from '../assets/music/GhostForrestPathway_1.mp3';
+import ghostForrestPath2Music from '../assets/music/GhostForrestPathway_2.mp3';
+import piratesRoad1Music from '../assets/music/PiratesRoad_1.mp3';
+import piratesRoad2Music from '../assets/music/PiratesRoad_2.mp3';
+import piratesRoadBossMusic from '../assets/music/PiratesRoad_BossFight.mp3';
+import shadowedDesertBossMusic from '../assets/music/ShadowedDesert_BossFight.mp3';
+import shadowedDesertBoss1Music from '../assets/music/ShadowedDesert_BossFight_1.mp3';
+import shadowedDesertJourneyMusic from '../assets/music/ShadowedDesert_Journey.mp3';
+import shadowedDesertJourney1Music from '../assets/music/ShadowedDesert_Journey_1.mp3';
+import shadowedDesertJourney2Music from '../assets/music/ShadowedDesert_Journey_2.mp3';
+import shadowedDesertJourney3Music from '../assets/music/ShadowedDesert_Journey_3.mp3';
+import shadowedDesertStormMusic from '../assets/music/ShadowedDesert_OminousStormfront.mp3';
+import shadowedDesertStorm1Music from '../assets/music/ShadowedDesert_OminousStormfront_1.mp3';
+import shadowedRoad1Music from '../assets/music/ShadowedRoad_1.mp3';
+import shadowedRoad2Music from '../assets/music/ShadowedRoad_2.mp3';
+import shadowedRoadBoss1Music from '../assets/music/ShadowedRoad_BossFight_1.mp3';
+import shadowedRoadBoss2Music from '../assets/music/ShadowedRoad_BossFight_2.mp3';
+import starlightRoad1Music from '../assets/music/StarlightRoad_1.mp3';
+import starlightRoad2Music from '../assets/music/StarlightRoad_2.mp3';
+import theWeyfindersRoad1Music from '../assets/music/TheWeyfindersRoad_1.mp3';
+import theWeyfindersRoad2Music from '../assets/music/TheWeyfindersRoad_2.mp3';
+import theWeyfindersRoad3Music from '../assets/music/TheWeyfindersRoad_3.mp3';
+import twilightCrossroadsMusic from '../assets/music/TwilightCrossroads.mp3';
+import twilightCrossroadsBossMusic from '../assets/music/TwilightCrossroads_BossFight.mp3';
+
+const MUSIC_URLS = {
+  BossFight_1: bossFight1Music,
+  BossFight_2: bossFight2Music,
+  DigitizedStream_1: digitizedStream1Music,
+  DigitizedStream_2: digitizedStream2Music,
+  FreedomsPass_BossFight: freedomsPassBossFightMusic,
+  FreedomsPass_DarkeningSkies: freedomsPassDarkeningSkiesMusic,
+  FreedomsPass_Journey: freedomsPassJourneyMusic,
+  FreedomsPass_StormsOfFatesShadow: freedomsPassStormsMusic,
+  GhostForrestBanshee_BossFight_1: ghostForrestBoss1Music,
+  GhostForrestBanshee_BossFight_2: ghostForrestBoss2Music,
+  GhostForrestPathway_1: ghostForrestPath1Music,
+  GhostForrestPathway_2: ghostForrestPath2Music,
+  PiratesRoad_1: piratesRoad1Music,
+  PiratesRoad_2: piratesRoad2Music,
+  PiratesRoad_BossFight: piratesRoadBossMusic,
+  ShadowedDesert_BossFight: shadowedDesertBossMusic,
+  ShadowedDesert_BossFight_1: shadowedDesertBoss1Music,
+  ShadowedDesert_Journey: shadowedDesertJourneyMusic,
+  ShadowedDesert_Journey_1: shadowedDesertJourney1Music,
+  ShadowedDesert_Journey_2: shadowedDesertJourney2Music,
+  ShadowedDesert_Journey_3: shadowedDesertJourney3Music,
+  ShadowedDesert_OminousStormfront: shadowedDesertStormMusic,
+  ShadowedDesert_OminousStormfront_1: shadowedDesertStorm1Music,
+  ShadowedRoad_1: shadowedRoad1Music,
+  ShadowedRoad_2: shadowedRoad2Music,
+  ShadowedRoad_BossFight_1: shadowedRoadBoss1Music,
+  ShadowedRoad_BossFight_2: shadowedRoadBoss2Music,
+  StarlightRoad_1: starlightRoad1Music,
+  StarlightRoad_2: starlightRoad2Music,
+  TheWeyfindersRoad_1: theWeyfindersRoad1Music,
+  TheWeyfindersRoad_2: theWeyfindersRoad2Music,
+  TheWeyfindersRoad_3: theWeyfindersRoad3Music,
+  TwilightCrossroads: twilightCrossroadsMusic,
+  TwilightCrossroads_BossFight: twilightCrossroadsBossMusic,
+};
 
 const canvas = document.querySelector('#game');
 const gameOver = document.querySelector('#gameOver');
@@ -91,6 +162,10 @@ let playerVehicleDefinition = playerAccount.savedVehicle;
 let game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
 let previous = performance.now();
 let awaitingLaunch = true;
+let activeMusicTrack = null;
+const musicAudio = new Audio();
+musicAudio.loop = true;
+musicAudio.volume = 0.42;
 const padReticle = {
   x: window.innerWidth / 2,
   y: window.innerHeight * 0.42,
@@ -212,6 +287,7 @@ function frame(now) {
   scrapCount.textContent = game.scrap;
   scoreDamage.textContent = game.score.damageDone;
   renderer.draw(game, debug);
+  syncMusic();
   requestAnimationFrame(frame);
 }
 
@@ -247,6 +323,7 @@ function launchVehicle() {
   awaitingLaunch = false;
   game.levelStartTime = game.time;
   previous = performance.now();
+  syncMusic(true);
   syncLaunchScreen();
 }
 
@@ -256,6 +333,21 @@ function syncLaunchScreen() {
   launchScreen.classList.toggle('hidden', !visible);
   launchScreen.style.display = visible ? 'grid' : 'none';
   launchScreen.setAttribute('aria-hidden', String(!visible));
+}
+
+function syncMusic(forcePlay = false) {
+  const trackName = game.currentMusic;
+  const src = MUSIC_URLS[trackName];
+  if (!src || awaitingLaunch || game.gameOver) {
+    musicAudio.pause();
+    return;
+  }
+  if (trackName !== activeMusicTrack) {
+    activeMusicTrack = trackName;
+    musicAudio.src = src;
+    musicAudio.currentTime = 0;
+  }
+  if (forcePlay || musicAudio.paused) musicAudio.play().catch(() => {});
 }
 
 function bindButtonActivation(button, handler) {

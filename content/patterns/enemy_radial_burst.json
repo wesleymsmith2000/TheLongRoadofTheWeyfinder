@@ -3,15 +3,17 @@
   "assetId": "enemy_radial_burst",
   "displayName": "Enemy Radial Burst",
   "author": "Weyfinder prototype",
-  "provenance": "Converted from the Prototype 0 enemy burst loop.",
+  "provenance": "Converted from the Prototype 0 enemy burst loop, now fired as a sequential delayed-acceleration pulse.",
   "canonStatus": "CANON",
   "tags": ["enemy", "radial", "burst"],
-  "initialDelay": 5.5,
-  "interval": 6.8,
+  "initialDelay": 2.2,
+  "interval": 0.12,
   "emitter": {
-    "kind": "radial",
+    "kind": "sequentialRadial",
+    "target": "player",
     "count": 12,
     "speed": 80,
+    "sequenceRest": 5.36,
     "jitterRadians": 0.04,
     "projectile": {
       "team": "enemy",
@@ -20,7 +22,19 @@
       "radius": 2,
       "damage": 7,
       "impulse": 105,
-      "lifetime": 4
+      "lifetime": 4.8,
+      "delayBeforeAcceleration": 0.3333333333333333,
+      "stopBeforeAcceleration": true,
+      "acceleration": 140,
+      "accelerationDuration": 3,
+      "maxSpeed": 260,
+      "accelerationSpreadRadians": 0.22,
+      "explodeAfterAcceleration": true,
+      "blastOnExpire": {
+        "radius": 9.5625,
+        "damage": 4.5,
+        "impulse": 55
+      }
     }
   }
 }

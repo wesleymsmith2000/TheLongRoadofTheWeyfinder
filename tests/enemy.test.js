@@ -60,3 +60,49 @@ test('destroyed enemy remaining voxels become collectible scrap', () => {
   assert.equal(pickups.length > 0, true);
   assert.equal(enemy.cells.every((cell) => cell.mask.flat().every((voxel) => voxel.hp <= 0)), true);
 });
+
+test('sequential enemy pulse projectile explodes after acceleration window', () => {
+  const game = createGame();
+  game.enemies = [];
+  game.enemyProjectiles = [
+    createProjectile(game.vehicle.x + 5, game.vehicle.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'enemy-pulse',
+      radius: 2,
+      damage: 7,
+      impulse: 80,
+      lifetime: 6,
+      delayBeforeAcceleration: 0.001,
+      stopBeforeAcceleration: true,
+      acceleration: 140,
+      accelerationDuration: 0.001,
+      accelerationTarget: game.vehicle,
+      explodeAfterAcceleration: true,
+      blastOnExpire: { radius: 14, damage: 4.5, impulse: 55 },
+    }),
+  ];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'enemy-pulse-blast'), true);
+});
+
+test('enhanced enemy frontal shield absorbs player projectiles while charging', () => {
+  const game = createGame();
+  game.enemies = [createEnemy(game.vehicle.x + 20, game.vehicle.y)];
+  const enemy = game.enemies[0];
+  enemy.kind = 'enhanced';
+  enemy.shieldActive = true;
+  enemy.charge = { state: 'charging', timer: 1, x: -1, y: 0 };
+  game.playerProjectiles = [
+    createProjectile(enemy.x - 2, enemy.y, 0, 0, {
+      team: 'player',
+      weapon: 'bullet',
+      radius: 2,
+      damage: 100,
+      impulse: 20,
+      lifetime: 1,
+    }),
+  ];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.playerProjectiles[0]?.lifetime ?? 0, 0);
+  assert.equal(enemy.destroyed, false);
+});

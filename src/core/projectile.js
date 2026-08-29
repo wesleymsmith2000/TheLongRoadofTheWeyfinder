@@ -28,6 +28,18 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     shrapnelCount: options.shrapnelCount ?? 0,
     shrapnelDamageScale: options.shrapnelDamageScale ?? 1,
     pierce: options.pierce ?? 0,
+    delayBeforeAcceleration: options.delayBeforeAcceleration ?? 0,
+    accelerationDuration: options.accelerationDuration ?? Infinity,
+    accelerationElapsed: 0,
+    accelerationLocked: false,
+    accelerationAngle: options.accelerationAngle ?? null,
+    accelerationTarget: options.accelerationTarget ?? null,
+    accelerationJitter: options.accelerationJitter ?? 0,
+    stopBeforeAcceleration: Boolean(options.stopBeforeAcceleration),
+    explodeAfterAcceleration: Boolean(options.explodeAfterAcceleration),
+    blastOnExpire: options.blastOnExpire ?? null,
+    readyToExplode: false,
+    vanishOffscreen: Boolean(options.vanishOffscreen),
   };
   if (options.destructible && options.shape?.kind === 'cylinderCone') {
     projectile.shape = options.shape;
@@ -41,7 +53,8 @@ export function stepProjectiles(projectiles, dt, targets = []) {
   for (const projectile of projectiles) {
     projectile.previousX = projectile.x;
     projectile.previousY = projectile.y;
-    if (projectile.behavior === 'homing') stepHomingProjectile(projectile, targets, dt);
+    if (projectile.delayBeforeAcceleration > 0) stepDelayedAcceleration(projectile, targets, dt);
+    else if (projectile.behavior === 'homing') stepHomingProjectile(projectile, targets, dt);
     if (projectile.behavior === 'beam' || projectile.behavior === 'blast') {
       projectile.lifetime -= dt;
       continue;
@@ -51,6 +64,34 @@ export function stepProjectiles(projectiles, dt, targets = []) {
     projectile.lifetime -= dt;
   }
   return projectiles.filter((projectile) => projectile.lifetime > 0);
+}
+
+function stepDelayedAcceleration(projectile, targets, dt) {
+  projectile.delayBeforeAcceleration -= dt;
+  if (projectile.delayBeforeAcceleration > 0) return;
+  if (!projectile.accelerationLocked) {
+    const target = projectile.accelerationTarget ?? nearestTarget(projectile, targets);
+    const baseAngle = target ? Math.atan2(target.y - projectile.y, target.x - projectile.x) : projectile.angle;
+    projectile.accelerationAngle = baseAngle + (projectile.accelerationJitter ?? 0);
+    projectile.accelerationLocked = true;
+    if (projectile.stopBeforeAcceleration) {
+      projectile.vx = 0;
+      projectile.vy = 0;
+    }
+  }
+  projectile.accelerationElapsed += dt;
+  if (projectile.accelerationElapsed > projectile.accelerationDuration) {
+    if (projectile.explodeAfterAcceleration) projectile.readyToExplode = true;
+    return;
+  }
+  projectile.vx += Math.cos(projectile.accelerationAngle) * projectile.acceleration * dt;
+  projectile.vy += Math.sin(projectile.accelerationAngle) * projectile.acceleration * dt;
+  const speed = Math.hypot(projectile.vx, projectile.vy);
+  if (speed > projectile.maxSpeed) {
+    projectile.vx = (projectile.vx / speed) * projectile.maxSpeed;
+    projectile.vy = (projectile.vy / speed) * projectile.maxSpeed;
+  }
+  projectile.angle = Math.atan2(projectile.vy, projectile.vx);
 }
 
 function stepHomingProjectile(projectile, targets, dt) {

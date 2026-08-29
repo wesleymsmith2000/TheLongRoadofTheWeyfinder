@@ -10,6 +10,15 @@ const COLORS = {
   shadow: 'rgb(0 0 0 / 0.28)',
 };
 
+const BOSS_COLORS = {
+  core: '#8b0000',
+  armor: '#08080a',
+  gun: '#ff7a1a',
+  wheel: '#5fa66f',
+  engine: '#b879d3',
+  shadow: 'rgb(0 0 0 / 0.34)',
+};
+
 const ROLE_SHADE = {
   [Roles.STRUCTURE]: 0,
   [Roles.ARMOR]: 24,
@@ -198,15 +207,15 @@ function drawDetachedPiece(ctx, piece) {
   ctx.restore();
 }
 
-function drawCell(ctx, cell, x, y, alpha) {
+function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
   const unit = CELL_SIZE / VOXELS;
-  const base = COLORS[cell.type] ?? '#bcc2b1';
+  const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
   const depth = CELL_SIZE * 0.11;
   const shadowOffset = CELL_SIZE * 0.15;
   const gap = Math.max(0.5, unit * 0.11);
   ctx.save();
   ctx.globalAlpha *= alpha;
-  ctx.fillStyle = COLORS.shadow;
+  ctx.fillStyle = palette.shadow ?? COLORS.shadow;
   ctx.fillRect(x - CELL_SIZE / 2 + shadowOffset, y - CELL_SIZE / 2 + shadowOffset * 1.6, CELL_SIZE, CELL_SIZE);
   for (let vy = VOXELS - 1; vy >= 0; vy -= 1) {
     for (let vx = 0; vx < VOXELS; vx += 1) {
@@ -259,16 +268,58 @@ function drawComMarker(ctx, com) {
 function drawEnemy(ctx, enemy, time) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
+  drawBossTentacleWiggle(ctx, enemy, time);
+  const palette = enemy.kind === 'boss' ? BOSS_COLORS : COLORS;
   for (const cell of enemy.cells) {
-    if (!cell.state.destroyed) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, enemy.destroyed ? 0.35 : 1);
+    if (!cell.state.destroyed) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, enemy.destroyed ? 0.35 : 1, palette);
   }
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
   } else {
-    ctx.strokeStyle = '#f1a267';
+    ctx.strokeStyle = enemy.kind === 'boss' ? '#ff5a2c' : '#f1a267';
     ctx.lineWidth = 2;
-    ctx.strokeRect(-CELL_SIZE * 1.7, -CELL_SIZE * 1.7, CELL_SIZE * 3.4, CELL_SIZE * 3.4);
+    if (enemy.kind === 'boss') drawBossOutline(ctx, enemy, time);
+    else ctx.strokeRect(-CELL_SIZE * 1.7, -CELL_SIZE * 1.7, CELL_SIZE * 3.4, CELL_SIZE * 3.4);
   }
+  ctx.restore();
+}
+
+function drawBossTentacleWiggle(ctx, enemy, time) {
+  if (enemy.kind !== 'boss') return;
+  ctx.save();
+  ctx.strokeStyle = 'rgb(255 122 26 / 0.18)';
+  ctx.lineWidth = 2;
+  for (const arm of enemy.arms ?? []) {
+    ctx.beginPath();
+    ctx.moveTo(CELL_SIZE * 0.5, CELL_SIZE * 0.5);
+    const phase = arm.phase ?? time;
+    for (let segment = 1; segment <= 8; segment += 1) {
+      const wave = Math.sin(phase + segment * 0.8) * CELL_SIZE * 0.42;
+      const x = CELL_SIZE * (0.5 + arm.direction.x * (3 + segment)) - arm.direction.y * wave;
+      const y = CELL_SIZE * (0.5 + arm.direction.y * (3 + segment)) + arm.direction.x * wave;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBossOutline(ctx, enemy, time) {
+  const shimmer = Math.sin(time * 5) * 0.5 + 0.5;
+  const radius = Math.max(CELL_SIZE * 4, enemy.radius * 0.28);
+  ctx.save();
+  ctx.strokeStyle = `rgb(${120 + shimmer * 70} 0 0 / 0.8)`;
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  for (let index = 0; index < 8; index += 1) {
+    const angle = Math.PI / 8 + (Math.PI * 2 * index) / 8;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -302,6 +353,10 @@ function drawProjectiles(ctx, projectiles, color) {
       drawBlast(ctx, projectile);
       continue;
     }
+    if (projectile.weapon === 'boss-missile') {
+      drawBossMissile(ctx, projectile);
+      continue;
+    }
     if (projectile.weapon === 'rocket' && projectile.shape?.kind === 'cylinderCone') {
       drawRocket(ctx, projectile);
       continue;
@@ -320,6 +375,27 @@ function drawProjectiles(ctx, projectiles, color) {
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawBossMissile(ctx, projectile) {
+  ctx.save();
+  ctx.translate(projectile.x, projectile.y);
+  ctx.rotate(projectile.angle);
+  ctx.fillStyle = '#050506';
+  ctx.strokeStyle = '#320000';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.rect(-7, -2.6, 11, 5.2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#b51212';
+  ctx.beginPath();
+  ctx.moveTo(10, 0);
+  ctx.lineTo(4, -3.2);
+  ctx.lineTo(4, 3.2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawSmokeParticles(ctx, particles = []) {

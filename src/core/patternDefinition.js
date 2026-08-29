@@ -2,7 +2,7 @@ import { createProjectile } from './projectile.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 
 export const PATTERN_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
-export const PATTERN_EMITTER_KINDS = ['aimed', 'radial'];
+export const PATTERN_EMITTER_KINDS = ['aimed', 'radial', 'sequentialRadial'];
 
 export function validatePatternDefinition(definition) {
   const errors = [];
@@ -35,10 +35,13 @@ export function createPatternState(definition) {
   return {
     definition,
     timer: definition.initialDelay ?? definition.interval,
+    sequenceIndex: 0,
   };
 }
 
-export function firePattern(definition, source, target, rng) {
+export function firePattern(definitionOrState, source, target, rng) {
+  const state = definitionOrState?.definition ? definitionOrState : null;
+  const definition = state?.definition ?? definitionOrState;
   const report = validatePatternDefinition(definition);
   if (!report.valid) {
     throw new Error(`Invalid pattern "${definition?.assetId ?? 'unknown'}": ${report.errors.join(' ')}`);
@@ -46,6 +49,7 @@ export function firePattern(definition, source, target, rng) {
   const emitter = definition.emitter;
   if (emitter.kind === 'aimed') return fireAimed(emitter, source, target, rng);
   if (emitter.kind === 'radial') return fireRadial(emitter, source, rng);
+  if (emitter.kind === 'sequentialRadial') return fireSequentialRadial(emitter, state, source, target, rng);
   return [];
 }
 
@@ -74,7 +78,16 @@ function fireRadial(emitter, source, rng) {
   return projectiles;
 }
 
-function createPatternProjectile(source, emitter, angle) {
+function fireSequentialRadial(emitter, state, source, target, rng) {
+  const count = emitter.count ?? 1;
+  const index = state ? state.sequenceIndex % count : 0;
+  if (state) state.sequenceIndex = (state.sequenceIndex + 1) % count;
+  const jitter = emitter.jitterRadians ?? 0;
+  const angle = (emitter.startAngle ?? 0) + (Math.PI * 2 * index) / count + (rng?.range(-jitter, jitter) ?? 0);
+  return [createPatternProjectile(source, emitter, angle, target, rng)];
+}
+
+function createPatternProjectile(source, emitter, angle, target = null, rng = null) {
   const projectile = emitter.projectile;
   const speed = emitter.speed ?? projectile.projectileSpeed ?? projectile.speed ?? 0;
   return createProjectile(source.x, source.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
@@ -86,6 +99,16 @@ function createPatternProjectile(source, emitter, angle) {
     damage: projectile.damage,
     impulse: projectile.impulse,
     lifetime: projectile.lifetime,
+    delayBeforeAcceleration: projectile.delayBeforeAcceleration ?? 0,
+    stopBeforeAcceleration: projectile.stopBeforeAcceleration,
+    acceleration: projectile.acceleration ?? 0,
+    accelerationDuration: projectile.accelerationDuration ?? Infinity,
+    accelerationTarget: target,
+    accelerationJitter: rng?.range(-(projectile.accelerationSpreadRadians ?? 0), projectile.accelerationSpreadRadians ?? 0) ?? 0,
+    maxSpeed: projectile.maxSpeed ?? Infinity,
+    explodeAfterAcceleration: projectile.explodeAfterAcceleration,
+    blastOnExpire: projectile.blastOnExpire,
+    vanishOffscreen: projectile.vanishOffscreen,
   });
 }
 
@@ -104,9 +127,10 @@ function validateEmitter(emitter, errors, warnings) {
   }
   validateNumber(emitter.count, 'emitter.count', errors, { min: 0, integer: true });
   validateNumber(emitter.speed, 'emitter.speed', errors, { min: 0 });
+  if (emitter.sequenceRest != null) validateNumber(emitter.sequenceRest, 'emitter.sequenceRest', errors, { min: 0 });
   if (emitter.spreadRadians != null) validateNumber(emitter.spreadRadians, 'emitter.spreadRadians', errors, { min: 0 });
   if (emitter.jitterRadians != null) validateNumber(emitter.jitterRadians, 'emitter.jitterRadians', errors, { min: 0 });
-  if (emitter.kind === 'aimed' && emitter.target !== 'player') warnings.push('Aimed pattern target is not currently available in Prototype 0.');
+  if ((emitter.kind === 'aimed' || emitter.kind === 'sequentialRadial') && emitter.target !== 'player') warnings.push('Aimed pattern target is not currently available in Prototype 0.');
   validateProjectile(emitter.projectile, errors);
 }
 
@@ -121,6 +145,22 @@ function validateProjectile(projectile, errors) {
   validateNumber(projectile.damage, 'emitter.projectile.damage', errors, { min: 0 });
   validateNumber(projectile.impulse, 'emitter.projectile.impulse', errors, { min: 0 });
   validateNumber(projectile.lifetime, 'emitter.projectile.lifetime', errors, { min: 0 });
+  if (projectile.delayBeforeAcceleration != null) validateNumber(projectile.delayBeforeAcceleration, 'emitter.projectile.delayBeforeAcceleration', errors, { min: 0 });
+  if (projectile.acceleration != null) validateNumber(projectile.acceleration, 'emitter.projectile.acceleration', errors, { min: 0 });
+  if (projectile.accelerationDuration != null) validateNumber(projectile.accelerationDuration, 'emitter.projectile.accelerationDuration', errors, { min: 0 });
+  if (projectile.maxSpeed != null) validateNumber(projectile.maxSpeed, 'emitter.projectile.maxSpeed', errors, { min: 0 });
+  if (projectile.accelerationSpreadRadians != null) validateNumber(projectile.accelerationSpreadRadians, 'emitter.projectile.accelerationSpreadRadians', errors, { min: 0 });
+  if (projectile.blastOnExpire != null) validateBlastOnExpire(projectile.blastOnExpire, errors);
+}
+
+function validateBlastOnExpire(blast, errors) {
+  if (!isPlainObject(blast)) {
+    errors.push('emitter.projectile.blastOnExpire must be an object when provided.');
+    return;
+  }
+  validateNumber(blast.radius, 'emitter.projectile.blastOnExpire.radius', errors, { min: 0 });
+  validateNumber(blast.damage, 'emitter.projectile.blastOnExpire.damage', errors, { min: 0 });
+  validateNumber(blast.impulse ?? 0, 'emitter.projectile.blastOnExpire.impulse', errors, { min: 0 });
 }
 
 function validateNumber(value, label, errors, options = {}) {

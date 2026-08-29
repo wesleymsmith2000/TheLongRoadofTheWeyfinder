@@ -16,7 +16,7 @@ import {
 import { CELL_SIZE } from './voxelMask.js';
 import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
-import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
+import { applyEnemyBlastDamage, applyEnemyDamage, createBossEnemy, createEnemy, createEnhancedEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
 import { firePattern } from './patternDefinition.js';
 import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
 import {
@@ -29,17 +29,21 @@ import {
   upgradeMultiplier,
   upgradeReduction,
 } from './economy.js';
+import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from './levelMusic.js';
 
 export function createGame(seed = 1147, options = {}) {
   const vehicle = createStartingVehicle(options.vehicleDefinition);
   const road = createRoadFrame(vehicle);
+  const levelMusic = options.levelMusic ?? DEFAULT_LEVEL_MUSIC;
   return {
     rng: new Rng(seed),
+    levelMusic,
+    currentMusic: musicForLevel(1, levelMusic),
     vehicleDefinition: options.vehicleDefinition,
     vehicle,
     road,
     camera: createRoadCamera(road),
-    enemies: createLevelEnemies(road, 1),
+    enemies: createLevelEnemies(road, 1, levelMusic),
     boost: createBoostState(),
     secondary: createSecondaryState(),
     upgrades: createUpgradeState(),
@@ -92,10 +96,12 @@ export function stepGame(game, input, dt) {
   handleBoostRams(game);
   handleBoostShieldRepel(game, dt);
   stepSecondaryWeapon(game, input, dt);
+  handleEnemyRamShields(game);
 
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   syncBeamProjectiles(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
+  handleEnemyProjectileSpecials(game);
   stepSmokeParticles(game, dt);
   stepRocketContrails(game, dt);
   handleCollisions(game);
@@ -119,7 +125,8 @@ export function startNextLevel(game) {
   game.levelComplete = false;
   game.levelTime = 0;
   game.levelStartTime = game.time;
-  game.enemies = createLevelEnemies(game.road, game.level);
+  game.currentMusic = musicForLevel(game.level, game.levelMusic);
+  game.enemies = createLevelEnemies(game.road, game.level, game.levelMusic);
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
   game.smokeParticles = [];
@@ -127,15 +134,27 @@ export function startNextLevel(game) {
   return game;
 }
 
-export function createLevelEnemies(road, count) {
+export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC) {
   const enemies = [];
+  const isBoss = isBossLevel(level, levelMusic);
+  const count = isBoss ? Math.max(1, Math.ceil(level / 2)) : level;
+  const enhancedCount = !isBoss && hasBossMusicBeforeLevel(level, levelMusic) ? Math.floor(count / 2) : 0;
+  const standardCount = count - enhancedCount;
   for (let i = 0; i < count; i += 1) {
     const spread = count === 1 ? 0 : (i - (count - 1) / 2) * 90;
     const row = Math.floor(i / 4) * 70;
     const world = roadOffsetToWorld({ x: spread, y: -190 - row }, road);
-    enemies.push(createEnemy(world.x, world.y));
+    enemies.push(i < standardCount ? createEnemy(world.x, world.y) : createEnhancedEnemy(world.x, world.y));
+  }
+  if (isBoss) {
+    const bossWorld = roadOffsetToWorld({ x: 0, y: -310 }, road);
+    enemies.push(createBossEnemy(bossWorld.x, bossWorld.y));
   }
   return enemies;
+}
+
+export function isBossLevel(level, levelMusic = DEFAULT_LEVEL_MUSIC) {
+  return isBossMusic(musicForLevel(level, levelMusic));
 }
 
 function activeEnemies(game) {
@@ -278,6 +297,8 @@ function stepEnemies(game, dt) {
 function stepEnemy(game, enemy, dt) {
   if (enemy.destroyed) return;
   steerEnemyBackToLaneCenter(enemy, game.road, dt);
+  if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
+  if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
   stepEnemyPatterns(game, enemy, dt);
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
@@ -285,13 +306,145 @@ function stepEnemy(game, enemy, dt) {
   enemy.vy *= Math.pow(0.78, dt);
 }
 
+function stepEnhancedEnemy(game, enemy, dt) {
+  const charge = enemy.charge ?? { state: 'idle', timer: 1.8, x: 0, y: 1 };
+  enemy.charge = charge;
+  charge.timer -= dt;
+  enemy.shieldActive = charge.state === 'charging';
+  if (charge.state === 'charging') {
+    enemy.vx += charge.x * 165 * dt;
+    enemy.vy += charge.y * 165 * dt;
+    const offset = worldToRoadOffset(enemy, game.road);
+    if (Math.abs(offset.x) > game.road.halfWidth * 0.45 || Math.abs(offset.y) > game.road.halfHeight * 0.42) charge.timer = Math.min(charge.timer, 0);
+  }
+  if (charge.timer > 0) return;
+  if (charge.state === 'idle') {
+    const direction = directionFromTo(enemy, game.vehicle);
+    charge.x = direction.x;
+    charge.y = direction.y;
+    charge.state = 'charging';
+    charge.timer = 1.15;
+    enemy.shieldActive = true;
+  } else {
+    charge.state = 'idle';
+    charge.timer = game.rng.range(4.2, 7.4);
+    enemy.shieldActive = false;
+  }
+}
+
+function stepBossEnemy(game, boss, dt) {
+  boss.centerPulseTimer -= dt;
+  stepBossArms(game, boss, dt);
+  if (boss.centerPulseTimer <= 0) {
+    fireBossCenterPulse(game, boss);
+    boss.centerPulseTimer = 6.8;
+  }
+}
+
+function stepBossArms(game, boss, dt) {
+  for (const arm of boss.arms ?? []) {
+    if (detonateBrokenBossArm(game, boss, arm)) continue;
+    arm.phase += dt * game.rng.range(2.2, 3.8);
+    arm.aim.x += (game.vehicle.x - arm.aim.x) * 0.08 * dt + Math.cos(arm.phase) * 18 * dt;
+    arm.aim.y += (game.vehicle.y - arm.aim.y) * 0.08 * dt + Math.sin(arm.phase * 0.7) * 18 * dt;
+    arm.fireTimer = (arm.fireTimer ?? game.rng.range(0.2, 1.5)) - dt;
+    if (arm.fireTimer > 0) continue;
+    arm.fireTimer = game.rng.range(4.8, 8.9);
+    const liveGun = boss.cells.find((cell) => cell.id.startsWith(`arm-${arm.index}-`) && cell.type === 'gun' && !cell.state.destroyed);
+    if (!liveGun) continue;
+    const source = { x: boss.x + liveGun.gridX * CELL_SIZE, y: boss.y + liveGun.gridY * CELL_SIZE };
+    const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
+    game.enemyProjectiles.push(
+      createProjectile(source.x, source.y, Math.cos(angle) * 105, Math.sin(angle) * 105, {
+        team: 'enemy',
+        weapon: 'boss-tentacle',
+        radius: 2.2,
+        damage: 10,
+        impulse: 150,
+        lifetime: 4,
+        angle,
+      }),
+    );
+  }
+}
+
+function detonateBrokenBossArm(game, boss, arm) {
+  if (arm.detonated) return true;
+  const cells = boss.cells.filter((cell) => cell.id.startsWith(`arm-${arm.index}-`));
+  if (!cells.some((cell) => cell.state.destroyed)) return false;
+  arm.detonated = true;
+  for (const cell of cells) {
+    const origin = { x: boss.x + cell.gridX * CELL_SIZE, y: boss.y + cell.gridY * CELL_SIZE };
+    for (const voxel of cell.mask.flat()) voxel.hp = 0;
+    cell.state.destroyed = true;
+    game.enemyProjectiles.push(
+      ...spawnEnemyPulseBlast(game, {
+        ...origin,
+        blastOnExpire: { radius: CELL_SIZE * 1.4, damage: 6, impulse: 85 },
+      }),
+    );
+    for (let index = 0; index < 4; index += 1) {
+      const angle = game.rng.range(0, Math.PI * 2);
+      game.enemyProjectiles.push(
+        createProjectile(origin.x, origin.y, Math.cos(angle) * game.rng.range(75, 150), Math.sin(angle) * game.rng.range(75, 150), {
+          team: 'enemy',
+          weapon: 'boss-arm-shrapnel',
+          radius: 1.4,
+          damage: 5,
+          impulse: 70,
+          lifetime: game.rng.range(0.3, 0.55),
+        }),
+      );
+    }
+  }
+  updateEnemyDestroyedAfterArmLoss(boss);
+  return true;
+}
+
+function updateEnemyDestroyedAfterArmLoss(boss) {
+  const liveCore = boss.cells.some((cell) => cell.id.startsWith('core-') && !cell.state.destroyed);
+  if (!liveCore) boss.destroyed = true;
+}
+
+function fireBossCenterPulse(game, boss) {
+  const count = 12;
+  for (let index = 0; index < count; index += 1) {
+    const angle = (Math.PI * 2 * index) / count;
+    game.enemyProjectiles.push(
+      createProjectile(boss.x, boss.y, Math.cos(angle) * 55, Math.sin(angle) * 55, {
+        team: 'enemy',
+        weapon: 'boss-missile',
+        radius: 3,
+        damage: 9,
+        impulse: 115,
+        lifetime: 7,
+        angle,
+        delayBeforeAcceleration: 3,
+        stopBeforeAcceleration: true,
+        acceleration: 135,
+        accelerationDuration: 10,
+        accelerationTarget: { x: game.vehicle.x, y: game.vehicle.y },
+        accelerationJitter: game.rng.range(-Math.PI / 18, Math.PI / 18),
+        maxSpeed: 280,
+        vanishOffscreen: true,
+      }),
+    );
+  }
+}
+
 function stepEnemyPatterns(game, enemy, dt) {
   for (const patternState of enemy.patterns ?? []) {
     patternState.timer -= dt;
     if (patternState.timer > 0) continue;
-    game.enemyProjectiles.push(...firePattern(patternState.definition, enemy, game.vehicle, game.rng));
-    patternState.timer = patternState.definition.interval;
+    game.enemyProjectiles.push(...firePattern(patternState, enemy, game.vehicle, game.rng));
+    patternState.timer = nextPatternTimer(patternState);
   }
+}
+
+function nextPatternTimer(patternState) {
+  const emitter = patternState.definition.emitter;
+  if (emitter.kind === 'sequentialRadial' && patternState.sequenceIndex === 0) return emitter.sequenceRest ?? patternState.definition.interval;
+  return patternState.definition.interval;
 }
 
 function handleBoostRams(game) {
@@ -376,6 +529,10 @@ function handleCollisions(game) {
     if (projectile.behavior === 'blast') continue;
     for (const enemy of activeEnemies(game)) {
       if (distanceSquared(projectile, enemy) >= (enemy.radius + projectile.radius) ** 2) continue;
+      if (enemyShieldBlocks(enemy, projectile)) {
+        projectile.lifetime = 0;
+        break;
+      }
       const hit = applyEnemyDamage(enemy, projectile);
       if (hit.hit) {
         game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
@@ -389,6 +546,61 @@ function handleCollisions(game) {
       }
     }
   }
+}
+
+function handleEnemyProjectileSpecials(game) {
+  const kept = [];
+  const spawned = [];
+  for (const projectile of game.enemyProjectiles) {
+    if (projectile.vanishOffscreen && isOutsideRoadArea(projectile, game.road)) {
+      projectile.lifetime = 0;
+      continue;
+    }
+    if (projectile.readyToExplode) {
+      spawned.push(...spawnEnemyPulseBlast(game, projectile));
+      projectile.lifetime = 0;
+      continue;
+    }
+    kept.push(projectile);
+  }
+  game.enemyProjectiles = [...kept, ...spawned];
+}
+
+function spawnEnemyPulseBlast(game, projectile) {
+  const blast = projectile.blastOnExpire ?? { radius: CELL_SIZE * 1.275, damage: 4.5, impulse: 55 };
+  const effects = [
+    createProjectile(projectile.x, projectile.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'enemy-pulse-blast',
+      behavior: 'blast',
+      radius: 1,
+      maxRadius: blast.radius,
+      damage: 0,
+      impulse: 0,
+      lifetime: 0.18,
+    }),
+  ];
+  for (const enemy of activeEnemies(game)) {
+    if (distanceSquared(enemy, projectile) > (enemy.radius + blast.radius) ** 2) continue;
+    const hit = applyEnemyBlastDamage(enemy, projectile, {
+      maxVoxelDistance: Math.max(1, blast.radius / (CELL_SIZE / 6)),
+      closeVoxelDistance: 3,
+      closePenetration: 1,
+      farPenetration: 1,
+      damage: blast.damage,
+    });
+    if (hit.destroyedNow) explodeEnemy(game, enemy);
+    knockEnemyFromPoint(enemy, projectile, blast.radius + enemy.radius, blast.impulse ?? 0);
+  }
+  if (distanceSquared(game.vehicle, projectile) <= (blast.radius + CELL_SIZE * 3.8) ** 2) {
+    applyVehicleDamage(game.vehicle, projectile, blast.radius, blast.damage, blast.impulse ?? 0, directionFromTo(projectile, game.vehicle));
+  }
+  return effects;
+}
+
+function isOutsideRoadArea(projectile, road) {
+  const offset = worldToRoadOffset(projectile, road);
+  return Math.abs(offset.x) > road.halfWidth * 1.28 || Math.abs(offset.y) > road.halfHeight * 1.28;
 }
 
 function hitPlayerRocketWithProjectile(game, enemyProjectile) {
@@ -416,6 +628,7 @@ function hitEnemiesWithBeam(game, projectile) {
   projectile.renderEndX = trace.x;
   projectile.renderEndY = trace.y;
   if (!trace.enemy) return;
+  if (enemyShieldBlocks(trace.enemy, trace)) return;
   const scale = beamDamageScale(projectile);
   const hit = applyEnemyDamage(trace.enemy, {
     ...projectile,
@@ -430,6 +643,29 @@ function hitEnemiesWithBeam(game, projectile) {
     trace.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.004 * scale;
     if (hit.destroyedNow) explodeEnemy(game, trace.enemy);
   }
+}
+
+function handleEnemyRamShields(game) {
+  for (const enemy of activeEnemies(game)) {
+    if (!enemy.shieldActive || !enemy.charge) continue;
+    if (distanceSquared(enemy, game.vehicle) > (enemy.radius + CELL_SIZE * 3.1) ** 2) continue;
+    const toVehicle = directionFromTo(enemy, game.vehicle);
+    const dot = toVehicle.x * enemy.charge.x + toVehicle.y * enemy.charge.y;
+    if (dot < Math.cos(Math.PI / 8)) continue;
+    if (enemy.lastShieldRamAt != null && game.time - enemy.lastShieldRamAt < 0.65) continue;
+    enemy.lastShieldRamAt = game.time;
+    applyVehicleDamage(game.vehicle, game.vehicle, CELL_SIZE * 0.9, 16, 230, toVehicle);
+  }
+}
+
+function enemyShieldBlocks(enemy, point) {
+  if (!enemy.shieldActive || !enemy.charge) return false;
+  const dx = point.x - enemy.x;
+  const dy = point.y - enemy.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance <= 0.001 || distance > enemy.radius + CELL_SIZE * 1.6) return false;
+  const dot = (dx / distance) * enemy.charge.x + (dy / distance) * enemy.charge.y;
+  return dot >= Math.cos(Math.PI / 8);
 }
 
 function syncBeamProjectiles(game) {

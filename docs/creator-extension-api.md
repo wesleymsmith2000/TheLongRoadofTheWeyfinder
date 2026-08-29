@@ -320,6 +320,16 @@ Optional projectile presentation/simulation fields:
 
 Destructible projectile data must still validate through `src/core/weaponDefinition.js`; editors should not emit private rocket-shape fields outside this contract.
 
+Pattern projectiles may also use these delayed-acceleration fields:
+
+- `delayBeforeAcceleration`: seconds to coast before selecting the acceleration vector.
+- `stopBeforeAcceleration`: if true, velocity is zeroed when the acceleration vector is selected.
+- `acceleration`: thrust applied after the delay.
+- `accelerationDuration`: duration of the acceleration phase.
+- `accelerationSpreadRadians`: random aim offset applied once when the vector is selected.
+- `explodeAfterAcceleration`: if true, the projectile emits `blastOnExpire` after the acceleration window.
+- `blastOnExpire`: small blast payload with `radius`, `damage`, and optional `impulse`.
+
 ## Current Pattern Contract
 
 Current pattern assets live under:
@@ -369,6 +379,9 @@ Available pattern emitters in Prototype 0:
 
 - `aimed`
 - `radial`
+- `sequentialRadial`
+
+`sequentialRadial` fires one spoke per interval and keeps sequence state in the runtime pattern state. It may provide `sequenceRest` to pause after a full ring.
 
 ## Current Level Contract
 

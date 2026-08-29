@@ -61,7 +61,34 @@ test('aimed pattern emits projectile toward target with deterministic spread', (
 });
 
 test('radial pattern emits configured projectile count', () => {
-  const projectiles = firePattern(radialPatternDefinition, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
+  const radial = { ...radialPatternDefinition, emitter: { ...radialPatternDefinition.emitter, kind: 'radial' } };
+  const projectiles = firePattern(radial, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
   assert.equal(projectiles.length, 12);
   assert.equal(projectiles.every((projectile) => projectile.radius === 2), true);
+});
+
+test('sequential radial pattern emits one spoke at a time with delayed acceleration', () => {
+  const state = createPatternState(radialPatternDefinition);
+  const projectiles = firePattern(state, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
+  assert.equal(projectiles.length, 1);
+  assert.equal(state.sequenceIndex, 1);
+  assert.equal(projectiles[0].delayBeforeAcceleration > 0, true);
+  assert.equal(projectiles[0].explodeAfterAcceleration, true);
+});
+
+test('sequential radial pattern wraps after the full ring', () => {
+  const state = createPatternState(radialPatternDefinition);
+  for (let index = 0; index < radialPatternDefinition.emitter.count; index += 1) {
+    firePattern(state, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(index + 1));
+  }
+  assert.equal(state.sequenceIndex, 0);
+});
+
+test('delayed acceleration projectile stops then locks toward target', async () => {
+  const projectiles = firePattern(radialPatternDefinition, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
+  const projectile = projectiles[0];
+  const { stepProjectiles } = await import('../src/core/projectile.js');
+  stepProjectiles([projectile], 20 / 60, [{ x: 100, y: 0 }]);
+  assert.equal(projectile.accelerationLocked, true);
+  assert.equal(projectile.vx > 0, true);
 });
