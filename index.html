@@ -87,6 +87,13 @@
         opacity: 0.45;
       }
 
+      .level-complete-content {
+        width: min(520px, calc(100vw - 28px));
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        padding: 10px 0 14px;
+      }
+
       .level-complete-screen {
         --screen-art: var(--level-complete-art);
       }
@@ -352,11 +359,28 @@
         display: grid;
         grid-template-columns: 1fr auto;
         gap: 8px;
+        align-items: end;
       }
 
-      .shop-upgrade-row select {
+      .shop-field {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+        text-align: left;
+      }
+
+      .shop-field span {
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .shop-upgrade-row select,
+      .shop-field select {
+        width: 100%;
         min-width: 0;
         min-height: 42px;
+        padding: 0 8px;
         border: 1px solid rgb(244 238 228 / 0.24);
         border-radius: 8px;
         background: rgb(20 23 24 / 0.86);
@@ -524,6 +548,78 @@
           height: 48px;
           font-size: 11px;
         }
+
+        .launch-panel {
+          width: calc(100vw - 20px);
+          padding: 12px;
+        }
+
+        .level-complete-screen {
+          place-items: stretch;
+          overflow: auto;
+          padding: 8px;
+          font-size: 22px;
+        }
+
+        .level-complete-content {
+          display: grid;
+          align-content: start;
+          justify-items: stretch;
+          width: 100%;
+          max-height: none;
+          min-height: 100%;
+          overflow: visible;
+          padding: 44px 2px 10px;
+        }
+
+        .shop-panel {
+          width: 100%;
+          max-height: none;
+          margin-top: 10px;
+          padding: 10px;
+          gap: 8px;
+          font-size: 12px;
+        }
+
+        .shop-panel button {
+          min-height: 48px;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .shop-panel button span:last-child {
+          flex-basis: 100%;
+          font-size: 11px;
+        }
+
+        .shop-upgrade-row {
+          grid-template-columns: 1fr;
+        }
+
+        .shop-upgrade-row button {
+          width: 100%;
+        }
+
+        .upgrade-summary {
+          max-height: 26vh;
+        }
+
+        #nextLevelButton {
+          position: sticky;
+          bottom: 6px;
+          width: 100%;
+          margin-top: 10px;
+          background: rgb(20 23 24 / 0.94);
+          z-index: 2;
+        }
+
+        .vehicle-editor {
+          grid-template-columns: 1fr;
+        }
+
+        .vehicle-editor-canvas {
+          max-width: 300px;
+        }
       }
     </style>
   </head>
@@ -582,7 +678,7 @@
       <div><span class="icon-sprite" data-icon="scrap" aria-hidden="true"></span> Scrap <span id="scrapCount">0</span> Damage <span id="scoreDamage">0</span></div>
     </div>
     <div id="levelComplete" class="game-over level-complete-screen hidden">
-      <div>
+      <div class="level-complete-content">
         Level <span id="levelNumber">1</span> Clear<br />
         <span style="font-size: 18px">Time <span id="levelTime">0.0</span>s</span><br />
         <div class="shop-panel">
@@ -591,9 +687,12 @@
             <strong id="shopScrapAvailable">0</strong>
           </div>
           <div class="shop-upgrade-row">
-            <select id="shopRepairTarget" aria-label="Select repair target">
-              <option value="all">All Systems</option>
-            </select>
+            <label class="shop-field" for="shopRepairTarget">
+              <span>Repair target</span>
+              <select id="shopRepairTarget" aria-label="Select repair target">
+                <option value="all">All Systems</option>
+              </select>
+            </label>
           </div>
           <button id="shopRepairButton" type="button">
             <span class="icon-sprite" data-icon="repair" aria-hidden="true"></span>
@@ -611,7 +710,10 @@
             <span>Cost <span id="shopAmmoCost">6</span> scrap, <span id="shopAmmoStatus">Full</span></span>
           </button>
           <div class="shop-upgrade-row">
-            <select id="shopUpgradeSelect" aria-label="Select upgrade"></select>
+            <label class="shop-field" for="shopUpgradeSelect">
+              <span>Upgrade target</span>
+              <select id="shopUpgradeSelect" aria-label="Select upgrade"></select>
+            </label>
             <button id="shopBuyUpgradeButton" type="button">
               Buy Upgrade
               <span>Cost <span id="shopUpgradeCost">4</span>, <span id="shopUpgradeStatus">Ready</span></span>
