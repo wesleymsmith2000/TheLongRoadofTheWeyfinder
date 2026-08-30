@@ -98,7 +98,7 @@ function drawAimReticle(ctx, reticle) {
   if (!reticle?.active) return;
   ctx.save();
   ctx.translate(reticle.x, reticle.y);
-  ctx.strokeStyle = reticle.source === 'gamepad' ? '#f7c06a' : '#83f7ff';
+  ctx.strokeStyle = reticle.source === 'ai' ? '#6fe08c' : '#83f7ff';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(0, 0, 10, 0, Math.PI * 2);

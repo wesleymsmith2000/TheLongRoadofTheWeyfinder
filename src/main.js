@@ -199,6 +199,8 @@ const virtualPointer = {
   x: window.innerWidth / 2,
   y: window.innerHeight / 2,
   active: false,
+  selectControl: null,
+  selectRepeat: 0,
 };
 document.documentElement.style.setProperty('--level-complete-art', `url("${levelCompleteArt}")`);
 document.documentElement.style.setProperty('--level-fail-art', `url("${levelFailArt}")`);
@@ -237,7 +239,7 @@ function frame(now) {
   previous = now;
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
-  updateVirtualPointer(virtualPointer, padInput, dt, awaitingLaunch);
+  updateVirtualPointer(virtualPointer, padInput, dt, awaitingLaunch || game.levelComplete || game.gameOver);
   const mouseInput = mouse.read();
   const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
   const touchBoostPressed = touchBoost.consume();
@@ -459,6 +461,7 @@ function updatePadReticle(reticle, input, dt) {
 function updateVirtualPointer(pointer, input, dt, enabled) {
   if (!enabled) {
     pointer.active = false;
+    pointer.selectControl = null;
     virtualCursor.hidden = true;
     return;
   }
@@ -470,9 +473,14 @@ function updateVirtualPointer(pointer, input, dt, enabled) {
     virtualCursor.hidden = true;
     return;
   }
+  if (pointer.selectControl) {
+    updateVirtualSelect(pointer, input, dt);
+    return;
+  }
   pointer.x = Math.max(8, Math.min(window.innerWidth - 8, pointer.x + x * 520 * dt));
   pointer.y = Math.max(8, Math.min(window.innerHeight - 8, pointer.y + y * 520 * dt));
   virtualCursor.hidden = false;
+  virtualCursor.dataset.mode = 'point';
   virtualCursor.style.transform = `translate(${pointer.x - 9}px, ${pointer.y - 9}px)`;
   if (input.cursorClickPressed) clickVirtualPointer(pointer);
 }
@@ -482,6 +490,14 @@ function clickVirtualPointer(pointer) {
   const target = document.elementFromPoint(pointer.x, pointer.y);
   virtualCursor.hidden = false;
   if (!target) return;
+  const select = target.closest?.('select') ?? (target.control instanceof HTMLSelectElement ? target.control : null);
+  if (select instanceof HTMLSelectElement) {
+    pointer.selectControl = select;
+    pointer.selectRepeat = 0;
+    select.focus();
+    virtualCursor.dataset.mode = 'select';
+    return;
+  }
   target.dispatchEvent(
     new MouseEvent('click', {
       bubbles: true,
@@ -491,6 +507,44 @@ function clickVirtualPointer(pointer) {
       view: window,
     }),
   );
+}
+
+function updateVirtualSelect(pointer, input, dt) {
+  const select = pointer.selectControl;
+  if (!select?.isConnected) {
+    pointer.selectControl = null;
+    return;
+  }
+  pointer.active = true;
+  const rect = select.getBoundingClientRect();
+  pointer.x = Math.max(8, Math.min(window.innerWidth - 8, rect.left + rect.width / 2));
+  pointer.y = Math.max(8, Math.min(window.innerHeight - 8, rect.top + rect.height / 2));
+  virtualCursor.hidden = false;
+  virtualCursor.dataset.mode = 'select';
+  virtualCursor.style.transform = `translate(${pointer.x - 9}px, ${pointer.y - 9}px)`;
+  if (input.cursorClickPressed) {
+    select.blur();
+    pointer.selectControl = null;
+    virtualCursor.dataset.mode = 'point';
+    return;
+  }
+  pointer.selectRepeat = Math.max(0, pointer.selectRepeat - dt);
+  const y = input.cursorY ?? 0;
+  if (Math.abs(y) <= 0.55) {
+    pointer.selectRepeat = 0;
+    return;
+  }
+  if (pointer.selectRepeat > 0) return;
+  changeVirtualSelectOption(select, Math.sign(y));
+  pointer.selectRepeat = 0.22;
+}
+
+function changeVirtualSelectOption(select, direction) {
+  const next = Math.max(0, Math.min(select.options.length - 1, select.selectedIndex + direction));
+  if (next === select.selectedIndex) return;
+  select.selectedIndex = next;
+  select.dispatchEvent(new Event('input', { bubbles: true }));
+  select.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function viewport() {
