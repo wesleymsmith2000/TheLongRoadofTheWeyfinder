@@ -268,27 +268,22 @@ test('beam stays locked after lane containment moves a fast vehicle', () => {
   assert.equal(Math.abs(beam.y - muzzle.y) < 0.001, true);
 });
 
-test('beam-selected manual aim ignores ballistic compensation at high vehicle velocity', () => {
-  const beamGame = createGame();
-  const cannonGame = createGame();
-  beamGame.secondary.selected = 'beam';
-  cannonGame.secondary.selected = 'cannon';
-  beamGame.vehicle.vx = 220;
-  beamGame.vehicle.vy = -180;
-  cannonGame.vehicle.vx = 220;
-  cannonGame.vehicle.vy = -180;
-  const target = { x: beamGame.vehicle.x + 160, y: beamGame.vehicle.y - 40 };
-  for (let i = 0; i < 14; i += 1) {
+test('beam-selected manual aim points from the muzzle through the reticle at high vehicle velocity', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.vehicle.vx = 220;
+  game.vehicle.vy = -180;
+  let target = { x: game.vehicle.x + 160, y: game.vehicle.y - 40 };
+  for (let i = 0; i < 40; i += 1) {
+    target = { x: game.vehicle.x + 160, y: game.vehicle.y - 40 };
     stepGame(
-      beamGame,
+      game,
       { secondarySelect: 'beam', aimWorld: target, manualAimActive: true, gunnerEnabled: false, compensatedAim: true },
       1 / 60,
     );
-    stepGame(
-      cannonGame,
-      { secondarySelect: 'cannon', aimWorld: target, manualAimActive: true, gunnerEnabled: false, compensatedAim: true },
-      1 / 60,
-    );
   }
-  assert.equal(beamGame.vehicle.turretHeading < cannonGame.vehicle.turretHeading, true);
+  const muzzle = gunMuzzleWorld(game.vehicle, game.vehicle.turretHeading);
+  const headingToReticle = Math.atan2(target.y - muzzle.y, target.x - muzzle.x);
+  const delta = Math.atan2(Math.sin(headingToReticle - game.vehicle.turretHeading), Math.cos(headingToReticle - game.vehicle.turretHeading));
+  assert.equal(Math.abs(delta) < 0.05, true);
 });

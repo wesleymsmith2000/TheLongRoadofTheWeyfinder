@@ -11,6 +11,7 @@ Start here:
 - [Level Editor Main Game Handoff](./level-editor-main-game-handoff.md)
 - [Enemy And Pattern Editor Handoff](./enemy-pattern-editor-handoff.md)
 - [Gameplay / Audio / Mobile Handoff](./gameplay-audio-mobile-handoff.md)
+- [Editor Runtime Seams](./editor-runtime-seams.md)
 
 Current priorities:
 

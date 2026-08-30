@@ -240,7 +240,7 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
 }
 
 function usesBoatSilhouetteEnemy(trackName, level) {
-  return level <= 6 || /^(?:TheWeyfindersRoad|DigitizedStream)_/i.test(trackName ?? '');
+  return level <= 6 || /^(?:TheWeyfindersRoad|DigitizedStream|PiratesRoad)_/i.test(trackName ?? '');
 }
 
 export function isBossLevel(level, levelMusic = DEFAULT_LEVEL_MUSIC) {
@@ -360,7 +360,7 @@ function stepShop(game, input) {
 function aimInputForTurret(game, input, dt) {
   if (input.aimWorld) {
     game.aimReticle = { ...input.aimWorld, active: true, source: input.aimSource ?? 'manual' };
-    if ((input.secondarySelect ?? game.secondary.selected) === 'beam') return { ...input, compensatedAim: false };
+    if ((input.secondarySelect ?? game.secondary.selected) === 'beam') return { ...input, compensatedAim: true, aimProjectileSpeed: 1_000_000 };
     return input;
   }
   if (input.gunnerEnabled === false || (game.vehicle.manualAimGrace ?? 0) > 0 || activeEnemies(game).length === 0) {

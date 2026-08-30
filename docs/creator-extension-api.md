@@ -546,6 +546,7 @@ For main-game coordination details, see:
 
 ```text
 docs/level-editor-main-game-handoff.md
+docs/editor-runtime-seams.md
 ```
 
 ## Near-Term Implementation Plan
