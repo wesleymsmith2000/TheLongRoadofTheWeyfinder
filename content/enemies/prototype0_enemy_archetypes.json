@@ -38,6 +38,7 @@
         "warningLeadSeconds": 2.4,
         "speed": 310
       },
+      "paletteSource": "levelMusic",
       "charge": {
         "acceleration": 165,
         "duration": 1.15,
@@ -76,6 +77,49 @@
         "segmentCells": ["miniCore", "gun"],
         "aimCenter": "stochasticPlayerBiased",
         "wiggle": "randomWave",
+        "unfurl": {
+          "startsFolded": true,
+          "visibleProgressBias": true
+        },
+        "attackMix": [
+          {
+            "id": "standardShot",
+            "weight": 0.42,
+            "projectile": { "weapon": "boss-tentacle", "speed": 112, "damage": 10, "radius": 2.2 }
+          },
+          {
+            "id": "delayedDrifter",
+            "weight": 0.3,
+            "projectile": {
+              "weapon": "boss-drifter",
+              "speed": 55,
+              "delayBeforeAcceleration": [1.4, 2.6],
+              "stopBeforeAcceleration": true,
+              "acceleration": 150,
+              "accelerationDuration": 3,
+              "maxSpeed": 275
+            }
+          },
+          {
+            "id": "protectiveShot",
+            "weight": 0.18,
+            "projectile": {
+              "weapon": "boss-shield-shot",
+              "speed": 82,
+              "damage": 7,
+              "radius": 3.2,
+              "color": "#3d6f8f",
+              "absorbsPlayerProjectiles": true,
+              "absorbHp": 24
+            }
+          },
+          {
+            "id": "trackingLaser",
+            "weight": 0.1,
+            "telegraphSeconds": 1.12,
+            "beam": { "weapon": "boss-laser", "frames": 15, "length": 760, "damage": 7.5, "radius": 3, "color": "#ff2626" }
+          }
+        ],
         "detonateOnDisconnect": true,
         "detonationDamageTeams": ["player", "enemy"]
       },
@@ -88,7 +132,7 @@
         "accelerationSpreadRadians": 0.22,
         "vanishOffscreen": true
       },
-      "editable": ["palette", "body", "arms", "centerPulse", "entry"]
+      "editable": ["palette", "body", "arms", "attackMix", "centerPulse", "entry"]
     }
   ]
 }

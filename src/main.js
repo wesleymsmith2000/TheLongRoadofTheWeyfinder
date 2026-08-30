@@ -338,7 +338,7 @@ function syncLaunchScreen() {
 function syncMusic(forcePlay = false) {
   const trackName = game.currentMusic;
   const src = MUSIC_URLS[trackName];
-  if (!src || awaitingLaunch || game.gameOver) {
+  if (!src || awaitingLaunch || game.gameOver || game.levelComplete) {
     musicAudio.pause();
     return;
   }

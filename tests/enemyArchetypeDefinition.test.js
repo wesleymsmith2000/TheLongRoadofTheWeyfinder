@@ -17,6 +17,7 @@ test('enemy archetype helpers expose editor-facing enemy models', () => {
     ['standard', 'enhanced_charger', 'boss.octagon.prototype0'],
   );
   assert.equal(getEnemyArchetype('boss.octopus.prototype0').displayName, 'Octagon Boss Prototype');
+  assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.some((entry) => entry.id === 'trackingLaser'), true);
   assert.deepEqual(editableEnemyKnobs('enhanced_charger'), ['construct', 'patterns', 'entry', 'charge', 'palette']);
 });
 

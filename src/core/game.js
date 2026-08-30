@@ -30,6 +30,7 @@ import {
   upgradeReduction,
 } from './economy.js';
 import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from './levelMusic.js';
+import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
 
 const LEVEL_TARGET_DURATION = 180;
 const SPAWN_WARNING_LEAD = 2.4;
@@ -114,6 +115,7 @@ export function stepGame(game, input, dt) {
   stepSmokeParticles(game, dt);
   stepRocketContrails(game, dt);
   handleCollisions(game);
+  accelerateNextSpawnWhenArenaEmpty(game);
   stepScrapPickups(game, dt);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
   recalculateVehicle(game.vehicle);
@@ -172,6 +174,7 @@ function dequeueReadySpawns(queue, elapsed) {
 export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC) {
   const enemies = [];
   const isBoss = isBossLevel(level, levelMusic);
+  const currentMusic = musicForLevel(level, levelMusic);
   const count = isBoss ? Math.max(1, Math.ceil(level / 2)) : level;
   const enhancedCount = !isBoss && hasBossMusicBeforeLevel(level, levelMusic) ? Math.floor(count / 2) : 0;
   const standardCount = count - enhancedCount;
@@ -185,6 +188,7 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
         : roadOffsetToWorld({ x: spread, y: -road.halfHeight - 95 - row }, road);
     const enemy = kind === 'enhanced' ? createEnhancedEnemy(world.x, world.y) : createEnemy(world.x, world.y);
     if (kind === 'enhanced') {
+      enemy.palette = enhancedEnemyPaletteForMusic(currentMusic);
       const velocity = roadDirectionToWorld(0, -1, road);
       enemy.vx = velocity.x * 310;
       enemy.vy = velocity.y * 310;
@@ -199,7 +203,10 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
   }
   if (isBoss) {
     const bossWorld = roadOffsetToWorld({ x: 0, y: -road.halfHeight - 180 }, road);
-    enemies.push(createBossEnemy(bossWorld.x, bossWorld.y));
+    const boss = createBossEnemy(bossWorld.x, bossWorld.y);
+    boss.vx = roadDirectionToWorld(0, 1, road).x * 36;
+    boss.vy = roadDirectionToWorld(0, 1, road).y * 36;
+    enemies.push(boss);
   }
   return enemies;
 }
@@ -229,6 +236,12 @@ function stepEnemySpawner(game, dt) {
   for (const entry of ready) game.enemies.push(entry.enemy);
   game.enemySpawnQueue = pending;
   stepIncomingMarkers(game, dt);
+}
+
+function accelerateNextSpawnWhenArenaEmpty(game) {
+  if (activeEnemies(game).length > 0 || game.enemySpawnQueue.length === 0) return;
+  const elapsed = game.time - game.levelStartTime;
+  game.enemySpawnQueue[0].at = Math.min(game.enemySpawnQueue[0].at, elapsed + 3);
 }
 
 function createIncomingMarker(enemy, type) {
@@ -423,6 +436,8 @@ function stepEnhancedEnemy(game, enemy, dt) {
 }
 
 function stepBossEnemy(game, boss, dt) {
+  updateBossArmUnfurl(game, boss, dt);
+  steerBossBackToViewArea(game, boss, dt);
   boss.centerPulseTimer -= dt;
   stepBossArms(game, boss, dt);
   if (boss.centerPulseTimer <= 0) {
@@ -431,31 +446,165 @@ function stepBossEnemy(game, boss, dt) {
   }
 }
 
+function updateBossArmUnfurl(game, boss, dt) {
+  const offset = worldToRoadOffset(boss, game.road);
+  const visibleProgress = clamp((offset.y + game.road.halfHeight + 160) / 260, 0, 1);
+  boss.armUnfurl = clamp((boss.armUnfurl ?? 0) + dt * (0.26 + visibleProgress * 0.72), 0, 1);
+}
+
+function steerBossBackToViewArea(game, boss, dt) {
+  const offset = worldToRoadOffset(boss, game.road);
+  const targetOffset = {
+    x: clamp(offset.x, -game.road.halfWidth * 0.42, game.road.halfWidth * 0.42),
+    y: clamp(offset.y, -game.road.halfHeight * 0.48, game.road.halfHeight * 0.04),
+  };
+  const dxOffset = targetOffset.x - offset.x;
+  const dyOffset = targetOffset.y - offset.y;
+  const distance = Math.hypot(dxOffset, dyOffset);
+  if (distance <= 4) {
+    boss.vx *= Math.pow(0.08, dt);
+    boss.vy *= Math.pow(0.08, dt);
+    return;
+  }
+  const targetWorld = roadOffsetToWorld(targetOffset, game.road);
+  const dx = targetWorld.x - boss.x;
+  const dy = targetWorld.y - boss.y;
+  const worldDistance = Math.hypot(dx, dy) || 1;
+  const desiredSpeed = clamp(worldDistance * 3.1, 80, 620);
+  const desiredVx = (dx / worldDistance) * desiredSpeed;
+  const desiredVy = (dy / worldDistance) * desiredSpeed;
+  const steer = clamp(8.5 * dt, 0, 1);
+  boss.vx += (desiredVx - boss.vx) * steer;
+  boss.vy += (desiredVy - boss.vy) * steer;
+}
+
 function stepBossArms(game, boss, dt) {
   for (const arm of boss.arms ?? []) {
     if (detonateBrokenBossArm(game, boss, arm)) continue;
-    arm.phase += dt * game.rng.range(2.2, 3.8);
-    arm.aim.x += (game.vehicle.x - arm.aim.x) * 0.08 * dt + Math.cos(arm.phase) * 18 * dt;
-    arm.aim.y += (game.vehicle.y - arm.aim.y) * 0.08 * dt + Math.sin(arm.phase * 0.7) * 18 * dt;
+    arm.phase += dt * game.rng.range(5.2, 8.4);
+    arm.aim.x += (game.vehicle.x - arm.aim.x) * 0.18 * dt + Math.cos(arm.phase) * 32 * dt;
+    arm.aim.y += (game.vehicle.y - arm.aim.y) * 0.18 * dt + Math.sin(arm.phase * 0.7) * 32 * dt;
+    if ((boss.armUnfurl ?? 1) < 0.55) continue;
+    if (stepBossLaser(game, boss, arm, dt)) continue;
     arm.fireTimer = (arm.fireTimer ?? game.rng.range(0.2, 1.5)) - dt;
     if (arm.fireTimer > 0) continue;
-    arm.fireTimer = game.rng.range(4.8, 8.9);
-    const liveGun = boss.cells.find((cell) => cell.id.startsWith(`arm-${arm.index}-`) && cell.type === 'gun' && !cell.state.destroyed);
-    if (!liveGun) continue;
-    const source = { x: boss.x + liveGun.gridX * CELL_SIZE, y: boss.y + liveGun.gridY * CELL_SIZE };
-    const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
-    game.enemyProjectiles.push(
-      createProjectile(source.x, source.y, Math.cos(angle) * 105, Math.sin(angle) * 105, {
-        team: 'enemy',
-        weapon: 'boss-tentacle',
-        radius: 2.2,
-        damage: 10,
-        impulse: 150,
-        lifetime: 4,
-        angle,
-      }),
-    );
+    arm.fireTimer = game.rng.range(1.8, 4.3);
+    fireBossArmAttack(game, boss, arm);
   }
+}
+
+function stepBossLaser(game, boss, arm, dt) {
+  const laser = arm.laser;
+  if (!laser) return false;
+  const source = bossArmSource(boss, arm);
+  if (!source) {
+    arm.laser = null;
+    return false;
+  }
+  laser.timer -= dt;
+  if (laser.timer > 4 / 60) {
+    laser.target = { x: game.vehicle.x, y: game.vehicle.y };
+  }
+  laser.source = source;
+  if (laser.timer > 0) return true;
+  const angle = Math.atan2(laser.target.y - source.y, laser.target.x - source.x);
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'boss-laser',
+      behavior: 'beam',
+      radius: 3,
+      damage: 7.5,
+      impulse: 160,
+      lifetime: 15 / 60,
+      length: 760,
+      frames: 15,
+      angle,
+      color: '#ff2626',
+    }),
+  );
+  arm.laser = null;
+  return false;
+}
+
+function fireBossArmAttack(game, boss, arm) {
+  const source = bossArmSource(boss, arm);
+  if (!source) return;
+  const roll = game.rng.next();
+  if (roll > 0.9) {
+    arm.laser = { source, target: { x: game.vehicle.x, y: game.vehicle.y }, timer: 1.12, duration: 1.12 };
+    return;
+  }
+  if (roll > 0.72) {
+    fireBossProtectiveShot(game, source, arm);
+    return;
+  }
+  if (roll > 0.42) {
+    fireBossDelayedShot(game, source, arm);
+    return;
+  }
+  fireBossStandardShot(game, source, arm);
+}
+
+function fireBossStandardShot(game, source, arm) {
+  const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, Math.cos(angle) * 112, Math.sin(angle) * 112, {
+      team: 'enemy',
+      weapon: 'boss-tentacle',
+      radius: 2.2,
+      damage: 10,
+      impulse: 150,
+      lifetime: 4,
+      angle,
+    }),
+  );
+}
+
+function fireBossDelayedShot(game, source, arm) {
+  const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, Math.cos(angle) * 55, Math.sin(angle) * 55, {
+      team: 'enemy',
+      weapon: 'boss-drifter',
+      radius: 2.2,
+      damage: 9,
+      impulse: 125,
+      lifetime: 6.5,
+      angle,
+      delayBeforeAcceleration: game.rng.range(1.4, 2.6),
+      stopBeforeAcceleration: true,
+      acceleration: 150,
+      accelerationDuration: 3,
+      accelerationTarget: { x: game.vehicle.x, y: game.vehicle.y },
+      accelerationJitter: game.rng.range(-0.24, 0.24),
+      maxSpeed: 275,
+    }),
+  );
+}
+
+function fireBossProtectiveShot(game, source, arm) {
+  const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, Math.cos(angle) * 82, Math.sin(angle) * 82, {
+      team: 'enemy',
+      weapon: 'boss-shield-shot',
+      radius: 3.2,
+      damage: 7,
+      impulse: 105,
+      lifetime: 4.8,
+      angle,
+      color: '#3d6f8f',
+      absorbsPlayerProjectiles: true,
+      absorbHp: 24,
+    }),
+  );
+}
+
+function bossArmSource(boss, arm) {
+  const liveGun = boss.cells.find((cell) => cell.id.startsWith(`arm-${arm.index}-`) && cell.type === 'gun' && !cell.state.destroyed);
+  if (!liveGun) return null;
+  return { x: boss.x + liveGun.gridX * CELL_SIZE, y: boss.y + liveGun.gridY * CELL_SIZE };
 }
 
 function detonateBrokenBossArm(game, boss, arm) {
@@ -599,6 +748,10 @@ function boostShieldRadius(game) {
 function handleCollisions(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
+    if (projectile.behavior === 'beam') {
+      hitVehicleWithEnemyBeam(game, projectile);
+      continue;
+    }
     if (hitPlayerRocketWithProjectile(game, projectile)) {
       projectile.lifetime = 0;
       continue;
@@ -617,6 +770,10 @@ function handleCollisions(game) {
       continue;
     }
     if (projectile.behavior === 'blast') continue;
+    if (playerProjectileAbsorbedByEnemyProjectile(game, projectile)) {
+      projectile.lifetime = 0;
+      continue;
+    }
     for (const enemy of activeEnemies(game)) {
       if (distanceSquared(projectile, enemy) >= (enemy.radius + projectile.radius) ** 2) continue;
       if (enemyShieldBlocks(enemy, projectile)) {
@@ -636,6 +793,41 @@ function handleCollisions(game) {
       }
     }
   }
+}
+
+function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
+  for (const enemyProjectile of game.enemyProjectiles) {
+    if (!enemyProjectile.absorbsPlayerProjectiles || enemyProjectile.lifetime <= 0) continue;
+    const hitRange = enemyProjectile.radius + playerProjectile.radius;
+    if (distanceSquared(enemyProjectile, playerProjectile) > hitRange * hitRange) continue;
+    enemyProjectile.absorbHp -= playerProjectile.damage;
+    if (enemyProjectile.absorbHp <= 0) enemyProjectile.lifetime = 0;
+    return true;
+  }
+  return false;
+}
+
+function traceAbsorbingEnemyProjectileRay(projectiles, origin, angle, length) {
+  const dir = { x: Math.cos(angle), y: Math.sin(angle) };
+  let nearest = null;
+  for (const projectile of projectiles) {
+    if (!projectile.absorbsPlayerProjectiles || projectile.lifetime <= 0) continue;
+    const dx = projectile.x - origin.x;
+    const dy = projectile.y - origin.y;
+    const along = dx * dir.x + dy * dir.y;
+    if (along < 0 || along > length) continue;
+    const perpendicular = Math.abs(dx * dir.y - dy * dir.x);
+    if (perpendicular > projectile.radius + origin.radius) continue;
+    if (!nearest || along < nearest.distance) {
+      nearest = {
+        projectile,
+        distance: along,
+        x: origin.x + dir.x * along,
+        y: origin.y + dir.y * along,
+      };
+    }
+  }
+  return nearest;
 }
 
 function handleEnemyProjectileSpecials(game) {
@@ -713,7 +905,33 @@ function shieldedProjectile(game, projectile) {
   return { ...projectile, damage: projectile.damage * (1 - shield), impulse: projectile.impulse * (1 - shield) };
 }
 
+function hitVehicleWithEnemyBeam(game, projectile) {
+  const step = CELL_SIZE / 3;
+  const dx = Math.cos(projectile.angle);
+  const dy = Math.sin(projectile.angle);
+  projectile.renderEndX = projectile.x + dx * projectile.length;
+  projectile.renderEndY = projectile.y + dy * projectile.length;
+  for (let distance = 0; distance <= projectile.length; distance += step) {
+    const point = { x: projectile.x + dx * distance, y: projectile.y + dy * distance };
+    if (distanceSquared(point, game.vehicle) > (CELL_SIZE * 4.2) ** 2) continue;
+    const hit = hitVehicleWithProjectile(game.vehicle, { ...projectile, x: point.x, y: point.y });
+    if (!hit.hit) continue;
+    projectile.renderEndX = point.x;
+    projectile.renderEndY = point.y;
+    return true;
+  }
+  return false;
+}
+
 function hitEnemiesWithBeam(game, projectile) {
+  const shieldTrace = traceAbsorbingEnemyProjectileRay(game.enemyProjectiles, projectile, projectile.angle, projectile.length);
+  if (shieldTrace) {
+    projectile.renderEndX = shieldTrace.x;
+    projectile.renderEndY = shieldTrace.y;
+    shieldTrace.projectile.absorbHp -= projectile.damage * beamDamageScale(projectile);
+    if (shieldTrace.projectile.absorbHp <= 0) shieldTrace.projectile.lifetime = 0;
+    return;
+  }
   const trace = traceEnemyVoxelRay(activeEnemies(game), projectile, projectile.angle, projectile.length, projectile.pierce ?? 0);
   projectile.renderEndX = trace.x;
   projectile.renderEndY = trace.y;

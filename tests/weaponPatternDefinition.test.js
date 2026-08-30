@@ -64,7 +64,7 @@ test('radial pattern emits configured projectile count', () => {
   const radial = { ...radialPatternDefinition, emitter: { ...radialPatternDefinition.emitter, kind: 'radial' } };
   const projectiles = firePattern(radial, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
   assert.equal(projectiles.length, 12);
-  assert.equal(projectiles.every((projectile) => projectile.radius === 2), true);
+  assert.equal(projectiles.every((projectile) => projectile.radius === 3), true);
 });
 
 test('sequential radial pattern emits one spoke at a time with delayed acceleration', () => {
@@ -74,6 +74,9 @@ test('sequential radial pattern emits one spoke at a time with delayed accelerat
   assert.equal(state.sequenceIndex, 1);
   assert.equal(projectiles[0].delayBeforeAcceleration > 0, true);
   assert.equal(projectiles[0].explodeAfterAcceleration, true);
+  assert.equal(projectiles[0].color, '#3d6f8f');
+  assert.equal(projectiles[0].absorbsPlayerProjectiles, true);
+  assert.equal(projectiles[0].absorbHp, 18);
 });
 
 test('sequential radial pattern wraps after the full ring', () => {

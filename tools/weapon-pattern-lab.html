@@ -303,9 +303,33 @@
               <label>Jitter <input id="jitterInput" type="number" min="0" step="0.01" /></label>
             </div>
             <div class="wide-split">
+              <label>Sequence Rest <input id="sequenceRestInput" type="number" min="0" step="0.05" /></label>
+              <label>Coast Delay <input id="delayBeforeAccelerationInput" type="number" min="0" step="0.05" /></label>
+              <label>Max Speed <input id="maxSpeedInput" type="number" min="0" step="1" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Acceleration <input id="accelerationInput" type="number" min="0" step="1" /></label>
+              <label>Accel Time <input id="accelerationDurationInput" type="number" min="0" step="0.05" /></label>
+              <label>Accel Spread <input id="accelerationSpreadInput" type="number" min="0" step="0.01" /></label>
+            </div>
+            <div class="split">
+              <label>Stop Before Accel <input id="stopBeforeAccelerationInput" type="checkbox" /></label>
+              <label>Explode After Accel <input id="explodeAfterAccelerationInput" type="checkbox" /></label>
+            </div>
+            <div class="wide-split">
               <label>Radius <input id="patternRadiusInput" type="number" min="0" step="0.5" /></label>
               <label>Damage <input id="patternDamageInput" type="number" min="0" step="0.5" /></label>
               <label>Impulse <input id="patternImpulseInput" type="number" min="0" step="1" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Color <input id="patternColorInput" type="color" /></label>
+              <label>Absorb HP <input id="absorbHpInput" type="number" min="0" step="1" /></label>
+              <label>Absorbs Shots <input id="absorbsPlayerProjectilesInput" type="checkbox" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Blast Radius <input id="blastRadiusInput" type="number" min="0" step="0.5" /></label>
+              <label>Blast Damage <input id="blastDamageInput" type="number" min="0" step="0.5" /></label>
+              <label>Blast Impulse <input id="blastImpulseInput" type="number" min="0" step="1" /></label>
             </div>
             <label>Projectile Lifetime <input id="patternLifetimeInput" type="number" min="0" step="0.1" /></label>
           </div>

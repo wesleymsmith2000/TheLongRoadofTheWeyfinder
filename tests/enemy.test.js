@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyEnemyBlastDamage, applyEnemyDamage, createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from '../src/core/enemy.js';
+import { applyEnemyBlastDamage, applyEnemyDamage, createBossEnemy, createEnemy, createEnhancedEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, stepGame } from '../src/core/game.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
@@ -105,4 +105,66 @@ test('enhanced enemy frontal shield absorbs player projectiles while charging', 
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(game.playerProjectiles[0]?.lifetime ?? 0, 0);
   assert.equal(enemy.destroyed, false);
+});
+
+test('standard enemy radial ring shots absorb player projectiles', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  const shieldPoint = { x: game.vehicle.x + 100, y: game.vehicle.y };
+  game.enemyProjectiles = [
+    createProjectile(shieldPoint.x, shieldPoint.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'bullet',
+      radius: 3,
+      damage: 7,
+      lifetime: 2,
+      color: '#3d6f8f',
+      absorbsPlayerProjectiles: true,
+      absorbHp: 18,
+    }),
+  ];
+  game.playerProjectiles = [
+    createProjectile(shieldPoint.x + 1, shieldPoint.y, 0, 0, {
+      team: 'player',
+      weapon: 'bullet',
+      radius: 1.5,
+      damage: 8,
+      lifetime: 1,
+    }),
+  ];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.playerProjectiles[0]?.lifetime ?? 0, 0);
+  assert.equal(game.enemyProjectiles[0].lifetime > 0, true);
+  assert.equal(game.enemyProjectiles[0].absorbHp, 10);
+});
+
+test('boss arm attack mix can schedule and fire a tracking laser', () => {
+  const game = createGame();
+  const boss = createBossEnemy(game.vehicle.x + 140, game.vehicle.y);
+  boss.armUnfurl = 1;
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  game.rng.next = () => 0.96;
+  game.rng.range = (min, max) => min + (max - min) * game.rng.next();
+  boss.arms[0].fireTimer = 0;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(Boolean(boss.arms[0].laser), true);
+  for (let index = 0; index < 70; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'boss-laser' && projectile.behavior === 'beam'), true);
+});
+
+test('boss accelerates back toward the view area after being knocked away', () => {
+  const game = createGame();
+  const boss = createBossEnemy(game.road.x + game.road.halfWidth + 360, game.road.y);
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.vx < 0, true);
+});
+
+test('enhanced enemies can carry level style palettes', () => {
+  const enemy = createEnhancedEnemy(0, 0);
+  enemy.palette = { armor: '#123456' };
+  assert.equal(enemy.palette.armor, '#123456');
 });

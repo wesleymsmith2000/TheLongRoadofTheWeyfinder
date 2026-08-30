@@ -57,3 +57,28 @@ test('scheduled enemy spawns after its warning marker appears', () => {
   assert.equal(game.enemies.length, 1);
   assert.equal(game.enemySpawnQueue.length, 0);
 });
+
+test('empty arenas pull the next queued enemy forward within three seconds', () => {
+  const game = createGame();
+  game.enemies = [];
+  game.enemySpawnQueue = [
+    {
+      at: 60,
+      type: 'standard',
+      markerShown: false,
+      enemy: createLevelEnemySchedule(game.road, 1, ['road'], game.rng)[0].enemy,
+    },
+  ];
+  game.time = 10;
+  game.levelStartTime = 0;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.enemySpawnQueue[0].at <= game.time + 3, true);
+});
+
+test('enhanced enemies receive a palette from the current level music style', () => {
+  const enemies = createLevelEnemySchedule({ x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 }, 3, ['road', 'BossFight', 'DigitizedStream_1'])
+    .map((entry) => entry.enemy);
+  const enhanced = enemies.find((enemy) => enemy.kind === 'enhanced');
+  assert.equal(Boolean(enhanced.palette), true);
+  assert.equal(enhanced.palette.armor, '#1f8794');
+});

@@ -11,6 +11,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     radius: options.radius ?? 4,
     maxRadius: options.maxRadius ?? options.radius ?? 4,
     damage: options.damage ?? 7,
+    color: options.color ?? null,
     impulse: options.impulse ?? 240,
     team: options.team ?? 'enemy',
     weapon: options.weapon ?? 'bullet',
@@ -35,11 +36,15 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     accelerationAngle: options.accelerationAngle ?? null,
     accelerationTarget: options.accelerationTarget ?? null,
     accelerationJitter: options.accelerationJitter ?? 0,
+    delayedAcceleration: (options.delayBeforeAcceleration ?? 0) > 0 || Boolean(options.accelerationTarget) || Boolean(options.explodeAfterAcceleration),
     stopBeforeAcceleration: Boolean(options.stopBeforeAcceleration),
     explodeAfterAcceleration: Boolean(options.explodeAfterAcceleration),
     blastOnExpire: options.blastOnExpire ?? null,
     readyToExplode: false,
     vanishOffscreen: Boolean(options.vanishOffscreen),
+    absorbsPlayerProjectiles: Boolean(options.absorbsPlayerProjectiles),
+    absorbHp: options.absorbHp ?? 0,
+    maxAbsorbHp: options.absorbHp ?? 0,
   };
   if (options.destructible && options.shape?.kind === 'cylinderCone') {
     projectile.shape = options.shape;
@@ -53,7 +58,7 @@ export function stepProjectiles(projectiles, dt, targets = []) {
   for (const projectile of projectiles) {
     projectile.previousX = projectile.x;
     projectile.previousY = projectile.y;
-    if (projectile.delayBeforeAcceleration > 0) stepDelayedAcceleration(projectile, targets, dt);
+    if (projectile.delayedAcceleration) stepDelayedAcceleration(projectile, targets, dt);
     else if (projectile.behavior === 'homing') stepHomingProjectile(projectile, targets, dt);
     if (projectile.behavior === 'beam' || projectile.behavior === 'blast') {
       projectile.lifetime -= dt;
@@ -67,8 +72,10 @@ export function stepProjectiles(projectiles, dt, targets = []) {
 }
 
 function stepDelayedAcceleration(projectile, targets, dt) {
-  projectile.delayBeforeAcceleration -= dt;
-  if (projectile.delayBeforeAcceleration > 0) return;
+  if (projectile.delayBeforeAcceleration > 0) {
+    projectile.delayBeforeAcceleration -= dt;
+    if (projectile.delayBeforeAcceleration > 0) return;
+  }
   if (!projectile.accelerationLocked) {
     const target = projectile.accelerationTarget ?? nearestTarget(projectile, targets);
     const baseAngle = target ? Math.atan2(target.y - projectile.y, target.x - projectile.x) : projectile.angle;

@@ -324,6 +324,9 @@ Destructible projectile data must still validate through `src/core/weaponDefinit
 
 Pattern projectiles may also use these delayed-acceleration fields:
 
+- `color`: optional renderer-facing projectile color.
+- `absorbsPlayerProjectiles`: if true, the projectile can intercept player bullets and beams while it has absorption HP.
+- `absorbHp`: durability pool for absorbing player projectiles.
 - `delayBeforeAcceleration`: seconds to coast before selecting the acceleration vector.
 - `stopBeforeAcceleration`: if true, velocity is zeroed when the acceleration vector is selected.
 - `acceleration`: thrust applied after the delay.
@@ -447,6 +450,15 @@ Current `entry.kind` values:
 - `aheadBoss`
 
 Editors should update archetype descriptors when changing enemy art, patterns, palettes, entry behavior, or balance knobs. If a change needs a new simulation verb, add a named runtime primitive and then expose it in this descriptor layer.
+
+Prototype 0 boss descriptors may also include `arms.attackMix` entries for standard shots, delayed drifting shots, protective absorbing shots, and laser telegraphs. These are descriptor-facing notes for editors today; the current runtime implementation still lives in `src/core/game.js`.
+
+Enhanced enemy palettes can currently be selected from the active level music through:
+
+```text
+src/core/levelStyle.js
+assets/stylesheets/
+```
 
 ## Current Level Contract
 

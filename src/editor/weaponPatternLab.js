@@ -51,9 +51,23 @@ const fields = Object.fromEntries(
     'patternSpeedInput',
     'spreadInput',
     'jitterInput',
+    'sequenceRestInput',
+    'delayBeforeAccelerationInput',
+    'stopBeforeAccelerationInput',
+    'accelerationInput',
+    'accelerationDurationInput',
+    'accelerationSpreadInput',
+    'maxSpeedInput',
+    'explodeAfterAccelerationInput',
     'patternRadiusInput',
     'patternDamageInput',
     'patternImpulseInput',
+    'patternColorInput',
+    'absorbsPlayerProjectilesInput',
+    'absorbHpInput',
+    'blastRadiusInput',
+    'blastDamageInput',
+    'blastImpulseInput',
     'patternLifetimeInput',
   ].map((id) => [id, document.querySelector(`#${id}`)]),
 );
@@ -131,9 +145,23 @@ function syncPatternToFields() {
   fields.patternSpeedInput.value = emitter.speed ?? 0;
   fields.spreadInput.value = emitter.spreadRadians ?? 0;
   fields.jitterInput.value = emitter.jitterRadians ?? 0;
+  fields.sequenceRestInput.value = emitter.sequenceRest ?? 0;
+  fields.delayBeforeAccelerationInput.value = projectile.delayBeforeAcceleration ?? 0;
+  fields.stopBeforeAccelerationInput.checked = Boolean(projectile.stopBeforeAcceleration);
+  fields.accelerationInput.value = projectile.acceleration ?? 0;
+  fields.accelerationDurationInput.value = projectile.accelerationDuration ?? 0;
+  fields.accelerationSpreadInput.value = projectile.accelerationSpreadRadians ?? 0;
+  fields.maxSpeedInput.value = projectile.maxSpeed ?? 0;
+  fields.explodeAfterAccelerationInput.checked = Boolean(projectile.explodeAfterAcceleration);
   fields.patternRadiusInput.value = projectile.radius ?? 0;
   fields.patternDamageInput.value = projectile.damage ?? 0;
   fields.patternImpulseInput.value = projectile.impulse ?? 0;
+  fields.patternColorInput.value = projectile.color ?? '#ffb25f';
+  fields.absorbsPlayerProjectilesInput.checked = Boolean(projectile.absorbsPlayerProjectiles);
+  fields.absorbHpInput.value = projectile.absorbHp ?? 0;
+  fields.blastRadiusInput.value = projectile.blastOnExpire?.radius ?? 0;
+  fields.blastDamageInput.value = projectile.blastOnExpire?.damage ?? 0;
+  fields.blastImpulseInput.value = projectile.blastOnExpire?.impulse ?? 0;
   fields.patternLifetimeInput.value = projectile.lifetime ?? 0;
 }
 
@@ -187,29 +215,71 @@ function weaponFromFields() {
 }
 
 function patternFromFields() {
+  const emitterKind = fields.patternKindSelect.value;
+  const previousProjectile = asset.emitter?.projectile ?? {};
+  const projectile = {
+    ...previousProjectile,
+    team: 'enemy',
+    weapon: 'bullet',
+    behavior: 'ballistic',
+    radius: readNumber(fields.patternRadiusInput),
+    damage: readNumber(fields.patternDamageInput),
+    impulse: readNumber(fields.patternImpulseInput),
+    lifetime: readNumber(fields.patternLifetimeInput),
+  };
+  assignOptionalString(projectile, 'color', fields.patternColorInput, previousProjectile.color, '#ffb25f');
+  assignOptionalBoolean(projectile, 'absorbsPlayerProjectiles', fields.absorbsPlayerProjectilesInput, previousProjectile.absorbsPlayerProjectiles);
+  assignOptionalNumber(projectile, 'absorbHp', fields.absorbHpInput, previousProjectile.absorbHp);
+  assignOptionalNumber(projectile, 'delayBeforeAcceleration', fields.delayBeforeAccelerationInput, previousProjectile.delayBeforeAcceleration);
+  assignOptionalBoolean(projectile, 'stopBeforeAcceleration', fields.stopBeforeAccelerationInput, previousProjectile.stopBeforeAcceleration);
+  assignOptionalNumber(projectile, 'acceleration', fields.accelerationInput, previousProjectile.acceleration);
+  assignOptionalNumber(projectile, 'accelerationDuration', fields.accelerationDurationInput, previousProjectile.accelerationDuration);
+  assignOptionalNumber(projectile, 'maxSpeed', fields.maxSpeedInput, previousProjectile.maxSpeed);
+  assignOptionalNumber(projectile, 'accelerationSpreadRadians', fields.accelerationSpreadInput, previousProjectile.accelerationSpreadRadians);
+  assignOptionalBoolean(projectile, 'explodeAfterAcceleration', fields.explodeAfterAccelerationInput, previousProjectile.explodeAfterAcceleration);
+  const blastOnExpire = optionalBlastOnExpire(previousProjectile.blastOnExpire);
+  if (blastOnExpire) projectile.blastOnExpire = blastOnExpire;
+
+  const sequenceRest = readNumber(fields.sequenceRestInput);
   return {
     ...baseMetadataFromFields(),
     initialDelay: readNumber(fields.initialDelayInput),
     interval: readNumber(fields.intervalInput),
     emitter: {
-      kind: fields.patternKindSelect.value,
+      kind: emitterKind,
       target: fields.patternTargetSelect.value,
       count: readNumber(fields.countInput),
       speed: readNumber(fields.patternSpeedInput),
+      ...(emitterKind === 'sequentialRadial' || sequenceRest > 0 ? { sequenceRest } : {}),
       spreadRadians: readNumber(fields.spreadInput),
       jitterRadians: readNumber(fields.jitterInput),
-      projectile: {
-        ...(asset.emitter?.projectile ?? {}),
-        team: 'enemy',
-        weapon: 'bullet',
-        behavior: 'ballistic',
-        radius: readNumber(fields.patternRadiusInput),
-        damage: readNumber(fields.patternDamageInput),
-        impulse: readNumber(fields.patternImpulseInput),
-        lifetime: readNumber(fields.patternLifetimeInput),
-      },
+      projectile,
     },
   };
+}
+
+function assignOptionalNumber(target, key, input, previousValue) {
+  const value = readNumber(input);
+  if (value > 0 || previousValue != null) target[key] = value;
+}
+
+function assignOptionalBoolean(target, key, input, previousValue) {
+  if (input.checked || previousValue != null) target[key] = input.checked;
+}
+
+function assignOptionalString(target, key, input, previousValue, defaultValue = '') {
+  const value = input.value.trim();
+  if (value !== defaultValue || previousValue != null) target[key] = value;
+}
+
+function optionalBlastOnExpire(previousBlast) {
+  const blast = {
+    radius: readNumber(fields.blastRadiusInput),
+    damage: readNumber(fields.blastDamageInput),
+    impulse: readNumber(fields.blastImpulseInput),
+  };
+  if (blast.radius > 0 || blast.damage > 0 || blast.impulse > 0 || previousBlast != null) return blast;
+  return null;
 }
 
 function drawPreview() {
@@ -269,10 +339,13 @@ function drawPatternPreview() {
   const count = Math.max(0, Math.floor(emitter.count ?? 0));
   const speedLength = Math.max(26, Math.min(210, (emitter.speed ?? 80) * 1.5));
   for (let index = 0; index < count; index += 1) {
-    const angle = emitter.kind === 'radial' ? (Math.PI * 2 * index) / Math.max(1, count) : aimedSpreadOffset(index, count, emitter.spreadRadians ?? 0);
+    const angle =
+      emitter.kind === 'radial' || emitter.kind === 'sequentialRadial'
+        ? (Math.PI * 2 * index) / Math.max(1, count)
+        : aimedSpreadOffset(index, count, emitter.spreadRadians ?? 0);
     drawArrow(origin, angle, speedLength, index);
   }
-  if (emitter.kind === 'aimed') {
+  if (emitter.kind === 'aimed' || emitter.kind === 'sequentialRadial') {
     context.strokeStyle = 'rgb(111 224 191 / 0.5)';
     context.setLineDash([8, 8]);
     context.beginPath();
@@ -281,10 +354,17 @@ function drawPatternPreview() {
     context.stroke();
     context.setLineDash([]);
   }
+  if ((emitter.projectile?.blastOnExpire?.radius ?? 0) > 0) {
+    context.strokeStyle = 'rgb(255 143 97 / 0.52)';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(origin.x, origin.y, Math.min(90, Math.max(10, emitter.projectile.blastOnExpire.radius * 5)), 0, Math.PI * 2);
+    context.stroke();
+  }
 }
 
 function drawArrow(origin, angle, length, index) {
-  const color = index % 2 === 0 ? '#fff1a8' : '#9be5ff';
+  const color = asset.emitter?.projectile?.color ?? (index % 2 === 0 ? '#fff1a8' : '#9be5ff');
   const end = { x: origin.x + Math.cos(angle) * length, y: origin.y + Math.sin(angle) * length };
   context.strokeStyle = color;
   context.fillStyle = color;

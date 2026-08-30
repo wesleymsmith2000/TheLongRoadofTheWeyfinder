@@ -96,6 +96,7 @@ function createPatternProjectile(source, emitter, angle, target = null, rng = nu
     behavior: projectile.behavior ?? 'ballistic',
     angle,
     radius: projectile.radius,
+    color: projectile.color,
     damage: projectile.damage,
     impulse: projectile.impulse,
     lifetime: projectile.lifetime,
@@ -109,6 +110,8 @@ function createPatternProjectile(source, emitter, angle, target = null, rng = nu
     explodeAfterAcceleration: projectile.explodeAfterAcceleration,
     blastOnExpire: projectile.blastOnExpire,
     vanishOffscreen: projectile.vanishOffscreen,
+    absorbsPlayerProjectiles: projectile.absorbsPlayerProjectiles,
+    absorbHp: projectile.absorbHp,
   });
 }
 
@@ -142,6 +145,8 @@ function validateProjectile(projectile, errors) {
   if (!['player', 'enemy'].includes(projectile.team)) errors.push('emitter.projectile.team must be player or enemy.');
   if (!['ballistic', 'homing', 'beam', 'blast'].includes(projectile.behavior)) errors.push('emitter.projectile.behavior is not available.');
   validateNumber(projectile.radius, 'emitter.projectile.radius', errors, { min: 0 });
+  if (projectile.color != null && typeof projectile.color !== 'string') errors.push('emitter.projectile.color must be a string when provided.');
+  if (projectile.absorbHp != null) validateNumber(projectile.absorbHp, 'emitter.projectile.absorbHp', errors, { min: 0 });
   validateNumber(projectile.damage, 'emitter.projectile.damage', errors, { min: 0 });
   validateNumber(projectile.impulse, 'emitter.projectile.impulse', errors, { min: 0 });
   validateNumber(projectile.lifetime, 'emitter.projectile.lifetime', errors, { min: 0 });

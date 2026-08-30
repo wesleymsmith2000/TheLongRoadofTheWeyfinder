@@ -75,7 +75,14 @@ export function createBossEnemy(x, y, rng) {
   const arms = [];
   for (let armIndex = 0; armIndex < directions.length; armIndex += 1) {
     const direction = directions[armIndex];
-    const arm = { index: armIndex, direction, aim: { x: x + direction.x * CELL_SIZE * 8, y: y + direction.y * CELL_SIZE * 8 }, phase: rng?.range(0, Math.PI * 2) ?? 0 };
+    const arm = {
+      index: armIndex,
+      direction,
+      aim: { x: x + direction.x * CELL_SIZE * 8, y: y + direction.y * CELL_SIZE * 8 },
+      phase: rng?.range(0, Math.PI * 2) ?? 0,
+      fireTimer: rng?.range(0.8, 2.4) ?? 1.2,
+      laser: null,
+    };
     arms.push(arm);
     let previousId = null;
     for (let segment = 0; segment < 8; segment += 1) {
@@ -101,6 +108,7 @@ export function createBossEnemy(x, y, rng) {
     cells,
     connections,
     arms,
+    armUnfurl: 0,
     centerPulseTimer: 3.2,
     damageTaken: 0,
     destroyed: false,

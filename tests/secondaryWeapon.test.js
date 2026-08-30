@@ -102,6 +102,35 @@ test('beam applies repeated contact damage over its firing frames', () => {
   assert.equal(game.enemies[0].damageTaken > 25, true);
 });
 
+test('beam is absorbed by enemy shielding ring shots before reaching enemies', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.vehicle.turretHeading = 0;
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  game.enemies = [createEnemy(muzzle.x + 90, muzzle.y)];
+  game.enemyProjectiles = [
+    {
+      x: muzzle.x + 45,
+      y: muzzle.y,
+      vx: 0,
+      vy: 0,
+      radius: 3,
+      damage: 7,
+      lifetime: 2,
+      team: 'enemy',
+      weapon: 'bullet',
+      absorbsPlayerProjectiles: true,
+      absorbHp: 18,
+    },
+  ];
+  fireSecondary(game);
+  stepGame(game, { secondarySelect: 'beam', gunnerEnabled: false }, 1 / 60);
+  const beam = game.playerProjectiles.find((projectile) => projectile.behavior === 'beam');
+  assert.equal(Math.abs(beam.renderEndX - game.enemyProjectiles[0].x) < 0.001, true);
+  assert.equal(game.enemies[0].damageTaken, 0);
+  assert.equal(game.enemyProjectiles[0].absorbHp < 18, true);
+});
+
 test('cannon impact creates blast shrapnel', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';

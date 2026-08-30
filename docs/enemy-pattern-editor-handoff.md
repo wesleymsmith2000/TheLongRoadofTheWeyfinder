@@ -38,7 +38,7 @@ It currently exposes:
 
 - `standard`: basic turret enemy using `basic_turret`, `enemy_aimed_shot`, and the sequential radial burst.
 - `enhanced_charger`: post-boss charger variant with rear entry, incoming warning marker, charge timing, and frontal ramming shield settings.
-- `boss.octagon.prototype0`: current boss descriptor with central core, octagon armor, segmented arms, palette, and center-pulse projectile notes.
+- `boss.octagon.prototype0`: current boss descriptor with central core, octagon armor, segmented arms, palette, center-pulse projectile notes, arm attack mix, and laser telegraph data.
 
 Runtime/editor helpers:
 
@@ -99,6 +99,8 @@ Editors should expose these fields as pattern controls:
 - acceleration and acceleration duration
 - acceleration spread
 - blast radius, damage, and impulse
+- projectile color
+- projectile absorption toggle and absorption HP
 
 ## Level Progression Context
 
@@ -113,13 +115,43 @@ src/core/levelMusic.js
 
 After a completed boss soundtrack has occurred, later non-boss waves add enhanced charger enemies and reduce the standard count.
 
+Enhanced chargers can receive palette styling from the current level music through:
+
+```text
+src/core/levelStyle.js
+```
+
+The current stylesheet/background image resources live in:
+
+```text
+assets/stylesheets/
+```
+
+They are available for editor previews and future zone/background integration. They are not yet wired into the runtime background renderer.
+
+## Boss Pattern Context
+
+The current boss implementation includes:
+
+- arm unfurl while entering the view
+- stochastic arm aim centers with a player bias
+- standard arm shots
+- delayed drifting shots that stop and accelerate after a delay
+- protective shots that absorb player bullets and beams
+- tracking laser telegraphs followed by a short beam attack
+- arm detonation on disconnection
+
+These are documented in `content/enemies/prototype0_enemy_archetypes.json` under `arms.attackMix`. For now, the descriptor records the intended editable knobs while `src/core/game.js` remains the runtime implementation.
+
 ## Current Runtime Gaps
 
 These are intentional gaps the editor thread should account for:
 
 - Enemy body generation is not fully data-driven yet.
 - Boss arm construction, arm detonation, and charger shield behavior still live in `src/core/enemy.js` and `src/core/game.js`.
+- Boss laser telegraphs, protective projectile absorption, and arm attack selection still live in `src/core/game.js`.
 - Rendering palettes for special boss cells currently live in `src/render/canvasRenderer.js`.
+- Level-themed enhanced enemy palettes currently live in `src/core/levelStyle.js`.
 - Encounter composition is still code-owned; future work should move spawn tables and enemy mixes into encounter assets.
 
 When the editor improves artwork or enemy types, it should update the archetype descriptor and add notes for any runtime factory fields that still require code support.

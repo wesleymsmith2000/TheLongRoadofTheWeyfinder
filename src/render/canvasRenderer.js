@@ -296,15 +296,19 @@ function drawComMarker(ctx, com) {
 function drawEnemy(ctx, enemy, time) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
+  drawBossLaserTelegraphs(ctx, enemy, time);
   drawBossTentacleWiggle(ctx, enemy, time);
-  const palette = enemy.kind === 'boss' ? BOSS_COLORS : COLORS;
+  const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
   for (const cell of enemy.cells) {
-    if (!cell.state.destroyed) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, enemy.destroyed ? 0.35 : 1, palette);
+    if (!cell.state.destroyed) {
+      const position = bossCellVisualPosition(enemy, cell, time);
+      drawCell(ctx, cell, position.x, position.y, enemy.destroyed ? 0.35 : 1, palette);
+    }
   }
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
   } else {
-    ctx.strokeStyle = enemy.kind === 'boss' ? '#ff5a2c' : '#f1a267';
+    ctx.strokeStyle = enemy.kind === 'boss' ? '#ff5a2c' : enemy.kind === 'enhanced' ? palette.gun ?? '#f08a3e' : '#f1a267';
     ctx.lineWidth = 2;
     if (enemy.kind === 'boss') drawBossOutline(ctx, enemy, time);
     else ctx.strokeRect(-CELL_SIZE * 1.7, -CELL_SIZE * 1.7, CELL_SIZE * 3.4, CELL_SIZE * 3.4);
@@ -312,8 +316,30 @@ function drawEnemy(ctx, enemy, time) {
   ctx.restore();
 }
 
+function drawBossLaserTelegraphs(ctx, enemy, time) {
+  if (enemy.kind !== 'boss') return;
+  for (const arm of enemy.arms ?? []) {
+    if (!arm.laser?.target) continue;
+    const progress = 1 - Math.max(0, arm.laser.timer / Math.max(0.001, arm.laser.duration));
+    const flashRate = 8 + progress * 46;
+    const flash = Math.sin(time * flashRate) * 0.5 + 0.5;
+    const source = arm.laser.source ?? { x: enemy.x, y: enemy.y };
+    ctx.save();
+    ctx.globalAlpha = 0.2 + flash * 0.65;
+    ctx.strokeStyle = '#ff2626';
+    ctx.lineWidth = 1 + progress * 2.5;
+    ctx.setLineDash(progress > 0.9 ? [] : [CELL_SIZE * 0.7, CELL_SIZE * 0.46]);
+    ctx.beginPath();
+    ctx.moveTo(source.x - enemy.x, source.y - enemy.y);
+    ctx.lineTo(arm.laser.target.x - enemy.x, arm.laser.target.y - enemy.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 function drawBossTentacleWiggle(ctx, enemy, time) {
   if (enemy.kind !== 'boss') return;
+  const unfurl = easeOutCubic(enemy.armUnfurl ?? 1);
   ctx.save();
   ctx.strokeStyle = 'rgb(255 122 26 / 0.18)';
   ctx.lineWidth = 2;
@@ -322,14 +348,43 @@ function drawBossTentacleWiggle(ctx, enemy, time) {
     ctx.moveTo(CELL_SIZE * 0.5, CELL_SIZE * 0.5);
     const phase = arm.phase ?? time;
     for (let segment = 1; segment <= 8; segment += 1) {
-      const wave = Math.sin(phase + segment * 0.8) * CELL_SIZE * 0.42;
-      const x = CELL_SIZE * (0.5 + arm.direction.x * (3 + segment)) - arm.direction.y * wave;
-      const y = CELL_SIZE * (0.5 + arm.direction.y * (3 + segment)) + arm.direction.x * wave;
+      const wave = Math.sin(phase * 1.45 + segment * 0.95) * CELL_SIZE * 1.08 * unfurl;
+      const x = CELL_SIZE * (0.5 + arm.direction.x * (3 + segment) * unfurl) - arm.direction.y * wave;
+      const y = CELL_SIZE * (0.5 + arm.direction.y * (3 + segment) * unfurl) + arm.direction.x * wave + (1 - unfurl) * CELL_SIZE * (2.2 + segment * 0.32);
       ctx.lineTo(x, y);
     }
     ctx.stroke();
   }
   ctx.restore();
+}
+
+function bossCellVisualPosition(enemy, cell, time) {
+  if (enemy.kind !== 'boss') return { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE };
+  const match = /^arm-(\d+)-(\d+)-/.exec(cell.id);
+  if (!match) return { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE };
+  const arm = enemy.arms?.[Number(match[1])];
+  if (!arm) return { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE };
+  const segment = Number(match[2]);
+  const unfurl = easeOutCubic(enemy.armUnfurl ?? 1);
+  const base = { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE };
+  const tucked = {
+    x: (arm.index - 3.5) * CELL_SIZE * 0.42 + (cell.type === 'gun' ? CELL_SIZE * 0.18 : 0),
+    y: CELL_SIZE * (2.1 + segment * 0.36 + (cell.type === 'gun' ? 0.16 : 0)),
+  };
+  const wave = Math.sin((arm.phase ?? time) * 1.55 + segment * 0.92) * CELL_SIZE * 1.12 * unfurl;
+  const sway = {
+    x: -arm.direction.y * wave,
+    y: arm.direction.x * wave,
+  };
+  return {
+    x: tucked.x + (base.x - tucked.x) * unfurl + sway.x,
+    y: tucked.y + (base.y - tucked.y) * unfurl + sway.y,
+  };
+}
+
+function easeOutCubic(value) {
+  const t = Math.max(0, Math.min(1, value));
+  return 1 - (1 - t) ** 3;
 }
 
 function drawBossOutline(ctx, enemy, time) {
@@ -398,7 +453,7 @@ function drawProjectiles(ctx, projectiles, color) {
             ? '#ffd37a'
             : projectile.weapon === 'beam'
               ? '#83f7ff'
-              : color;
+              : projectile.color ?? color;
     ctx.beginPath();
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -523,12 +578,13 @@ function drawBlast(ctx, projectile) {
 function drawBeam(ctx, projectile) {
   const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
   const widthEnvelope = Math.sin(age * Math.PI);
-  const voxelWidth = 1 + widthEnvelope * 4;
+  const baseVoxelWidth = projectile.radius ?? 1;
+  const voxelWidth = baseVoxelWidth + widthEnvelope * baseVoxelWidth * 4;
   const endX = projectile.renderEndX ?? projectile.x + Math.cos(projectile.angle) * projectile.length;
   const endY = projectile.renderEndY ?? projectile.y + Math.sin(projectile.angle) * projectile.length;
   ctx.save();
   ctx.globalAlpha = 0.35 + widthEnvelope * 0.65;
-  ctx.strokeStyle = '#83f7ff';
+  ctx.strokeStyle = projectile.color ?? '#83f7ff';
   ctx.lineWidth = (CELL_SIZE / VOXELS) * voxelWidth;
   ctx.lineCap = 'round';
   ctx.beginPath();
