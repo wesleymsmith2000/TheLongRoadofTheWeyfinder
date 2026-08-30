@@ -482,6 +482,7 @@ function updateVirtualPointer(pointer, input, dt, enabled) {
   virtualCursor.hidden = false;
   virtualCursor.dataset.mode = 'point';
   virtualCursor.style.transform = `translate(${pointer.x - 9}px, ${pointer.y - 9}px)`;
+  scrollVirtualTarget(pointer, input, dt);
   if (input.cursorClickPressed) clickVirtualPointer(pointer);
 }
 
@@ -545,6 +546,29 @@ function changeVirtualSelectOption(select, direction) {
   select.selectedIndex = next;
   select.dispatchEvent(new Event('input', { bubbles: true }));
   select.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function scrollVirtualTarget(pointer, input, dt) {
+  const y = input.cursorY ?? 0;
+  if (Math.abs(y) <= 0.45) return;
+  virtualCursor.hidden = true;
+  const target = document.elementFromPoint(pointer.x, pointer.y);
+  virtualCursor.hidden = false;
+  const scrollTarget = scrollableAncestor(target);
+  if (!scrollTarget) return;
+  const before = scrollTarget.scrollTop;
+  scrollTarget.scrollTop += y * 520 * dt;
+  if (scrollTarget.scrollTop !== before) virtualCursor.dataset.mode = 'scroll';
+}
+
+function scrollableAncestor(element) {
+  for (let current = element; current && current !== document.body; current = current.parentElement) {
+    if (current instanceof HTMLSelectElement) return null;
+    const style = window.getComputedStyle(current);
+    const canScrollY = /(auto|scroll)/.test(style.overflowY) && current.scrollHeight > current.clientHeight + 1;
+    if (canScrollY) return current;
+  }
+  return null;
 }
 
 function viewport() {
