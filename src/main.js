@@ -116,6 +116,7 @@ const SOUND_URLS = {
 };
 
 const canvas = document.querySelector('#game');
+const virtualCursor = document.querySelector('#virtualCursor');
 const gameOver = document.querySelector('#gameOver');
 const launchScreen = document.querySelector('#launchScreen');
 const launchButton = document.querySelector('#launchButton');
@@ -194,6 +195,11 @@ const padReticle = {
   active: false,
   idle: Infinity,
 };
+const virtualPointer = {
+  x: window.innerWidth / 2,
+  y: window.innerHeight / 2,
+  active: false,
+};
 document.documentElement.style.setProperty('--level-complete-art', `url("${levelCompleteArt}")`);
 document.documentElement.style.setProperty('--level-fail-art', `url("${levelFailArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
@@ -231,6 +237,7 @@ function frame(now) {
   previous = now;
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
+  updateVirtualPointer(virtualPointer, padInput, dt, awaitingLaunch);
   const mouseInput = mouse.read();
   const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
   const touchBoostPressed = touchBoost.consume();
@@ -447,6 +454,43 @@ function updatePadReticle(reticle, input, dt) {
     return;
   }
   if (reticle.active) reticle.idle += dt;
+}
+
+function updateVirtualPointer(pointer, input, dt, enabled) {
+  if (!enabled) {
+    pointer.active = false;
+    virtualCursor.hidden = true;
+    return;
+  }
+  const x = input.cursorX ?? 0;
+  const y = input.cursorY ?? 0;
+  const strength = Math.hypot(x, y);
+  if (strength > 0.05) pointer.active = true;
+  if (!pointer.active && !input.cursorClickPressed) {
+    virtualCursor.hidden = true;
+    return;
+  }
+  pointer.x = Math.max(8, Math.min(window.innerWidth - 8, pointer.x + x * 520 * dt));
+  pointer.y = Math.max(8, Math.min(window.innerHeight - 8, pointer.y + y * 520 * dt));
+  virtualCursor.hidden = false;
+  virtualCursor.style.transform = `translate(${pointer.x - 9}px, ${pointer.y - 9}px)`;
+  if (input.cursorClickPressed) clickVirtualPointer(pointer);
+}
+
+function clickVirtualPointer(pointer) {
+  virtualCursor.hidden = true;
+  const target = document.elementFromPoint(pointer.x, pointer.y);
+  virtualCursor.hidden = false;
+  if (!target) return;
+  target.dispatchEvent(
+    new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      clientX: pointer.x,
+      clientY: pointer.y,
+      view: window,
+    }),
+  );
 }
 
 function viewport() {

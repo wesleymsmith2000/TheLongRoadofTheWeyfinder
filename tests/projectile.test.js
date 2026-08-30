@@ -16,6 +16,25 @@ test('homing projectile turns toward nearest target with inertia', () => {
   assert.equal(rocket.angle < Math.PI / 2, true);
 });
 
+test('delayed acceleration aims at the live target position when it launches', () => {
+  const target = { x: 0, y: 100 };
+  const projectile = createProjectile(0, 0, 80, 0, {
+    delayBeforeAcceleration: 0.5,
+    stopBeforeAcceleration: true,
+    acceleration: 100,
+    accelerationDuration: 1,
+    accelerationTarget: target,
+    accelerationJitter: 0,
+  });
+  stepProjectiles([projectile], 0.25);
+  target.x = 100;
+  target.y = 0;
+  stepProjectiles([projectile], 0.26);
+  assert.equal(projectile.accelerationLocked, true);
+  assert.equal(projectile.vx > 0, true);
+  assert.equal(Math.abs(projectile.vy) < 0.001, true);
+});
+
 test('destructible rocket hull takes section voxel damage', () => {
   const rocket = createProjectile(0, 0, 0, 0, {
     weapon: 'rocket',

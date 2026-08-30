@@ -14,6 +14,7 @@ test('basic turret content asset validates and instantiates runtime cells', () =
   assert.equal(construct.cells.length, 9);
   assert.equal(construct.connections.length, 8);
   assert.equal(construct.cells.some((cell) => cell.type === 'core'), true);
+  assert.equal(construct.cells.some((cell) => cell.type === 'gun' && cell.gridX === 0 && cell.gridY === -1), true);
 });
 
 test('starting vehicle content asset validates and instantiates runtime cells', () => {

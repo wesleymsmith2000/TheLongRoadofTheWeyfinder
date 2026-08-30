@@ -7,7 +7,7 @@
   "tags": ["enemy", "turret", "prototype"],
   "cells": [
     { "id": "armor-left-top", "type": "armor", "gridX": -1, "gridY": -1 },
-    { "id": "armor-top", "type": "armor", "gridX": 0, "gridY": -1 },
+    { "id": "gun-top", "type": "gun", "gridX": 0, "gridY": -1 },
     { "id": "armor-right-top", "type": "armor", "gridX": 1, "gridY": -1 },
     { "id": "armor-left", "type": "armor", "gridX": -1, "gridY": 0 },
     { "id": "core", "type": "core", "gridX": 0, "gridY": 0 },
@@ -19,10 +19,10 @@
   "connections": [
     { "a": "core", "b": "armor-left", "aSide": "left" },
     { "a": "core", "b": "armor-right", "aSide": "right" },
-    { "a": "core", "b": "armor-top", "aSide": "top" },
+    { "a": "core", "b": "gun-top", "aSide": "top" },
     { "a": "core", "b": "armor-bottom", "aSide": "bottom" },
-    { "a": "armor-top", "b": "armor-left-top", "aSide": "left" },
-    { "a": "armor-top", "b": "armor-right-top", "aSide": "right" },
+    { "a": "gun-top", "b": "armor-left-top", "aSide": "left" },
+    { "a": "gun-top", "b": "armor-right-top", "aSide": "right" },
     { "a": "armor-bottom", "b": "armor-left-bottom", "aSide": "left" },
     { "a": "armor-bottom", "b": "armor-right-bottom", "aSide": "right" }
   ],

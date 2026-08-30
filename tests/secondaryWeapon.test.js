@@ -219,7 +219,7 @@ test('beam upgrades reduce width growth and base damage while ammo upgrades expa
   game.upgrades.beamAmmo = 1;
   fireSecondary(game);
   assert.equal(game.playerProjectiles[0].damage, 1.875);
-  assert.equal(game.playerProjectiles[0].radius, 2.25);
+  assert.equal(game.playerProjectiles[0].radius, 1.4);
   assert.equal(game.secondary.ammo.beam, 39);
 });
 

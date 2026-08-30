@@ -312,11 +312,10 @@ function drawEnemy(ctx, enemy, time) {
   drawPirateShipFlair(ctx, enemy, palette, time);
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
-  } else {
-    ctx.strokeStyle = enemy.kind === 'boss' ? '#ff5a2c' : enemy.kind === 'enhanced' ? palette.gun ?? '#f08a3e' : '#f1a267';
+  } else if (enemy.kind === 'boss') {
+    ctx.strokeStyle = '#ff5a2c';
     ctx.lineWidth = 2;
-    if (enemy.kind === 'boss') drawBossOutline(ctx, enemy, time);
-    else ctx.strokeRect(-CELL_SIZE * 1.7, -CELL_SIZE * 1.7, CELL_SIZE * 3.4, CELL_SIZE * 3.4);
+    drawBossOutline(ctx, enemy, time);
   }
   ctx.restore();
 }
@@ -646,7 +645,7 @@ function drawBeam(ctx, projectile) {
   const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
   const widthEnvelope = Math.sin(age * Math.PI);
   const baseVoxelWidth = projectile.radius ?? 1;
-  const voxelWidth = baseVoxelWidth + widthEnvelope * baseVoxelWidth * 4;
+  const voxelWidth = baseVoxelWidth + widthEnvelope * 2.8;
   const endX = projectile.renderEndX ?? projectile.x + Math.cos(projectile.angle) * projectile.length;
   const endY = projectile.renderEndY ?? projectile.y + Math.sin(projectile.angle) * projectile.length;
   ctx.save();

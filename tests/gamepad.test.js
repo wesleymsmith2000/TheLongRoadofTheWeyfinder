@@ -50,6 +50,13 @@ test('standard gamepad maps right stick to turret aim instead of turn', () => {
   assert.equal(input.turn, 0);
 });
 
+test('standard gamepad exposes launch-screen virtual cursor movement and click', () => {
+  const input = mapStandardGamepad(createPad({ axes: [0.8, 0, 0, 0], pressed: [0, 12] }));
+  assert.equal(input.cursorX > 0.7, true);
+  assert.equal(input.cursorY < 0, true);
+  assert.equal(input.cursorClickPressed, true);
+});
+
 function createPad({ axes = [0, 0, 0, 0], pressed = [], buttons = {} } = {}) {
   const padButtons = Array.from({ length: 16 }, (_, index) => ({
     pressed: pressed.includes(index),

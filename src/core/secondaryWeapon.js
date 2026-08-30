@@ -131,7 +131,7 @@ function upgradedSecondaryDefinition(game, weapon) {
       cooldown: base.cooldown / multiplier(game, 'beamFireRate'),
       heat: Math.max(1, base.heat * reduction(game, 'beamHeatEfficiency')),
       damage: base.damage * 0.75 * multiplier(game, 'beamDamage'),
-      radius: base.radius + level(game, 'beamWidth') * (CELL_SIZE / 12),
+      radius: base.radius + level(game, 'beamWidth') * 0.2,
       frames: Math.max(1, Math.round(5 * multiplier(game, 'beamFireTime'))),
       pierce: level(game, 'beamPierce'),
     };

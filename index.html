@@ -30,6 +30,33 @@
         touch-action: none;
       }
 
+      .virtual-cursor {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #f7c06a;
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 2px rgb(20 23 24 / 0.8),
+          0 0 14px rgb(247 192 106 / 0.72);
+        pointer-events: none;
+        transform: translate(-999px, -999px);
+        z-index: 80;
+      }
+
+      .virtual-cursor::after {
+        content: "";
+        position: absolute;
+        left: 7px;
+        top: 7px;
+        width: 2px;
+        height: 2px;
+        border-radius: 50%;
+        background: #fff1a8;
+      }
+
       .hud {
         position: fixed;
         left: 16px;
@@ -716,6 +743,7 @@
   </head>
   <body>
     <canvas id="game" aria-label="Vehicle roguelite prototype"></canvas>
+    <div id="virtualCursor" class="virtual-cursor" hidden></div>
     <div class="hud">
       <h1 class="title">The Long Road of the Weyfinder</h1>
       <p class="sub">Drive the machine. Lose the machine. Keep the Core moving.</p>

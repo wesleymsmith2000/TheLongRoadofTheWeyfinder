@@ -31,7 +31,7 @@
       "acceleration": 140,
       "accelerationDuration": 3,
       "maxSpeed": 260,
-      "accelerationSpreadRadians": 0.22,
+      "accelerationSpreadRadians": 0.04,
       "explodeAfterAcceleration": true,
       "blastOnExpire": {
         "radius": 9.5625,

@@ -191,7 +191,7 @@
         "delayBeforeAcceleration": 3,
         "stopBeforeAcceleration": true,
         "acceleration": 140,
-        "accelerationSpreadRadians": 0.22,
+        "accelerationSpreadRadians": 0.04,
         "vanishOffscreen": true
       },
       "editable": ["palette", "body", "arms", "attackMix", "centerPulse", "entry"]

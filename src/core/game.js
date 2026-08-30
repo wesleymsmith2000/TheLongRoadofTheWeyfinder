@@ -619,8 +619,8 @@ function fireBossDelayedShot(game, source, arm) {
       stopBeforeAcceleration: true,
       acceleration: 150,
       accelerationDuration: 3,
-      accelerationTarget: { x: game.vehicle.x, y: game.vehicle.y },
-      accelerationJitter: game.rng.range(-0.24, 0.24),
+      accelerationTarget: game.vehicle,
+      accelerationJitter: game.rng.range(-0.04, 0.04),
       maxSpeed: 275,
     }),
   );
@@ -707,8 +707,8 @@ function fireBossCenterPulse(game, boss) {
         stopBeforeAcceleration: true,
         acceleration: 135,
         accelerationDuration: 10,
-        accelerationTarget: { x: game.vehicle.x, y: game.vehicle.y },
-        accelerationJitter: game.rng.range(-Math.PI / 18, Math.PI / 18),
+        accelerationTarget: game.vehicle,
+        accelerationJitter: 0,
         maxSpeed: 280,
         vanishOffscreen: true,
       }),
@@ -1053,7 +1053,7 @@ function beamHalfWidth(projectile) {
   const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
   const frame = Math.max(0, Math.min(frames - 1, Math.floor(age * frames)));
   const envelope = Math.sin(((frame + 0.5) / frames) * Math.PI);
-  const voxelWidth = (projectile.radius ?? 1) + envelope * (projectile.radius ?? 1) * 4;
+  const voxelWidth = (projectile.radius ?? 1) + envelope * 2.8;
   return ((CELL_SIZE / 6) * voxelWidth) / 2;
 }
 

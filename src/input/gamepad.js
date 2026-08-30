@@ -29,6 +29,8 @@ export function mapStandardGamepad(pad, previousButtons = new Set()) {
   const triggerTurn = rightTrigger - leftTrigger;
   const aimX = axes[2] ?? 0;
   const aimY = axes[3] ?? 0;
+  const dpadX = (buttonPressed(pad.buttons[15]) ? 1 : 0) - (buttonPressed(pad.buttons[14]) ? 1 : 0);
+  const dpadY = (buttonPressed(pad.buttons[13]) ? 1 : 0) - (buttonPressed(pad.buttons[12]) ? 1 : 0);
 
   return {
     x: axes[0] ?? 0,
@@ -36,6 +38,9 @@ export function mapStandardGamepad(pad, previousButtons = new Set()) {
     turn: strongestAxis(bumperTurn, triggerTurn),
     aimX,
     aimY,
+    cursorX: strongestAxis(axes[0] ?? 0, dpadX),
+    cursorY: strongestAxis(axes[1] ?? 0, dpadY),
+    cursorClickPressed: buttonJustPressed(pad, previousButtons, 0),
     brake: buttonPressed(pad.buttons[0]) || buttonPressed(pad.buttons[10]),
     debugTogglePressed: buttonJustPressed(pad, previousButtons, 2),
     fireTogglePressed: buttonJustPressed(pad, previousButtons, 12),
@@ -61,6 +66,9 @@ function emptyInput() {
     brake: false,
     aimX: 0,
     aimY: 0,
+    cursorX: 0,
+    cursorY: 0,
+    cursorClickPressed: false,
     debugTogglePressed: false,
     fireTogglePressed: false,
     gunnerTogglePressed: false,
