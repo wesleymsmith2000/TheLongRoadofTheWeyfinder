@@ -5,7 +5,7 @@
   "author": "Weyfinder prototype",
   "provenance": "Converted from the Prototype 0 secondary weapon table.",
   "canonStatus": "CANON",
-  "tags": ["secondary", "ballistic", "blast"],
+  "tags": ["secondary", "ballistic", "blast", "destructible"],
   "ammo": 18,
   "heat": 24,
   "cooldown": 0.93,
@@ -15,13 +15,23 @@
     "behavior": "ballistic",
     "projectileSpeed": 250,
     "radius": 4,
-    "damage": 18,
+    "damage": 36,
     "impulse": 340,
     "lifetime": 1.6,
     "blastDamage": 9,
     "blastRadiusCells": 2.55,
     "blastKnockback": 110,
     "shrapnelCount": 28,
-    "shrapnelDamageScale": 1
+    "shrapnelDamageScale": 1,
+    "destructible": true,
+    "shape": {
+      "kind": "cylinderCone",
+      "armorVoxelHp": 12,
+      "bodyLength": 10,
+      "coneLength": 3,
+      "halfWidth": 4,
+      "bodyVoxels": { "columns": 5, "rows": 3 },
+      "coneVoxels": { "columns": 2, "rows": 3 }
+    }
   }
 }

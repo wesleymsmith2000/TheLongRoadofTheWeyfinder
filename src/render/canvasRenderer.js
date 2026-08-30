@@ -506,8 +506,8 @@ function drawProjectiles(ctx, projectiles, color) {
       drawBossMissile(ctx, projectile);
       continue;
     }
-    if (projectile.weapon === 'rocket' && projectile.shape?.kind === 'cylinderCone') {
-      drawRocket(ctx, projectile);
+    if (projectile.shape?.kind === 'cylinderCone') {
+      drawProjectileShell(ctx, projectile);
       continue;
     }
     ctx.fillStyle =
@@ -560,20 +560,22 @@ function drawSmokeParticles(ctx, particles = []) {
   }
 }
 
-function drawRocket(ctx, projectile) {
+function drawProjectileShell(ctx, projectile) {
   const shape = projectile.shape;
   const bodyLength = shape.bodyLength ?? 12;
   const coneLength = shape.coneLength ?? 5;
   const halfWidth = shape.halfWidth ?? projectile.radius;
   const bodyStart = -bodyLength / 2;
   const bodyEnd = bodyLength / 2;
+  const bodyColor = projectile.weapon === 'cannon' ? '#3a3d40' : '#8a8a86';
+  const coneColor = projectile.weapon === 'cannon' ? '#fff1a8' : '#df6f2e';
   ctx.save();
   ctx.translate(projectile.x, projectile.y);
   ctx.rotate(projectile.angle);
 
   const bodyIntegrity = sectionIntegrity(projectile.hull, 'cylinder');
   const coneIntegrity = sectionIntegrity(projectile.hull, 'cone');
-  ctx.fillStyle = shade('#8a8a86', Math.round((bodyIntegrity - 1) * 74));
+  ctx.fillStyle = shade(bodyColor, Math.round((bodyIntegrity - 1) * 74));
   ctx.strokeStyle = '#202222';
   ctx.lineWidth = 0.8;
   ctx.beginPath();
@@ -581,7 +583,7 @@ function drawRocket(ctx, projectile) {
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = shade('#df6f2e', Math.round((coneIntegrity - 1) * 74));
+  ctx.fillStyle = shade(coneColor, Math.round((coneIntegrity - 1) * 74));
   ctx.beginPath();
   ctx.moveTo(bodyEnd + coneLength, 0);
   ctx.lineTo(bodyEnd, -halfWidth);

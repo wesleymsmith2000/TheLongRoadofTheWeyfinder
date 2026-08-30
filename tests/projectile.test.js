@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import rocketDefinition from '../content/weapons/rocket.json' with { type: 'json' };
+import cannonDefinition from '../content/weapons/cannon.json' with { type: 'json' };
 import { applyRocketHullDamage, createProjectile, stepProjectiles } from '../src/core/projectile.js';
 
 test('homing projectile turns toward nearest target with inertia', () => {
@@ -46,6 +47,21 @@ test('destructible rocket hull takes section voxel damage', () => {
   });
   const impact = createProjectile(6.5, 0, 0, 0, { team: 'enemy', radius: 3, damage: 200 });
   const hit = applyRocketHullDamage(rocket, impact);
+  assert.equal(hit.hit, true);
+  assert.equal(hit.destroyed, true);
+});
+
+test('destructible cannon hull takes section voxel damage', () => {
+  const cannon = createProjectile(0, 0, 0, 0, {
+    weapon: 'cannon',
+    behavior: 'ballistic',
+    angle: 0,
+    radius: 4,
+    destructible: true,
+    shape: cannonDefinition.projectile.shape,
+  });
+  const impact = createProjectile(5, 0, 0, 0, { team: 'enemy', radius: 3, damage: 240 });
+  const hit = applyRocketHullDamage(cannon, impact);
   assert.equal(hit.hit, true);
   assert.equal(hit.destroyed, true);
 });

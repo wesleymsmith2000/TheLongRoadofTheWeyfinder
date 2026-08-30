@@ -23,6 +23,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     acceleration: options.acceleration ?? 0,
     maxSpeed: options.maxSpeed ?? Infinity,
     targetHint: options.targetHint ?? null,
+    detonateAtTarget: Boolean(options.detonateAtTarget),
     blastDamage: options.blastDamage ?? 0,
     blastRadius: options.blastRadius ?? 0,
     blastKnockback: options.blastKnockback ?? 0,

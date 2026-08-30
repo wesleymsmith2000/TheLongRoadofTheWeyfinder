@@ -61,7 +61,7 @@ export function fireSecondary(game) {
       turnRate: def.behavior === 'homing' ? def.turnRate : 0,
       acceleration: def.behavior === 'homing' ? def.acceleration : 0,
       maxSpeed: def.behavior === 'homing' ? def.maxSpeed : Infinity,
-      targetHint: def.targetHint === 'aimReticle' ? game.aimReticle : null,
+      targetHint: def.targetHint === 'aimReticle' && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null,
       radius: def.radius,
       damage: def.damage,
       impulse: def.impulse,
@@ -71,6 +71,7 @@ export function fireSecondary(game) {
       shrapnelCount: def.shrapnelCount ?? 0,
       shrapnelDamageScale: def.shrapnelDamageScale ?? 1,
       pierce: def.pierce ?? 0,
+      detonateAtTarget: def.detonateAtTarget,
       frames: def.behavior === 'beam' ? def.frames : 0,
       destructible: def.destructible,
       shape: def.shape,
@@ -101,6 +102,7 @@ function upgradedSecondaryDefinition(game, weapon) {
   if (weapon === 'cannon') {
     return {
       ...base,
+      projectileSpeed: base.projectileSpeed * multiplier(game, 'cannonVelocity'),
       cooldown: base.cooldown / multiplier(game, 'cannonFireRate'),
       damage: base.damage * multiplier(game, 'cannonImpactDamage'),
       impulse: base.impulse * multiplier(game, 'cannonKnockback'),
@@ -109,6 +111,8 @@ function upgradedSecondaryDefinition(game, weapon) {
       blastKnockback: 110 * multiplier(game, 'cannonKnockback'),
       shrapnelCount: 28 + level(game, 'cannonShrapnelCount'),
       shrapnelDamageScale: multiplier(game, 'cannonShrapnelDamage'),
+      targetHint: 'aimReticle',
+      detonateAtTarget: true,
     };
   }
   if (weapon === 'rocket') {

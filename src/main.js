@@ -1,4 +1,4 @@
-import { createGame, stepGame } from './core/game.js';
+import { LEVEL_TARGET_DURATION, createGame, stepGame } from './core/game.js';
 import { configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
@@ -7,6 +7,7 @@ import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
 import { createPrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
+import { ACHIEVEMENT_DEFINITIONS, achievementRewardText, achievementStatsFromGame, awardAchievements } from './core/achievements.js';
 import { consumeSoundEvents, SOUND_EVENTS } from './core/soundEvents.js';
 import {
   SHOP_COSTS,
@@ -132,6 +133,9 @@ const combatPanel = document.querySelector('#combatPanel');
 const debugToggle = document.querySelector('#debugToggle');
 const controlsToggle = document.querySelector('#controlsToggle');
 const controlsPanel = document.querySelector('#controlsPanel');
+const achievementsToggle = document.querySelector('#achievementsToggle');
+const achievementsPanel = document.querySelector('#achievementsPanel');
+const achievementList = document.querySelector('#achievementList');
 const boostButton = document.querySelector('#boostButton');
 const boostFill = document.querySelector('#boostFill');
 const secondarySelect = document.querySelector('#secondarySelect');
@@ -163,12 +167,15 @@ const shopRepairStatus = document.querySelector('#shopRepairStatus');
 const shopReplaceStatus = document.querySelector('#shopReplaceStatus');
 const shopAmmoStatus = document.querySelector('#shopAmmoStatus');
 const shopRepairTarget = document.querySelector('#shopRepairTarget');
+const shopAmmoSelect = document.querySelector('#shopAmmoSelect');
 const shopUpgradeSelect = document.querySelector('#shopUpgradeSelect');
 const shopBuyUpgradeButton = document.querySelector('#shopBuyUpgradeButton');
 const shopUpgradeCost = document.querySelector('#shopUpgradeCost');
 const shopUpgradeStatus = document.querySelector('#shopUpgradeStatus');
 const upgradeSummary = document.querySelector('#upgradeSummary');
 const restartButton = document.querySelector('#restartButton');
+const levelName = document.querySelector('#levelName');
+const levelProgressFill = document.querySelector('#levelProgressFill');
 const renderer = new CanvasRenderer(canvas);
 const keyboard = createKeyboardInput(window);
 const gamepad = createGamepadInput();
@@ -179,7 +186,9 @@ const touchSecondaryCycle = createPointerButtonInput(secondaryTouchCycle);
 const touchSecondaryFloating = createPointerButtonInput(secondaryTouchFire);
 const debug = createDebugOverlay();
 
-let playerAccount = createPrototypePlayerAccountData();
+const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
+
+let playerAccount = loadPlayerAccount();
 let playerVehicleDefinition = playerAccount.savedVehicle;
 let game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
 let previous = performance.now();
@@ -208,6 +217,7 @@ document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
 populateUpgradeSelect();
 refreshRepairTargets();
+renderAchievements();
 if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) combatPanel.classList.add('hidden');
 const vehicleEditor = createPlayerVehicleLaunchEditor(
   {
@@ -225,6 +235,7 @@ const vehicleEditor = createPlayerVehicleLaunchEditor(
     onChange(definition) {
       playerVehicleDefinition = definition;
       playerAccount = preparePlayerAccountForSave(playerAccount, definition);
+      savePlayerAccount();
       if (awaitingLaunch) {
         game = createGame(1147, { vehicleDefinition: playerVehicleDefinition });
         refreshRepairTargets();
@@ -274,7 +285,7 @@ function frame(now) {
     shopReplacePressed: shopReplacePressed.consume(),
     shopRefillAmmoPressed: shopRefillAmmoPressed.consume(),
     shopBuyUpgradePressed: shopBuyUpgradePressed.consume(),
-    shopAmmoWeapon: secondarySelect.value,
+    shopAmmoWeapon: shopAmmoSelect.value || secondarySelect.value,
     shopUpgradeId: shopUpgradeSelect.value,
     dodgePressed: Boolean(dodgeSource),
     dodgeX: dodgeSource?.dodgeX ?? dodgeSource?.x ?? 0,
@@ -305,6 +316,8 @@ function frame(now) {
   syncLaunchScreen();
   gameOver.classList.toggle('hidden', !game.gameOver);
   levelComplete.classList.toggle('hidden', !game.levelComplete);
+  syncProgressHud();
+  refreshAchievementAwards();
   levelTime.textContent = game.levelTime.toFixed(1);
   levelNumber.textContent = game.level;
   levelsCompleted.textContent = game.levelsCompleted;
@@ -328,6 +341,7 @@ requestAnimationFrame(frame);
 bindButtonActivation(debugToggle, toggleDebug);
 bindButtonActivation(hudToggle, toggleCombatHud);
 bindButtonActivation(controlsToggle, toggleControls);
+bindButtonActivation(achievementsToggle, toggleAchievements);
 bindButtonActivation(launchButton, launchVehicle);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
@@ -338,6 +352,10 @@ const shopBuyUpgradePressed = createButtonPress(shopBuyUpgradeButton);
 
 function toggleControls() {
   controlsPanel.classList.toggle('hidden');
+}
+
+function toggleAchievements() {
+  achievementsPanel.classList.toggle('hidden');
 }
 
 function toggleDebug() {
@@ -391,9 +409,62 @@ function playSoundEvents(game) {
     const src = SOUND_URLS[event.id];
     if (!src) continue;
     const player = soundPlayerFor(src);
+    player.volume = event.id === SOUND_EVENTS.PLAYER_MAIN_GUN ? 0.24 : 0.48;
     player.currentTime = 0;
     player.play().catch(() => {});
   }
+}
+
+function loadPlayerAccount() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PLAYER_ACCOUNT_STORAGE_KEY));
+    return saved ? { ...createPrototypePlayerAccountData(), ...saved } : createPrototypePlayerAccountData();
+  } catch {
+    return createPrototypePlayerAccountData();
+  }
+}
+
+function savePlayerAccount() {
+  localStorage.setItem(PLAYER_ACCOUNT_STORAGE_KEY, JSON.stringify(playerAccount));
+}
+
+function refreshAchievementAwards() {
+  const nextAccount = awardAchievements(playerAccount, achievementStatsFromGame(game));
+  if (nextAccount === playerAccount) return;
+  playerAccount = nextAccount;
+  vehicleEditor.setAccount(playerAccount);
+  savePlayerAccount();
+  renderAchievements();
+}
+
+function renderAchievements() {
+  const unlocked = new Set(playerAccount.achievements?.unlocked ?? []);
+  achievementList.replaceChildren(
+    ...ACHIEVEMENT_DEFINITIONS.map((achievement) => {
+      const row = document.createElement('div');
+      row.className = `achievement-row${unlocked.has(achievement.id) ? '' : ' locked'}`;
+      const title = document.createElement('strong');
+      title.textContent = `${unlocked.has(achievement.id) ? 'Unlocked' : 'Locked'}: ${achievement.title}`;
+      const description = document.createElement('span');
+      description.textContent = achievement.description;
+      const reward = document.createElement('span');
+      reward.textContent = achievementRewardText(achievement.reward);
+      row.append(title, description, reward);
+      return row;
+    }),
+  );
+}
+
+function syncProgressHud() {
+  levelName.textContent = levelNameFromTrack(game.currentMusic);
+  const elapsed = Math.max(0, game.time - game.levelStartTime);
+  const progress = game.levelComplete ? 1 : Math.min(0.985, elapsed / LEVEL_TARGET_DURATION);
+  const spawnAdjusted = game.enemySpawnQueue.length === 0 ? Math.max(progress, 0.92) : progress;
+  levelProgressFill.style.width = `${spawnAdjusted * 100}%`;
+}
+
+function levelNameFromTrack(trackName = '') {
+  return trackName.replaceAll('_', ' ').replace(/([a-z])([A-Z])/g, '$1 $2') || `Level ${game.level}`;
 }
 
 function soundPlayerFor(src) {
@@ -649,9 +720,11 @@ function refreshUpgradeSummary() {
 }
 
 function updateShopUi() {
-  const ammoCost = ammoRefillCost(game.secondary.selected);
-  const ammo = game.secondary.ammo[game.secondary.selected];
-  const ammoCapacity = ammoCapacityWithUpgrades(game, game.secondary.selected);
+  if (!shopAmmoSelect.value) shopAmmoSelect.value = game.secondary.selected;
+  const ammoWeapon = shopAmmoSelect.value;
+  const ammoCost = ammoRefillCost(ammoWeapon);
+  const ammo = game.secondary.ammo[ammoWeapon];
+  const ammoCapacity = ammoCapacityWithUpgrades(game, ammoWeapon);
   const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
   refreshRepairTargets();
   const selectedRepairCost = repairCost(game, shopRepairTarget.value);
@@ -662,10 +735,10 @@ function updateShopUi() {
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
   shopUpgradeCost.textContent = Number.isFinite(selectedUpgradeCost) ? selectedUpgradeCost : '-';
   shopScrapAvailable.textContent = game.scrap;
-  shopSelectedAmmo.textContent = game.secondary.selected;
+  shopSelectedAmmo.textContent = ammoWeapon;
   shopRepairStatus.textContent = repairStatus(game, shopRepairTarget.value);
   shopReplaceStatus.textContent = replacementStatus(game);
-  shopAmmoStatus.textContent = ammoStatus(game, game.secondary.selected);
+  shopAmmoStatus.textContent = ammoStatus(game, ammoWeapon);
   shopUpgradeStatus.textContent = upgradeStatus(game, shopUpgradeSelect.value);
   shopRepairButton.disabled = selectedRepairCost <= 0 || game.scrap < selectedRepairCost || !hasRepairableVehicleDamage(game.vehicle, shopRepairTarget.value);
   shopReplaceButton.disabled = game.scrap < SHOP_COSTS.replaceDetached || countDetachedVehicleCells(game.vehicle) === 0;

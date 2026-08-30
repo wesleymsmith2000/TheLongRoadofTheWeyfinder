@@ -57,6 +57,7 @@ export function runtimeWeaponDefinition(definition) {
     maxSpeed: projectile.maxSpeed ?? projectile.projectileSpeed ?? projectile.speed ?? Infinity,
     usesVehicleVelocityOnly: Boolean(projectile.usesVehicleVelocityOnly),
     targetHint: projectile.targetHint ?? null,
+    detonateAtTarget: Boolean(projectile.detonateAtTarget),
     blastDamage: projectile.blastDamage ?? 0,
     blastRadius: projectile.blastRadius ?? (projectile.blastRadiusCells != null ? projectile.blastRadiusCells * CELL_SIZE : 0),
     blastKnockback: projectile.blastKnockback ?? 0,

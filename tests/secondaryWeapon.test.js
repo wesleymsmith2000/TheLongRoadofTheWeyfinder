@@ -12,7 +12,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles.length, 1);
-  assert.equal(game.playerProjectiles[0].damage, 36);
+  assert.equal(game.playerProjectiles[0].damage, 54);
   assert.equal(game.secondary.ammo.rocket, 11);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH), true);
 });
@@ -199,17 +199,33 @@ test('cannon uses boosted base damage', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage, 18);
+  assert.equal(game.playerProjectiles[0].damage, 36);
+  assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
 });
 
 test('secondary upgrades alter projectile stats', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   game.upgrades.cannonImpactDamage = 1;
+  game.upgrades.cannonVelocity = 2;
   game.upgrades.cannonShrapnelCount = 2;
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '18.9');
+  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '37.8');
+  assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy) > 270, true);
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
+});
+
+test('cannon detonates when it reaches the selected aim reticle', () => {
+  const game = createGame();
+  game.secondary.selected = 'cannon';
+  game.vehicle.turretHeading = 0;
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  game.aimReticle = { x: muzzle.x + 95, y: muzzle.y, active: true, source: 'pointer' };
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: 10, enemy: createEnemy(game.vehicle.x + 800, game.vehicle.y), markerShown: false, type: 'standard' }];
+  fireSecondary(game);
+  for (let index = 0; index < 30; index += 1) stepGame(game, { secondarySelect: 'cannon', gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'cannon-blast'), true);
 });
 
 test('beam upgrades reduce width growth and base damage while ammo upgrades expand reserve', () => {

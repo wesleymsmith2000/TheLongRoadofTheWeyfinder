@@ -1,0 +1,24 @@
+- Calmari
+ - criteria: Defeat first boss
+ - reward: +2 armor modules in build screen
+- Tentacle Revulsion Avulsion
+ - criteria: Defeat wave zone 1 or zone 2 boss after destroying all of its arms
+ - reward: Start with +100 scrap
+- Look Ma, no hands
+ - criteria: Defeat a wave using only the targeting AI and no secondary weapon shots
+ - reward: main gun color selection available during repair screens (cosmetic)
+- Savvy Scavy
+ - criteria: collect one hundred thousand scrap
+ - reward: 5% discount on upgrades
+- Beam them up Scotty!
+ - criteria: defeat every enemy in a zone including the boss by dealing the killing blow with the particle beam
+ - reward: particle beam color selection available during repair screens (cosmetic)
+- Give them a broadside
+ - criteria: defeat every enemy in a zone including the boss by dealing the killing blow with the cannon
+ - reward: cannon projectile color selection available during repair screens (cosmetic)
+- Rocket Maaaan!
+ - criteria: defeat every enemy in a zone including the boss by dealing the killing blow with the rocket
+ - reward: rocket projectile and contrail color selection available during repair screens (cosmetic)
+- On a wing and a prayer
+ - criteria: survive a wave with nothing but the core and gun module left
+ - reward: +1 gun module available in the vehicle build screen

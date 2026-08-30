@@ -15,6 +15,7 @@ export function createPrototypePlayerAccountData() {
       wheel: { unlocked: true, quantity: 4 },
       engine: { unlocked: true, quantity: 3 },
     },
+    achievements: { unlocked: [] },
     savedVehicle: null,
   };
 }
@@ -39,6 +40,7 @@ export function validatePlayerAccountData(account) {
   }
 
   if (account.equipment?.core) warnings.push('Core equipment is ignored; player vehicles may only contain one core.');
+  if (account.achievements != null && !Array.isArray(account.achievements?.unlocked)) errors.push('achievements.unlocked must be an array when provided.');
   return { valid: errors.length === 0, errors, warnings };
 }
 

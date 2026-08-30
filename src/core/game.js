@@ -45,7 +45,7 @@ import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLeve
 import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 
-const LEVEL_TARGET_DURATION = 180;
+export const LEVEL_TARGET_DURATION = 180;
 const SPAWN_WARNING_LEAD = 2.4;
 const BOSS_LASER_CHARGE_TIME = 3;
 const BOSS_LASER_LOCK_TIME = 1;
@@ -85,7 +85,8 @@ export function createGame(seed = 1147, options = {}) {
     levelStartTime: 0,
     levelTimes: [],
     levelsCompleted: 0,
-    score: { damageDone: 0 },
+    bossLevelsCompleted: 0,
+    score: { damageDone: 0, scrapCollected: 0 },
     aiAimReticle: null,
     aimReticle: null,
     time: 0,
@@ -143,6 +144,7 @@ export function stepGame(game, input, dt) {
     game.levelTime = game.time - game.levelStartTime;
     game.levelTimes.push(game.levelTime);
     game.levelsCompleted = game.level;
+    if (isBossLevel(game.level, game.levelMusic)) game.bossLevelsCompleted += 1;
     emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
   }
   return game;
@@ -306,6 +308,7 @@ function carryRoadObjects(game, delta) {
     ...game.enemySpawnQueue.map((entry) => entry.enemy),
     ...game.scrapPickups,
     ...game.playerProjectiles,
+    ...game.playerProjectiles.map((projectile) => projectile.detonateAtTarget && projectile.targetHint).filter(Boolean),
     ...game.enemyProjectiles,
     ...game.smokeParticles,
     ...game.incomingMarkers,
@@ -338,6 +341,7 @@ function stepScrapPickups(game, dt) {
     pickup.life -= dt;
     if (distanceSquared(pickup, game.vehicle) <= (collectRange + pickup.radius) ** 2) {
       game.scrap += pickup.value;
+      game.score.scrapCollected += pickup.value;
       continue;
     }
     if (pickup.life > 0) kept.push(pickup);
@@ -804,7 +808,7 @@ function handleCollisions(game) {
       hitVehicleWithEnemyBeam(game, projectile);
       continue;
     }
-    if (hitPlayerRocketWithProjectile(game, projectile)) {
+    if (hitDestructiblePlayerProjectile(game, projectile)) {
       projectile.lifetime = 0;
       continue;
     }
@@ -824,6 +828,11 @@ function handleCollisions(game) {
     if (projectile.behavior === 'blast') continue;
     if (playerProjectileAbsorbedByEnemyProjectile(game, projectile)) {
       projectile.lifetime = 0;
+      continue;
+    }
+    if (projectileReachedDetonationTarget(projectile)) {
+      projectile.lifetime = 0;
+      if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
       continue;
     }
     for (const enemy of activeEnemies(game)) {
@@ -937,18 +946,32 @@ function isOutsideRoadArea(projectile, road) {
   return Math.abs(offset.x) > road.halfWidth * 1.28 || Math.abs(offset.y) > road.halfHeight * 1.28;
 }
 
-function hitPlayerRocketWithProjectile(game, enemyProjectile) {
-  for (const rocket of game.playerProjectiles) {
-    if (rocket.weapon !== 'rocket' || rocket.lifetime <= 0 || !rocket.hull) continue;
-    const hit = applyRocketHullDamage(rocket, enemyProjectile);
+function hitDestructiblePlayerProjectile(game, enemyProjectile) {
+  for (const projectile of game.playerProjectiles) {
+    if (projectile.lifetime <= 0 || !projectile.hull) continue;
+    const hit = applyRocketHullDamage(projectile, enemyProjectile);
     if (!hit.hit) continue;
     if (hit.destroyed) {
-      rocket.lifetime = 0;
-      spawnRocketImpact(game, rocket);
+      projectile.lifetime = 0;
+      if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile);
+      if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
     }
     return true;
   }
   return false;
+}
+
+function projectileReachedDetonationTarget(projectile) {
+  if (!projectile.detonateAtTarget || !projectile.targetHint) return false;
+  const target = projectile.targetHint;
+  const dx = projectile.x - projectile.previousX;
+  const dy = projectile.y - projectile.previousY;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0.001) return distanceSquared(projectile, target) <= projectile.radius ** 2;
+  const along = ((target.x - projectile.previousX) * dx + (target.y - projectile.previousY) * dy) / lengthSquared;
+  const t = clamp(along, 0, 1);
+  const closest = { x: projectile.previousX + dx * t, y: projectile.previousY + dy * t };
+  return distanceSquared(closest, target) <= Math.max(projectile.radius, 5) ** 2 && along >= 0;
 }
 
 function shieldedProjectile(game, projectile) {

@@ -82,6 +82,39 @@
         pointer-events: none;
       }
 
+      .level-hud {
+        position: fixed;
+        left: 50%;
+        top: 14px;
+        width: min(420px, calc(100vw - 148px));
+        transform: translateX(-50%);
+        color: #f4eee4;
+        text-align: center;
+        text-shadow: 0 1px 3px #000;
+        pointer-events: none;
+        z-index: 18;
+      }
+
+      .level-hud strong {
+        display: block;
+        font-size: 14px;
+      }
+
+      .level-progress {
+        height: 8px;
+        margin-top: 6px;
+        overflow: hidden;
+        border: 1px solid rgb(244 238 228 / 0.28);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.74);
+      }
+
+      .level-progress div {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #6fe0bf, #83f7ff);
+      }
+
       .title {
         margin: 0 0 6px;
         font-size: 18px;
@@ -162,6 +195,21 @@
         z-index: 30;
       }
 
+      .achievements-toggle {
+        position: fixed;
+        right: 106px;
+        top: 14px;
+        min-width: 44px;
+        height: 36px;
+        border: 1px solid rgb(244 238 228 / 0.3);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.78);
+        color: #f4eee4;
+        font-weight: 800;
+        letter-spacing: 0;
+        z-index: 30;
+      }
+
       .debug-toggle {
         position: fixed;
         right: 58px;
@@ -207,6 +255,41 @@
         font-size: 13px;
         line-height: 1.45;
         z-index: 30;
+      }
+
+      .achievements-panel {
+        position: fixed;
+        right: 14px;
+        top: 58px;
+        width: min(460px, calc(100vw - 28px));
+        max-height: calc(100vh - 74px);
+        overflow: auto;
+        padding: 12px 14px;
+        border: 1px solid rgb(244 238 228 / 0.22);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.92);
+        color: #f4eee4;
+        font-size: 13px;
+        line-height: 1.45;
+        z-index: 30;
+      }
+
+      .achievement-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .achievement-row {
+        display: grid;
+        gap: 3px;
+        padding: 8px;
+        border: 1px solid rgb(244 238 228 / 0.16);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.62);
+      }
+
+      .achievement-row.locked {
+        opacity: 0.58;
       }
 
       .controls-panel h2 {
@@ -629,7 +712,19 @@
           top: 10px;
         }
 
+        .achievements-toggle {
+          right: 98px;
+          top: 10px;
+        }
+
         .controls-panel {
+          right: 10px;
+          top: 52px;
+          width: calc(100vw - 20px);
+          font-size: 12px;
+        }
+
+        .achievements-panel {
           right: 10px;
           top: 52px;
           width: calc(100vw - 20px);
@@ -763,6 +858,10 @@
       <h1 class="title">The Long Road of the Weyfinder</h1>
       <p class="sub">Drive the machine. Lose the machine. Keep the Core moving.</p>
     </div>
+    <div class="level-hud">
+      <strong id="levelName">The Weyfinders Road 1</strong>
+      <div class="level-progress" aria-label="Level progress"><div id="levelProgressFill"></div></div>
+    </div>
     <div id="launchScreen" class="launch-screen">
       <div class="launch-panel">
         <h2>Vehicle Ready</h2>
@@ -788,7 +887,12 @@
     </div>
     <button id="hudToggle" class="hud-toggle" type="button" aria-label="Toggle vehicle info">HUD</button>
     <button id="debugToggle" class="debug-toggle" type="button" aria-label="Toggle debug stats">DBG</button>
+    <button id="achievementsToggle" class="achievements-toggle" type="button" aria-label="Toggle achievements">ACH</button>
     <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
+    <div id="achievementsPanel" class="achievements-panel hidden">
+      <h2>Achievements</h2>
+      <div id="achievementList" class="achievement-list"></div>
+    </div>
     <div id="controlsPanel" class="controls-panel hidden">
       <h2>Help</h2>
       <h3>Controls</h3>
@@ -860,6 +964,14 @@
             Refill <span id="shopSelectedAmmo">rocket</span> Ammo
             <span>Cost <span id="shopAmmoCost">6</span> scrap, <span id="shopAmmoStatus">Full</span></span>
           </button>
+          <label class="shop-field" for="shopAmmoSelect">
+            <span>Ammo target</span>
+            <select id="shopAmmoSelect" aria-label="Select ammo refill target">
+              <option value="rocket">Rocket</option>
+              <option value="cannon">Cannon</option>
+              <option value="beam">Particle Beam</option>
+            </select>
+          </label>
           <div class="shop-upgrade-row">
             <label class="shop-field" for="shopUpgradeSelect">
               <span>Upgrade target</span>
