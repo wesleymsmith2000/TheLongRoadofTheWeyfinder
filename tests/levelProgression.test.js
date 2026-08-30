@@ -89,6 +89,8 @@ test('first two level sets use pirate ship enemy silhouettes', () => {
   const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
   const firstSet = createLevelEnemySchedule(road, 1, ['TheWeyfindersRoad_1']);
   const secondSet = createLevelEnemySchedule(road, 3, ['road', 'BossFight', 'DigitizedStream_1']);
+  const fallbackEarlySet = createLevelEnemySchedule(road, 4, ['road', 'BossFight', 'other']);
   assert.equal(firstSet[0].enemy.silhouette, 'pirateShip');
   assert.equal(secondSet.some((entry) => entry.enemy.kind === 'enhanced' && entry.enemy.ramBulkhead), true);
+  assert.equal(fallbackEarlySet.some((entry) => entry.enemy.silhouette === 'pirateShip'), true);
 });

@@ -259,6 +259,20 @@ export function applyEnemyDamage(enemy, projectile) {
   return { hit: true, cell, removed: result.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
 }
 
+export function applyEnemyVoxelDamage(enemy, hit, damage) {
+  if (enemy.destroyed || !hit?.cell || !hit?.voxelIndex) return { hit: false, removed: 0, destroyedNow: false };
+  const voxel = hit.cell.mask[hit.voxelIndex.y]?.[hit.voxelIndex.x];
+  if (!voxel || voxel.hp <= 0) return { hit: false, removed: 0, destroyedNow: false };
+  const wasDestroyed = enemy.destroyed;
+  const before = voxel.hp;
+  voxel.hp = Math.max(0, voxel.hp - damage);
+  const removed = before > 0 && voxel.hp <= 0 ? 1 : 0;
+  recalculateCell(hit.cell);
+  enemy.damageTaken += damage + removed * 3;
+  updateEnemyDestroyed(enemy);
+  return { hit: true, cell: hit.cell, removed, destroyedNow: !wasDestroyed && enemy.destroyed };
+}
+
 export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   if (enemy.destroyed) return { hit: false, removed: 0, destroyedNow: false };
   const voxelSize = CELL_SIZE / VOXELS;
@@ -361,6 +375,58 @@ export function traceEnemyVoxelRay(enemies, start, angle, maxLength, pierce = 0)
     y: start.y + dy * maxLength,
     distance: maxLength,
   };
+}
+
+export function traceEnemyVoxelBeam(enemies, start, angle, maxLength, halfWidth = 0, pierce = 0) {
+  const unit = CELL_SIZE / VOXELS;
+  const sampleStep = Math.max(unit * 0.5, halfWidth <= 0 ? unit : halfWidth / 3);
+  const laneCount = halfWidth <= unit * 0.5 ? 1 : Math.max(1, Math.ceil((halfWidth * 2) / sampleStep) + 1);
+  const laneSpacing = laneCount === 1 ? 0 : (halfWidth * 2) / (laneCount - 1);
+  const nx = -Math.sin(angle);
+  const ny = Math.cos(angle);
+  const hitsByVoxel = new Map();
+
+  for (let lane = 0; lane < laneCount; lane += 1) {
+    const offset = laneCount === 1 ? 0 : -halfWidth + lane * laneSpacing;
+    const laneStart = { x: start.x + nx * offset, y: start.y + ny * offset };
+    for (const hit of traceEnemyVoxelPierceLine(enemies, laneStart, angle, maxLength, pierce)) {
+      const key = enemyVoxelKey(hit);
+      const existing = hitsByVoxel.get(key);
+      if (!existing || hit.distance < existing.distance) hitsByVoxel.set(key, hit);
+    }
+  }
+
+  const hits = [...hitsByVoxel.values()].sort((a, b) => a.distance - b.distance);
+  const endDistance = hits.length > 0 ? Math.min(maxLength, Math.max(...hits.map((hit) => hit.distance))) : maxLength;
+  return {
+    hits,
+    x: start.x + Math.cos(angle) * endDistance,
+    y: start.y + Math.sin(angle) * endDistance,
+    distance: endDistance,
+  };
+}
+
+function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0) {
+  const step = CELL_SIZE / VOXELS / 2;
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  const hits = [];
+  const pierced = new Set();
+  const maxHits = Math.max(1, Math.floor(pierce) + 1);
+  for (let distance = 0; distance <= maxLength; distance += step) {
+    const point = {
+      x: start.x + dx * distance,
+      y: start.y + dy * distance,
+    };
+    const hit = findEnemyVoxelAt(enemies, point);
+    if (!hit) continue;
+    const key = enemyVoxelKey(hit);
+    if (pierced.has(key)) continue;
+    pierced.add(key);
+    hits.push({ ...hit, x: point.x, y: point.y, distance });
+    if (hits.length >= maxHits) break;
+  }
+  return hits;
 }
 
 function enemyVoxelKey(hit) {

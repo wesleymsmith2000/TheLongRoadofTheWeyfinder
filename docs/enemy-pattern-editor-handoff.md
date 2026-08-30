@@ -38,8 +38,8 @@ It currently exposes:
 
 - `standard`: basic turret enemy using `basic_turret`, `enemy_aimed_shot`, and the sequential radial burst.
 - `enhanced_charger`: post-boss charger variant with rear entry, incoming warning marker, charge timing, and frontal ramming shield settings.
-- `pirate_ship.prototype0`: runtime-created early soundtrack silhouette with movement-facing rotation and broadside firing presentation.
-- `pirate_ram_ship.prototype0`: enhanced early soundtrack variant with rear entry, charge behavior, and ram bulkhead presentation.
+- `pirate_ship.prototype0`: runtime-created early-wave silhouette with movement-facing rotation and broadside firing presentation.
+- `pirate_ram_ship.prototype0`: enhanced early-wave variant with rear entry, charge behavior, and ram bulkhead presentation.
 - `boss.octagon.prototype0`: current boss descriptor with central core, octagon armor, segmented arms, palette, center-pulse projectile notes, arm attack mix, and laser telegraph data.
 
 Runtime/editor helpers:

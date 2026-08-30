@@ -167,6 +167,15 @@ test('ammo capacity upgrades expand the matching reserve', () => {
   assert.equal(game.secondary.ammo.rocket, 13);
 });
 
+test('beam ammo capacity upgrades expand the beam reserve', () => {
+  const game = createGame();
+  game.scrap = upgradeCost(game, 'beamAmmo');
+  const bought = buyUpgradeWithScrap(game, 'beamAmmo');
+  assert.equal(bought, true);
+  assert.equal(ammoCapacityWithUpgrades(game, 'beam'), 42);
+  assert.equal(game.secondary.ammo.beam, 42);
+});
+
 test('armor toughness upgrade thickens armor voxels', () => {
   const game = createGame();
   const armor = game.vehicle.cells.find((cell) => cell.id === 'armor-left');

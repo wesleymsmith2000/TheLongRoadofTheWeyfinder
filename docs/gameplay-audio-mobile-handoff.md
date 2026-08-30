@@ -55,7 +55,7 @@ npm.cmd run build:pages
 Latest observed test count:
 
 ```text
-134 passed
+141 passed
 ```
 
 `npm.cmd run build:pages` required elevated filesystem access in Codex on Windows due to the existing Vite config path sandbox issue; the elevated build passed.
@@ -68,3 +68,6 @@ Latest observed test count:
 - Audio playback currently reuses one `Audio` element per source and resets `currentTime`; if overlapping SFX layering becomes important, replace `soundPlayerFor` with a tiny player pool.
 - The enhanced pirate bulkhead is render flair over the voxel body. If it becomes gameplay armor or a distinct weak point, it should move into content/construct data.
 - Main game review synced `content/enemies/prototype0_enemy_archetypes.json` so the pirate ship variants and 3 second boss laser telegraph are visible to editor tooling.
+- Main game follow-up made early-wave ship silhouettes fallback by level as well as soundtrack name, so the silhouette should appear even if music rotation changes.
+- Particle beam collision is now width-aware at voxel level. It samples across the animated beam width, damages the first damageable voxel on each lane, and continues through additional voxels only according to pierce.
+- Beam width upgrade growth was reduced by half, beam damage per frame was reduced by 25%, and the upgrade shop now includes beam ammo capacity plus main gun shot velocity.

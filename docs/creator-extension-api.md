@@ -314,6 +314,8 @@ Available projectile behaviors in Prototype 0:
 - `beam`
 - `blast`
 
+Particle beams are width-aware at the voxel layer. Runtime sampling follows the animated beam width, damages the first damageable voxel on each sampled lane, and continues through additional voxels only according to `pierce`. Wide low-pierce beams strip surface area; narrow high-pierce beams drill deeper.
+
 Optional projectile presentation/simulation fields:
 
 - `destructible`: when true, the projectile has a damageable hull.

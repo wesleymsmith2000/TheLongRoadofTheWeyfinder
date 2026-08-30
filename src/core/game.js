@@ -19,12 +19,14 @@ import { createBoostState, stepBoost } from './boost.js';
 import {
   applyEnemyBlastDamage,
   applyEnemyDamage,
+  applyEnemyVoxelDamage,
   createBossEnemy,
   createEnemy,
   createEnhancedEnemy,
   createEnhancedPirateShipEnemy,
   createPirateShipEnemy,
   harvestEnemyScrap,
+  traceEnemyVoxelBeam,
   traceEnemyVoxelRay,
 } from './enemy.js';
 import { firePattern } from './patternDefinition.js';
@@ -202,7 +204,7 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
       kind === 'enhanced'
         ? roadOffsetToWorld({ x: spread, y: road.halfHeight + 95 + row }, road)
         : roadOffsetToWorld({ x: spread, y: -road.halfHeight - 95 - row }, road);
-    const pirateShip = usesEarlyPirateShipEnemy(currentMusic);
+    const pirateShip = usesBoatSilhouetteEnemy(currentMusic, level);
     const enemy =
       kind === 'enhanced'
         ? pirateShip
@@ -235,8 +237,8 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
   return enemies;
 }
 
-function usesEarlyPirateShipEnemy(trackName) {
-  return /^(?:TheWeyfindersRoad|DigitizedStream)_/i.test(trackName ?? '');
+function usesBoatSilhouetteEnemy(trackName, level) {
+  return level <= 6 || /^(?:TheWeyfindersRoad|DigitizedStream)_/i.test(trackName ?? '');
 }
 
 export function isBossLevel(level, levelMusic = DEFAULT_LEVEL_MUSIC) {
@@ -405,8 +407,9 @@ function stepPlayerGun(game, dt) {
   const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy');
   const angle = game.vehicle.turretHeading + game.rng.range(-spread, spread);
   const damage = 8 * upgradeMultiplier(game, 'gunDamage');
+  const speed = PRIMARY_PROJECTILE_SPEED * upgradeMultiplier(game, 'gunVelocity');
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vx, Math.sin(angle) * PRIMARY_PROJECTILE_SPEED + game.vehicle.vy, {
+    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
       team: 'player',
       radius: 1.5,
       damage,
@@ -856,7 +859,7 @@ function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
   return false;
 }
 
-function traceAbsorbingEnemyProjectileRay(projectiles, origin, angle, length) {
+function traceAbsorbingEnemyProjectileRay(projectiles, origin, angle, length, beamHalfWidth = 0) {
   const dir = { x: Math.cos(angle), y: Math.sin(angle) };
   let nearest = null;
   for (const projectile of projectiles) {
@@ -866,7 +869,7 @@ function traceAbsorbingEnemyProjectileRay(projectiles, origin, angle, length) {
     const along = dx * dir.x + dy * dir.y;
     if (along < 0 || along > length) continue;
     const perpendicular = Math.abs(dx * dir.y - dy * dir.x);
-    if (perpendicular > projectile.radius + origin.radius) continue;
+    if (perpendicular > projectile.radius + beamHalfWidth) continue;
     if (!nearest || along < nearest.distance) {
       nearest = {
         projectile,
@@ -973,7 +976,8 @@ function hitVehicleWithEnemyBeam(game, projectile) {
 }
 
 function hitEnemiesWithBeam(game, projectile) {
-  const shieldTrace = traceAbsorbingEnemyProjectileRay(game.enemyProjectiles, projectile, projectile.angle, projectile.length);
+  const halfWidth = beamHalfWidth(projectile);
+  const shieldTrace = traceAbsorbingEnemyProjectileRay(game.enemyProjectiles, projectile, projectile.angle, projectile.length, halfWidth);
   if (shieldTrace) {
     projectile.renderEndX = shieldTrace.x;
     projectile.renderEndY = shieldTrace.y;
@@ -981,24 +985,20 @@ function hitEnemiesWithBeam(game, projectile) {
     if (shieldTrace.projectile.absorbHp <= 0) shieldTrace.projectile.lifetime = 0;
     return;
   }
-  const trace = traceEnemyVoxelRay(activeEnemies(game), projectile, projectile.angle, projectile.length, projectile.pierce ?? 0);
+  const trace = traceEnemyVoxelBeam(activeEnemies(game), projectile, projectile.angle, projectile.length, halfWidth, projectile.pierce ?? 0);
   projectile.renderEndX = trace.x;
   projectile.renderEndY = trace.y;
-  if (!trace.enemy) return;
-  if (enemyShieldBlocks(trace.enemy, trace)) return;
+  if (trace.hits.length === 0) return;
   const scale = beamDamageScale(projectile);
-  const hit = applyEnemyDamage(trace.enemy, {
-    ...projectile,
-    x: trace.x,
-    y: trace.y,
-    damage: projectile.damage * scale,
-    radius: projectile.radius + (CELL_SIZE / 6) * Math.max(0, scale - 1),
-  });
-  if (hit.hit) {
-    game.score.damageDone += Math.round(projectile.damage * scale + hit.removed * 3);
-    trace.enemy.vx += Math.cos(projectile.angle) * projectile.impulse * 0.004 * scale;
-    trace.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.004 * scale;
-    if (hit.destroyedNow) explodeEnemy(game, trace.enemy);
+  for (const voxelHit of trace.hits) {
+    if (enemyShieldBlocks(voxelHit.enemy, voxelHit)) continue;
+    const hit = applyEnemyVoxelDamage(voxelHit.enemy, voxelHit, projectile.damage * scale);
+    if (hit.hit) {
+      game.score.damageDone += Math.round(projectile.damage * scale + hit.removed * 3);
+      voxelHit.enemy.vx += Math.cos(projectile.angle) * projectile.impulse * 0.0015 * scale;
+      voxelHit.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.0015 * scale;
+      if (hit.destroyedNow) explodeEnemy(game, voxelHit.enemy);
+    }
   }
 }
 
@@ -1046,6 +1046,15 @@ function beamDamageScale(projectile) {
   const centerDistance = Math.abs(frame - (frames - 1) / 2);
   if (centerDistance <= 1) return 3;
   return 1 + (1 - centerDistance / ((frames - 1) / 2)) * 2;
+}
+
+function beamHalfWidth(projectile) {
+  const frames = projectile.frames || 9;
+  const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
+  const frame = Math.max(0, Math.min(frames - 1, Math.floor(age * frames)));
+  const envelope = Math.sin(((frame + 0.5) / frames) * Math.PI);
+  const voxelWidth = (projectile.radius ?? 1) + envelope * (projectile.radius ?? 1) * 4;
+  return ((CELL_SIZE / 6) * voxelWidth) / 2;
 }
 
 function spawnCannonImpact(game, projectile, enemy) {

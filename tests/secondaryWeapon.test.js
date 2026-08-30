@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
-import { createEnemy } from '../src/core/enemy.js';
+import { createBossEnemy, createEnemy } from '../src/core/enemy.js';
 import { gunMuzzleWorld } from '../src/core/vehicle.js';
 import { fireSecondary, stepSecondaryWeapon } from '../src/core/secondaryWeapon.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
@@ -102,7 +102,38 @@ test('beam applies repeated contact damage over its firing frames', () => {
   game.enemies[0].y = game.vehicle.y;
   fireSecondary(game);
   for (let i = 0; i < 5; i += 1) stepGame(game, { secondarySelect: 'beam', gunnerEnabled: false }, 1 / 60);
-  assert.equal(game.enemies[0].damageTaken > 25, true);
+  assert.equal(game.enemies[0].damageTaken > 4, true);
+  assert.equal(game.enemies[0].destroyed, false);
+});
+
+test('wide beam strips multiple outer voxels without piercing to the core', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.upgrades.beamWidth = 8;
+  game.vehicle.turretHeading = 0;
+  game.enemies = [createEnemy(game.vehicle.x + 60, game.vehicle.y)];
+  fireSecondary(game);
+  for (let i = 0; i < 5; i += 1) stepGame(game, { secondarySelect: 'beam', gunnerEnabled: false }, 1 / 60);
+  const enemy = game.enemies[0];
+  const core = enemy.cells.find((cell) => cell.type === 'core');
+  const removedOuter = enemy.cells
+    .filter((cell) => cell !== core)
+    .flatMap((cell) => cell.mask.flat())
+    .filter((voxel) => voxel.hp <= 0).length;
+  const removedCore = core.mask.flat().filter((voxel) => voxel.hp <= 0).length;
+  assert.equal(removedOuter > 0, true);
+  assert.equal(removedCore, 0);
+});
+
+test('boss core survives a single no-pierce beam burst', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.vehicle.turretHeading = 0;
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  game.enemies = [createBossEnemy(muzzle.x + 70, muzzle.y - CELL_SIZE / 2)];
+  fireSecondary(game);
+  for (let i = 0; i < 5; i += 1) stepGame(game, { secondarySelect: 'beam', gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.enemies[0].destroyed, false);
 });
 
 test('beam is absorbed by enemy shielding ring shots before reaching enemies', () => {
@@ -179,6 +210,17 @@ test('secondary upgrades alter projectile stats', () => {
   fireSecondary(game);
   assert.equal(game.playerProjectiles[0].damage.toFixed(1), '18.9');
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
+});
+
+test('beam upgrades reduce width growth and base damage while ammo upgrades expand reserve', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.upgrades.beamWidth = 2;
+  game.upgrades.beamAmmo = 1;
+  fireSecondary(game);
+  assert.equal(game.playerProjectiles[0].damage, 1.875);
+  assert.equal(game.playerProjectiles[0].radius, 2.25);
+  assert.equal(game.secondary.ammo.beam, 39);
 });
 
 test('beam stays locked to the moving turret while firing', () => {

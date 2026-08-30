@@ -19,6 +19,7 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'gunAccuracy', label: 'Main Gun Accuracy', system: 'Main Gun' },
   { id: 'gunFireRate', label: 'Main Gun Fire Rate', system: 'Main Gun' },
   { id: 'gunDamage', label: 'Main Gun Damage', system: 'Main Gun' },
+  { id: 'gunVelocity', label: 'Main Gun Shot Velocity', system: 'Main Gun' },
   { id: 'cannonAmmo', label: 'Cannon Ammo Capacity', system: 'Cannon' },
   { id: 'cannonImpactDamage', label: 'Cannon Impact Damage', system: 'Cannon' },
   { id: 'cannonBlastDamage', label: 'Cannon Blast Damage', system: 'Cannon' },
@@ -37,6 +38,7 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'rocketFireRate', label: 'Rocket Fire Rate', system: 'Rocket' },
   { id: 'beamHeatEfficiency', label: 'Beam Heat Efficiency', system: 'Particle Beam' },
   { id: 'beamHeatSink', label: 'Beam Heat Sink', system: 'Particle Beam' },
+  { id: 'beamAmmo', label: 'Beam Ammo Capacity', system: 'Particle Beam' },
   { id: 'beamDamage', label: 'Beam Damage', system: 'Particle Beam' },
   { id: 'beamPierce', label: 'Beam Pierce', system: 'Particle Beam' },
   { id: 'beamWidth', label: 'Beam Width', system: 'Particle Beam' },
@@ -171,6 +173,7 @@ export function ammoModuleCost(weapon) {
 function applyUpgradeSideEffects(game, id) {
   if (id === 'cannonAmmo') growAmmoReserve(game, 'cannon');
   if (id === 'rocketAmmo') growAmmoReserve(game, 'rocket');
+  if (id === 'beamAmmo') growAmmoReserve(game, 'beam');
   if (id === 'armorToughness') thickenArmorVoxels(game);
 }
 
