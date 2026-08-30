@@ -1,9 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyEnemyBlastDamage, applyEnemyDamage, createBossEnemy, createEnemy, createEnhancedEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from '../src/core/enemy.js';
+import {
+  applyEnemyBlastDamage,
+  applyEnemyDamage,
+  createBossEnemy,
+  createEnemy,
+  createEnhancedEnemy,
+  createEnhancedPirateShipEnemy,
+  createPirateShipEnemy,
+  harvestEnemyScrap,
+  traceEnemyVoxelRay,
+} from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, stepGame } from '../src/core/game.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
+import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 test('enemy takes voxel damage and records score damage', () => {
   const enemy = createEnemy(0, 0);
@@ -41,6 +52,14 @@ test('destroyed enemies explode and knock nearby enemies back', () => {
   assert.equal(game.enemies[1].vx > 0, true);
   assert.equal(game.enemies[1].vx < 220, true);
   assert.equal(game.enemies[2].vx, 0);
+});
+
+test('player main gun emits a sound event when firing', () => {
+  const game = createGame();
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  stepGame(game, { fireHeld: true, gunnerEnabled: false }, 1 / 60);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_MAIN_GUN), true);
 });
 
 test('cannon-style blast strips nearby outer shell voxels with shallow penetration', () => {
@@ -150,8 +169,20 @@ test('boss arm attack mix can schedule and fire a tracking laser', () => {
   boss.arms[0].fireTimer = 0;
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(Boolean(boss.arms[0].laser), true);
-  for (let index = 0; index < 70; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.arms[0].laser.duration, 3);
+  const initialTarget = { ...boss.arms[0].laser.target };
+  game.vehicle.x += 80;
+  for (let index = 0; index < 130; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(Math.abs(boss.arms[0].laser.target.x - game.vehicle.x) < 0.001, true);
+  for (let index = 0; index < 12; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const lockedTarget = { ...boss.arms[0].laser.target };
+  game.vehicle.x += 80;
+  for (let index = 0; index < 30; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.deepEqual(boss.arms[0].laser.target, lockedTarget);
+  for (let index = 0; index < 10; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'boss-laser' && projectile.behavior === 'beam'), true);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.ENEMY_BEAM), true);
+  assert.notDeepEqual(initialTarget, lockedTarget);
 });
 
 test('boss accelerates back toward the view area after being knocked away', () => {
@@ -167,4 +198,14 @@ test('enhanced enemies can carry level style palettes', () => {
   const enemy = createEnhancedEnemy(0, 0);
   enemy.palette = { armor: '#123456' };
   assert.equal(enemy.palette.armor, '#123456');
+});
+
+test('pirate ship enemies use elongated hulls and enhanced ram bulkheads', () => {
+  const standard = createPirateShipEnemy(0, 0);
+  const enhanced = createEnhancedPirateShipEnemy(0, 0);
+  assert.equal(standard.silhouette, 'pirateShip');
+  assert.equal(standard.cells.some((cell) => cell.id === 'bow'), true);
+  assert.equal(enhanced.kind, 'enhanced');
+  assert.equal(enhanced.ramBulkhead, true);
+  assert.equal(enhanced.cells.some((cell) => cell.id === 'skull-bulkhead'), true);
 });

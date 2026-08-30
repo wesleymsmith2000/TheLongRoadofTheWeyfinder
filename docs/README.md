@@ -10,6 +10,7 @@ Start here:
 - [Content Pack Manifest](./content-pack-manifest.md)
 - [Level Editor Main Game Handoff](./level-editor-main-game-handoff.md)
 - [Enemy And Pattern Editor Handoff](./enemy-pattern-editor-handoff.md)
+- [Gameplay / Audio / Mobile Handoff](./gameplay-audio-mobile-handoff.md)
 
 Current priorities:
 

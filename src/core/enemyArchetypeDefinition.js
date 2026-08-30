@@ -2,7 +2,7 @@ import canonEnemyArchetypes from '../../content/enemies/prototype0_enemy_archety
 import { CANON_STATUSES, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 
 export const CANON_ENEMY_ARCHETYPE_PACK = canonEnemyArchetypes;
-export const ENEMY_RUNTIME_FACTORIES = ['createEnemy', 'createEnhancedEnemy', 'createBossEnemy'];
+export const ENEMY_RUNTIME_FACTORIES = ['createEnemy', 'createEnhancedEnemy', 'createPirateShipEnemy', 'createEnhancedPirateShipEnemy', 'createBossEnemy'];
 export const ENEMY_ENTRY_KINDS = ['aheadDrift', 'behindCharge', 'aheadBoss'];
 
 export function validateEnemyArchetypePack(definition) {

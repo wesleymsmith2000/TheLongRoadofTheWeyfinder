@@ -5,6 +5,7 @@ import { createEnemy } from '../src/core/enemy.js';
 import { gunMuzzleWorld } from '../src/core/vehicle.js';
 import { fireSecondary, stepSecondaryWeapon } from '../src/core/secondaryWeapon.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
+import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 test('secondary weapon can be fired manually and spends ammo', () => {
   const game = createGame();
@@ -13,6 +14,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   assert.equal(game.playerProjectiles.length, 1);
   assert.equal(game.playerProjectiles[0].damage, 36);
   assert.equal(game.secondary.ammo.rocket, 11);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH), true);
 });
 
 test('secondary weapon can cycle selection', () => {
@@ -30,6 +32,7 @@ test('beam secondary creates a short beam blast instead of a traveling shot', ()
   assert.equal(game.playerProjectiles[0].length > 300, true);
   assert.equal(game.playerProjectiles[0].frames, 5);
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_BEAM), true);
 });
 
 test('rocket secondary creates a homing missile with longer flight time', () => {

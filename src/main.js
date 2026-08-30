@@ -7,6 +7,7 @@ import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
 import { createPrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
+import { consumeSoundEvents, SOUND_EVENTS } from './core/soundEvents.js';
 import {
   SHOP_COSTS,
   UPGRADE_DEFINITIONS,
@@ -58,6 +59,13 @@ import theWeyfindersRoad2Music from '../assets/music/TheWeyfindersRoad_2.mp3';
 import theWeyfindersRoad3Music from '../assets/music/TheWeyfindersRoad_3.mp3';
 import twilightCrossroadsMusic from '../assets/music/TwilightCrossroads.mp3';
 import twilightCrossroadsBossMusic from '../assets/music/TwilightCrossroads_BossFight.mp3';
+import futuristicCannonSound from '../assets/sounds/A Futuristic Cannon Fire Sound Effect. About 2 Seconds Max. Should Have A Mix.mp3';
+import buttonChirpSound from '../assets/sounds/ButtonChirp.mp3';
+import errorBuzz2Sound from '../assets/sounds/ErrorBuzz2.mp3';
+import errorClickSound from '../assets/sounds/ErrorClick.mp3';
+import particleBeamSound from '../assets/sounds/ParticleBeam.mp3';
+import rocketAccelerateSound from '../assets/sounds/RocketAccelerate.mp3';
+import victoryTone1Sound from '../assets/sounds/VictoryTone1.mp3';
 
 const MUSIC_URLS = {
   BossFight_1: bossFight1Music,
@@ -96,6 +104,17 @@ const MUSIC_URLS = {
   TwilightCrossroads_BossFight: twilightCrossroadsBossMusic,
 };
 
+const SOUND_URLS = {
+  [SOUND_EVENTS.PLAYER_MAIN_GUN]: buttonChirpSound,
+  [SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH]: rocketAccelerateSound,
+  [SOUND_EVENTS.PLAYER_BEAM]: particleBeamSound,
+  [SOUND_EVENTS.PLAYER_EXPLOSION]: futuristicCannonSound,
+  [SOUND_EVENTS.ENEMY_BULLET]: errorClickSound,
+  [SOUND_EVENTS.ENEMY_BEAM]: errorBuzz2Sound,
+  [SOUND_EVENTS.ENEMY_DEATH]: futuristicCannonSound,
+  [SOUND_EVENTS.STAGE_VICTORY]: victoryTone1Sound,
+};
+
 const canvas = document.querySelector('#game');
 const gameOver = document.querySelector('#gameOver');
 const launchScreen = document.querySelector('#launchScreen');
@@ -118,6 +137,7 @@ const secondarySelect = document.querySelector('#secondarySelect');
 const secondaryIcon = document.querySelector('#secondaryIcon');
 const secondaryAutofire = document.querySelector('#secondaryAutofire');
 const secondaryFire = document.querySelector('#secondaryFire');
+const secondaryTouchCycle = document.querySelector('#secondaryTouchCycle');
 const secondaryTouchFire = document.querySelector('#secondaryTouchFire');
 const secondaryAmmo = document.querySelector('#secondaryAmmo');
 const secondaryHeat = document.querySelector('#secondaryHeat');
@@ -154,6 +174,7 @@ const gamepad = createGamepadInput();
 const mouse = createMouseInput(canvas, (screen) => screenToWorld(screen, game.camera, { width: window.innerWidth, height: window.innerHeight }));
 const touchBoost = createPointerButtonInput(boostButton);
 const touchSecondary = createPointerButtonInput(secondaryFire);
+const touchSecondaryCycle = createPointerButtonInput(secondaryTouchCycle);
 const touchSecondaryFloating = createPointerButtonInput(secondaryTouchFire);
 const debug = createDebugOverlay();
 
@@ -166,6 +187,7 @@ let activeMusicTrack = null;
 const musicAudio = new Audio();
 musicAudio.loop = true;
 musicAudio.volume = 0.42;
+const soundPlayers = new Map();
 const padReticle = {
   x: window.innerWidth / 2,
   y: window.innerHeight * 0.42,
@@ -250,7 +272,7 @@ function frame(now) {
     dodgeY: dodgeSource?.dodgeY ?? dodgeSource?.y ?? -1,
     secondarySelect: secondarySelect.value,
     secondaryAutofire: secondaryAutofire.checked,
-    secondaryCycle: keyInput.secondaryCycle || padInput.secondaryCycle,
+    secondaryCycle: keyInput.secondaryCycle || padInput.secondaryCycle || (touchSecondaryCycle.consume() ? 1 : 0),
     secondaryFirePressed:
       keyInput.secondaryFirePressed ||
       padInput.secondaryFirePressed ||
@@ -288,6 +310,7 @@ function frame(now) {
   scoreDamage.textContent = game.score.damageDone;
   renderer.draw(game, debug);
   syncMusic();
+  playSoundEvents(game);
   requestAnimationFrame(frame);
 }
 
@@ -348,6 +371,29 @@ function syncMusic(forcePlay = false) {
     musicAudio.currentTime = 0;
   }
   if (forcePlay || musicAudio.paused) musicAudio.play().catch(() => {});
+}
+
+function playSoundEvents(game) {
+  if (awaitingLaunch) {
+    consumeSoundEvents(game);
+    return;
+  }
+  for (const event of consumeSoundEvents(game)) {
+    const src = SOUND_URLS[event.id];
+    if (!src) continue;
+    const player = soundPlayerFor(src);
+    player.currentTime = 0;
+    player.play().catch(() => {});
+  }
+}
+
+function soundPlayerFor(src) {
+  if (!soundPlayers.has(src)) {
+    const audio = new Audio(src);
+    audio.volume = 0.48;
+    soundPlayers.set(src, audio);
+  }
+  return soundPlayers.get(src);
 }
 
 function bindButtonActivation(button, handler) {

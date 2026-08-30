@@ -38,6 +38,8 @@ It currently exposes:
 
 - `standard`: basic turret enemy using `basic_turret`, `enemy_aimed_shot`, and the sequential radial burst.
 - `enhanced_charger`: post-boss charger variant with rear entry, incoming warning marker, charge timing, and frontal ramming shield settings.
+- `pirate_ship.prototype0`: runtime-created early soundtrack silhouette with movement-facing rotation and broadside firing presentation.
+- `pirate_ram_ship.prototype0`: enhanced early soundtrack variant with rear entry, charge behavior, and ram bulkhead presentation.
 - `boss.octagon.prototype0`: current boss descriptor with central core, octagon armor, segmented arms, palette, center-pulse projectile notes, arm attack mix, and laser telegraph data.
 
 Runtime/editor helpers:
@@ -150,6 +152,7 @@ These are intentional gaps the editor thread should account for:
 - Enemy body generation is not fully data-driven yet.
 - Boss arm construction, arm detonation, and charger shield behavior still live in `src/core/enemy.js` and `src/core/game.js`.
 - Boss laser telegraphs, protective projectile absorption, and arm attack selection still live in `src/core/game.js`.
+- Pirate ship bodies are described in `content/enemies/prototype0_enemy_archetypes.json`, but their cell layout is currently produced by runtime factories in `src/core/enemy.js`.
 - Rendering palettes for special boss cells currently live in `src/render/canvasRenderer.js`.
 - Level-themed enhanced enemy palettes currently live in `src/core/levelStyle.js`.
 - Encounter composition is still code-owned; future work should move spawn tables and enemy mixes into encounter assets.

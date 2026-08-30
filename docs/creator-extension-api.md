@@ -441,6 +441,8 @@ Current `runtimeFactory` values:
 
 - `createEnemy`
 - `createEnhancedEnemy`
+- `createPirateShipEnemy`
+- `createEnhancedPirateShipEnemy`
 - `createBossEnemy`
 
 Current `entry.kind` values:

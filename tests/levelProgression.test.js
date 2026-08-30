@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, createLevelEnemySchedule, startNextLevel, stepGame } from '../src/core/game.js';
+import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 test('starting the next level schedules one more enemy over time', () => {
   const game = createGame();
@@ -20,6 +21,7 @@ test('clearing all enemies records level time and completion count', () => {
   assert.equal(game.levelComplete, true);
   assert.equal(game.levelsCompleted, 1);
   assert.equal(game.levelTime > 12, true);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.STAGE_VICTORY), true);
 });
 
 test('enemy pushed outside the center lane accelerates back toward view center', () => {
@@ -81,4 +83,12 @@ test('enhanced enemies receive a palette from the current level music style', ()
   const enhanced = enemies.find((enemy) => enemy.kind === 'enhanced');
   assert.equal(Boolean(enhanced.palette), true);
   assert.equal(enhanced.palette.armor, '#1f8794');
+});
+
+test('first two level sets use pirate ship enemy silhouettes', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const firstSet = createLevelEnemySchedule(road, 1, ['TheWeyfindersRoad_1']);
+  const secondSet = createLevelEnemySchedule(road, 3, ['road', 'BossFight', 'DigitizedStream_1']);
+  assert.equal(firstSet[0].enemy.silhouette, 'pirateShip');
+  assert.equal(secondSet.some((entry) => entry.enemy.kind === 'enhanced' && entry.enemy.ramBulkhead), true);
 });

@@ -11,13 +11,15 @@ test('canon enemy archetype pack validates', () => {
 
 test('enemy archetype helpers expose editor-facing enemy models', () => {
   const archetypes = listEnemyArchetypes();
-  assert.equal(archetypes.length, 3);
+  assert.equal(archetypes.length, 5);
   assert.deepEqual(
     archetypes.map((archetype) => archetype.id),
-    ['standard', 'enhanced_charger', 'boss.octagon.prototype0'],
+    ['standard', 'enhanced_charger', 'pirate_ship.prototype0', 'pirate_ram_ship.prototype0', 'boss.octagon.prototype0'],
   );
+  assert.equal(getEnemyArchetype('pirate_ram_ship.prototype0').silhouette.kind, 'pirateShip');
   assert.equal(getEnemyArchetype('boss.octopus.prototype0').displayName, 'Octagon Boss Prototype');
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.some((entry) => entry.id === 'trackingLaser'), true);
+  assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.find((entry) => entry.id === 'trackingLaser').telegraphSeconds, 3);
   assert.deepEqual(editableEnemyKnobs('enhanced_charger'), ['construct', 'patterns', 'entry', 'charge', 'palette']);
 });
 

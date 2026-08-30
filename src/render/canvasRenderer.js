@@ -296,8 +296,12 @@ function drawComMarker(ctx, com) {
 function drawEnemy(ctx, enemy, time) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
-  drawBossLaserTelegraphs(ctx, enemy, time);
-  drawBossTentacleWiggle(ctx, enemy, time);
+  if (enemy.kind === 'boss') {
+    drawBossLaserTelegraphs(ctx, enemy, time);
+    drawBossTentacleWiggle(ctx, enemy, time);
+  } else {
+    ctx.rotate(enemyRenderRotation(enemy, time));
+  }
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
   for (const cell of enemy.cells) {
     if (!cell.state.destroyed) {
@@ -305,6 +309,7 @@ function drawEnemy(ctx, enemy, time) {
       drawCell(ctx, cell, position.x, position.y, enemy.destroyed ? 0.35 : 1, palette);
     }
   }
+  drawPirateShipFlair(ctx, enemy, palette, time);
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
   } else {
@@ -316,19 +321,81 @@ function drawEnemy(ctx, enemy, time) {
   ctx.restore();
 }
 
+function enemyRenderRotation(enemy, time) {
+  if (enemy.silhouette !== 'pirateShip') return 0;
+  let heading = enemy.visualHeading ?? Math.PI / 2;
+  const firedAge = enemy.lastFiredAt == null ? Infinity : time - enemy.lastFiredAt;
+  if (firedAge >= 0 && firedAge < 0.85 && Number.isFinite(enemy.attackHeading)) {
+    heading = closestBroadsideHeading(heading, enemy.attackHeading);
+  }
+  return heading - Math.PI / 2;
+}
+
+function closestBroadsideHeading(current, attackHeading) {
+  const left = attackHeading + Math.PI / 2;
+  const right = attackHeading - Math.PI / 2;
+  return Math.abs(angleDelta(current, left)) <= Math.abs(angleDelta(current, right)) ? left : right;
+}
+
+function angleDelta(a, b) {
+  return Math.atan2(Math.sin(b - a), Math.cos(b - a));
+}
+
+function drawPirateShipFlair(ctx, enemy, palette, time) {
+  if (enemy.silhouette !== 'pirateShip' || enemy.destroyed) return;
+  ctx.save();
+  ctx.strokeStyle = shade(palette.armor ?? COLORS.armor, -44);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-CELL_SIZE * 0.65, CELL_SIZE * 2.18);
+  ctx.lineTo(0, CELL_SIZE * 2.85);
+  ctx.lineTo(CELL_SIZE * 0.65, CELL_SIZE * 2.18);
+  ctx.stroke();
+  ctx.fillStyle = 'rgb(0 0 0 / 0.22)';
+  ctx.fillRect(-CELL_SIZE * 1.45, -CELL_SIZE * 0.25, CELL_SIZE * 2.9, CELL_SIZE * 0.5);
+  if (enemy.ramBulkhead) drawRamBulkhead(ctx, palette, time);
+  ctx.restore();
+}
+
+function drawRamBulkhead(ctx, palette, time) {
+  const shimmer = Math.sin(time * 12) * 0.5 + 0.5;
+  const y = CELL_SIZE * 3.05;
+  ctx.fillStyle = shade(palette.armor ?? COLORS.armor, -56);
+  ctx.strokeStyle = palette.gun ?? COLORS.gun;
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.arc(0, y, CELL_SIZE * 0.78, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#f4eee4';
+  ctx.beginPath();
+  ctx.arc(-CELL_SIZE * 0.23, y - CELL_SIZE * 0.1, CELL_SIZE * 0.1 + shimmer * 0.04, 0, Math.PI * 2);
+  ctx.arc(CELL_SIZE * 0.23, y - CELL_SIZE * 0.1, CELL_SIZE * 0.1 + shimmer * 0.04, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = palette.gun ?? COLORS.gun;
+  for (const x of [-1.25, -0.82, 0.82, 1.25]) {
+    ctx.beginPath();
+    ctx.moveTo(x * CELL_SIZE, y - CELL_SIZE * 0.28);
+    ctx.lineTo(x * CELL_SIZE, y + CELL_SIZE * 0.72);
+    ctx.stroke();
+  }
+}
+
 function drawBossLaserTelegraphs(ctx, enemy, time) {
   if (enemy.kind !== 'boss') return;
   for (const arm of enemy.arms ?? []) {
     if (!arm.laser?.target) continue;
     const progress = 1 - Math.max(0, arm.laser.timer / Math.max(0.001, arm.laser.duration));
-    const flashRate = 8 + progress * 46;
+    const lockProgress = Math.max(0, 1 - Math.max(0, arm.laser.timer) / 1);
+    const locked = arm.laser.timer <= 1;
+    const flashRate = locked ? 42 + lockProgress * 54 : 7;
     const flash = Math.sin(time * flashRate) * 0.5 + 0.5;
     const source = arm.laser.source ?? { x: enemy.x, y: enemy.y };
     ctx.save();
-    ctx.globalAlpha = 0.2 + flash * 0.65;
+    ctx.globalAlpha = locked ? 0.18 + flash * 0.8 : 0.44 + progress * 0.16;
     ctx.strokeStyle = '#ff2626';
-    ctx.lineWidth = 1 + progress * 2.5;
-    ctx.setLineDash(progress > 0.9 ? [] : [CELL_SIZE * 0.7, CELL_SIZE * 0.46]);
+    ctx.lineWidth = locked ? 1.7 + flash * 3.3 : 1.2 + progress * 1.1;
+    ctx.setLineDash(locked ? [] : [CELL_SIZE * 0.7, CELL_SIZE * 0.46]);
     ctx.beginPath();
     ctx.moveTo(source.x - enemy.x, source.y - enemy.y);
     ctx.lineTo(arm.laser.target.x - enemy.x, arm.laser.target.y - enemy.y);

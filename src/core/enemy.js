@@ -1,7 +1,7 @@
 import { recalculateCell } from './cell.js';
 import { instantiateConstruct } from './constructDefinition.js';
 import { createPatternState } from './patternDefinition.js';
-import { applyDamage, CELL_SIZE, VOXELS } from './voxelMask.js';
+import { applyDamage, CELL_SIZE, Roles, VOXELS } from './voxelMask.js';
 import { clamp } from './math.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
 import enemyAimedShotDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
@@ -33,6 +33,79 @@ export function createEnemy(x, y, definition = basicTurretDefinition, patternDef
 export function createEnhancedEnemy(x, y) {
   const enemy = createEnemy(x, y);
   enemy.kind = 'enhanced';
+  enemy.charge = { state: 'idle', timer: 1.8, x: 0, y: 1 };
+  enemy.shieldActive = false;
+  return enemy;
+}
+
+export function createPirateShipEnemy(x, y, options = {}) {
+  const cells = [];
+  const connections = [];
+  const addCell = (id, type, gridX, gridY, carve = null) => {
+    const cell = createCell(id, type, gridX, gridY);
+    if (carve) carveVoxelMask(cell, carve);
+    cells.push(cell);
+    return cell;
+  };
+
+  addCell('stern-left', 'armor', -1, -1, sternCarve);
+  addCell('stern', 'armor', 0, -1);
+  addCell('stern-right', 'armor', 1, -1, sternCarve);
+  addCell('port-gun', 'gun', -2, 0, sideGunCarve);
+  addCell('port-hull', 'armor', -1, 0);
+  addCell('core', 'core', 0, 0);
+  addCell('starboard-hull', 'armor', 1, 0);
+  addCell('starboard-gun', 'gun', 2, 0, sideGunCarve);
+  addCell('bow-left', 'armor', -1, 1, bowShoulderCarve);
+  addCell('bow-center', 'armor', 0, 1);
+  addCell('bow-right', 'armor', 1, 1, bowShoulderCarve);
+  addCell('bow', 'armor', 0, 2, bowPointCarve);
+
+  if (options.ramBulkhead) {
+    addCell('skull-bulkhead', 'armor', 0, 3, bowPointCarve);
+    addCell('bulkhead-port-spike', 'gun', -1, 3, spikeCarve);
+    addCell('bulkhead-starboard-spike', 'gun', 1, 3, spikeCarve);
+  }
+
+  connect(connections, 'core', 'port-hull', 'left');
+  connect(connections, 'core', 'starboard-hull', 'right');
+  connect(connections, 'core', 'stern', 'top');
+  connect(connections, 'core', 'bow-center', 'bottom');
+  connect(connections, 'port-hull', 'port-gun', 'left');
+  connect(connections, 'starboard-hull', 'starboard-gun', 'right');
+  connect(connections, 'stern', 'stern-left', 'left');
+  connect(connections, 'stern', 'stern-right', 'right');
+  connect(connections, 'bow-center', 'bow-left', 'left');
+  connect(connections, 'bow-center', 'bow-right', 'right');
+  connect(connections, 'bow-center', 'bow', 'bottom');
+  if (options.ramBulkhead) {
+    connect(connections, 'bow', 'skull-bulkhead', 'bottom');
+    connect(connections, 'skull-bulkhead', 'bulkhead-port-spike', 'left');
+    connect(connections, 'skull-bulkhead', 'bulkhead-starboard-spike', 'right');
+  }
+
+  return {
+    assetId: options.ramBulkhead ? 'enemy.pirate_ram_ship.prototype0' : 'enemy.pirate_ship.prototype0',
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    radius: constructRadius(cells),
+    patterns: BASIC_ENEMY_PATTERNS.map((pattern) => createPatternState(pattern)),
+    cells,
+    connections,
+    damageTaken: 0,
+    destroyed: false,
+    explosionStart: null,
+    kind: options.kind ?? 'standard',
+    silhouette: 'pirateShip',
+    ramBulkhead: Boolean(options.ramBulkhead),
+    visualHeading: Math.PI / 2,
+  };
+}
+
+export function createEnhancedPirateShipEnemy(x, y) {
+  const enemy = createPirateShipEnemy(x, y, { kind: 'enhanced', ramBulkhead: true });
   enemy.charge = { state: 'idle', timer: 1.8, x: 0, y: 1 };
   enemy.shieldActive = false;
   return enemy;
@@ -114,6 +187,44 @@ export function createBossEnemy(x, y, rng) {
     destroyed: false,
     explosionStart: null,
   };
+}
+
+function connect(connections, a, b, side, type = 'structural') {
+  connections.push(createConnection(a, b, side, undefined, type));
+}
+
+function carveVoxelMask(cell, keep) {
+  for (let y = 0; y < VOXELS; y += 1) {
+    for (let x = 0; x < VOXELS; x += 1) {
+      if (keep(x, y, cell)) continue;
+      cell.mask[y][x] = { role: Roles.EMPTY, hp: 0, maxHp: 0 };
+    }
+  }
+  recalculateCell(cell);
+}
+
+function bowPointCarve(x, y) {
+  return Math.abs(x - (VOXELS - 1) / 2) <= 1.15 + y * 0.46;
+}
+
+function bowShoulderCarve(x, y, cell) {
+  const towardCenter = cell.gridX < 0 ? x >= y * 0.52 : x <= VOXELS - 1 - y * 0.52;
+  return towardCenter;
+}
+
+function sternCarve(x, y, cell) {
+  const towardCenter = cell.gridX < 0 ? x >= (VOXELS - 1 - y) * 0.34 : x <= VOXELS - 1 - (VOXELS - 1 - y) * 0.34;
+  return towardCenter;
+}
+
+function sideGunCarve(x, y) {
+  return y >= 1 && y <= VOXELS - 2 && x >= 1 && x <= VOXELS - 2;
+}
+
+function spikeCarve(x, y, cell) {
+  const center = (VOXELS - 1) / 2;
+  const width = cell.gridX < 0 ? VOXELS - x : x + 1;
+  return Math.abs(y - center) <= width * 0.34;
 }
 
 function constructRadius(cells) {

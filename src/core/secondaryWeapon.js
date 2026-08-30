@@ -2,6 +2,7 @@ import { createProjectile } from './projectile.js';
 import { gunMuzzleWorld } from './vehicle.js';
 import { CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
+import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
@@ -80,6 +81,7 @@ export function fireSecondary(game) {
   secondary.ammo[secondary.selected] -= 1;
   secondary.heat += def.heat;
   secondary.cooldown = def.cooldown * heatCooldownScale(secondary);
+  emitSoundEvent(game, secondary.selected === 'beam' ? SOUND_EVENTS.PLAYER_BEAM : SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH);
   return true;
 }
 

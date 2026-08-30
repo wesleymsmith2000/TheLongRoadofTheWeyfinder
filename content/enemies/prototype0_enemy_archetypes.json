@@ -50,6 +50,66 @@
       "editable": ["construct", "patterns", "entry", "charge", "palette"]
     },
     {
+      "id": "pirate_ship.prototype0",
+      "displayName": "Pirate Ship Prototype",
+      "runtimeFactory": "createPirateShipEnemy",
+      "baseArchetype": "standard",
+      "construct": "runtime.pirate_ship.prototype0",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "entry": {
+        "kind": "aheadDrift",
+        "direction": "roadForward",
+        "speed": 35
+      },
+      "silhouette": {
+        "kind": "pirateShip",
+        "rotation": "movementHeading",
+        "broadsideOnFireSeconds": 0.85,
+        "collision": "unrotatedRuntimeCells"
+      },
+      "model": {
+        "source": "runtimeFactory",
+        "shape": "elongatedHull",
+        "cells": ["stern", "portGun", "starboardGun", "core", "bow"]
+      },
+      "editable": ["patterns", "entry", "palette", "silhouette", "model"]
+    },
+    {
+      "id": "pirate_ram_ship.prototype0",
+      "displayName": "Enhanced Pirate Ram Ship Prototype",
+      "runtimeFactory": "createEnhancedPirateShipEnemy",
+      "baseArchetype": "pirate_ship.prototype0",
+      "construct": "runtime.pirate_ram_ship.prototype0",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "entry": {
+        "kind": "behindCharge",
+        "direction": "roadBehind",
+        "warningLeadSeconds": 2.4,
+        "speed": 310
+      },
+      "paletteSource": "levelMusic",
+      "silhouette": {
+        "kind": "pirateShip",
+        "rotation": "movementHeading",
+        "broadsideOnFireSeconds": 0.85,
+        "collision": "unrotatedRuntimeCells"
+      },
+      "model": {
+        "source": "runtimeFactory",
+        "shape": "elongatedHullWithRamBulkhead",
+        "flair": "spikedSkullBulkhead"
+      },
+      "charge": {
+        "acceleration": 165,
+        "duration": 1.15,
+        "idleSeconds": [4.2, 7.4],
+        "shieldArcRadians": 0.39269908169872414,
+        "shieldDamage": 16,
+        "shieldImpulse": 230
+      },
+      "editable": ["patterns", "entry", "charge", "palette", "silhouette", "model"]
+    },
+    {
       "id": "boss.octagon.prototype0",
       "displayName": "Octagon Boss Prototype",
       "runtimeFactory": "createBossEnemy",
@@ -116,7 +176,9 @@
           {
             "id": "trackingLaser",
             "weight": 0.1,
-            "telegraphSeconds": 1.12,
+            "telegraphSeconds": 3,
+            "trackingSeconds": 2,
+            "lockSeconds": 1,
             "beam": { "weapon": "boss-laser", "frames": 15, "length": 760, "damage": 7.5, "radius": 3, "color": "#ff2626" }
           }
         ],

@@ -16,7 +16,17 @@ import {
 import { CELL_SIZE } from './voxelMask.js';
 import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
-import { applyEnemyBlastDamage, applyEnemyDamage, createBossEnemy, createEnemy, createEnhancedEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
+import {
+  applyEnemyBlastDamage,
+  applyEnemyDamage,
+  createBossEnemy,
+  createEnemy,
+  createEnhancedEnemy,
+  createEnhancedPirateShipEnemy,
+  createPirateShipEnemy,
+  harvestEnemyScrap,
+  traceEnemyVoxelRay,
+} from './enemy.js';
 import { firePattern } from './patternDefinition.js';
 import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
 import {
@@ -31,9 +41,12 @@ import {
 } from './economy.js';
 import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from './levelMusic.js';
 import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
+import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 
 const LEVEL_TARGET_DURATION = 180;
 const SPAWN_WARNING_LEAD = 2.4;
+const BOSS_LASER_CHARGE_TIME = 3;
+const BOSS_LASER_LOCK_TIME = 1;
 
 export function createGame(seed = 1147, options = {}) {
   const vehicle = createStartingVehicle(options.vehicleDefinition);
@@ -61,6 +74,7 @@ export function createGame(seed = 1147, options = {}) {
     playerProjectiles: [],
     enemyProjectiles: [],
     smokeParticles: [],
+    soundEvents: [],
     autofire: true,
     playerFireTimer: 0,
     levelComplete: false,
@@ -127,6 +141,7 @@ export function stepGame(game, input, dt) {
     game.levelTime = game.time - game.levelStartTime;
     game.levelTimes.push(game.levelTime);
     game.levelsCompleted = game.level;
+    emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
   }
   return game;
 }
@@ -143,6 +158,7 @@ export function startNextLevel(game) {
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
   game.smokeParticles = [];
+  game.soundEvents = [];
   game.scrapPickups = [];
   return game;
 }
@@ -186,7 +202,15 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
       kind === 'enhanced'
         ? roadOffsetToWorld({ x: spread, y: road.halfHeight + 95 + row }, road)
         : roadOffsetToWorld({ x: spread, y: -road.halfHeight - 95 - row }, road);
-    const enemy = kind === 'enhanced' ? createEnhancedEnemy(world.x, world.y) : createEnemy(world.x, world.y);
+    const pirateShip = usesEarlyPirateShipEnemy(currentMusic);
+    const enemy =
+      kind === 'enhanced'
+        ? pirateShip
+          ? createEnhancedPirateShipEnemy(world.x, world.y)
+          : createEnhancedEnemy(world.x, world.y)
+        : pirateShip
+          ? createPirateShipEnemy(world.x, world.y)
+          : createEnemy(world.x, world.y);
     if (kind === 'enhanced') {
       enemy.palette = enhancedEnemyPaletteForMusic(currentMusic);
       const velocity = roadDirectionToWorld(0, -1, road);
@@ -209,6 +233,10 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
     enemies.push(boss);
   }
   return enemies;
+}
+
+function usesEarlyPirateShipEnemy(trackName) {
+  return /^(?:TheWeyfindersRoad|DigitizedStream)_/i.test(trackName ?? '');
 }
 
 export function isBossLevel(level, levelMusic = DEFAULT_LEVEL_MUSIC) {
@@ -386,6 +414,7 @@ function stepPlayerGun(game, dt) {
       lifetime: 2.2,
     }),
   );
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
   game.playerFireTimer = playerGunFireInterval(game);
 }
 
@@ -403,10 +432,19 @@ function stepEnemy(game, enemy, dt) {
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
   stepEnemyPatterns(game, enemy, dt);
+  updateEnemyVisualHeading(enemy, dt);
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
   enemy.vx *= Math.pow(0.78, dt);
   enemy.vy *= Math.pow(0.78, dt);
+}
+
+function updateEnemyVisualHeading(enemy, dt) {
+  if (enemy.kind === 'boss' || enemy.silhouette !== 'pirateShip') return;
+  const speed = Math.hypot(enemy.vx, enemy.vy);
+  if (speed <= 8) return;
+  const target = Math.atan2(enemy.vy, enemy.vx);
+  enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? target, target, 5.8 * dt);
 }
 
 function stepEnhancedEnemy(game, enemy, dt) {
@@ -502,7 +540,7 @@ function stepBossLaser(game, boss, arm, dt) {
     return false;
   }
   laser.timer -= dt;
-  if (laser.timer > 4 / 60) {
+  if (laser.timer > BOSS_LASER_LOCK_TIME) {
     laser.target = { x: game.vehicle.x, y: game.vehicle.y };
   }
   laser.source = source;
@@ -523,6 +561,7 @@ function stepBossLaser(game, boss, arm, dt) {
       color: '#ff2626',
     }),
   );
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BEAM);
   arm.laser = null;
   return false;
 }
@@ -532,7 +571,7 @@ function fireBossArmAttack(game, boss, arm) {
   if (!source) return;
   const roll = game.rng.next();
   if (roll > 0.9) {
-    arm.laser = { source, target: { x: game.vehicle.x, y: game.vehicle.y }, timer: 1.12, duration: 1.12 };
+    arm.laser = { source, target: { x: game.vehicle.x, y: game.vehicle.y }, timer: BOSS_LASER_CHARGE_TIME, duration: BOSS_LASER_CHARGE_TIME };
     return;
   }
   if (roll > 0.72) {
@@ -559,6 +598,7 @@ function fireBossStandardShot(game, source, arm) {
       angle,
     }),
   );
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
 function fireBossDelayedShot(game, source, arm) {
@@ -581,6 +621,7 @@ function fireBossDelayedShot(game, source, arm) {
       maxSpeed: 275,
     }),
   );
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
 function fireBossProtectiveShot(game, source, arm) {
@@ -599,6 +640,7 @@ function fireBossProtectiveShot(game, source, arm) {
       absorbHp: 24,
     }),
   );
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
 function bossArmSource(boss, arm) {
@@ -669,13 +711,20 @@ function fireBossCenterPulse(game, boss) {
       }),
     );
   }
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
 function stepEnemyPatterns(game, enemy, dt) {
   for (const patternState of enemy.patterns ?? []) {
     patternState.timer -= dt;
     if (patternState.timer > 0) continue;
-    game.enemyProjectiles.push(...firePattern(patternState, enemy, game.vehicle, game.rng));
+    const projectiles = firePattern(patternState, enemy, game.vehicle, game.rng);
+    game.enemyProjectiles.push(...projectiles);
+    if (projectiles.length > 0) {
+      enemy.lastFiredAt = game.time;
+      enemy.attackHeading = Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+      emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+    }
     patternState.timer = nextPatternTimer(patternState);
   }
 }
@@ -1000,6 +1049,7 @@ function beamDamageScale(projectile) {
 }
 
 function spawnCannonImpact(game, projectile, enemy) {
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_EXPLOSION);
   game.playerProjectiles.push(
     createProjectile(projectile.x, projectile.y, 0, 0, {
       team: 'player',
@@ -1052,6 +1102,7 @@ function spawnCannonImpact(game, projectile, enemy) {
 
 function spawnRocketImpact(game, projectile, enemy) {
   if ((projectile.blastRadius ?? 0) <= 0) return;
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_EXPLOSION);
   game.playerProjectiles.push(
     createProjectile(projectile.x, projectile.y, 0, 0, {
       team: 'player',
@@ -1143,6 +1194,7 @@ function samplePoisson(rng, mean) {
 
 function explodeEnemy(game, enemy) {
   enemy.explosionStart = game.time;
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
   game.scrapPickups.push(...harvestEnemyScrap(enemy, game.rng));
   game.playerProjectiles.push(
     createProjectile(enemy.x, enemy.y, 0, 0, {
@@ -1181,6 +1233,12 @@ function directionFromTo(from, to) {
   const distance = Math.hypot(dx, dy);
   if (distance <= 0.001) return { x: 0, y: -1 };
   return { x: dx / distance, y: dy / distance };
+}
+
+function turnTowardAngle(current, target, maxStep) {
+  const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
+  if (Math.abs(delta) <= maxStep) return target;
+  return current + Math.sign(delta) * maxStep;
 }
 
 function steerEnemyBackToLaneCenter(enemy, road, dt) {
