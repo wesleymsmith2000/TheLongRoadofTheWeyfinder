@@ -977,6 +977,13 @@ function handleCollisions(game) {
   }
 
   for (const projectile of game.playerProjectiles) {
+    if (projectile.readyToExplode) {
+      projectile.lifetime = 0;
+      projectile.readyToExplode = false;
+      if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
+      if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile);
+      continue;
+    }
     if (projectile.lifetime <= 0) continue;
     if (projectile.behavior === 'arc' && !projectile.arcLanded) continue;
     if (projectile.behavior === 'beam') {
@@ -1140,9 +1147,6 @@ function hitDestructiblePlayerProjectile(game, enemyProjectile) {
 
 function projectileReachedDetonationTarget(projectile) {
   if (!projectile.detonateAtTarget || !projectile.targetHint) return false;
-  if (projectile.detonateDistance != null && projectile.startX != null && projectile.startY != null) {
-    return Math.hypot(projectile.x - projectile.startX, projectile.y - projectile.startY) >= projectile.detonateDistance;
-  }
   const target = projectile.targetHint;
   const dx = projectile.x - projectile.previousX;
   const dy = projectile.y - projectile.previousY;
@@ -1151,7 +1155,11 @@ function projectileReachedDetonationTarget(projectile) {
   const along = ((target.x - projectile.previousX) * dx + (target.y - projectile.previousY) * dy) / lengthSquared;
   const t = clamp(along, 0, 1);
   const closest = { x: projectile.previousX + dx * t, y: projectile.previousY + dy * t };
-  return distanceSquared(closest, target) <= Math.max(projectile.radius, 5) ** 2 && along >= 0;
+  if (distanceSquared(closest, target) <= Math.max(projectile.radius, 5) ** 2 && along >= 0) return true;
+  if (projectile.detonateDistance != null && projectile.startX != null && projectile.startY != null) {
+    return Math.hypot(projectile.x - projectile.startX, projectile.y - projectile.startY) >= projectile.detonateDistance;
+  }
+  return false;
 }
 
 function shieldedProjectile(game, projectile) {

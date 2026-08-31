@@ -79,8 +79,9 @@ export function stepProjectiles(projectiles, dt, targets = []) {
     projectile.y += projectile.vy * dt;
     if (projectile.behavior === 'arc') stepArcProjectile(projectile, dt);
     projectile.lifetime -= dt;
+    if (projectile.lifetime <= 0 && projectile.detonateAtTarget) projectile.readyToExplode = true;
   }
-  return projectiles.filter((projectile) => projectile.lifetime > 0);
+  return projectiles.filter((projectile) => projectile.lifetime > 0 || projectile.readyToExplode);
 }
 
 function stepArcProjectile(projectile, dt) {

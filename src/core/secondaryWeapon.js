@@ -1,4 +1,5 @@
 import { createProjectile } from './projectile.js';
+import { compensatedAimHeading } from './turret.js';
 import { gunMuzzleWorld } from './vehicle.js';
 import { CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
@@ -48,7 +49,12 @@ export function fireSecondary(game) {
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return false;
   const targetHint = (def.targetHint === 'aimReticle' || def.behavior === 'beam') && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
-  const angle = def.behavior === 'beam' && targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
+  const angle =
+    targetHint && def.detonateAtTarget
+      ? compensatedAimHeading(game.vehicle, targetHint, def.projectileSpeed)
+      : def.behavior === 'beam' && targetHint
+        ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x)
+        : game.vehicle.turretHeading;
   const useVehicleVelocityOnly = Boolean(def.usesVehicleVelocityOnly);
   const detonateDistance = def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null;
   game.playerProjectiles.push(

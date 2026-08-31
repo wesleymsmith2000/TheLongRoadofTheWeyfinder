@@ -219,13 +219,30 @@ test('secondary upgrades alter projectile stats', () => {
 test('cannon detonates when it reaches the selected aim reticle', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
-  game.vehicle.turretHeading = 0;
+  game.vehicle.turretHeading = Math.PI;
   const muzzle = gunMuzzleWorld(game.vehicle);
-  game.aimReticle = { x: muzzle.x + 47.5, y: muzzle.y, active: true, source: 'pointer' };
+  const target = { x: muzzle.x + 47.5, y: muzzle.y };
+  game.aimReticle = { ...target, active: true, source: 'pointer' };
   game.enemies = [];
   game.enemySpawnQueue = [{ at: 10, enemy: createEnemy(game.vehicle.x + 800, game.vehicle.y), markerShown: false, type: 'standard' }];
   fireSecondary(game);
+  const fuseTarget = game.playerProjectiles[0].targetHint;
   for (let index = 0; index < 16; index += 1) stepGame(game, { secondarySelect: 'cannon', gunnerEnabled: false }, 1 / 60);
+  const blast = game.playerProjectiles.find((projectile) => projectile.weapon === 'cannon-blast');
+  assert.equal(Boolean(blast), true);
+  assert.equal(Math.hypot(blast.x - fuseTarget.x, blast.y - fuseTarget.y) < 8, true);
+});
+
+test('cannon detonates instead of vanishing when its target fuse expires short', () => {
+  const game = createGame();
+  game.secondary.selected = 'cannon';
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  game.aimReticle = { x: muzzle.x + 800, y: muzzle.y, active: true, source: 'pointer' };
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  fireSecondary(game);
+  game.playerProjectiles[0].lifetime = 0.001;
+  stepGame(game, { secondarySelect: 'cannon', gunnerEnabled: false }, 1 / 60);
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'cannon-blast'), true);
 });
 
