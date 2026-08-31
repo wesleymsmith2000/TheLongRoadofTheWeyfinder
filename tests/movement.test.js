@@ -24,3 +24,21 @@ test('vehicle physics tolerates partial input snapshots', () => {
   assert.equal(Number.isFinite(vehicle.x), true);
   assert.equal(Number.isFinite(vehicle.heading), true);
 });
+
+test('engine acceleration upgrade increases movement response', () => {
+  const base = createStartingVehicle();
+  const upgraded = createStartingVehicle();
+  stepVehicle(base, { x: 0, y: -1 }, 1 / 10, 0);
+  stepVehicle(upgraded, { x: 0, y: -1 }, 1 / 10, 0, { engineAcceleration: 2 });
+  assert.equal(Math.abs(upgraded.vy) > Math.abs(base.vy), true);
+});
+
+test('wheel inertia compensation improves release deceleration', () => {
+  const base = createStartingVehicle();
+  const upgraded = createStartingVehicle();
+  base.vx = 100;
+  upgraded.vx = 100;
+  stepVehicle(base, {}, 0.5, 0);
+  stepVehicle(upgraded, {}, 0.5, 0, { wheelInertiaCompensation: 3 });
+  assert.equal(Math.abs(upgraded.vx) < Math.abs(base.vx), true);
+});

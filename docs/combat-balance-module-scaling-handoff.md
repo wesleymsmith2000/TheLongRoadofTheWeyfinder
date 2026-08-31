@@ -30,7 +30,9 @@ Player modules:
 - Main gun fire interval scales by `sqrt(activeGunCount)`.
 - Main gun projectile radius is doubled and base projectile speed is increased by 50%.
 - Engine module power now scales acceleration/top-speed contribution with the square root of active engine integrity.
+- Engine and wheel mobility contributions were boosted by 50%, and base acceleration/max velocity were boosted by about 50%.
 - Wheel module power now improves braking/grounding and release drag. Asymmetric wheels still feed the existing wobble/pull behavior.
+- Upgrade shop now includes `engineAcceleration`, `engineMaxVelocity`, and `wheelInertiaCompensation`.
 
 ## Editor Follow-Up
 
@@ -39,12 +41,13 @@ Weapon and construct editors should expose these assumptions:
 - Multiple gun cells are meaningful as distinct firing points.
 - Multiple engine cells are meaningful for acceleration and max speed, with diminishing returns.
 - Multiple wheel cells are meaningful for braking/control, with diminishing returns.
+- Mobility upgrades should be grouped under a `Mobility` system: engine acceleration, engine max velocity, and wheel inertia compensation.
 - Cannon/mortar-style weapons should prefer `targetHint: "aimReticle"` plus detonation distance/reticle semantics.
 - Explosive weapon previews should treat excess damage as tunneling through consecutive voxels while blast power remains.
 
 ## Still Worth Doing
 
 - Move boss nodule firing, beam source binding, and redirect projectile tuning fully into enemy archetype data.
-- Add UI readouts for active gun/engine/wheel counts and their resulting multipliers.
+- Add UI readouts for active gun/engine/wheel counts, mobility upgrade levels, and resulting multipliers.
 - Add a true mortar weapon entry using `behavior: "arc"` plus the new blast propagation model.
 - Add editor controls for blast propagation loss/resistance once materials exist.

@@ -129,7 +129,7 @@ export function stepGame(game, input, dt) {
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
   stepEnemySpawner(game, dt);
-  stepVehicle(game.vehicle, input, dt, game.road.heading);
+  stepVehicle(game.vehicle, input, dt, game.road.heading, game.upgrades);
   configureBoostFromUpgrades(game);
   stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
   const turretInput = aimInputForTurret(game, input, dt);
