@@ -16,6 +16,15 @@ import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
 import { createPrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
+import {
+  createLocalContentBundleFromFiles,
+  createRegistryWithLocalContent,
+  installLocalContentBundle,
+  installLocalContentFiles,
+  instantiateLocalLevel,
+  listLocalContentPacks,
+  removeLocalContentPack,
+} from './core/localContentLibrary.js';
 import { ACHIEVEMENT_DEFINITIONS, achievementRewardText, achievementStatsFromGame, awardAchievements } from './core/achievements.js';
 import { consumeSoundEvents, SOUND_EVENTS } from './core/soundEvents.js';
 import {
@@ -232,6 +241,7 @@ document.documentElement.style.setProperty('--level-complete-art', `url("${level
 document.documentElement.style.setProperty('--level-fail-art', `url("${levelFailArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
+exposeLocalContentModuleApi();
 populateUpgradeSelect();
 refreshRepairTargets();
 renderAchievements();
@@ -580,6 +590,30 @@ function syncProgressHud() {
 
 function levelNameFromTrack(trackName = '') {
   return trackName.replaceAll('_', ' ').replace(/([a-z])([A-Z])/g, '$1 $2') || `Level ${game.level}`;
+}
+
+function exposeLocalContentModuleApi() {
+  window.WeyfinderContentModules = Object.freeze({
+    createBundleFromFiles: createLocalContentBundleFromFiles,
+    async installFiles(fileList, options = {}) {
+      return installLocalContentFiles(fileList, { storage: localStorage, ...options });
+    },
+    installBundle(bundle, options = {}) {
+      return installLocalContentBundle(bundle, { storage: localStorage, ...options });
+    },
+    listPacks() {
+      return listLocalContentPacks(localStorage);
+    },
+    removePack(packId) {
+      return removeLocalContentPack(packId, localStorage);
+    },
+    createRegistry() {
+      return createRegistryWithLocalContent(localStorage);
+    },
+    instantiateLevel(levelId, seed = 0) {
+      return instantiateLocalLevel(levelId, { storage: localStorage, seed });
+    },
+  });
 }
 
 function soundPlayerFor(src) {

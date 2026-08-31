@@ -42,6 +42,14 @@ export function createContentRegistry() {
   };
 }
 
+export function contentKindForManifestKey(key) {
+  return MANIFEST_KEY_TO_KIND[key] ?? null;
+}
+
+export function manifestKeyForContentKind(kind) {
+  return KIND_TO_MANIFEST_KEY[kind] ?? null;
+}
+
 export function validateContentPack(manifest, assetResolver) {
   const errors = [];
   const warnings = [];
