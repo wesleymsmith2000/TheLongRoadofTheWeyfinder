@@ -981,8 +981,7 @@ function handleCollisions(game) {
     if (projectile.readyToExplode) {
       projectile.lifetime = 0;
       projectile.readyToExplode = false;
-      if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
-      if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile);
+      detonatePlayerProjectile(game, projectile);
       continue;
     }
     if (projectile.lifetime <= 0) continue;
@@ -998,13 +997,12 @@ function handleCollisions(game) {
     }
     if (projectileReachedDetonationTarget(projectile)) {
       projectile.lifetime = 0;
-      if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
+      detonatePlayerProjectile(game, projectile);
       continue;
     }
     if (projectile.behavior === 'arc' && projectile.arcLanded) {
       projectile.lifetime = 0;
-      if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
-      if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile);
+      detonatePlayerProjectile(game, projectile);
       continue;
     }
     for (const enemy of activeEnemies(game)) {
@@ -1025,12 +1023,23 @@ function handleCollisions(game) {
         enemy.vx += projectile.vx * 0.004;
         enemy.vy += projectile.vy * 0.004;
         if (hit.destroyedNow) explodeEnemy(game, enemy);
-        if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile, enemy);
-        if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile, enemy);
+        detonatePlayerProjectile(game, projectile, enemy);
         break;
       }
     }
   }
+  game.playerProjectiles = game.playerProjectiles.filter((projectile) => !projectile.detonated);
+}
+
+function detonatePlayerProjectile(game, projectile, enemy) {
+  if (projectile.detonated) return;
+  projectile.detonated = true;
+  projectile.lifetime = 0;
+  projectile.readyToExplode = false;
+  projectile.vx = 0;
+  projectile.vy = 0;
+  if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile, enemy);
+  if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile, enemy);
 }
 
 function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
@@ -1142,9 +1151,7 @@ function hitDestructiblePlayerProjectile(game, enemyProjectile) {
     const hit = applyRocketHullDamage(projectile, enemyProjectile);
     if (!hit.hit) continue;
     if (hit.destroyed) {
-      projectile.lifetime = 0;
-      if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile);
-      if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
+      detonatePlayerProjectile(game, projectile);
     }
     return true;
   }

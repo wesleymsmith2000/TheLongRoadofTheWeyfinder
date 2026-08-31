@@ -262,6 +262,21 @@ test('cannon detonates instead of vanishing when its target fuse expires short',
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'cannon-blast'), true);
 });
 
+test('detonated cannon shell is removed and cannot spawn repeated blasts', () => {
+  const game = createGame();
+  game.secondary.selected = 'cannon';
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  game.aimReticle = { x: muzzle.x + 30, y: muzzle.y, active: true, source: 'pointer' };
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: 10, enemy: createEnemy(game.vehicle.x + 800, game.vehicle.y), markerShown: false, type: 'standard' }];
+  fireSecondary(game);
+  for (let index = 0; index < 30; index += 1) stepGame(game, { secondarySelect: 'cannon', gunnerEnabled: false }, 1 / 60);
+  const cannonShells = game.playerProjectiles.filter((projectile) => projectile.weapon === 'cannon');
+  const cannonBlasts = game.playerProjectiles.filter((projectile) => projectile.weapon === 'cannon-blast');
+  assert.equal(cannonShells.length, 0);
+  assert.equal(cannonBlasts.length <= 1, true);
+});
+
 test('beam upgrades reduce width growth and base damage while ammo upgrades expand reserve', () => {
   const game = createGame();
   game.secondary.selected = 'beam';

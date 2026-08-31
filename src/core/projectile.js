@@ -37,6 +37,8 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     shrapnelCount: options.shrapnelCount ?? 0,
     shrapnelDamageScale: options.shrapnelDamageScale ?? 1,
     pierce: options.pierce ?? 0,
+    pierceDamageScale: options.pierceDamageScale ?? 0.7,
+    pierceDamageFalloff: options.pierceDamageFalloff ?? 0.68,
     delayBeforeAcceleration: options.delayBeforeAcceleration ?? 0,
     accelerationDuration: options.accelerationDuration ?? Infinity,
     accelerationElapsed: 0,
@@ -67,6 +69,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
 
 export function stepProjectiles(projectiles, dt, targets = []) {
   for (const projectile of projectiles) {
+    if (projectile.lifetime <= 0 && !projectile.readyToExplode) continue;
     projectile.previousX = projectile.x;
     projectile.previousY = projectile.y;
     if (projectile.delayedAcceleration) stepDelayedAcceleration(projectile, targets, dt);
