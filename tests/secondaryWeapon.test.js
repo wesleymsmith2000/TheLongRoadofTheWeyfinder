@@ -180,6 +180,20 @@ test('cannon impact creates blast shrapnel', () => {
   assert.equal(game.score.damageDone > 18, true);
 });
 
+test('cannon flechettes inherit pierce and doubled fragment velocity', () => {
+  const game = createGame();
+  game.secondary.selected = 'cannon';
+  game.vehicle.turretHeading = 0;
+  game.upgrades.cannonFlechettePierce = 2;
+  game.enemies[0].x = game.vehicle.x + CELL_SIZE * 2.25;
+  game.enemies[0].y = game.vehicle.y;
+  fireSecondary(game);
+  stepGame(game, { secondarySelect: 'cannon' }, 0.08);
+  const shrapnel = game.playerProjectiles.filter((projectile) => projectile.weapon === 'cannon-shrapnel');
+  assert.equal(shrapnel.every((projectile) => projectile.pierce === 2), true);
+  assert.equal(shrapnel.some((projectile) => Math.hypot(projectile.vx, projectile.vy) > 80), true);
+});
+
 test('cannon impact blast shoves nearby enemies without requiring a direct hit', () => {
   const game = createGame();
   game.road.halfWidth = 1000;
@@ -210,10 +224,12 @@ test('secondary upgrades alter projectile stats', () => {
   game.upgrades.cannonImpactDamage = 1;
   game.upgrades.cannonVelocity = 2;
   game.upgrades.cannonShrapnelCount = 2;
+  game.upgrades.cannonFlechettePierce = 3;
   fireSecondary(game);
   assert.equal(game.playerProjectiles[0].damage.toFixed(1), '37.8');
   assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy) > 135, true);
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
+  assert.equal(game.playerProjectiles[0].pierce, 3);
 });
 
 test('cannon detonates when it reaches the selected aim reticle', () => {

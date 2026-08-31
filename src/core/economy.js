@@ -28,6 +28,7 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'cannonShrapnelDamage', label: 'Cannon Shrapnel Damage', system: 'Cannon' },
   { id: 'cannonKnockback', label: 'Cannon Knockback', system: 'Cannon' },
   { id: 'cannonVelocity', label: 'Cannon Shot Velocity', system: 'Cannon' },
+  { id: 'cannonFlechettePierce', label: 'Cannon Flechette Pierce', system: 'Cannon' },
   { id: 'cannonFireRate', label: 'Cannon Fire Rate', system: 'Cannon' },
   { id: 'rocketAmmo', label: 'Rocket Ammo Capacity', system: 'Rocket' },
   { id: 'rocketImpactDamage', label: 'Rocket Impact Damage', system: 'Rocket' },

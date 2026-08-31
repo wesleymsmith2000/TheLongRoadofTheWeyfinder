@@ -17,6 +17,8 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
     assert.equal(runtime.id, definition.assetId);
     assert.equal(runtime.damage, definition.projectile.damage);
     assert.equal(runtime.radius, definition.projectile.radius);
+    assert.equal(runtime.pierceDamageScale, definition.projectile.pierceDamageScale ?? 0.7);
+    assert.equal(runtime.pierceDamageFalloff, definition.projectile.pierceDamageFalloff ?? 0.68);
   }
 });
 

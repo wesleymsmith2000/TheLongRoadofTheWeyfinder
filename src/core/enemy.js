@@ -319,6 +319,38 @@ export function applyEnemyVoxelDamage(enemy, hit, damage) {
   return { hit: true, cell: hit.cell, removed, destroyedNow: !wasDestroyed && enemy.destroyed };
 }
 
+export function applyEnemyProjectilePierceDamage(enemies, projectile, options = {}) {
+  const pierce = Math.max(0, Math.floor(projectile.pierce ?? 0));
+  if (pierce <= 0 || projectile.damage <= 0) return { hit: false, removed: 0, destroyedNow: false, destroyedEnemies: [] };
+  const angle = projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
+  const unit = CELL_SIZE / VOXELS;
+  const start = {
+    x: projectile.x + Math.cos(angle) * unit,
+    y: projectile.y + Math.sin(angle) * unit,
+  };
+  const maxLength = options.maxLength ?? unit * (pierce + 2) * 2.4;
+  let power = projectile.damage * (projectile.pierceDamageScale ?? 0.7);
+  const falloff = projectile.pierceDamageFalloff ?? 0.68;
+  const hits = traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce);
+  let hit = false;
+  let removed = 0;
+  let destroyedNow = false;
+  const destroyedEnemies = [];
+  for (const voxelHit of hits) {
+    if (power <= 0.05) break;
+    const result = applyEnemyVoxelDamage(voxelHit.enemy, voxelHit, power);
+    if (!result.hit) continue;
+    hit = true;
+    removed += result.removed;
+    if (result.destroyedNow) {
+      destroyedNow = true;
+      destroyedEnemies.push(voxelHit.enemy);
+    }
+    power = Math.max(0, power - voxelHit.maxHpBeforeDamage) * falloff;
+  }
+  return { hit, removed, destroyedNow, destroyedEnemies };
+}
+
 export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   if (enemy.destroyed) return { hit: false, removed: 0, destroyedNow: false };
   const voxelSize = CELL_SIZE / VOXELS;
@@ -525,7 +557,7 @@ function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0)
     const key = enemyVoxelKey(hit);
     if (pierced.has(key)) continue;
     pierced.add(key);
-    hits.push({ ...hit, x: point.x, y: point.y, distance });
+    hits.push({ ...hit, maxHpBeforeDamage: hit.voxel.hp, x: point.x, y: point.y, distance });
     if (hits.length >= maxHits) break;
   }
   return hits;

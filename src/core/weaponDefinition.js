@@ -68,6 +68,8 @@ export function runtimeWeaponDefinition(definition) {
     shrapnelCount: projectile.shrapnelCount ?? 0,
     shrapnelDamageScale: projectile.shrapnelDamageScale ?? 1,
     pierce: projectile.pierce ?? 0,
+    pierceDamageScale: projectile.pierceDamageScale ?? 0.7,
+    pierceDamageFalloff: projectile.pierceDamageFalloff ?? 0.68,
     frames: projectile.frames ?? 0,
     destructible: Boolean(projectile.destructible),
     shape: projectile.shape ?? null,
@@ -91,6 +93,9 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.damage, 'projectile.damage', errors, { min: 0 });
   validateNumber(projectile.impulse, 'projectile.impulse', errors, { min: 0 });
   validateNumber(projectile.lifetime, 'projectile.lifetime', errors, { min: 0 });
+  validateNumber(projectile.pierce ?? 0, 'projectile.pierce', errors, { min: 0 });
+  validateNumber(projectile.pierceDamageScale ?? 0.7, 'projectile.pierceDamageScale', errors, { min: 0 });
+  validateNumber(projectile.pierceDamageFalloff ?? 0.68, 'projectile.pierceDamageFalloff', errors, { min: 0, max: 1 });
   if (projectile.verticalVelocity != null) validateNumber(projectile.verticalVelocity, 'projectile.verticalVelocity', errors, { min: 0 });
   if (projectile.vz != null) validateNumber(projectile.vz, 'projectile.vz', errors, { min: 0 });
   if (projectile.gravity != null) validateNumber(projectile.gravity, 'projectile.gravity', errors, { min: 0 });
@@ -113,6 +118,7 @@ function validateNumber(value, label, errors, options = {}) {
   }
   if (options.integer && !Number.isInteger(value)) errors.push(`${label} must be an integer.`);
   if (options.min != null && value < options.min) errors.push(`${label} must be at least ${options.min}.`);
+  if (options.max != null && value > options.max) errors.push(`${label} must be at most ${options.max}.`);
 }
 
 function validateProjectileHull(projectile, errors, warnings) {

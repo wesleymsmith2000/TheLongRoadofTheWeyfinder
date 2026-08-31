@@ -54,13 +54,16 @@ Important flags and knobs already supported or reserved for editors:
 - `targetHint`: use `aimReticle` when a projectile should interact with the player-selected target point.
 - `detonateAtTarget`: useful for cannon shells that burst at the reticle.
 - `destructible`: lets rockets and shells be damaged in flight.
-- `pierce`: beam voxel penetration depth after the first damageable voxel.
+- `pierce`: projectile or beam voxel penetration depth after the first damageable voxel.
+- `pierceDamageScale`, `pierceDamageFalloff`: follow-through damage controls for ballistic flechette-style projectiles.
 - `width`: beam width in world units, scaled by upgrade multipliers.
 - `blastOnExpire`: delayed or stopped projectiles can create a blast payload.
 - `delayBeforeAcceleration`, `stopBeforeAcceleration`, `acceleration`, `accelerationDuration`: useful for staged enemy shots.
 - `absorbsPlayerProjectiles`, `absorbHp`: useful for shields, ramming fronts, and protective bullets.
 
 Editors should preview these knobs visually, but the exported asset should stay pure JSON and should not require editor UI state to play.
+
+See `docs/weapon-loadout-and-flechette-handoff.md` for the near-term turret loadout direction: gun cells should eventually expose one primary slot, up to three secondary slots, square-root stacking for duplicate weapons, and round-robin firing through active emplacements.
 
 ## Level, Obstacle, And Road Content
 

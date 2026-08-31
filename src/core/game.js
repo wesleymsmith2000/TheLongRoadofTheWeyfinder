@@ -19,6 +19,7 @@ import { createBoostState, stepBoost } from './boost.js';
 import {
   applyEnemyBlastDamage,
   applyEnemyDamage,
+  applyEnemyProjectilePierceDamage,
   applyEnemyVoxelDamage,
   createBossEnemy,
   createEnemy,
@@ -1015,6 +1016,11 @@ function handleCollisions(game) {
       const hit = applyEnemyDamage(enemy, projectile);
       if (hit.hit) {
         game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
+        const pierce = applyEnemyProjectilePierceDamage(activeEnemies(game), projectile);
+        if (pierce.hit) {
+          game.score.damageDone += Math.round(projectile.damage * 0.35 + pierce.removed * 3);
+          for (const piercedEnemy of pierce.destroyedEnemies) explodeEnemy(game, piercedEnemy);
+        }
         projectile.lifetime = 0;
         enemy.vx += projectile.vx * 0.004;
         enemy.vy += projectile.vy * 0.004;
@@ -1306,14 +1312,17 @@ function spawnCannonImpact(game, projectile, enemy) {
   for (let index = 0; index < fragmentCount; index += 1) {
     const fan = ((index / (fragmentCount - 1)) - 0.5) * Math.PI * 1.35;
     const angle = baseAngle + fan + game.rng.range(-0.08, 0.08);
-    const speed = game.rng.range(42.5, 77.5);
+    const speed = game.rng.range(85, 155);
     game.playerProjectiles.push(
       createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
         weapon: 'cannon-shrapnel',
-          radius: game.rng.range(0.7, 1.1),
+        radius: game.rng.range(0.7, 1.1),
         damage: projectile.damage * (projectile.shrapnelDamageScale ?? 1) * game.rng.range(0.1, 0.18),
         impulse: projectile.impulse * 0.08,
+        pierce: projectile.pierce,
+        pierceDamageScale: projectile.pierceDamageScale,
+        pierceDamageFalloff: projectile.pierceDamageFalloff,
         lifetime: game.rng.range(0.22, 0.42),
       }),
     );

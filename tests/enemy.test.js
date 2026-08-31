@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   applyEnemyBlastDamage,
   applyEnemyDamage,
+  applyEnemyProjectilePierceDamage,
   createBossEnemy,
   createEnemy,
   createEnhancedEnemy,
@@ -97,6 +98,27 @@ test('blast excess damage propagates through consecutive voxels in range', () =>
   });
   assert.equal(result.hit, true);
   assert.equal(result.removed > 4, true);
+});
+
+test('projectile pierce carries damage into voxels behind the first struck module', () => {
+  const enemy = createEnemy(0, 0);
+  const core = enemy.cells.find((cell) => cell.type === 'core');
+  const before = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const projectile = createProjectile(-CELL_SIZE, 0, 100, 0, {
+    team: 'player',
+    weapon: 'test-flechette',
+    damage: 100,
+    radius: 0.4,
+    pierce: 12,
+    pierceDamageScale: 1,
+    pierceDamageFalloff: 0.9,
+  });
+  const impact = applyEnemyDamage(enemy, projectile);
+  const pierce = applyEnemyProjectilePierceDamage([enemy], projectile);
+  const after = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(impact.hit, true);
+  assert.equal(pierce.hit, true);
+  assert.equal(after < before, true);
 });
 
 test('destroyed enemy remaining voxels become collectible scrap', () => {

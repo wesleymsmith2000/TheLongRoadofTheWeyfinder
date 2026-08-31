@@ -30,6 +30,9 @@
     "blastKnockback": 55,
     "shrapnelCount": 28,
     "shrapnelDamageScale": 1,
+    "pierce": 0,
+    "pierceDamageScale": 0.85,
+    "pierceDamageFalloff": 0.72,
     "destructible": true,
     "shape": {
       "kind": "cylinderCone",

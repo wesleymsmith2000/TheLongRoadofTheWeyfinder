@@ -124,6 +124,9 @@ function upgradedSecondaryDefinition(game, weapon) {
       blastKnockback: 55 * multiplier(game, 'cannonKnockback'),
       shrapnelCount: 28 + level(game, 'cannonShrapnelCount'),
       shrapnelDamageScale: multiplier(game, 'cannonShrapnelDamage'),
+      pierce: level(game, 'cannonFlechettePierce'),
+      pierceDamageScale: 0.85,
+      pierceDamageFalloff: 0.72,
       targetHint: 'aimReticle',
       detonateAtTarget: true,
     };

@@ -5,7 +5,8 @@ Pull latest `main` before continuing editor work.
 Latest relevant checkpoints:
 
 ```text
-pending/current: Boost mobility upgrade scaling
+pending/current: Cannon flechette pierce and weapon loadout direction
+0eb5937 Boost mobility upgrade scaling
 f25d968 Rotate main gun firing points
 28ec68a Rebalance explosives and module scaling
 ```
@@ -19,6 +20,8 @@ docs/combat-balance-module-scaling-handoff.md
 ## Runtime Changes Editors Should Match
 
 - Weapon/projectile editors should show the current canon rocket/cannon sizes, speeds, blast radii, and blast damage from `content/weapons/rocket.json` and `content/weapons/cannon.json`.
+- Weapon/projectile editors should expose general projectile pierce fields: `pierce`, `pierceDamageScale`, and `pierceDamageFalloff`.
+- Weapon loadout editors should target `docs/weapon-loadout-and-flechette-handoff.md`: one primary slot plus up to three secondary slots per gun cell, duplicate-weapon square-root scaling, and round-robin firing mounts.
 - Pattern editors should show redirect projectile fields from `content/patterns/enemy_radial_burst.json`: delayed stop, triple redirect acceleration, triple max speed, and doubled projectile/blast radius.
 - Construct editors should treat every active `gun` cell as a real firing point.
 - Construct editors should treat additional `engine` cells as acceleration/top-speed contributors with diminishing returns.
