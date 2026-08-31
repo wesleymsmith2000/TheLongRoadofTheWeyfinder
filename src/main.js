@@ -42,6 +42,7 @@ import {
 import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairTargetOptions } from './core/vehicle.js';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import levelFailArt from '../assets/images/level_fail_screen.png';
+import pauseArt from '../assets/images/pause_screen.png';
 import repairArt from '../assets/images/repair_screen.png';
 import weaponIconSheet from '../assets/images/weapon_and_ammo_icon_spritesheet.png';
 import bossFight1Music from '../assets/music/BossFight_1.mp3';
@@ -254,6 +255,7 @@ const virtualPointer = {
 };
 document.documentElement.style.setProperty('--level-complete-art', `url("${levelCompleteArt}")`);
 document.documentElement.style.setProperty('--level-fail-art', `url("${levelFailArt}")`);
+document.documentElement.style.setProperty('--pause-art', `url("${pauseArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
 exposeLocalContentModuleApi();
