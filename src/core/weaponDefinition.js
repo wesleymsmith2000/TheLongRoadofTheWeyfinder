@@ -2,7 +2,7 @@ import { CELL_SIZE } from './voxelMask.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 
 export const WEAPON_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
-export const PROJECTILE_BEHAVIORS = ['ballistic', 'homing', 'beam', 'blast'];
+export const PROJECTILE_BEHAVIORS = ['ballistic', 'homing', 'beam', 'blast', 'arc'];
 export const PROJECTILE_TEAMS = ['player', 'enemy'];
 
 export function validateWeaponDefinition(definition) {
@@ -51,6 +51,10 @@ export function runtimeWeaponDefinition(definition) {
     impulse: projectile.impulse,
     behavior: projectile.behavior,
     lifetime: projectile.lifetime,
+    verticalVelocity: projectile.verticalVelocity ?? projectile.vz ?? 0,
+    gravity: projectile.gravity ?? 0,
+    maxArcHeight: projectile.maxArcHeight ?? projectile.arcHeight ?? 1,
+    shadowRadius: projectile.shadowRadius ?? projectile.radius,
     length: projectile.length ?? 0,
     turnRate: projectile.turnRate ?? 0,
     acceleration: projectile.acceleration ?? 0,
@@ -87,6 +91,14 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.damage, 'projectile.damage', errors, { min: 0 });
   validateNumber(projectile.impulse, 'projectile.impulse', errors, { min: 0 });
   validateNumber(projectile.lifetime, 'projectile.lifetime', errors, { min: 0 });
+  if (projectile.verticalVelocity != null) validateNumber(projectile.verticalVelocity, 'projectile.verticalVelocity', errors, { min: 0 });
+  if (projectile.vz != null) validateNumber(projectile.vz, 'projectile.vz', errors, { min: 0 });
+  if (projectile.gravity != null) validateNumber(projectile.gravity, 'projectile.gravity', errors, { min: 0 });
+  if (projectile.maxArcHeight != null) validateNumber(projectile.maxArcHeight, 'projectile.maxArcHeight', errors, { min: 0.001 });
+  if (projectile.arcHeight != null) validateNumber(projectile.arcHeight, 'projectile.arcHeight', errors, { min: 0.001 });
+  if (projectile.shadowRadius != null) validateNumber(projectile.shadowRadius, 'projectile.shadowRadius', errors, { min: 0 });
+  if (projectile.behavior === 'arc' && (projectile.gravity ?? 0) <= 0) warnings.push('Arc projectile has no positive gravity.');
+  if (projectile.behavior === 'arc' && (projectile.verticalVelocity ?? projectile.vz ?? 0) <= 0) warnings.push('Arc projectile has no positive verticalVelocity.');
   if (projectile.behavior === 'homing' && (projectile.turnRate ?? 0) <= 0) warnings.push('Homing projectile has no positive turnRate.');
   if (projectile.behavior === 'homing' && (projectile.acceleration ?? 0) <= 0) warnings.push('Homing projectile has no positive acceleration.');
   validateProjectileHull(projectile, errors, warnings);

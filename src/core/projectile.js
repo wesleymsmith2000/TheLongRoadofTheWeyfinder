@@ -18,6 +18,12 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     behavior: options.behavior ?? 'ballistic',
     lifetime: options.lifetime ?? 4,
     maxLifetime: options.lifetime ?? 4,
+    z: options.z ?? options.altitude ?? 0,
+    vz: options.vz ?? options.verticalVelocity ?? 0,
+    gravity: options.gravity ?? 0,
+    maxArcHeight: Math.max(1, options.maxArcHeight ?? options.arcHeight ?? options.altitude ?? 1),
+    shadowRadius: options.shadowRadius ?? options.radius ?? 4,
+    arcLanded: false,
     frames: options.frames ?? 0,
     turnRate: options.turnRate ?? 0,
     acceleration: options.acceleration ?? 0,
@@ -67,9 +73,22 @@ export function stepProjectiles(projectiles, dt, targets = []) {
     }
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
+    if (projectile.behavior === 'arc') stepArcProjectile(projectile, dt);
     projectile.lifetime -= dt;
   }
   return projectiles.filter((projectile) => projectile.lifetime > 0);
+}
+
+function stepArcProjectile(projectile, dt) {
+  if (projectile.arcLanded) return;
+  projectile.z += projectile.vz * dt - 0.5 * projectile.gravity * dt * dt;
+  projectile.vz -= projectile.gravity * dt;
+  projectile.maxArcHeight = Math.max(projectile.maxArcHeight, projectile.z, 1);
+  if (projectile.z > 0) return;
+  projectile.z = 0;
+  projectile.vz = 0;
+  projectile.arcLanded = true;
+  projectile.readyToExplode = true;
 }
 
 function stepDelayedAcceleration(projectile, targets, dt) {

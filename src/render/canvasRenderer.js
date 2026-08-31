@@ -502,6 +502,10 @@ function drawProjectiles(ctx, projectiles, color) {
       drawBlast(ctx, projectile);
       continue;
     }
+    if (projectile.behavior === 'arc') {
+      drawArcProjectile(ctx, projectile, color);
+      continue;
+    }
     if (projectile.weapon === 'boss-missile') {
       drawBossMissile(ctx, projectile);
       continue;
@@ -524,6 +528,27 @@ function drawProjectiles(ctx, projectiles, color) {
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawArcProjectile(ctx, projectile, color) {
+  const heightRatio = Math.max(0, Math.min(1, projectile.z / Math.max(1, projectile.maxArcHeight ?? 1)));
+  const visualY = projectile.y - projectile.z;
+  const scale = 1 + heightRatio * 0.55;
+  ctx.save();
+  ctx.globalAlpha = 0.18 + (1 - heightRatio) * 0.26;
+  ctx.fillStyle = '#050506';
+  ctx.beginPath();
+  ctx.ellipse(projectile.x, projectile.y, projectile.shadowRadius * (1 - heightRatio * 0.45), projectile.shadowRadius * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = projectile.color ?? color;
+  ctx.beginPath();
+  ctx.arc(projectile.x, visualY, projectile.radius * scale, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#f4fffb';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawBossMissile(ctx, projectile) {

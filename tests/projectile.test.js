@@ -36,6 +36,23 @@ test('delayed acceleration aims at the live target position when it launches', (
   assert.equal(Math.abs(projectile.vy) < 0.001, true);
 });
 
+test('arc projectile lands after vertical motion resolves', () => {
+  const projectile = createProjectile(0, 0, 10, 0, {
+    behavior: 'arc',
+    verticalVelocity: 20,
+    gravity: 40,
+    maxArcHeight: 5,
+    lifetime: 2,
+  });
+  stepProjectiles([projectile], 0.25);
+  assert.equal(projectile.arcLanded, false);
+  assert.equal(projectile.z > 0, true);
+  stepProjectiles([projectile], 0.8);
+  assert.equal(projectile.arcLanded, true);
+  assert.equal(projectile.readyToExplode, true);
+  assert.equal(projectile.z, 0);
+});
+
 test('destructible rocket hull takes section voxel damage', () => {
   const rocket = createProjectile(0, 0, 0, 0, {
     weapon: 'rocket',

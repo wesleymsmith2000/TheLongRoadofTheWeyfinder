@@ -38,6 +38,36 @@ test('content registry accepts status effect assets for creator packs', () => {
   assert.equal(getAvailableContent(registry, 'statusEffect').length, 1);
 });
 
+test('weapon validation accepts arcing projectile fields', () => {
+  const registry = createContentRegistry();
+  const mortar = registerContentAsset(
+    registry,
+    'weapon',
+    {
+      schemaVersion: '0.1',
+      assetId: 'test.mortar',
+      displayName: 'Test Mortar',
+      ammo: 6,
+      heat: 8,
+      cooldown: 1.2,
+      projectile: {
+        behavior: 'arc',
+        projectileSpeed: 45,
+        radius: 3,
+        damage: 12,
+        impulse: 90,
+        lifetime: 3,
+        verticalVelocity: 80,
+        gravity: 100,
+        maxArcHeight: 32,
+        shadowRadius: 5,
+      },
+    },
+    'test.pack',
+  );
+  assert.equal(mortar.assetId, 'test.mortar');
+});
+
 test('level dependency resolution reports missing simulation assets before play', () => {
   const registry = createContentRegistry();
   registerContentAsset(registry, 'level', prototypeLevelDefinition, canonPackManifest.packId);

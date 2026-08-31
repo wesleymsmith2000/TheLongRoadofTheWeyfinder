@@ -100,6 +100,10 @@ function createPatternProjectile(source, emitter, angle, target = null, rng = nu
     damage: projectile.damage,
     impulse: projectile.impulse,
     lifetime: projectile.lifetime,
+    verticalVelocity: projectile.verticalVelocity ?? projectile.vz ?? 0,
+    gravity: projectile.gravity ?? 0,
+    maxArcHeight: projectile.maxArcHeight ?? projectile.arcHeight ?? 1,
+    shadowRadius: projectile.shadowRadius ?? projectile.radius,
     delayBeforeAcceleration: projectile.delayBeforeAcceleration ?? 0,
     stopBeforeAcceleration: projectile.stopBeforeAcceleration,
     acceleration: projectile.acceleration ?? 0,
@@ -143,13 +147,19 @@ function validateProjectile(projectile, errors) {
     return;
   }
   if (!['player', 'enemy'].includes(projectile.team)) errors.push('emitter.projectile.team must be player or enemy.');
-  if (!['ballistic', 'homing', 'beam', 'blast'].includes(projectile.behavior)) errors.push('emitter.projectile.behavior is not available.');
+  if (!['ballistic', 'homing', 'beam', 'blast', 'arc'].includes(projectile.behavior)) errors.push('emitter.projectile.behavior is not available.');
   validateNumber(projectile.radius, 'emitter.projectile.radius', errors, { min: 0 });
   if (projectile.color != null && typeof projectile.color !== 'string') errors.push('emitter.projectile.color must be a string when provided.');
   if (projectile.absorbHp != null) validateNumber(projectile.absorbHp, 'emitter.projectile.absorbHp', errors, { min: 0 });
   validateNumber(projectile.damage, 'emitter.projectile.damage', errors, { min: 0 });
   validateNumber(projectile.impulse, 'emitter.projectile.impulse', errors, { min: 0 });
   validateNumber(projectile.lifetime, 'emitter.projectile.lifetime', errors, { min: 0 });
+  if (projectile.verticalVelocity != null) validateNumber(projectile.verticalVelocity, 'emitter.projectile.verticalVelocity', errors, { min: 0 });
+  if (projectile.vz != null) validateNumber(projectile.vz, 'emitter.projectile.vz', errors, { min: 0 });
+  if (projectile.gravity != null) validateNumber(projectile.gravity, 'emitter.projectile.gravity', errors, { min: 0 });
+  if (projectile.maxArcHeight != null) validateNumber(projectile.maxArcHeight, 'emitter.projectile.maxArcHeight', errors, { min: 0.001 });
+  if (projectile.arcHeight != null) validateNumber(projectile.arcHeight, 'emitter.projectile.arcHeight', errors, { min: 0.001 });
+  if (projectile.shadowRadius != null) validateNumber(projectile.shadowRadius, 'emitter.projectile.shadowRadius', errors, { min: 0 });
   if (projectile.delayBeforeAcceleration != null) validateNumber(projectile.delayBeforeAcceleration, 'emitter.projectile.delayBeforeAcceleration', errors, { min: 0 });
   if (projectile.acceleration != null) validateNumber(projectile.acceleration, 'emitter.projectile.acceleration', errors, { min: 0 });
   if (projectile.accelerationDuration != null) validateNumber(projectile.accelerationDuration, 'emitter.projectile.accelerationDuration', errors, { min: 0 });

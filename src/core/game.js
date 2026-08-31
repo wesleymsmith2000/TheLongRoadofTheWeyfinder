@@ -920,6 +920,7 @@ function boostShieldRadius(game) {
 function handleCollisions(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
+    if (projectile.behavior === 'arc' && !projectile.arcLanded) continue;
     if (projectile.behavior === 'beam') {
       hitVehicleWithEnemyBeam(game, projectile);
       continue;
@@ -937,6 +938,7 @@ function handleCollisions(game) {
 
   for (const projectile of game.playerProjectiles) {
     if (projectile.lifetime <= 0) continue;
+    if (projectile.behavior === 'arc' && !projectile.arcLanded) continue;
     if (projectile.behavior === 'beam') {
       hitEnemiesWithBeam(game, projectile);
       continue;
@@ -949,6 +951,12 @@ function handleCollisions(game) {
     if (projectileReachedDetonationTarget(projectile)) {
       projectile.lifetime = 0;
       if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
+      continue;
+    }
+    if (projectile.behavior === 'arc' && projectile.arcLanded) {
+      projectile.lifetime = 0;
+      if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile);
+      if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile);
       continue;
     }
     for (const enemy of activeEnemies(game)) {
