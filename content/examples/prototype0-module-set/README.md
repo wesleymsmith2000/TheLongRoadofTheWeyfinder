@@ -14,4 +14,4 @@ The pack manifest is:
 packs/example.prototype0_module_set.json
 ```
 
-The set includes example constructs, weapons, enemy firing patterns, enemy archetypes, one level, and one placeholder sound resource descriptor for the level voiceover trigger. The placeholder sound descriptor demonstrates resource references; it does not include an actual audio file yet.
+The set includes example constructs, weapons, enemy firing patterns, one status effect, enemy archetypes, one level, and one placeholder sound resource descriptor for the level voiceover trigger. The placeholder sound descriptor demonstrates resource references; it does not include an actual audio file yet.

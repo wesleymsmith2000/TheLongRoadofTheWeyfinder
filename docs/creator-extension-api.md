@@ -50,6 +50,7 @@ Initial content kinds:
 - `constructs`: voxel/cell layouts, anchors, explicit connections, metadata
 - `weapons`: weapon definitions built from known projectile and beam primitives
 - `patterns`: bullet and firing patterns
+- `statusEffects`: named effect descriptors for hazards, bullets, weapons, biomes, shields, and future module states
 - `enemyArchetypes`: editor-facing enemy model descriptors that bind constructs, patterns, entry behavior, palette, and known runtime factories
 - `behaviors`: declarative movement/targeting/state primitives
 - `encounters`: enemy groups, spawn timing, route-relative placement
@@ -313,6 +314,14 @@ Available projectile behaviors in Prototype 0:
 - `homing`
 - `beam`
 - `blast`
+- `arc`
+
+Arc projectile fields:
+
+- `verticalVelocity`: initial upward velocity.
+- `gravity`: downward acceleration.
+- `maxArcHeight`: visual height cap.
+- `shadowRadius`: ground tell / landing-shadow size.
 
 Particle beams are width-aware at the voxel layer. Runtime sampling follows the animated beam width, damages the first damageable voxel on each sampled lane, and continues through additional voxels only according to `pierce`. Wide low-pierce beams strip surface area; narrow high-pierce beams drill deeper.
 
@@ -389,6 +398,47 @@ Available pattern emitters in Prototype 0:
 - `sequentialRadial`
 
 `sequentialRadial` fires one spoke per interval and keeps sequence state in the runtime pattern state. It may provide `sequenceRest` to pause after a full ring.
+
+Pattern projectile payloads may also use `behavior: "arc"` with the same `verticalVelocity`, `gravity`, `maxArcHeight`, and `shadowRadius` fields used by weapon projectiles. Enemy arcing shells can use `blastOnExpire` as their landing payload.
+
+## Current Status Effect Contract
+
+Current runtime/editor entry points:
+
+```text
+src/core/statusEffects.js
+src/core/contentRegistry.js
+src/core/localContentLibrary.js
+```
+
+A minimal status effect:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "id": "example.acid_splash",
+  "type": "acid",
+  "intensity": 1.2,
+  "duration": 5,
+  "materialRules": {
+    "metal": 1,
+    "ceramic": 0.4,
+    "gold": 0
+  }
+}
+```
+
+Current `type` values:
+
+- `fire`
+- `acid`
+- `frost`
+- `ionSurge`
+- `shield`
+- `refractive`
+- `reflective`
+
+Status effects are schema and editor-contract primitives in this prototype. Full runtime simulation for spreading fire, armor erosion, frost/ion failures, shielding, refraction, and reflection is still follow-up work.
 
 ## Current Enemy Archetype Contract
 

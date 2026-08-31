@@ -77,6 +77,10 @@
         line-height: 1.45;
       }
 
+      textarea.compact {
+        min-height: 92px;
+      }
+
       .shell {
         display: grid;
         grid-template-rows: auto 1fr;
@@ -240,6 +244,7 @@
             <div class="mode-row">
               <button id="weaponModeButton" type="button" aria-pressed="true">Weapon</button>
               <button id="patternModeButton" type="button" aria-pressed="false">Pattern</button>
+              <button id="statusEffectModeButton" type="button" aria-pressed="false">Status Effect</button>
             </div>
             <label>
               Canon Asset
@@ -288,12 +293,19 @@
               <label>Lifetime <input id="weaponLifetimeInput" type="number" min="0" step="0.1" /></label>
               <label>Length <input id="weaponLengthInput" type="number" min="0" step="10" /></label>
             </div>
+            <div class="wide-split">
+              <label>Vertical Velocity <input id="weaponVerticalVelocityInput" type="number" min="0" step="1" /></label>
+              <label>Gravity <input id="weaponGravityInput" type="number" min="0" step="1" /></label>
+              <label>Arc Height <input id="weaponMaxArcHeightInput" type="number" min="0" step="1" /></label>
+            </div>
+            <label>Shadow Radius <input id="weaponShadowRadiusInput" type="number" min="0" step="0.5" /></label>
           </div>
           <div id="patternFields" class="form" hidden>
             <div class="split">
               <label>Emitter <select id="patternKindSelect"></select></label>
               <label>Target <select id="patternTargetSelect"><option value="player">player</option></select></label>
             </div>
+            <label>Projectile Behavior <select id="patternBehaviorSelect"></select></label>
             <div class="wide-split">
               <label>Delay <input id="initialDelayInput" type="number" min="0" step="0.1" /></label>
               <label>Interval <input id="intervalInput" type="number" min="0.001" step="0.05" /></label>
@@ -329,11 +341,28 @@
               <label>Absorbs Shots <input id="absorbsPlayerProjectilesInput" type="checkbox" /></label>
             </div>
             <div class="wide-split">
+              <label>Vertical Velocity <input id="patternVerticalVelocityInput" type="number" min="0" step="1" /></label>
+              <label>Gravity <input id="patternGravityInput" type="number" min="0" step="1" /></label>
+              <label>Arc Height <input id="patternMaxArcHeightInput" type="number" min="0" step="1" /></label>
+            </div>
+            <label>Shadow Radius <input id="patternShadowRadiusInput" type="number" min="0" step="0.5" /></label>
+            <div class="wide-split">
               <label>Blast Radius <input id="blastRadiusInput" type="number" min="0" step="0.5" /></label>
               <label>Blast Damage <input id="blastDamageInput" type="number" min="0" step="0.5" /></label>
               <label>Blast Impulse <input id="blastImpulseInput" type="number" min="0" step="1" /></label>
             </div>
             <label>Projectile Lifetime <input id="patternLifetimeInput" type="number" min="0" step="0.1" /></label>
+          </div>
+          <div id="statusEffectFields" class="form" hidden>
+            <div class="wide-split">
+              <label>Type <select id="statusEffectTypeSelect"></select></label>
+              <label>Intensity <input id="statusEffectIntensityInput" type="number" min="0" step="0.1" /></label>
+              <label>Duration <input id="statusEffectDurationInput" type="number" min="0" step="0.1" /></label>
+            </div>
+            <label>
+              Material Rules JSON
+              <textarea id="statusEffectMaterialRulesInput" class="compact" spellcheck="false"></textarea>
+            </label>
           </div>
         </aside>
         <section class="panel preview-panel">

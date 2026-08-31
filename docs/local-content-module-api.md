@@ -63,7 +63,7 @@ An importable example module set is available at:
 content/examples/prototype0-module-set/
 ```
 
-It mirrors the current Prototype 0 level, enemy archetypes, construct, weapons, patterns, and one placeholder voiceover resource descriptor using `example.*` asset ids. In the Creator Suite, click **Install Example**, or use **Import Folder** and select `prototype0-module-set` from a local checkout, to install it into browser-local storage.
+It mirrors the current Prototype 0 level, enemy archetypes, construct, weapons, patterns, one status effect, and one placeholder voiceover resource descriptor using `example.*` asset ids. In the Creator Suite, click **Install Example**, or use **Import Folder** and select `prototype0-module-set` from a local checkout, to install it into browser-local storage.
 
 ## Supported Asset Kinds
 

@@ -26,6 +26,9 @@
       "../patterns/example.enemy_aimed_shot.json",
       "../patterns/example.enemy_radial_burst.json"
     ],
+    "statusEffects": [
+      "../status_effects/example.acid_splash.json"
+    ],
     "enemyArchetypes": [
       "../enemies/example.prototype0_enemy_archetypes.json"
     ],

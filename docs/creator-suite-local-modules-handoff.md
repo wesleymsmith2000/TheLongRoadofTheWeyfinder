@@ -76,6 +76,7 @@ It is namespaced with `example.*` ids and contains:
 - two construct definitions
 - three weapon definitions
 - two enemy pattern definitions
+- one status effect definition
 - one enemy archetype pack
 - one level definition
 - one placeholder sound resource descriptor

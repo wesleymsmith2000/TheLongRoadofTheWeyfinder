@@ -1,5 +1,6 @@
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION } from '../core/contentSchema.js';
 import { PATTERN_EMITTER_KINDS, validatePatternDefinition } from '../core/patternDefinition.js';
+import { STATUS_EFFECT_DEFINITIONS, STATUS_EFFECT_TYPES, validateStatusEffectDefinition } from '../core/statusEffects.js';
 import { PROJECTILE_BEHAVIORS, validateWeaponDefinition } from '../core/weaponDefinition.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
@@ -10,12 +11,26 @@ import radialPatternDefinition from '../../content/patterns/enemy_radial_burst.j
 const canonAssets = {
   weapon: [rocketDefinition, cannonDefinition, beamDefinition],
   pattern: [aimedPatternDefinition, radialPatternDefinition],
+  statusEffect: Object.values(STATUS_EFFECT_DEFINITIONS).map((definition) => ({
+    schemaVersion: CONTENT_SCHEMA_VERSION,
+    id: definition.id,
+    displayName: definition.label,
+    type: definition.id,
+    intensity: 1,
+    duration: definition.defaultDuration,
+    stackMode: definition.stackMode,
+    materialRules: {},
+    editorTags: definition.editorTags,
+    canonStatus: 'EXPERIMENTAL',
+    tags: ['status-effect', ...definition.editorTags],
+  })),
 };
 
 const canvas = document.querySelector('#previewCanvas');
 const context = canvas.getContext('2d');
 const weaponModeButton = document.querySelector('#weaponModeButton');
 const patternModeButton = document.querySelector('#patternModeButton');
+const statusEffectModeButton = document.querySelector('#statusEffectModeButton');
 const assetSelect = document.querySelector('#assetSelect');
 const downloadButton = document.querySelector('#downloadButton');
 const copyJsonButton = document.querySelector('#copyJsonButton');
@@ -25,6 +40,7 @@ const statusPanel = document.querySelector('#statusPanel');
 const statsTitle = document.querySelector('#statsTitle');
 const weaponFields = document.querySelector('#weaponFields');
 const patternFields = document.querySelector('#patternFields');
+const statusEffectFields = document.querySelector('#statusEffectFields');
 
 const fields = Object.fromEntries(
   [
@@ -43,8 +59,13 @@ const fields = Object.fromEntries(
     'weaponImpulseInput',
     'weaponLifetimeInput',
     'weaponLengthInput',
+    'weaponVerticalVelocityInput',
+    'weaponGravityInput',
+    'weaponMaxArcHeightInput',
+    'weaponShadowRadiusInput',
     'patternKindSelect',
     'patternTargetSelect',
+    'patternBehaviorSelect',
     'initialDelayInput',
     'intervalInput',
     'countInput',
@@ -65,10 +86,18 @@ const fields = Object.fromEntries(
     'patternColorInput',
     'absorbsPlayerProjectilesInput',
     'absorbHpInput',
+    'patternVerticalVelocityInput',
+    'patternGravityInput',
+    'patternMaxArcHeightInput',
+    'patternShadowRadiusInput',
     'blastRadiusInput',
     'blastDamageInput',
     'blastImpulseInput',
     'patternLifetimeInput',
+    'statusEffectTypeSelect',
+    'statusEffectIntensityInput',
+    'statusEffectDurationInput',
+    'statusEffectMaterialRulesInput',
   ].map((id) => [id, document.querySelector(`#${id}`)]),
 );
 
@@ -77,10 +106,13 @@ let asset = clone(canonAssets.weapon[0]);
 
 for (const status of CANON_STATUSES) fields.canonStatusSelect.append(new Option(status, status));
 for (const behavior of PROJECTILE_BEHAVIORS) fields.weaponBehaviorSelect.append(new Option(behavior, behavior));
+for (const behavior of PROJECTILE_BEHAVIORS) fields.patternBehaviorSelect.append(new Option(behavior, behavior));
 for (const kind of PATTERN_EMITTER_KINDS) fields.patternKindSelect.append(new Option(kind, kind));
+for (const type of STATUS_EFFECT_TYPES) fields.statusEffectTypeSelect.append(new Option(STATUS_EFFECT_DEFINITIONS[type].label, type));
 
 weaponModeButton.addEventListener('click', () => setMode('weapon'));
 patternModeButton.addEventListener('click', () => setMode('pattern'));
+statusEffectModeButton.addEventListener('click', () => setMode('statusEffect'));
 assetSelect.addEventListener('change', () => loadSelectedAsset());
 downloadButton.addEventListener('click', downloadJson);
 copyJsonButton.addEventListener('click', async () => navigator.clipboard.writeText(jsonOutput.value));
@@ -93,31 +125,34 @@ function setMode(nextMode) {
   mode = nextMode;
   weaponModeButton.setAttribute('aria-pressed', String(mode === 'weapon'));
   patternModeButton.setAttribute('aria-pressed', String(mode === 'pattern'));
+  statusEffectModeButton.setAttribute('aria-pressed', String(mode === 'statusEffect'));
   weaponFields.hidden = mode !== 'weapon';
   patternFields.hidden = mode !== 'pattern';
-  statsTitle.textContent = mode === 'weapon' ? 'Weapon Stats' : 'Pattern Stats';
+  statusEffectFields.hidden = mode !== 'statusEffect';
+  statsTitle.textContent = mode === 'weapon' ? 'Weapon Stats' : mode === 'pattern' ? 'Pattern Stats' : 'Status Effect';
   populateAssetSelect();
   loadSelectedAsset();
 }
 
 function populateAssetSelect() {
-  assetSelect.replaceChildren(...canonAssets[mode].map((definition) => new Option(definition.displayName ?? definition.assetId, definition.assetId)));
+  assetSelect.replaceChildren(...canonAssets[mode].map((definition) => new Option(definition.displayName ?? definition.label ?? definition.assetId ?? definition.id, definition.assetId ?? definition.id)));
 }
 
 function loadSelectedAsset() {
-  asset = clone(canonAssets[mode].find((definition) => definition.assetId === assetSelect.value) ?? canonAssets[mode][0]);
+  asset = clone(canonAssets[mode].find((definition) => (definition.assetId ?? definition.id) === assetSelect.value) ?? canonAssets[mode][0]);
   syncAssetToFields();
   render();
 }
 
 function syncAssetToFields() {
-  fields.assetIdInput.value = asset.assetId ?? '';
-  fields.displayNameInput.value = asset.displayName ?? '';
+  fields.assetIdInput.value = asset.assetId ?? asset.id ?? '';
+  fields.displayNameInput.value = asset.displayName ?? asset.label ?? '';
   fields.schemaInput.value = asset.schemaVersion ?? CONTENT_SCHEMA_VERSION;
   fields.canonStatusSelect.value = asset.canonStatus ?? 'EXPERIMENTAL';
   fields.tagsInput.value = (asset.tags ?? []).join(', ');
   if (mode === 'weapon') syncWeaponToFields();
   if (mode === 'pattern') syncPatternToFields();
+  if (mode === 'statusEffect') syncStatusEffectToFields();
 }
 
 function syncWeaponToFields() {
@@ -132,6 +167,10 @@ function syncWeaponToFields() {
   fields.weaponImpulseInput.value = projectile.impulse ?? 0;
   fields.weaponLifetimeInput.value = projectile.lifetime ?? 0;
   fields.weaponLengthInput.value = projectile.length ?? 0;
+  fields.weaponVerticalVelocityInput.value = projectile.verticalVelocity ?? projectile.vz ?? 0;
+  fields.weaponGravityInput.value = projectile.gravity ?? 0;
+  fields.weaponMaxArcHeightInput.value = projectile.maxArcHeight ?? projectile.arcHeight ?? 1;
+  fields.weaponShadowRadiusInput.value = projectile.shadowRadius ?? projectile.radius ?? 0;
 }
 
 function syncPatternToFields() {
@@ -139,6 +178,7 @@ function syncPatternToFields() {
   const projectile = emitter.projectile ?? {};
   fields.patternKindSelect.value = emitter.kind ?? 'aimed';
   fields.patternTargetSelect.value = emitter.target ?? 'player';
+  fields.patternBehaviorSelect.value = projectile.behavior ?? 'ballistic';
   fields.initialDelayInput.value = asset.initialDelay ?? 0;
   fields.intervalInput.value = asset.interval ?? 1;
   fields.countInput.value = emitter.count ?? 1;
@@ -159,14 +199,25 @@ function syncPatternToFields() {
   fields.patternColorInput.value = projectile.color ?? '#ffb25f';
   fields.absorbsPlayerProjectilesInput.checked = Boolean(projectile.absorbsPlayerProjectiles);
   fields.absorbHpInput.value = projectile.absorbHp ?? 0;
+  fields.patternVerticalVelocityInput.value = projectile.verticalVelocity ?? projectile.vz ?? 0;
+  fields.patternGravityInput.value = projectile.gravity ?? 0;
+  fields.patternMaxArcHeightInput.value = projectile.maxArcHeight ?? projectile.arcHeight ?? 1;
+  fields.patternShadowRadiusInput.value = projectile.shadowRadius ?? projectile.radius ?? 0;
   fields.blastRadiusInput.value = projectile.blastOnExpire?.radius ?? 0;
   fields.blastDamageInput.value = projectile.blastOnExpire?.damage ?? 0;
   fields.blastImpulseInput.value = projectile.blastOnExpire?.impulse ?? 0;
   fields.patternLifetimeInput.value = projectile.lifetime ?? 0;
 }
 
+function syncStatusEffectToFields() {
+  fields.statusEffectTypeSelect.value = asset.type ?? STATUS_EFFECT_TYPES[0];
+  fields.statusEffectIntensityInput.value = asset.intensity ?? 1;
+  fields.statusEffectDurationInput.value = asset.duration ?? STATUS_EFFECT_DEFINITIONS[asset.type]?.defaultDuration ?? 1;
+  fields.statusEffectMaterialRulesInput.value = JSON.stringify(asset.materialRules ?? {}, null, 2);
+}
+
 function renderFromFields() {
-  asset = mode === 'weapon' ? weaponFromFields() : patternFromFields();
+  asset = mode === 'weapon' ? weaponFromFields() : mode === 'pattern' ? patternFromFields() : statusEffectFromFields();
   render();
 }
 
@@ -205,6 +256,14 @@ function weaponFromFields() {
     lifetime: readNumber(fields.weaponLifetimeInput),
     length: readNumber(fields.weaponLengthInput),
   });
+  assignArcFields(projectile, {
+    behavior: fields.weaponBehaviorSelect.value,
+    previousProjectile: asset.projectile,
+    verticalVelocityInput: fields.weaponVerticalVelocityInput,
+    gravityInput: fields.weaponGravityInput,
+    maxArcHeightInput: fields.weaponMaxArcHeightInput,
+    shadowRadiusInput: fields.weaponShadowRadiusInput,
+  });
   return {
     ...baseMetadataFromFields(),
     ammo: readNumber(fields.ammoInput),
@@ -221,7 +280,7 @@ function patternFromFields() {
     ...previousProjectile,
     team: 'enemy',
     weapon: 'bullet',
-    behavior: 'ballistic',
+    behavior: fields.patternBehaviorSelect.value,
     radius: readNumber(fields.patternRadiusInput),
     damage: readNumber(fields.patternDamageInput),
     impulse: readNumber(fields.patternImpulseInput),
@@ -237,6 +296,14 @@ function patternFromFields() {
   assignOptionalNumber(projectile, 'maxSpeed', fields.maxSpeedInput, previousProjectile.maxSpeed);
   assignOptionalNumber(projectile, 'accelerationSpreadRadians', fields.accelerationSpreadInput, previousProjectile.accelerationSpreadRadians);
   assignOptionalBoolean(projectile, 'explodeAfterAcceleration', fields.explodeAfterAccelerationInput, previousProjectile.explodeAfterAcceleration);
+  assignArcFields(projectile, {
+    behavior: fields.patternBehaviorSelect.value,
+    previousProjectile,
+    verticalVelocityInput: fields.patternVerticalVelocityInput,
+    gravityInput: fields.patternGravityInput,
+    maxArcHeightInput: fields.patternMaxArcHeightInput,
+    shadowRadiusInput: fields.patternShadowRadiusInput,
+  });
   const blastOnExpire = optionalBlastOnExpire(previousProjectile.blastOnExpire);
   if (blastOnExpire) projectile.blastOnExpire = blastOnExpire;
 
@@ -256,6 +323,42 @@ function patternFromFields() {
       projectile,
     },
   };
+}
+
+function statusEffectFromFields() {
+  const type = fields.statusEffectTypeSelect.value;
+  const defaults = STATUS_EFFECT_DEFINITIONS[type];
+  const materialRules = parseJsonObject(fields.statusEffectMaterialRulesInput.value, asset.materialRules ?? {});
+  return {
+    schemaVersion: fields.schemaInput.value.trim(),
+    id: fields.assetIdInput.value.trim(),
+    displayName: fields.displayNameInput.value.trim(),
+    type,
+    intensity: readNumber(fields.statusEffectIntensityInput),
+    duration: readNumber(fields.statusEffectDurationInput),
+    stackMode: asset.stackMode ?? defaults.stackMode,
+    materialRules,
+    editorTags: asset.editorTags ?? defaults.editorTags,
+    canonStatus: fields.canonStatusSelect.value,
+    tags: fields.tagsInput.value
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+  };
+}
+
+function assignArcFields(projectile, options) {
+  const previousProjectile = options.previousProjectile ?? {};
+  const shouldEmit = options.behavior === 'arc' || previousProjectile.behavior === 'arc';
+  assignArcNumber(projectile, 'verticalVelocity', options.verticalVelocityInput, previousProjectile.verticalVelocity ?? previousProjectile.vz, shouldEmit);
+  assignArcNumber(projectile, 'gravity', options.gravityInput, previousProjectile.gravity, shouldEmit);
+  assignArcNumber(projectile, 'maxArcHeight', options.maxArcHeightInput, previousProjectile.maxArcHeight ?? previousProjectile.arcHeight, shouldEmit);
+  assignArcNumber(projectile, 'shadowRadius', options.shadowRadiusInput, previousProjectile.shadowRadius, shouldEmit);
+}
+
+function assignArcNumber(target, key, input, previousValue, force) {
+  const value = readNumber(input);
+  if (force || value > 0 || previousValue != null) target[key] = value;
 }
 
 function assignOptionalNumber(target, key, input, previousValue) {
@@ -289,6 +392,7 @@ function drawPreview() {
   drawGrid();
   if (mode === 'weapon') drawWeaponPreview();
   if (mode === 'pattern') drawPatternPreview();
+  if (mode === 'statusEffect') drawStatusEffectPreview();
 }
 
 function drawGrid() {
@@ -318,10 +422,13 @@ function drawWeaponPreview() {
   const length = projectile.behavior === 'beam' ? Math.min(560, projectile.length ?? 360) : Math.min(560, (projectile.projectileSpeed ?? 100) * 2.2);
   context.strokeStyle = projectile.behavior === 'beam' ? '#83f7ff' : '#ffb25f';
   context.lineWidth = projectile.behavior === 'beam' ? Math.max(2, (projectile.radius ?? 1) * 5) : 3;
-  context.beginPath();
-  context.moveTo(origin.x, origin.y);
-  context.lineTo(origin.x + length, origin.y);
-  context.stroke();
+  if (projectile.behavior === 'arc') drawArcProjectilePath(origin, origin.x + length, origin.y, projectile);
+  else {
+    context.beginPath();
+    context.moveTo(origin.x, origin.y);
+    context.lineTo(origin.x + length, origin.y);
+    context.stroke();
+  }
   context.fillStyle = '#f4eee4';
   context.beginPath();
   context.arc(origin.x + length, origin.y, Math.max(3, projectile.radius ?? 3), 0, Math.PI * 2);
@@ -364,18 +471,71 @@ function drawPatternPreview() {
 }
 
 function drawArrow(origin, angle, length, index) {
-  const color = asset.emitter?.projectile?.color ?? (index % 2 === 0 ? '#fff1a8' : '#9be5ff');
+  const projectile = asset.emitter?.projectile ?? {};
+  const color = projectile.color ?? (index % 2 === 0 ? '#fff1a8' : '#9be5ff');
   const end = { x: origin.x + Math.cos(angle) * length, y: origin.y + Math.sin(angle) * length };
   context.strokeStyle = color;
   context.fillStyle = color;
   context.lineWidth = 3;
+  if (projectile.behavior === 'arc') drawArcProjectilePath(origin, end.x, end.y, projectile);
+  else {
+    context.beginPath();
+    context.moveTo(origin.x, origin.y);
+    context.lineTo(end.x, end.y);
+    context.stroke();
+  }
+  context.beginPath();
+  context.arc(end.x, end.y, Math.max(3, projectile.radius ?? 4), 0, Math.PI * 2);
+  context.fill();
+}
+
+function drawArcProjectilePath(origin, endX, endY, projectile) {
+  const height = Math.min(150, Math.max(24, projectile.maxArcHeight ?? projectile.verticalVelocity ?? 40));
+  const midX = (origin.x + endX) / 2;
+  const midY = (origin.y + endY) / 2 - height;
   context.beginPath();
   context.moveTo(origin.x, origin.y);
-  context.lineTo(end.x, end.y);
+  context.quadraticCurveTo(midX, midY, endX, endY);
   context.stroke();
+  context.save();
+  context.strokeStyle = 'rgb(244 238 228 / 0.3)';
+  context.fillStyle = 'rgb(0 0 0 / 0.32)';
   context.beginPath();
-  context.arc(end.x, end.y, Math.max(3, asset.emitter?.projectile?.radius ?? 4), 0, Math.PI * 2);
+  context.ellipse(endX, endY, Math.max(4, projectile.shadowRadius ?? projectile.radius ?? 4), Math.max(2, (projectile.shadowRadius ?? projectile.radius ?? 4) * 0.45), 0, 0, Math.PI * 2);
   context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function drawStatusEffectPreview() {
+  const colors = {
+    fire: '#ff7a1a',
+    acid: '#9cff4a',
+    frost: '#83f7ff',
+    ionSurge: '#c6a7ff',
+    shield: '#6fe0bf',
+    refractive: '#f4eee4',
+    reflective: '#ffd166',
+  };
+  const color = colors[asset.type] ?? '#f4eee4';
+  const center = { x: canvas.width / 2, y: canvas.height / 2 };
+  const intensity = Math.max(0.2, asset.intensity ?? 1);
+  context.fillStyle = color;
+  context.strokeStyle = color;
+  context.globalAlpha = 0.18;
+  context.beginPath();
+  context.arc(center.x, center.y, 70 * intensity, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 0.86;
+  context.lineWidth = 4;
+  context.beginPath();
+  context.arc(center.x, center.y, 42, 0, Math.PI * 2);
+  context.stroke();
+  context.globalAlpha = 1;
+  context.fillStyle = '#f4eee4';
+  context.font = '700 18px Inter, sans-serif';
+  context.textAlign = 'center';
+  context.fillText(asset.displayName ?? STATUS_EFFECT_DEFINITIONS[asset.type]?.label ?? asset.type, center.x, center.y + 7);
 }
 
 function drawArc(x, y, radius, start, end, color) {
@@ -391,10 +551,10 @@ function renderJson() {
 }
 
 function renderStatus() {
-  const report = mode === 'weapon' ? validateWeaponDefinition(asset) : validatePatternDefinition(asset);
+  const report = mode === 'weapon' ? validateWeaponDefinition(asset) : mode === 'pattern' ? validatePatternDefinition(asset) : validateStatusEffectDefinition(asset);
   const lines = [
     `<span><strong>${report.valid ? 'Valid runtime asset' : 'Asset needs changes'}</strong></span>`,
-    `<span>${mode === 'weapon' ? weaponSummary(asset) : patternSummary(asset)}</span>`,
+    `<span>${mode === 'weapon' ? weaponSummary(asset) : mode === 'pattern' ? patternSummary(asset) : statusEffectSummary(asset)}</span>`,
   ];
   lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
   lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));
@@ -406,18 +566,24 @@ function weaponSummary(definition) {
 }
 
 function patternSummary(definition) {
-  return `${definition.emitter?.kind ?? 'unknown'} emitter, ${definition.emitter?.count ?? 0} shots every ${definition.interval ?? 0}s`;
+  return `${definition.emitter?.kind ?? 'unknown'} emitter, ${definition.emitter?.projectile?.behavior ?? 'unknown'} projectile, ${definition.emitter?.count ?? 0} shots every ${definition.interval ?? 0}s`;
+}
+
+function statusEffectSummary(definition) {
+  return `${definition.type ?? 'unknown'} effect, intensity ${definition.intensity ?? 0}, ${definition.duration ?? 0}s duration`;
 }
 
 function applyJson() {
   try {
     const parsed = JSON.parse(jsonOutput.value);
-    mode = parsed.emitter ? 'pattern' : 'weapon';
+    mode = parsed.emitter ? 'pattern' : STATUS_EFFECT_TYPES.includes(parsed.type) ? 'statusEffect' : 'weapon';
     weaponModeButton.setAttribute('aria-pressed', String(mode === 'weapon'));
     patternModeButton.setAttribute('aria-pressed', String(mode === 'pattern'));
+    statusEffectModeButton.setAttribute('aria-pressed', String(mode === 'statusEffect'));
     weaponFields.hidden = mode !== 'weapon';
     patternFields.hidden = mode !== 'pattern';
-    statsTitle.textContent = mode === 'weapon' ? 'Weapon Stats' : 'Pattern Stats';
+    statusEffectFields.hidden = mode !== 'statusEffect';
+    statsTitle.textContent = mode === 'weapon' ? 'Weapon Stats' : mode === 'pattern' ? 'Pattern Stats' : 'Status Effect';
     asset = parsed;
     syncAssetToFields();
     render();
@@ -431,7 +597,7 @@ function downloadJson() {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `${asset.assetId || mode}.json`;
+  anchor.download = `${asset.assetId || asset.id || mode}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -443,6 +609,15 @@ function aimedSpreadOffset(index, count, spread) {
 
 function readNumber(input) {
   return Number(input.value);
+}
+
+function parseJsonObject(value, fallback = {}) {
+  try {
+    const parsed = JSON.parse(value || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function clone(value) {

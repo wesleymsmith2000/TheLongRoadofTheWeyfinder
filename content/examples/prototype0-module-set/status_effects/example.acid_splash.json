@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "0.1",
+  "id": "example.acid_splash",
+  "displayName": "Example Acid Splash",
+  "type": "acid",
+  "intensity": 1.2,
+  "duration": 5,
+  "materialRules": {
+    "metal": 1,
+    "ceramic": 0.4,
+    "gold": 0
+  },
+  "canonStatus": "COMMUNITY",
+  "tags": ["example", "module-set", "status-effect", "acid"]
+}
