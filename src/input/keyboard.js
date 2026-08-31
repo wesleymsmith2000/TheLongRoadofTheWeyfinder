@@ -1,21 +1,28 @@
-export function createKeyboardInput(target = window) {
+import { normalizeControlBindings } from './controlBindings.js';
+
+export function createKeyboardInput(target = window, bindings = {}) {
+  let controlBindings = normalizeControlBindings(bindings).keyboard;
   const keys = new Set();
   const pressed = new Set();
-  const dodge = createDoubleTapDodge();
+  let dodge = createDoubleTapDodge(controlBindings);
   target.addEventListener('keydown', (event) => {
     if (!event.repeat) dodge.keyDown(event.code);
     keys.add(event.code);
     pressed.add(event.code);
-    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) event.preventDefault();
+    if (preventedKeys(controlBindings).has(event.code)) event.preventDefault();
   });
   target.addEventListener('keyup', (event) => {
     keys.delete(event.code);
   });
 
   return {
+    setBindings(bindings) {
+      controlBindings = normalizeControlBindings(bindings).keyboard;
+      dodge = createDoubleTapDodge(controlBindings);
+    },
     read() {
-      const x = axis(keys, 'KeyD', 'ArrowRight') - axis(keys, 'KeyA', 'ArrowLeft');
-      const y = axis(keys, 'KeyS', 'ArrowDown') - axis(keys, 'KeyW', 'ArrowUp');
+      const x = actionHeld(keys, controlBindings.moveRight) - actionHeld(keys, controlBindings.moveLeft);
+      const y = actionHeld(keys, controlBindings.moveDown) - actionHeld(keys, controlBindings.moveUp);
       const turn = 0;
       const dodgeInput = dodge.consume();
       const snapshot = {
@@ -24,17 +31,17 @@ export function createKeyboardInput(target = window) {
         turn,
         aimX: 0,
         aimY: 0,
-        brake: keys.has('Space'),
-        debugTogglePressed: pressed.has('KeyD'),
-        fireTogglePressed: pressed.has('KeyF'),
-        gunnerTogglePressed: pressed.has('KeyG'),
-        resetPressed: pressed.has('KeyR'),
-        controlsTogglePressed: pressed.has('KeyH') || pressed.has('Slash'),
+        brake: actionHeld(keys, controlBindings.brake),
+        debugTogglePressed: actionPressed(pressed, controlBindings.debugToggle),
+        fireTogglePressed: actionPressed(pressed, controlBindings.primaryAutofire),
+        gunnerTogglePressed: actionPressed(pressed, controlBindings.gunnerToggle),
+        resetPressed: actionPressed(pressed, controlBindings.reset),
+        controlsTogglePressed: actionPressed(pressed, controlBindings.controlsToggle),
         dodgePressed: dodgeInput.pressed,
         dodgeX: dodgeInput.x,
         dodgeY: dodgeInput.y,
-        secondaryCycle: pressed.has('KeyQ') ? -1 : pressed.has('KeyE') ? 1 : pressed.has('KeyZ') ? -1 : pressed.has('KeyX') ? 1 : 0,
-        secondaryFirePressed: pressed.has('ShiftLeft') || pressed.has('ShiftRight'),
+        secondaryCycle: actionPressed(pressed, controlBindings.secondaryLeft) ? -1 : actionPressed(pressed, controlBindings.secondaryRight) ? 1 : 0,
+        secondaryFirePressed: actionPressed(pressed, controlBindings.secondaryFire),
       };
       pressed.clear();
       return snapshot;
@@ -42,27 +49,27 @@ export function createKeyboardInput(target = window) {
   };
 }
 
-function axis(keys, primary, alternate = '') {
-  return keys.has(primary) || keys.has(alternate) ? 1 : 0;
+function actionHeld(keys, codes = []) {
+  return codes.some((code) => keys.has(code)) ? 1 : 0;
 }
 
-function createDoubleTapDodge() {
+function actionPressed(pressed, codes = []) {
+  return codes.some((code) => pressed.has(code));
+}
+
+function createDoubleTapDodge(bindings) {
   const lastTap = new Map();
   let pending = { pressed: false, x: 0, y: 0 };
-  const bindings = new Map([
-    ['KeyW', { name: 'up', x: 0, y: -1 }],
-    ['ArrowUp', { name: 'up', x: 0, y: -1 }],
-    ['KeyS', { name: 'down', x: 0, y: 1 }],
-    ['ArrowDown', { name: 'down', x: 0, y: 1 }],
-    ['KeyA', { name: 'left', x: -1, y: 0 }],
-    ['ArrowLeft', { name: 'left', x: -1, y: 0 }],
-    ['KeyD', { name: 'right', x: 1, y: 0 }],
-    ['ArrowRight', { name: 'right', x: 1, y: 0 }],
+  const dodgeBindings = new Map([
+    ...bindings.moveUp.map((code) => [code, { name: 'up', x: 0, y: -1 }]),
+    ...bindings.moveDown.map((code) => [code, { name: 'down', x: 0, y: 1 }]),
+    ...bindings.moveLeft.map((code) => [code, { name: 'left', x: -1, y: 0 }]),
+    ...bindings.moveRight.map((code) => [code, { name: 'right', x: 1, y: 0 }]),
   ]);
 
   return {
     keyDown(code) {
-      const binding = bindings.get(code);
+      const binding = dodgeBindings.get(code);
       if (!binding) return;
       const now = performance.now();
       const previous = lastTap.get(binding.name) ?? -Infinity;
@@ -75,4 +82,8 @@ function createDoubleTapDodge() {
       return value;
     },
   };
+}
+
+function preventedKeys(bindings) {
+  return new Set(['Space', ...bindings.moveUp, ...bindings.moveDown, ...bindings.moveLeft, ...bindings.moveRight, ...bindings.brake]);
 }

@@ -3,6 +3,15 @@ import { configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
 import { createGamepadInput } from './input/gamepad.js';
+import {
+  CONTROL_ACTIONS,
+  DEFAULT_CONTROL_BINDINGS,
+  gamepadButtonLabel,
+  keyLabel,
+  normalizeControlBindings,
+  setGamepadBinding,
+  setKeyboardBinding,
+} from './input/controlBindings.js';
 import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
@@ -133,6 +142,11 @@ const combatPanel = document.querySelector('#combatPanel');
 const debugToggle = document.querySelector('#debugToggle');
 const controlsToggle = document.querySelector('#controlsToggle');
 const controlsPanel = document.querySelector('#controlsPanel');
+const controlConfigToggle = document.querySelector('#controlConfigToggle');
+const controlConfigPanel = document.querySelector('#controlConfigPanel');
+const controlConfigList = document.querySelector('#controlConfigList');
+const controlConfigReset = document.querySelector('#controlConfigReset');
+const controlConfigStatus = document.querySelector('#controlConfigStatus');
 const achievementsToggle = document.querySelector('#achievementsToggle');
 const achievementsPanel = document.querySelector('#achievementsPanel');
 const achievementList = document.querySelector('#achievementList');
@@ -177,8 +191,11 @@ const restartButton = document.querySelector('#restartButton');
 const levelName = document.querySelector('#levelName');
 const levelProgressFill = document.querySelector('#levelProgressFill');
 const renderer = new CanvasRenderer(canvas);
-const keyboard = createKeyboardInput(window);
-const gamepad = createGamepadInput();
+const CONTROL_BINDINGS_STORAGE_KEY = 'weyfinder.prototype0.controlBindings';
+let controlBindings = loadControlBindings();
+let pendingControlCapture = null;
+const keyboard = createKeyboardInput(window, controlBindings);
+const gamepad = createGamepadInput(undefined, controlBindings);
 const mouse = createMouseInput(canvas, (screen) => screenToWorld(screen, game.camera, { width: window.innerWidth, height: window.innerHeight }));
 const touchBoost = createPointerButtonInput(boostButton);
 const touchSecondary = createPointerButtonInput(secondaryFire);
@@ -218,6 +235,7 @@ document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weapon
 populateUpgradeSelect();
 refreshRepairTargets();
 renderAchievements();
+renderControlConfig();
 if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) combatPanel.classList.add('hidden');
 const vehicleEditor = createPlayerVehicleLaunchEditor(
   {
@@ -250,7 +268,8 @@ function frame(now) {
   previous = now;
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
-  updateVirtualPointer(virtualPointer, padInput, dt, awaitingLaunch || game.levelComplete || game.gameOver);
+  pollPendingGamepadBinding();
+  updateVirtualPointer(virtualPointer, padInput, dt, isVirtualPointerEnabled());
   const mouseInput = mouse.read();
   const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
   const touchBoostPressed = touchBoost.consume();
@@ -341,8 +360,11 @@ requestAnimationFrame(frame);
 bindButtonActivation(debugToggle, toggleDebug);
 bindButtonActivation(hudToggle, toggleCombatHud);
 bindButtonActivation(controlsToggle, toggleControls);
+bindButtonActivation(controlConfigToggle, toggleControlConfig);
 bindButtonActivation(achievementsToggle, toggleAchievements);
 bindButtonActivation(launchButton, launchVehicle);
+controlConfigReset.addEventListener('click', resetControlBindings);
+window.addEventListener('keydown', captureKeyboardBinding, { capture: true });
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
 const shopRepairPressed = createButtonPress(shopRepairButton);
@@ -352,6 +374,10 @@ const shopBuyUpgradePressed = createButtonPress(shopBuyUpgradeButton);
 
 function toggleControls() {
   controlsPanel.classList.toggle('hidden');
+}
+
+function toggleControlConfig() {
+  controlConfigPanel.classList.toggle('hidden');
 }
 
 function toggleAchievements() {
@@ -426,6 +452,95 @@ function loadPlayerAccount() {
 
 function savePlayerAccount() {
   localStorage.setItem(PLAYER_ACCOUNT_STORAGE_KEY, JSON.stringify(playerAccount));
+}
+
+function loadControlBindings() {
+  try {
+    return normalizeControlBindings(JSON.parse(localStorage.getItem(CONTROL_BINDINGS_STORAGE_KEY)) ?? DEFAULT_CONTROL_BINDINGS);
+  } catch {
+    return normalizeControlBindings(DEFAULT_CONTROL_BINDINGS);
+  }
+}
+
+function saveControlBindings() {
+  localStorage.setItem(CONTROL_BINDINGS_STORAGE_KEY, JSON.stringify(controlBindings));
+  keyboard.setBindings(controlBindings);
+  gamepad.setBindings(controlBindings);
+  renderControlConfig();
+}
+
+function renderControlConfig() {
+  controlConfigList.replaceChildren(
+    ...CONTROL_ACTIONS.map((action) => {
+      const row = document.createElement('div');
+      row.className = 'control-config-row';
+      const label = document.createElement('strong');
+      label.textContent = action.label;
+      const keyButton = document.createElement('button');
+      keyButton.type = 'button';
+      keyButton.textContent = keyboardBindingLabel(action.id);
+      keyButton.addEventListener('click', () => startControlCapture('keyboard', action.id));
+      const padButton = document.createElement('button');
+      padButton.type = 'button';
+      padButton.textContent = gamepadBindingLabel(action.id);
+      padButton.addEventListener('click', () => startControlCapture('gamepad', action.id));
+      row.append(label, keyButton, padButton);
+      return row;
+    }),
+  );
+}
+
+function keyboardBindingLabel(actionId) {
+  const keys = controlBindings.keyboard[actionId] ?? [];
+  return keys.length ? keys.map(keyLabel).join(' / ') : 'Bind Key';
+}
+
+function gamepadBindingLabel(actionId) {
+  const buttons = controlBindings.gamepad[actionId] ?? [];
+  return buttons.length ? buttons.map(gamepadButtonLabel).join(' / ') : 'Bind Pad';
+}
+
+function startControlCapture(device, actionId) {
+  pendingControlCapture = { device, actionId, awaitRelease: device === 'gamepad' };
+  controlConfigStatus.textContent = device === 'keyboard' ? 'Press a key for this action.' : 'Release the current button, then press a gamepad button.';
+}
+
+function captureKeyboardBinding(event) {
+  if (pendingControlCapture?.device !== 'keyboard') return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  controlBindings = setKeyboardBinding(controlBindings, pendingControlCapture.actionId, event.code);
+  pendingControlCapture = null;
+  controlConfigStatus.textContent = 'Keyboard binding updated.';
+  saveControlBindings();
+}
+
+function pollPendingGamepadBinding() {
+  if (pendingControlCapture?.device !== 'gamepad') return;
+  const buttons = firstConnectedGamepadButtons();
+  if (pendingControlCapture.awaitRelease) {
+    if (buttons.some((button) => button.pressed || button.value > 0.55)) return;
+    pendingControlCapture.awaitRelease = false;
+    controlConfigStatus.textContent = 'Press the gamepad button to bind.';
+    return;
+  }
+  const index = buttons.findIndex((button) => button.pressed || button.value > 0.55);
+  if (index < 0) return;
+  controlBindings = setGamepadBinding(controlBindings, pendingControlCapture.actionId, index);
+  pendingControlCapture = null;
+  controlConfigStatus.textContent = 'Gamepad binding updated.';
+  saveControlBindings();
+}
+
+function firstConnectedGamepadButtons() {
+  return Array.from(navigator.getGamepads?.() ?? []).find((pad) => pad?.connected)?.buttons ?? [];
+}
+
+function resetControlBindings() {
+  pendingControlCapture = null;
+  controlBindings = normalizeControlBindings(DEFAULT_CONTROL_BINDINGS);
+  controlConfigStatus.textContent = 'Bindings reset to defaults.';
+  saveControlBindings();
 }
 
 function refreshAchievementAwards() {
@@ -517,6 +632,17 @@ function axisMagnitude(input) {
   return Math.hypot(input.x ?? 0, input.y ?? 0);
 }
 
+function isVirtualPointerEnabled() {
+  return (
+    awaitingLaunch ||
+    game.levelComplete ||
+    game.gameOver ||
+    !controlsPanel.classList.contains('hidden') ||
+    !controlConfigPanel.classList.contains('hidden') ||
+    !achievementsPanel.classList.contains('hidden')
+  );
+}
+
 function updatePadReticle(reticle, input, dt) {
   const strength = Math.hypot(input.aimX ?? 0, input.aimY ?? 0);
   if (strength > 0.2) {
@@ -570,12 +696,42 @@ function clickVirtualPointer(pointer) {
     virtualCursor.dataset.mode = 'select';
     return;
   }
+  for (const type of ['mousedown', 'mouseup', 'click']) {
+    target.dispatchEvent(
+      new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX: pointer.x,
+        clientY: pointer.y,
+        view: window,
+        button: 0,
+        buttons: type === 'mousedown' ? 1 : 0,
+      }),
+    );
+  }
+}
+
+function virtualScrollAxes(input) {
+  const rightX = input.cursorScrollX ?? 0;
+  const rightY = input.cursorScrollY ?? 0;
+  if (Math.hypot(rightX, rightY) > 0.18) return { x: rightX, y: rightY };
+  return { x: 0, y: 0 };
+}
+
+function dispatchVirtualWheel(pointer, x, y, dt) {
+  virtualCursor.hidden = true;
+  const target = document.elementFromPoint(pointer.x, pointer.y);
+  virtualCursor.hidden = false;
+  if (!target) return;
   target.dispatchEvent(
-    new MouseEvent('click', {
+    new WheelEvent('wheel', {
       bubbles: true,
       cancelable: true,
       clientX: pointer.x,
       clientY: pointer.y,
+      deltaX: x * 620 * dt,
+      deltaY: y * 620 * dt,
+      deltaMode: WheelEvent.DOM_DELTA_PIXEL,
       view: window,
     }),
   );
@@ -601,7 +757,7 @@ function updateVirtualSelect(pointer, input, dt) {
     return;
   }
   pointer.selectRepeat = Math.max(0, pointer.selectRepeat - dt);
-  const y = input.cursorY ?? 0;
+  const { y } = virtualScrollAxes(input);
   if (Math.abs(y) <= 0.55) {
     pointer.selectRepeat = 0;
     return;
@@ -620,16 +776,19 @@ function changeVirtualSelectOption(select, direction) {
 }
 
 function scrollVirtualTarget(pointer, input, dt) {
-  const y = input.cursorY ?? 0;
-  if (Math.abs(y) <= 0.45) return;
+  const { x, y } = virtualScrollAxes(input);
+  if (Math.hypot(x, y) <= 0.2) return;
   virtualCursor.hidden = true;
   const target = document.elementFromPoint(pointer.x, pointer.y);
   virtualCursor.hidden = false;
   const scrollTarget = scrollableAncestor(target);
   if (!scrollTarget) return;
-  const before = scrollTarget.scrollTop;
-  scrollTarget.scrollTop += y * 520 * dt;
-  if (scrollTarget.scrollTop !== before) virtualCursor.dataset.mode = 'scroll';
+  const beforeX = scrollTarget.scrollLeft;
+  const beforeY = scrollTarget.scrollTop;
+  scrollTarget.scrollLeft += x * 620 * dt;
+  scrollTarget.scrollTop += y * 620 * dt;
+  dispatchVirtualWheel(pointer, x, y, dt);
+  if (scrollTarget.scrollLeft !== beforeX || scrollTarget.scrollTop !== beforeY) virtualCursor.dataset.mode = 'scroll';
 }
 
 function scrollableAncestor(element) {
@@ -637,7 +796,8 @@ function scrollableAncestor(element) {
     if (current instanceof HTMLSelectElement) return null;
     const style = window.getComputedStyle(current);
     const canScrollY = /(auto|scroll)/.test(style.overflowY) && current.scrollHeight > current.clientHeight + 1;
-    if (canScrollY) return current;
+    const canScrollX = /(auto|scroll)/.test(style.overflowX) && current.scrollWidth > current.clientWidth + 1;
+    if (canScrollY || canScrollX) return current;
   }
   return null;
 }

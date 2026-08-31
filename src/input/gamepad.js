@@ -1,9 +1,15 @@
+import { normalizeControlBindings } from './controlBindings.js';
+
 const DEADZONE = 0.3;
 
-export function createGamepadInput(source = () => navigator.getGamepads?.() ?? []) {
+export function createGamepadInput(source = () => navigator.getGamepads?.() ?? [], bindings = {}) {
   const previousButtons = new Set();
+  let controlBindings = normalizeControlBindings(bindings).gamepad;
 
   return {
+    setBindings(bindings) {
+      controlBindings = normalizeControlBindings(bindings).gamepad;
+    },
     read() {
       const pad = findStandardPad(source());
       if (!pad) {
@@ -11,7 +17,7 @@ export function createGamepadInput(source = () => navigator.getGamepads?.() ?? [
         return emptyInput();
       }
 
-      const input = mapStandardGamepad(pad, previousButtons);
+      const input = mapStandardGamepad(pad, previousButtons, controlBindings);
       previousButtons.clear();
       for (let index = 0; index < pad.buttons.length; index += 1) {
         if (buttonPressed(pad.buttons[index])) previousButtons.add(index);
@@ -21,7 +27,8 @@ export function createGamepadInput(source = () => navigator.getGamepads?.() ?? [
   };
 }
 
-export function mapStandardGamepad(pad, previousButtons = new Set()) {
+export function mapStandardGamepad(pad, previousButtons = new Set(), bindings = {}) {
+  const controlBindings = normalizeControlBindings({ gamepad: bindings }).gamepad;
   const axes = pad.axes.map((value) => deadzone(value));
   const leftTrigger = buttonValue(pad.buttons[6]);
   const rightTrigger = buttonValue(pad.buttons[7]);
@@ -40,17 +47,19 @@ export function mapStandardGamepad(pad, previousButtons = new Set()) {
     aimY,
     cursorX: strongestAxis(axes[0] ?? 0, dpadX),
     cursorY: strongestAxis(axes[1] ?? 0, dpadY),
-    cursorClickPressed: buttonJustPressed(pad, previousButtons, 0),
-    brake: buttonPressed(pad.buttons[0]) || buttonPressed(pad.buttons[10]),
-    debugTogglePressed: buttonJustPressed(pad, previousButtons, 2),
-    fireTogglePressed: buttonJustPressed(pad, previousButtons, 12),
-    resetPressed: buttonJustPressed(pad, previousButtons, 3),
-    controlsTogglePressed: buttonJustPressed(pad, previousButtons, 8) || buttonJustPressed(pad, previousButtons, 9),
-    dodgePressed: buttonJustPressed(pad, previousButtons, 1),
+    cursorScrollX: aimX,
+    cursorScrollY: aimY,
+    cursorClickPressed: actionJustPressed(pad, previousButtons, controlBindings.cursorClick),
+    brake: actionPressed(pad, controlBindings.brake),
+    debugTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.debugToggle),
+    fireTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.primaryAutofire),
+    resetPressed: actionJustPressed(pad, previousButtons, controlBindings.reset),
+    controlsTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.controlsToggle),
+    dodgePressed: actionJustPressed(pad, previousButtons, controlBindings.dodge),
     dodgeX: axes[0] ?? 0,
     dodgeY: axes[1] ?? 0,
-    secondaryCycle: buttonJustPressed(pad, previousButtons, 5) ? 1 : buttonJustPressed(pad, previousButtons, 4) ? -1 : 0,
-    secondaryFirePressed: buttonJustPressed(pad, previousButtons, 10) || buttonJustPressed(pad, previousButtons, 11),
+    secondaryCycle: actionJustPressed(pad, previousButtons, controlBindings.secondaryRight) ? 1 : actionJustPressed(pad, previousButtons, controlBindings.secondaryLeft) ? -1 : 0,
+    secondaryFirePressed: actionJustPressed(pad, previousButtons, controlBindings.secondaryFire),
   };
 }
 
@@ -68,6 +77,8 @@ function emptyInput() {
     aimY: 0,
     cursorX: 0,
     cursorY: 0,
+    cursorScrollX: 0,
+    cursorScrollY: 0,
     cursorClickPressed: false,
     debugTogglePressed: false,
     fireTogglePressed: false,
@@ -84,6 +95,14 @@ function emptyInput() {
 
 function buttonJustPressed(pad, previousButtons, index) {
   return buttonPressed(pad.buttons[index]) && !previousButtons.has(index);
+}
+
+function actionPressed(pad, buttons = []) {
+  return buttons.some((index) => buttonPressed(pad.buttons[index]));
+}
+
+function actionJustPressed(pad, previousButtons, buttons = []) {
+  return buttons.some((index) => buttonJustPressed(pad, previousButtons, index));
 }
 
 function buttonPressed(button) {

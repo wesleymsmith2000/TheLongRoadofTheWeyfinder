@@ -197,7 +197,7 @@
 
       .achievements-toggle {
         position: fixed;
-        right: 106px;
+        right: 154px;
         top: 14px;
         min-width: 44px;
         height: 36px;
@@ -212,7 +212,7 @@
 
       .debug-toggle {
         position: fixed;
-        right: 58px;
+        right: 106px;
         top: 14px;
         min-width: 44px;
         height: 36px;
@@ -240,6 +240,21 @@
         z-index: 30;
       }
 
+      .control-config-toggle {
+        position: fixed;
+        right: 58px;
+        top: 14px;
+        min-width: 44px;
+        height: 36px;
+        border: 1px solid rgb(244 238 228 / 0.3);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.78);
+        color: #f4eee4;
+        font-weight: 800;
+        letter-spacing: 0;
+        z-index: 30;
+      }
+
       .controls-panel {
         position: fixed;
         right: 14px;
@@ -247,6 +262,9 @@
         width: min(420px, calc(100vw - 28px));
         max-height: calc(100vh - 74px);
         overflow: auto;
+        scrollbar-gutter: stable;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
         padding: 12px 14px;
         border: 1px solid rgb(244 238 228 / 0.22);
         border-radius: 8px;
@@ -264,6 +282,9 @@
         width: min(460px, calc(100vw - 28px));
         max-height: calc(100vh - 74px);
         overflow: auto;
+        scrollbar-gutter: stable;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
         padding: 12px 14px;
         border: 1px solid rgb(244 238 228 / 0.22);
         border-radius: 8px;
@@ -272,6 +293,75 @@
         font-size: 13px;
         line-height: 1.45;
         z-index: 30;
+      }
+
+      .control-config-panel {
+        position: fixed;
+        right: 14px;
+        top: 58px;
+        width: min(540px, calc(100vw - 28px));
+        max-height: calc(100vh - 74px);
+        overflow: auto;
+        padding: 12px 14px;
+        border: 1px solid rgb(244 238 228 / 0.22);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.94);
+        color: #f4eee4;
+        font-size: 13px;
+        line-height: 1.45;
+        scrollbar-color: rgb(247 192 106 / 0.68) rgb(20 23 24 / 0.62);
+        scrollbar-gutter: stable;
+        scrollbar-width: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        z-index: 31;
+      }
+
+      .control-config-panel h2 {
+        margin: 0 0 8px;
+        font-size: 14px;
+      }
+
+      .control-config-panel p {
+        margin: 0 0 8px;
+        color: #d7ceb8;
+      }
+
+      .control-config-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .control-config-row {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) minmax(92px, auto) minmax(92px, auto);
+        gap: 8px;
+        align-items: center;
+        padding: 6px;
+        border: 1px solid rgb(244 238 228 / 0.14);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.58);
+      }
+
+      .control-config-row strong {
+        min-width: 0;
+        font-size: 12px;
+      }
+
+      .control-config-row button,
+      .control-config-reset {
+        min-height: 38px;
+        border: 1px solid rgb(244 238 228 / 0.26);
+        border-radius: 8px;
+        background: rgb(247 192 106 / 0.16);
+        color: #fff6e7;
+        font-weight: 800;
+      }
+
+      .control-config-status {
+        min-height: 20px;
+        margin-top: 8px;
+        color: #83f7ff;
       }
 
       .achievement-list {
@@ -522,6 +612,9 @@
         gap: 6px;
         max-height: 26vh;
         overflow: auto;
+        scrollbar-gutter: stable;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
         padding: 8px;
         border-radius: 8px;
         background: rgb(12 13 13 / 0.62);
@@ -569,6 +662,7 @@
           center / cover no-repeat var(--level-complete-art);
         color: #fff6e7;
         pointer-events: auto;
+        touch-action: pan-y;
         z-index: 20;
       }
 
@@ -587,6 +681,9 @@
         width: min(820px, calc(100vw - 32px));
         max-height: calc(100vh - 32px);
         overflow: auto;
+        scrollbar-gutter: stable;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
         padding: 16px;
         border: 1px solid rgb(244 238 228 / 0.24);
         border-radius: 8px;
@@ -616,6 +713,43 @@
         font-size: 16px;
         font-weight: 800;
         touch-action: manipulation;
+      }
+
+      .controls-panel::-webkit-scrollbar,
+      .achievements-panel::-webkit-scrollbar,
+      .control-config-panel::-webkit-scrollbar,
+      .level-complete-screen::-webkit-scrollbar,
+      .level-complete-content::-webkit-scrollbar,
+      .launch-panel::-webkit-scrollbar,
+      .shop-panel::-webkit-scrollbar,
+      .upgrade-summary::-webkit-scrollbar {
+        width: 14px;
+        height: 14px;
+      }
+
+      .controls-panel::-webkit-scrollbar-thumb,
+      .achievements-panel::-webkit-scrollbar-thumb,
+      .control-config-panel::-webkit-scrollbar-thumb,
+      .level-complete-screen::-webkit-scrollbar-thumb,
+      .level-complete-content::-webkit-scrollbar-thumb,
+      .launch-panel::-webkit-scrollbar-thumb,
+      .shop-panel::-webkit-scrollbar-thumb,
+      .upgrade-summary::-webkit-scrollbar-thumb {
+        border: 3px solid rgb(20 23 24 / 0.92);
+        border-radius: 8px;
+        background: rgb(247 192 106 / 0.68);
+      }
+
+      .controls-panel,
+      .achievements-panel,
+      .control-config-panel,
+      .level-complete-screen,
+      .level-complete-content,
+      .launch-panel,
+      .shop-panel,
+      .upgrade-summary {
+        scrollbar-color: rgb(247 192 106 / 0.68) rgb(20 23 24 / 0.62);
+        scrollbar-width: auto;
       }
 
       .vehicle-editor {
@@ -708,12 +842,17 @@
         }
 
         .debug-toggle {
+          right: 98px;
+          top: 10px;
+        }
+
+        .control-config-toggle {
           right: 54px;
           top: 10px;
         }
 
         .achievements-toggle {
-          right: 98px;
+          right: 146px;
           top: 10px;
         }
 
@@ -729,6 +868,21 @@
           top: 52px;
           width: calc(100vw - 20px);
           font-size: 12px;
+        }
+
+        .control-config-panel {
+          right: 10px;
+          top: 52px;
+          width: calc(100vw - 20px);
+          font-size: 12px;
+        }
+
+        .control-config-row {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .control-config-row strong {
+          grid-column: 1 / -1;
         }
 
         .combat-panel {
@@ -785,6 +939,8 @@
         .level-complete-screen {
           place-items: stretch;
           overflow: auto;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-y;
           padding: 8px;
           font-size: 22px;
         }
@@ -807,6 +963,7 @@
           padding: 10px;
           gap: 8px;
           font-size: 12px;
+          touch-action: pan-y;
         }
 
         .shop-panel button {
@@ -887,17 +1044,26 @@
     </div>
     <button id="hudToggle" class="hud-toggle" type="button" aria-label="Toggle vehicle info">HUD</button>
     <button id="debugToggle" class="debug-toggle" type="button" aria-label="Toggle debug stats">DBG</button>
+    <button id="controlConfigToggle" class="control-config-toggle" type="button" aria-label="Configure controls">CFG</button>
     <button id="achievementsToggle" class="achievements-toggle" type="button" aria-label="Toggle achievements">ACH</button>
     <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
     <div id="achievementsPanel" class="achievements-panel hidden">
       <h2>Achievements</h2>
       <div id="achievementList" class="achievement-list"></div>
     </div>
+    <div id="controlConfigPanel" class="control-config-panel hidden">
+      <h2>Control Bindings</h2>
+      <p>Choose an action, then press the next key or controller button to bind it.</p>
+      <div id="controlConfigList" class="control-config-list"></div>
+      <button id="controlConfigReset" class="control-config-reset" type="button">Reset Defaults</button>
+      <div id="controlConfigStatus" class="control-config-status" aria-live="polite"></div>
+    </div>
     <div id="controlsPanel" class="controls-panel hidden">
       <h2>Help</h2>
       <h3>Controls</h3>
       <p>Keyboard: WASD/arrows move, mouse aims, click fires secondary, Q/E cycles secondary, G toggles gunner AI.</p>
       <p>Controller: left stick moves, right stick aims, triggers rotate, bumpers cycle secondary.</p>
+      <p>When a menu is open, left stick/D-pad moves the cursor, A/B clicks, and right stick scrolls or changes selects.</p>
       <p>Mobile: left side drags movement, right side aims and fires.</p>
       <p>Right stick moves an aim reticle. Comp aim bends manual aim against vehicle velocity so shots pass through the selected point.</p>
       <h3>Combat</h3>

@@ -43,18 +43,28 @@ test('standard gamepad uses triggers for turning and bumpers for secondary cycli
   assert.equal(bumperInput.secondaryCycle, -1);
 });
 
-test('standard gamepad maps right stick to turret aim instead of turn', () => {
+test('standard gamepad maps right stick to turret aim and virtual scroll instead of turn', () => {
   const input = mapStandardGamepad(createPad({ axes: [0, 0, 0.9, -0.9] }));
   assert.equal(input.aimX > 0.8, true);
   assert.equal(input.aimY < -0.8, true);
+  assert.equal(input.cursorScrollX > 0.8, true);
+  assert.equal(input.cursorScrollY < -0.8, true);
   assert.equal(input.turn, 0);
 });
 
-test('standard gamepad exposes launch-screen virtual cursor movement and click', () => {
+test('standard gamepad exposes launch-screen virtual cursor movement and A/B click', () => {
   const input = mapStandardGamepad(createPad({ axes: [0.8, 0, 0, 0], pressed: [0, 12] }));
+  const bInput = mapStandardGamepad(createPad({ pressed: [1] }));
   assert.equal(input.cursorX > 0.7, true);
   assert.equal(input.cursorY < 0, true);
   assert.equal(input.cursorClickPressed, true);
+  assert.equal(bInput.cursorClickPressed, true);
+});
+
+test('standard gamepad honors custom button bindings', () => {
+  const input = mapStandardGamepad(createPad({ pressed: [2] }), new Set(), { secondaryFire: [2], cursorClick: [3] });
+  assert.equal(input.secondaryFirePressed, true);
+  assert.equal(input.cursorClickPressed, false);
 });
 
 function createPad({ axes = [0, 0, 0, 0], pressed = [], buttons = {} } = {}) {
