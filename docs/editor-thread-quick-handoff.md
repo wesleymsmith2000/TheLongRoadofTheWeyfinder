@@ -29,6 +29,7 @@ docs/combat-balance-module-scaling-handoff.md
 - Construct editors should treat additional `wheel` cells as braking/control contributors with diminishing returns and possible asymmetry wobble.
 - Construct editors should show that active engines also scale boost drive capacity/recharge/thrust/duration/speed through square-root module power.
 - Construct editors should show that active guns currently scale boost shield duration/radius/repel/absorption until shield modules are introduced.
+- Booster/editor previews should account for boost exhaust particles: bluish-white/gray, roughly larger than rocket contrail smoke, logarithmic emission scaling from engine power plus boost upgrades, and light contact damage with a future fire-effect hook.
 - Upgrade editors/menus should include Mobility upgrades: `engineAcceleration`, `engineMaxVelocity`, and `wheelInertiaCompensation`.
 - Enemy editors should expose that boss beams must bind to a source cell and shut off when that cell is destroyed.
 - Boss editors should plan for independent arm-nodule shots, even though this is still partly hardcoded in `src/core/game.js`.

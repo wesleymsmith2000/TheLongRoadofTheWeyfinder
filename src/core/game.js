@@ -42,6 +42,7 @@ import {
   refillAmmoWithScrap,
   repairVehicleWithScrap,
   replaceDetachedWithScrap,
+  upgradeLevel,
   upgradeMultiplier,
   upgradeReduction,
 } from './economy.js';
@@ -149,7 +150,9 @@ export function stepGame(game, input, dt) {
   handleEnemyProjectileSpecials(game);
   stepSmokeParticles(game, dt);
   stepRocketContrails(game, dt);
+  stepBoostContrails(game, dt);
   handleCollisions(game);
+  handleBoostExhaustDamage(game);
   accelerateNextSpawnWhenArenaEmpty(game);
   stepScrapPickups(game, dt);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
@@ -1388,6 +1391,66 @@ function stepRocketContrails(game, dt) {
   }
 }
 
+function stepBoostContrails(game, dt) {
+  if (game.boost.driveTime <= 0 || !game.boost.driveDirection) return;
+  const frameCount = Math.max(0, dt * 60);
+  const upgradeCount =
+    upgradeLevel(game, 'boostAcceleration') +
+    upgradeLevel(game, 'boostDuration') +
+    upgradeLevel(game, 'boostRecharge') +
+    upgradeLevel(game, 'boostCapacity');
+  const enginePower = typedModulePower(game.vehicle, 'engine');
+  const scale = 1 + Math.log1p(enginePower + upgradeCount) * 0.85;
+  const mean = (1.5 * scale / 7) * frameCount;
+  const count = Math.min(10, samplePoisson(game.rng, mean));
+  for (let index = 0; index < count; index += 1) spawnBoostSmokeParticle(game, scale);
+}
+
+function spawnBoostSmokeParticle(game, scale = 1) {
+  const colors = ['#e8fbff', '#b8ecff', '#8fa4aa', '#5f686d'];
+  const direction = game.boost.driveDirection ?? { x: Math.cos(game.vehicle.heading), y: Math.sin(game.vehicle.heading) };
+  const exhaustAngle = Math.atan2(-direction.y, -direction.x) + game.rng.range(-0.55, 0.55);
+  const speed = game.rng.range(18, 54);
+  const backOffset = CELL_SIZE * game.rng.range(2.5, 4.4);
+  const sideOffset = game.rng.range(-CELL_SIZE * 0.9, CELL_SIZE * 0.9);
+  const nx = -direction.y;
+  const ny = direction.x;
+  const lifetime = game.rng.range(7, 12) / 60;
+  game.smokeParticles.push({
+    x: game.vehicle.x - direction.x * backOffset + nx * sideOffset,
+    y: game.vehicle.y - direction.y * backOffset + ny * sideOffset,
+    vx: Math.cos(exhaustAngle) * speed + game.vehicle.vx * 0.08,
+    vy: Math.sin(exhaustAngle) * speed + game.vehicle.vy * 0.08,
+    radius: game.rng.range(2.8, 6.4) * Math.min(1.8, scale),
+    color: colors[Math.floor(game.rng.range(0, colors.length))] ?? colors[0],
+    lifetime,
+    maxLifetime: lifetime,
+    team: 'player',
+    weapon: 'boost-exhaust',
+    damage: 2.4 * Math.min(2.4, scale),
+    impulse: 24 * Math.min(2.4, scale),
+    growth: 13.6,
+  });
+}
+
+function handleBoostExhaustDamage(game) {
+  for (const particle of game.smokeParticles) {
+    if (particle.weapon !== 'boost-exhaust' || particle.lifetime <= 0 || particle.damageApplied) continue;
+    for (const enemy of activeEnemies(game)) {
+      if (distanceSquared(particle, enemy) > (particle.radius + enemy.radius) ** 2) continue;
+      const hit = applyEnemyDamage(enemy, particle);
+      if (hit.hit) {
+        particle.damageApplied = true;
+        game.score.damageDone += Math.round(particle.damage + hit.removed * 3);
+        enemy.vx += (particle.vx ?? 0) * 0.01;
+        enemy.vy += (particle.vy ?? 0) * 0.01;
+        if (hit.destroyedNow) explodeEnemy(game, enemy);
+        break;
+      }
+    }
+  }
+}
+
 function spawnRocketSmokeParticle(game, projectile) {
   const colors = projectile.contrail.colors ?? ['#8a8a86', '#1f2020', '#df6f2e'];
   const angle = projectile.angle + Math.PI + game.rng.range(-0.42, 0.42);
@@ -1416,7 +1479,7 @@ function stepSmokeParticles(game, dt) {
     particle.y += particle.vy * dt;
     particle.vx *= Math.pow(0.22, dt);
     particle.vy *= Math.pow(0.22, dt);
-    particle.radius += 3.4 * dt;
+    particle.radius += (particle.growth ?? 3.4) * dt;
     particle.lifetime -= dt;
     if (particle.lifetime > 0) kept.push(particle);
   }

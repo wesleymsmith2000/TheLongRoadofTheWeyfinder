@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { createBoostState, boostRechargeFactor, dodgeDirection, stepBoost } from '../src/core/boost.js';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 import { createGame, stepGame } from '../src/core/game.js';
+import { createEnemy } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
 import { createCell } from '../src/core/cell.js';
 import { createConnection } from '../src/core/connections.js';
+import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('boost dodge spends fuel and pushes in the requested direction', () => {
   const vehicle = createStartingVehicle();
@@ -34,6 +36,42 @@ test('additional engines scale boost drive reserve recharge and duration', () =>
   assert.equal(lightBoost, true);
   assert.equal(engineBoost, true);
   assert.equal(engineGame.vehicle.vx > lightGame.vehicle.vx, true);
+});
+
+test('boost drive emits large bluish exhaust particles while active', () => {
+  const game = createGame();
+  game.rng.next = () => 0.9;
+  game.rng.range = (min, max) => min + (max - min) * game.rng.next();
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: 10, enemy: createEnemy(game.vehicle.x + 800, game.vehicle.y), markerShown: false, type: 'standard' }];
+  game.upgrades.boostAcceleration = 4;
+  game.upgrades.boostDuration = 4;
+  addAttachedCell(game.vehicle, createCell('engine-extra', 'engine', 0, 2), 'engine');
+
+  stepGame(game, { dodgePressed: true, dodgeX: 0, dodgeY: -1, gunnerEnabled: false }, 1 / 60);
+  for (let index = 0; index < 3; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const exhaust = game.smokeParticles.filter((particle) => particle.weapon === 'boost-exhaust');
+  assert.equal(exhaust.length > 0, true);
+  assert.equal(exhaust.some((particle) => particle.radius > 6.4), true);
+  assert.equal(exhaust.every((particle) => ['#e8fbff', '#b8ecff', '#8fa4aa', '#5f686d'].includes(particle.color)), true);
+});
+
+test('boost exhaust particles can damage enemies behind the craft', () => {
+  const game = createGame();
+  game.rng.next = () => 0.2;
+  game.rng.range = (min, max) => min + (max - min) * game.rng.next();
+  game.upgrades.boostAcceleration = 4;
+  game.upgrades.boostDuration = 4;
+  const enemy = createEnemy(game.vehicle.x - CELL_SIZE * 0.9, game.vehicle.y + CELL_SIZE * 2.6);
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { dodgePressed: true, dodgeX: 0, dodgeY: -1, gunnerEnabled: false }, 1 / 60);
+  for (let index = 0; index < 3; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(enemy.damageTaken > 0, true);
+  assert.equal(game.score.damageDone > 0, true);
 });
 
 test('boost defaults to forward dodge without a movement direction', () => {

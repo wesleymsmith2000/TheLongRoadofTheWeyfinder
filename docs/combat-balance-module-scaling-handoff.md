@@ -35,6 +35,7 @@ Player modules:
 - Upgrade shop now includes `engineAcceleration`, `engineMaxVelocity`, and `wheelInertiaCompensation`.
 - Boost drive now uses active engine power through the square-root rule for launch impulse, sustained thrust, boost speed cap, drive duration, fuel capacity, and recharge rate.
 - Boost shielding temporarily uses active gun power through the square-root rule for shield duration, repel impulse, radius, and absorption until dedicated shield modules exist.
+- Active boost drive emits large bluish-white/gray exhaust particles. Emission count scales logarithmically with engine power and boost upgrade count, and exhaust particles deal light contact damage as a placeholder for future fire/status effects.
 
 ## Editor Follow-Up
 
@@ -45,6 +46,7 @@ Weapon and construct editors should expose these assumptions:
 - Multiple wheel cells are meaningful for braking/control, with diminishing returns.
 - Multiple engine cells are also meaningful for boost reserve, recharge, thrust, duration, and speed cap.
 - Multiple gun cells are temporarily meaningful for boost shield duration/radius/repel/absorption until shield modules are introduced.
+- Boost exhaust should be previewed as damaging particles/status emitters once the editor exposes engine plume or booster effects.
 - Mobility upgrades should be grouped under a `Mobility` system: engine acceleration, engine max velocity, and wheel inertia compensation.
 - Cannon/mortar-style weapons should prefer `targetHint: "aimReticle"` plus detonation distance/reticle semantics.
 - Explosive weapon previews should treat excess damage as tunneling through consecutive voxels while blast power remains.
