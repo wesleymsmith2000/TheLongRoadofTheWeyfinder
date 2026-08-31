@@ -84,6 +84,7 @@ export function createGame(seed = 1147, options = {}) {
     soundEvents: [],
     autofire: true,
     playerFireTimer: 0,
+    playerGunIndex: 0,
     levelComplete: false,
     levelTime: 0,
     level: startLevel,
@@ -501,25 +502,27 @@ function stepPlayerGun(game, dt) {
   const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy');
   const damage = 8 * upgradeMultiplier(game, 'gunDamage');
   const speed = PRIMARY_PROJECTILE_SPEED * upgradeMultiplier(game, 'gunVelocity');
-  for (const muzzle of muzzles) {
-    const angle = game.vehicle.turretHeading + game.rng.range(-spread, spread);
-    game.playerProjectiles.push(
-      createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
-        team: 'player',
-        radius: 1.5,
-        damage,
-        impulse: 30,
-        lifetime: 2.2,
-      }),
-    );
-  }
+  const muzzle = muzzles[game.playerGunIndex % muzzles.length];
+  game.playerGunIndex = (game.playerGunIndex + 1) % muzzles.length;
+  const angle = game.vehicle.turretHeading + game.rng.range(-spread, spread);
+  game.playerProjectiles.push(
+    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
+      team: 'player',
+      weapon: 'bullet',
+      radius: 1.5,
+      damage,
+      impulse: 30,
+      lifetime: 2.2,
+      sourceCellId: muzzle.cellId,
+    }),
+  );
   emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
   game.playerFireTimer = playerGunFireInterval(game);
 }
 
 function playerGunFireInterval(game) {
   const activeGuns = gunMuzzlesWorld(game.vehicle).length;
-  return 0.22 / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeGuns)));
+  return 0.22 / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeGuns + 1)));
 }
 
 function stepEnemies(game, dt) {

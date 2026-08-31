@@ -35,7 +35,7 @@ test('main gun velocity upgrade increases bullet speed', () => {
   assert.equal(Math.hypot(upgradedBullet.vx, upgradedBullet.vy) > Math.hypot(baseBullet.vx, baseBullet.vy), true);
 });
 
-test('additional gun modules add firing points and improve fire interval', () => {
+test('additional gun modules fire in succession and improve fire interval', () => {
   const game = createGame();
   game.autofire = true;
   stepGame(game, {}, 1 / 60);
@@ -47,6 +47,7 @@ test('additional gun modules add firing points and improve fire interval', () =>
   game.playerFireTimer = 0;
   stepGame(game, {}, 1 / 60);
   const bullets = game.playerProjectiles.filter((projectile) => projectile.weapon === 'bullet');
-  assert.equal(bullets.length >= 3, true);
+  assert.equal(bullets.length, 2);
+  assert.notEqual(bullets[0].sourceCellId, bullets[1].sourceCellId);
   assert.equal(game.playerFireTimer < singleGunInterval, true);
 });
