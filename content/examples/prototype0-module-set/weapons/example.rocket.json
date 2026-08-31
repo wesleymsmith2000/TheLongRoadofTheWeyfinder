@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.rocket",
+  "displayName": "Example Rocket",
+  "author": "Example creator",
+  "provenance": "Example module-set copy derived from bundled Prototype 0 content asset rocket.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "secondary",
+    "homing",
+    "example",
+    "module-set"
+  ],
+  "ammo": 12,
+  "heat": 28,
+  "cooldown": 0.9,
+  "projectile": {
+    "team": "player",
+    "weapon": "rocket",
+    "behavior": "homing",
+    "projectileSpeed": 65,
+    "radius": 1.5,
+    "damage": 54,
+    "impulse": 105,
+    "lifetime": 5.8,
+    "turnRate": 2.5,
+    "acceleration": 45,
+    "maxSpeed": 65,
+    "usesVehicleVelocityOnly": true,
+    "targetHint": "aimReticle",
+    "destructible": true,
+    "shape": {
+      "kind": "cylinderCone",
+      "armorVoxelHp": 10,
+      "bodyLength": 6,
+      "coneLength": 2.5,
+      "halfWidth": 1.5,
+      "bodyVoxels": {
+        "columns": 6,
+        "rows": 3
+      },
+      "coneVoxels": {
+        "columns": 3,
+        "rows": 3
+      }
+    },
+    "contrail": {
+      "emissionMeanPerSevenFrames": 2,
+      "maxParticlesPerStep": 5,
+      "particleLifetimeFrames": [
+        4,
+        5
+      ],
+      "colors": [
+        "#8a8a86",
+        "#1f2020",
+        "#df6f2e"
+      ]
+    }
+  }
+}

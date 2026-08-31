@@ -12,6 +12,10 @@ Start here:
 - [Enemy And Pattern Editor Handoff](./enemy-pattern-editor-handoff.md)
 - [Gameplay / Audio / Mobile Handoff](./gameplay-audio-mobile-handoff.md)
 - [Editor Runtime Seams](./editor-runtime-seams.md)
+- [Local Content Module API](./local-content-module-api.md)
+- [Local Content Module Handoff](./local-content-module-handoff.md)
+- [Enemy Editor Runtime Handoff](./enemy-editor-runtime-handoff.md)
+- [Creator Suite Local Modules Handoff](./creator-suite-local-modules-handoff.md)
 
 Current priorities:
 

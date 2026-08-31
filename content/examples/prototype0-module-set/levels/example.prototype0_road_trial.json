@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.prototype0_road_trial",
+  "displayName": "Example Prototype 0 Road Trial",
+  "author": "Example creator",
+  "provenance": "Example module-set copy derived from bundled Prototype 0 content asset prototype0_road_trial.",
+  "canonStatus": "COMMUNITY",
+  "dependencies": [
+    {
+      "kind": "construct",
+      "assetId": "example.basic_turret"
+    },
+    {
+      "kind": "pattern",
+      "assetId": "example.enemy_aimed_shot"
+    },
+    {
+      "kind": "pattern",
+      "assetId": "example.enemy_radial_burst"
+    }
+  ],
+  "tags": [
+    "prototype",
+    "road",
+    "level-editor",
+    "example",
+    "module-set"
+  ],
+  "background": {
+    "mode": "mixed",
+    "layers": [
+      {
+        "id": "road-grid",
+        "source": "procedural",
+        "generator": "road_grid",
+        "parallax": 0.2,
+        "seedOffset": 0
+      },
+      {
+        "id": "lane-frame",
+        "source": "procedural",
+        "generator": "lane_frame",
+        "parallax": 1,
+        "seedOffset": 17
+      }
+    ]
+  },
+  "route": {
+    "startHeading": -1.5707963267948966,
+    "segments": [
+      {
+        "id": "opening",
+        "length": 480,
+        "turnRadians": 0
+      },
+      {
+        "id": "left-bend",
+        "length": 420,
+        "turnRadians": -0.35
+      },
+      {
+        "id": "straightaway",
+        "length": 560,
+        "turnRadians": 0
+      },
+      {
+        "id": "right-bend",
+        "length": 420,
+        "turnRadians": 0.45
+      }
+    ]
+  },
+  "obstacles": [
+    {
+      "id": "scrap-field-a",
+      "kind": "procedural_field",
+      "atDistance": 260,
+      "laneOffset": -120,
+      "width": 90,
+      "height": 150,
+      "density": 0.16,
+      "assetRef": null
+    }
+  ],
+  "waves": [
+    {
+      "id": "opening-turret",
+      "atDistance": 190,
+      "spawn": [
+        {
+          "construct": "example.basic_turret",
+          "count": 1,
+          "laneOffset": 0,
+          "spacing": 90,
+          "patterns": [
+            "example.enemy_aimed_shot",
+            "example.enemy_radial_burst"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paired-turrets",
+      "atDistance": 620,
+      "spawn": [
+        {
+          "construct": "example.basic_turret",
+          "count": 2,
+          "laneOffset": -70,
+          "spacing": 140,
+          "patterns": [
+            "example.enemy_aimed_shot",
+            "example.enemy_radial_burst"
+          ]
+        }
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro-voiceover",
+      "kind": "voiceover",
+      "atDistance": 40,
+      "assetRef": "example.voiceover_intro",
+      "once": true
+    },
+    {
+      "id": "turn-warning",
+      "kind": "cue",
+      "atDistance": 430,
+      "message": "Road turning left",
+      "once": true
+    }
+  ]
+}

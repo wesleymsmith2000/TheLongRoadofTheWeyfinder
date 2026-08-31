@@ -424,7 +424,10 @@ A minimal archetype pack:
       "construct": "basic_turret",
       "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
       "entry": { "kind": "aheadDrift", "speed": 35 },
-      "editable": ["construct", "patterns", "entry", "palette"]
+      "movementProfiles": [{ "id": "drift", "kind": "drift", "target": "roadCenter", "speed": 35 }],
+      "aggregate": { "kind": "singleBody" },
+      "cellAnimations": [],
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "cellAnimations"]
     }
   ]
 }
@@ -453,7 +456,33 @@ Current `entry.kind` values:
 - `behindCharge`
 - `aheadBoss`
 
+Current `movementProfiles[].kind` values:
+
+- `drift`
+- `charge`
+- `returnToView`
+- `orbitTarget`
+- `strafeBroadside`
+- `weave`
+- `bossTentacleSwarm`
+
+Current `aggregate.kind` values:
+
+- `singleBody`
+- `limbArray`
+- `multiPartBoss`
+
+Current `cellAnimations[].kind` values:
+
+- `none`
+- `opacityPulse`
+- `sineWave`
+- `swirl`
+- `fabricWeave`
+
 Editors should update archetype descriptors when changing enemy art, patterns, palettes, entry behavior, or balance knobs. If a change needs a new simulation verb, add a named runtime primitive and then expose it in this descriptor layer.
+
+`movementProfiles`, `aggregate`, and `cellAnimations` are validated editor-facing descriptors in this prototype. They let editors describe authored movement patterns, multi-part enemies such as the octopus boss, and animateable voxel/module behavior such as transparent fabric-like enemies. Runtime execution of these descriptors should enter through named behavior primitives or a level runner rather than ad hoc editor state.
 
 Prototype 0 boss descriptors may also include `arms.attackMix` entries for standard shots, delayed drifting shots, protective absorbing shots, and laser telegraphs. These are descriptor-facing notes for editors today; the current runtime implementation still lives in `src/core/game.js`.
 

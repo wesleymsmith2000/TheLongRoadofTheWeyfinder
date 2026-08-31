@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.enemy_aimed_shot",
+  "displayName": "Example Enemy Aimed Shot",
+  "author": "Example creator",
+  "provenance": "Example module-set copy derived from bundled Prototype 0 content asset enemy_aimed_shot.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "enemy",
+    "aimed",
+    "example",
+    "module-set"
+  ],
+  "initialDelay": 0.4,
+  "interval": 0.75,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 1,
+    "speed": 52.5,
+    "spreadRadians": 0.12,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "bullet",
+      "behavior": "ballistic",
+      "radius": 1.25,
+      "damage": 10,
+      "impulse": 87.5,
+      "lifetime": 4
+    }
+  }
+}

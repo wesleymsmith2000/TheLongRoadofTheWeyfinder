@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.starting_vehicle",
+  "author": "Example creator",
+  "provenance": "Example module-set copy derived from bundled Prototype 0 content asset starting_vehicle.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "player",
+    "vehicle",
+    "prototype",
+    "example",
+    "module-set"
+  ],
+  "cells": [
+    {
+      "id": "armor-left",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -1
+    },
+    {
+      "id": "gun",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -1
+    },
+    {
+      "id": "armor-right",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -1
+    },
+    {
+      "id": "wheel-left",
+      "type": "wheel",
+      "gridX": -1,
+      "gridY": 0
+    },
+    {
+      "id": "core",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0
+    },
+    {
+      "id": "wheel-right",
+      "type": "wheel",
+      "gridX": 1,
+      "gridY": 0
+    },
+    {
+      "id": "engine",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 1
+    }
+  ],
+  "connections": [
+    {
+      "a": "core",
+      "b": "gun",
+      "aSide": "top"
+    },
+    {
+      "a": "gun",
+      "b": "armor-left",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "gun",
+      "b": "armor-right",
+      "aSide": "right",
+      "bSide": "left"
+    },
+    {
+      "a": "core",
+      "b": "wheel-left",
+      "aSide": "left"
+    },
+    {
+      "a": "core",
+      "b": "wheel-right",
+      "aSide": "right"
+    },
+    {
+      "a": "core",
+      "b": "engine",
+      "aSide": "bottom"
+    }
+  ],
+  "modules": [],
+  "displayName": "Example Starting Vehicle"
+}

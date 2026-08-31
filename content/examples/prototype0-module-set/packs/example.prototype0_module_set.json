@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "0.1",
+  "packId": "example.prototype0_module_set",
+  "displayName": "Example Prototype 0 Module Set",
+  "author": "Example creator",
+  "provenance": "Derived from the current bundled Prototype 0 level, enemy archetypes, constructs, weapons, and patterns as an importable creator example.",
+  "canonStatus": "COMMUNITY",
+  "description": "Namespaced example content pack for testing Creator Suite folder import and showing the expected JSON layout for modules.",
+  "tags": [
+    "example",
+    "prototype",
+    "module-set"
+  ],
+  "dependencies": [],
+  "assets": {
+    "constructs": [
+      "../constructs/example.basic_turret.json",
+      "../constructs/example.starting_vehicle.json"
+    ],
+    "weapons": [
+      "../weapons/example.rocket.json",
+      "../weapons/example.cannon.json",
+      "../weapons/example.beam.json"
+    ],
+    "patterns": [
+      "../patterns/example.enemy_aimed_shot.json",
+      "../patterns/example.enemy_radial_burst.json"
+    ],
+    "enemyArchetypes": [
+      "../enemies/example.prototype0_enemy_archetypes.json"
+    ],
+    "behaviors": [],
+    "encounters": [],
+    "routes": [],
+    "levels": [
+      "../levels/example.prototype0_road_trial.json"
+    ],
+    "sounds": [
+      "../resources/example.voiceover_intro.json"
+    ]
+  }
+}

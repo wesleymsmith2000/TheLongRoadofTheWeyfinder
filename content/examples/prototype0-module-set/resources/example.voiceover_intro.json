@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.voiceover_intro",
+  "displayName": "Example Intro Voiceover Placeholder",
+  "author": "Example creator",
+  "provenance": "Placeholder resource descriptor showing how level triggers can reference bundled sound assets.",
+  "canonStatus": "COMMUNITY",
+  "kind": "sound",
+  "path": "audio/voiceover_intro_placeholder.wav",
+  "tags": [
+    "example",
+    "module-set",
+    "voiceover",
+    "placeholder"
+  ]
+}

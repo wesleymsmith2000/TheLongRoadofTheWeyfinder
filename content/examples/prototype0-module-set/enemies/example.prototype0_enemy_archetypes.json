@@ -1,18 +1,27 @@
 {
   "schemaVersion": "0.1",
-  "assetId": "prototype0_enemy_archetypes",
-  "displayName": "Prototype 0 Enemy Archetypes",
-  "author": "Weyfinder prototype",
-  "provenance": "Bundled with the canonical game repo.",
-  "canonStatus": "CANON",
-  "tags": ["canon", "prototype", "enemy"],
+  "assetId": "example.prototype0_enemy_archetypes",
+  "displayName": "Example Prototype 0 Enemy Archetypes",
+  "author": "Example creator",
+  "provenance": "Example module-set copy derived from bundled Prototype 0 content asset prototype0_enemy_archetypes.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "canon",
+    "prototype",
+    "enemy",
+    "example",
+    "module-set"
+  ],
   "archetypes": [
     {
-      "id": "standard",
+      "id": "example.standard",
       "displayName": "Standard Turret",
       "runtimeFactory": "createEnemy",
-      "construct": "basic_turret",
-      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "construct": "example.basic_turret",
+      "patterns": [
+        "example.enemy_aimed_shot",
+        "example.enemy_radial_burst"
+      ],
       "entry": {
         "kind": "aheadDrift",
         "direction": "roadForward",
@@ -23,15 +32,23 @@
         "armor": "#8fb3ff",
         "gun": "#ffd166"
       },
-      "editable": ["construct", "patterns", "entry", "palette"]
+      "editable": [
+        "construct",
+        "patterns",
+        "entry",
+        "palette"
+      ]
     },
     {
-      "id": "enhanced_charger",
+      "id": "example.enhanced_charger",
       "displayName": "Enhanced Charger",
       "runtimeFactory": "createEnhancedEnemy",
-      "baseArchetype": "standard",
-      "construct": "basic_turret",
-      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "baseArchetype": "example.standard",
+      "construct": "example.basic_turret",
+      "patterns": [
+        "example.enemy_aimed_shot",
+        "example.enemy_radial_burst"
+      ],
       "entry": {
         "kind": "behindCharge",
         "direction": "roadBehind",
@@ -42,20 +59,32 @@
       "charge": {
         "acceleration": 165,
         "duration": 1.15,
-        "idleSeconds": [4.2, 7.4],
+        "idleSeconds": [
+          4.2,
+          7.4
+        ],
         "shieldArcRadians": 0.39269908169872414,
         "shieldDamage": 16,
         "shieldImpulse": 230
       },
-      "editable": ["construct", "patterns", "entry", "charge", "palette"]
+      "editable": [
+        "construct",
+        "patterns",
+        "entry",
+        "charge",
+        "palette"
+      ]
     },
     {
-      "id": "pirate_ship.prototype0",
+      "id": "example.pirate_ship.prototype0",
       "displayName": "Pirate Ship Prototype",
       "runtimeFactory": "createPirateShipEnemy",
-      "baseArchetype": "standard",
+      "baseArchetype": "example.standard",
       "construct": "runtime.pirate_ship.prototype0",
-      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "patterns": [
+        "example.enemy_aimed_shot",
+        "example.enemy_radial_burst"
+      ],
       "entry": {
         "kind": "aheadDrift",
         "direction": "roadForward",
@@ -70,17 +99,32 @@
       "model": {
         "source": "runtimeFactory",
         "shape": "elongatedHull",
-        "cells": ["stern", "portGun", "starboardGun", "core", "bow"]
+        "cells": [
+          "stern",
+          "portGun",
+          "starboardGun",
+          "core",
+          "bow"
+        ]
       },
-      "editable": ["patterns", "entry", "palette", "silhouette", "model"]
+      "editable": [
+        "patterns",
+        "entry",
+        "palette",
+        "silhouette",
+        "model"
+      ]
     },
     {
-      "id": "pirate_ram_ship.prototype0",
+      "id": "example.pirate_ram_ship.prototype0",
       "displayName": "Enhanced Pirate Ram Ship Prototype",
       "runtimeFactory": "createEnhancedPirateShipEnemy",
-      "baseArchetype": "pirate_ship.prototype0",
+      "baseArchetype": "example.pirate_ship.prototype0",
       "construct": "runtime.pirate_ram_ship.prototype0",
-      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "patterns": [
+        "example.enemy_aimed_shot",
+        "example.enemy_radial_burst"
+      ],
       "entry": {
         "kind": "behindCharge",
         "direction": "roadBehind",
@@ -102,20 +146,32 @@
       "charge": {
         "acceleration": 165,
         "duration": 1.15,
-        "idleSeconds": [4.2, 7.4],
+        "idleSeconds": [
+          4.2,
+          7.4
+        ],
         "shieldArcRadians": 0.39269908169872414,
         "shieldDamage": 16,
         "shieldImpulse": 230
       },
-      "editable": ["patterns", "entry", "charge", "palette", "silhouette", "model"]
+      "editable": [
+        "patterns",
+        "entry",
+        "charge",
+        "palette",
+        "silhouette",
+        "model"
+      ]
     },
     {
-      "id": "ghost_fabric.prototype0",
+      "id": "example.ghost_fabric.prototype0",
       "displayName": "Ghost Fabric Prototype",
       "runtimeFactory": "createEnemy",
-      "baseArchetype": "standard",
-      "construct": "basic_turret",
-      "patterns": ["enemy_aimed_shot"],
+      "baseArchetype": "example.standard",
+      "construct": "example.basic_turret",
+      "patterns": [
+        "example.enemy_aimed_shot"
+      ],
       "entry": {
         "kind": "aheadDrift",
         "direction": "roadForward",
@@ -152,13 +208,21 @@
           "opacityMax": 0.78
         }
       ],
-      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "cellAnimations"]
+      "editable": [
+        "construct",
+        "patterns",
+        "entry",
+        "palette",
+        "movementProfiles",
+        "aggregate",
+        "cellAnimations"
+      ]
     },
     {
-      "id": "boss.octagon.prototype0",
+      "id": "example.boss.octopus.prototype0",
       "displayName": "Octagon Boss Prototype",
       "runtimeFactory": "createBossEnemy",
-      "assetIdAlias": "boss.octopus.prototype0",
+      "assetIdAlias": "example.boss.octopus.prototype0",
       "entry": {
         "kind": "aheadBoss",
         "direction": "roadForward",
@@ -179,7 +243,10 @@
       "arms": {
         "count": 8,
         "segmentsPerArm": 8,
-        "segmentCells": ["miniCore", "gun"],
+        "segmentCells": [
+          "miniCore",
+          "gun"
+        ],
         "aimCenter": "stochasticPlayerBiased",
         "wiggle": "randomWave",
         "unfurl": {
@@ -190,7 +257,12 @@
           {
             "id": "standardShot",
             "weight": 0.42,
-            "projectile": { "weapon": "boss-tentacle", "speed": 112, "damage": 10, "radius": 2.2 }
+            "projectile": {
+              "weapon": "boss-tentacle",
+              "speed": 112,
+              "damage": 10,
+              "radius": 2.2
+            }
           },
           {
             "id": "delayedDrifter",
@@ -198,7 +270,10 @@
             "projectile": {
               "weapon": "boss-drifter",
               "speed": 55,
-              "delayBeforeAcceleration": [1.4, 2.6],
+              "delayBeforeAcceleration": [
+                1.4,
+                2.6
+              ],
               "stopBeforeAcceleration": true,
               "acceleration": 150,
               "accelerationDuration": 3,
@@ -224,11 +299,21 @@
             "telegraphSeconds": 3,
             "trackingSeconds": 2,
             "lockSeconds": 1,
-            "beam": { "weapon": "boss-laser", "frames": 15, "length": 760, "damage": 7.5, "radius": 3, "color": "#ff2626" }
+            "beam": {
+              "weapon": "boss-laser",
+              "frames": 15,
+              "length": 760,
+              "damage": 7.5,
+              "radius": 3,
+              "color": "#ff2626"
+            }
           }
         ],
         "detonateOnDisconnect": true,
-        "detonationDamageTeams": ["player", "enemy"]
+        "detonationDamageTeams": [
+          "player",
+          "enemy"
+        ]
       },
       "centerPulse": {
         "projectileKind": "boss-missile",
@@ -239,7 +324,14 @@
         "accelerationSpreadRadians": 0.04,
         "vanishOffscreen": true
       },
-      "editable": ["palette", "body", "arms", "attackMix", "centerPulse", "entry"]
+      "editable": [
+        "palette",
+        "body",
+        "arms",
+        "attackMix",
+        "centerPulse",
+        "entry"
+      ]
     }
   ]
 }

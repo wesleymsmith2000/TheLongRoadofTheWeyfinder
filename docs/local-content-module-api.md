@@ -55,6 +55,16 @@ The manifest should use the canonical pack shape from [Content Pack Manifest](./
 
 Loose JSON assets without a manifest are accepted for rapid playtest. They are grouped into a synthetic `COMMUNITY` pack using the `packId` passed by the caller.
 
+## Example Pack
+
+An importable example module set is available at:
+
+```text
+content/examples/prototype0-module-set/
+```
+
+It mirrors the current Prototype 0 level, enemy archetypes, construct, weapons, patterns, and one placeholder voiceover resource descriptor using `example.*` asset ids. In the Creator Suite, click **Install Example**, or use **Import Folder** and select `prototype0-module-set` from a local checkout, to install it into browser-local storage.
+
 ## Supported Asset Kinds
 
 The current registry can validate and store:

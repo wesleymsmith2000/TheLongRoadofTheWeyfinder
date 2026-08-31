@@ -4,6 +4,9 @@ import { CANON_STATUSES, isCompatibleSchemaVersion, isNonEmptyString, isPlainObj
 export const CANON_ENEMY_ARCHETYPE_PACK = canonEnemyArchetypes;
 export const ENEMY_RUNTIME_FACTORIES = ['createEnemy', 'createEnhancedEnemy', 'createPirateShipEnemy', 'createEnhancedPirateShipEnemy', 'createBossEnemy'];
 export const ENEMY_ENTRY_KINDS = ['aheadDrift', 'behindCharge', 'aheadBoss'];
+export const ENEMY_MOVEMENT_KINDS = ['drift', 'charge', 'returnToView', 'orbitTarget', 'strafeBroadside', 'weave', 'bossTentacleSwarm'];
+export const ENEMY_AGGREGATE_KINDS = ['singleBody', 'limbArray', 'multiPartBoss'];
+export const ENEMY_CELL_ANIMATION_KINDS = ['none', 'opacityPulse', 'sineWave', 'swirl', 'fabricWeave'];
 
 export function validateEnemyArchetypePack(definition) {
   const errors = [];
@@ -64,11 +67,87 @@ function validateArchetypes(archetypes, errors, warnings) {
     if (archetype.construct != null && !isNonEmptyString(archetype.construct)) errors.push(`${prefix}.construct must be a non-empty string when provided.`);
     if (archetype.patterns != null && !isStringArray(archetype.patterns)) errors.push(`${prefix}.patterns must be an array of strings when provided.`);
     validateEntry(archetype.entry, `${prefix}.entry`, errors);
+    validateMovementProfiles(archetype.movementProfiles, `${prefix}.movementProfiles`, errors);
+    validateAggregate(archetype.aggregate, `${prefix}.aggregate`, errors);
+    validateCellAnimations(archetype.cellAnimations, `${prefix}.cellAnimations`, errors);
     if (archetype.editable != null && !isStringArray(archetype.editable)) errors.push(`${prefix}.editable must be an array of strings when provided.`);
     if (archetype.palette != null && !isPlainObject(archetype.palette)) errors.push(`${prefix}.palette must be an object when provided.`);
     if (archetype.baseArchetype != null && !ids.has(archetype.baseArchetype)) {
       warnings.push(`${prefix}.baseArchetype "${archetype.baseArchetype}" should reference an earlier archetype in the same pack.`);
     }
+  }
+}
+
+function validateMovementProfiles(profiles, path, errors) {
+  if (profiles == null) return;
+  if (!Array.isArray(profiles)) {
+    errors.push(`${path} must be an array when provided.`);
+    return;
+  }
+  for (const [index, profile] of profiles.entries()) {
+    const label = `${path}[${index}]`;
+    if (!isPlainObject(profile)) {
+      errors.push(`${label} must be an object.`);
+      continue;
+    }
+    if (!isNonEmptyString(profile.id)) errors.push(`${label}.id must be a non-empty string.`);
+    if (!ENEMY_MOVEMENT_KINDS.includes(profile.kind)) errors.push(`${label}.kind must be one of: ${ENEMY_MOVEMENT_KINDS.join(', ')}.`);
+    validateOptionalNumber(profile.speed, `${label}.speed`, errors);
+    validateOptionalNumber(profile.acceleration, `${label}.acceleration`, errors);
+    validateOptionalNumber(profile.amplitude, `${label}.amplitude`, errors);
+    validateOptionalNumber(profile.frequency, `${label}.frequency`, errors);
+    validateOptionalNumber(profile.phaseOffset, `${label}.phaseOffset`, errors);
+    validateOptionalNumber(profile.strength, `${label}.strength`, errors);
+    validateOptionalNumber(profile.duration, `${label}.duration`, errors);
+    if (profile.target != null && !isNonEmptyString(profile.target)) errors.push(`${label}.target must be a non-empty string when provided.`);
+  }
+}
+
+function validateAggregate(aggregate, path, errors) {
+  if (aggregate == null) return;
+  if (!isPlainObject(aggregate)) {
+    errors.push(`${path} must be an object when provided.`);
+    return;
+  }
+  if (!ENEMY_AGGREGATE_KINDS.includes(aggregate.kind)) errors.push(`${path}.kind must be one of: ${ENEMY_AGGREGATE_KINDS.join(', ')}.`);
+  if (aggregate.parts == null) return;
+  if (!Array.isArray(aggregate.parts)) {
+    errors.push(`${path}.parts must be an array when provided.`);
+    return;
+  }
+  for (const [index, part] of aggregate.parts.entries()) {
+    const label = `${path}.parts[${index}]`;
+    if (!isPlainObject(part)) {
+      errors.push(`${label} must be an object.`);
+      continue;
+    }
+    if (!isNonEmptyString(part.id)) errors.push(`${label}.id must be a non-empty string.`);
+    if (part.role != null && !isNonEmptyString(part.role)) errors.push(`${label}.role must be a non-empty string when provided.`);
+    if (part.attachment != null && !isNonEmptyString(part.attachment)) errors.push(`${label}.attachment must be a non-empty string when provided.`);
+    if (part.movementProfile != null && !isNonEmptyString(part.movementProfile)) errors.push(`${label}.movementProfile must be a non-empty string when provided.`);
+    validateOptionalNumber(part.count, `${label}.count`, errors);
+  }
+}
+
+function validateCellAnimations(animations, path, errors) {
+  if (animations == null) return;
+  if (!Array.isArray(animations)) {
+    errors.push(`${path} must be an array when provided.`);
+    return;
+  }
+  for (const [index, animation] of animations.entries()) {
+    const label = `${path}[${index}]`;
+    if (!isPlainObject(animation)) {
+      errors.push(`${label} must be an object.`);
+      continue;
+    }
+    if (!isNonEmptyString(animation.selector)) errors.push(`${label}.selector must be a non-empty string.`);
+    if (!ENEMY_CELL_ANIMATION_KINDS.includes(animation.kind)) errors.push(`${label}.kind must be one of: ${ENEMY_CELL_ANIMATION_KINDS.join(', ')}.`);
+    validateOptionalNumber(animation.amplitude, `${label}.amplitude`, errors);
+    validateOptionalNumber(animation.frequency, `${label}.frequency`, errors);
+    validateOptionalNumber(animation.phaseOffset, `${label}.phaseOffset`, errors);
+    validateOptionalNumber(animation.opacityMin, `${label}.opacityMin`, errors);
+    validateOptionalNumber(animation.opacityMax, `${label}.opacityMax`, errors);
   }
 }
 
@@ -80,10 +159,14 @@ function validateEntry(entry, path, errors) {
   if (!ENEMY_ENTRY_KINDS.includes(entry.kind)) {
     errors.push(`${path}.kind must be one of: ${ENEMY_ENTRY_KINDS.join(', ')}.`);
   }
-  if (entry.speed != null && !Number.isFinite(entry.speed)) errors.push(`${path}.speed must be a number when provided.`);
+  validateOptionalNumber(entry.speed, `${path}.speed`, errors);
   if (entry.warningLeadSeconds != null && (!Number.isFinite(entry.warningLeadSeconds) || entry.warningLeadSeconds < 0)) {
     errors.push(`${path}.warningLeadSeconds must be a non-negative number when provided.`);
   }
+}
+
+function validateOptionalNumber(value, label, errors) {
+  if (value != null && !Number.isFinite(value)) errors.push(`${label} must be a number when provided.`);
 }
 
 function matchesArchetypeFilters(archetype, filters) {

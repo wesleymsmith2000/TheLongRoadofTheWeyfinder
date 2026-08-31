@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Enemy Editor - The Long Road of the Weyfinder</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #121616;
+        color: #f4eee4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(180deg, rgb(18 22 22 / 0.98), rgb(22 24 27 / 0.96)),
+          radial-gradient(circle at 72% 16%, rgb(111 224 191 / 0.1), transparent 28rem);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        border: 1px solid rgb(244 238 228 / 0.22);
+        border-radius: 8px;
+        background: rgb(8 11 11 / 0.55);
+        color: #f4eee4;
+      }
+
+      button {
+        min-height: 36px;
+        padding: 0 12px;
+        font-weight: 760;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: rgb(111 224 191 / 0.58);
+      }
+
+      label {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input,
+      select {
+        min-height: 36px;
+        padding: 0 9px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 300px;
+        padding: 10px;
+        resize: vertical;
+        font-family: "Cascadia Code", Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgb(244 238 228 / 0.12);
+        background: rgb(8 11 11 / 0.58);
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      .title p {
+        margin: 3px 0 0;
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .actions,
+      .tool-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(280px, 380px) minmax(360px, 1fr) minmax(300px, 440px);
+        gap: 14px;
+        padding: 14px;
+        min-height: 0;
+      }
+
+      .panel {
+        min-width: 0;
+        min-height: 0;
+        border: 1px solid rgb(244 238 228 / 0.14);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.72);
+        overflow: hidden;
+      }
+
+      .panel h2 {
+        margin: 0;
+        padding: 12px;
+        border-bottom: 1px solid rgb(244 238 228 / 0.12);
+        font-size: 13px;
+        letter-spacing: 0;
+      }
+
+      .form {
+        display: grid;
+        gap: 11px;
+        padding: 12px;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .wide-split {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .check-list {
+        display: grid;
+        gap: 7px;
+        padding: 8px;
+        border: 1px solid rgb(244 238 228 / 0.12);
+        border-radius: 8px;
+        background: rgb(8 11 11 / 0.32);
+      }
+
+      .check-list label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #f4eee4;
+      }
+
+      .preview-panel {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+
+      .canvas-wrap {
+        display: grid;
+        place-items: center;
+        min-height: 0;
+        padding: 12px;
+      }
+
+      #enemyCanvas {
+        width: min(100%, 760px);
+        aspect-ratio: 1.15;
+        border: 1px solid rgb(244 238 228 / 0.18);
+        border-radius: 8px;
+        background: #0d1010;
+      }
+
+      .status {
+        display: grid;
+        gap: 5px;
+        padding: 10px 12px;
+        border-top: 1px solid rgb(244 238 228 / 0.12);
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .status strong {
+        color: #f4eee4;
+      }
+
+      .status .error {
+        color: #ff9b89;
+      }
+
+      .status .warning {
+        color: #f7c06a;
+      }
+
+      .output {
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      @media (max-width: 1100px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="title">
+          <h1>Enemy Editor</h1>
+          <p>Compose enemy archetypes from constructs, patterns, movement profiles, and animation metadata.</p>
+        </div>
+        <div class="actions">
+          <a href="../"><button type="button">Game</button></a>
+          <a href="./creator-suite.html"><button type="button">Suite</button></a>
+          <a href="./construct-workshop.html"><button type="button">Constructs</button></a>
+          <a href="./weapon-pattern-lab.html"><button type="button">Weapons</button></a>
+          <a href="./level-editor.html"><button type="button">Levels</button></a>
+          <button id="installPackButton" type="button">Install Local</button>
+          <button id="importFolderButton" type="button">Import Folder</button>
+          <button id="importFilesButton" type="button">Import Files</button>
+          <button id="downloadButton" type="button">Download JSON</button>
+          <input id="importFolderInput" type="file" accept="application/json,.json" multiple webkitdirectory hidden />
+          <input id="importFilesInput" type="file" accept="application/json,.json" multiple hidden />
+        </div>
+      </header>
+      <section class="workspace">
+        <aside class="panel">
+          <h2>Archetype</h2>
+          <div class="form">
+            <label>
+              Canon Template
+              <select id="templateSelect"></select>
+            </label>
+            <label>
+              Enemy ID
+              <input id="enemyIdInput" autocomplete="off" />
+            </label>
+            <label>
+              Display Name
+              <input id="enemyNameInput" autocomplete="off" />
+            </label>
+            <div class="split">
+              <label>Factory <select id="runtimeFactorySelect"></select></label>
+              <label>Base <input id="baseArchetypeInput" autocomplete="off" /></label>
+            </div>
+            <div class="split">
+              <label>Construct <select id="constructSelect"></select></label>
+              <label>Status <select id="canonStatusSelect"></select></label>
+            </div>
+            <label>
+              Tags
+              <input id="tagsInput" autocomplete="off" />
+            </label>
+          </div>
+          <h2>Patterns</h2>
+          <div id="patternList" class="form check-list"></div>
+          <h2>Entry</h2>
+          <div class="form">
+            <div class="split">
+              <label>Kind <select id="entryKindSelect"></select></label>
+              <label>Direction <select id="entryDirectionSelect"><option>roadForward</option><option>roadBehind</option><option>player</option></select></label>
+            </div>
+            <div class="split">
+              <label>Speed <input id="entrySpeedInput" type="number" step="1" /></label>
+              <label>Warning <input id="warningLeadInput" type="number" min="0" step="0.1" /></label>
+            </div>
+          </div>
+        </aside>
+        <section class="panel preview-panel">
+          <h2>Live Preview</h2>
+          <div class="canvas-wrap">
+            <canvas id="enemyCanvas" width="760" height="660" aria-label="Enemy archetype preview"></canvas>
+          </div>
+          <div id="statusPanel" class="status"></div>
+        </section>
+        <aside class="panel output">
+          <h2>Runtime JSON</h2>
+          <div class="form">
+            <div class="split">
+              <label>Pack ID <input id="packIdInput" autocomplete="off" /></label>
+              <label>Schema <input id="schemaInput" autocomplete="off" /></label>
+            </div>
+            <label>Pack Name <input id="packNameInput" autocomplete="off" /></label>
+            <h2>Movement</h2>
+            <div class="split">
+              <label>Kind <select id="movementKindSelect"></select></label>
+              <label>Target <select id="movementTargetSelect"><option>player</option><option>roadCenter</option><option>self</option></select></label>
+            </div>
+            <div class="wide-split">
+              <label>Speed <input id="movementSpeedInput" type="number" min="0" step="1" /></label>
+              <label>Amplitude <input id="movementAmplitudeInput" type="number" min="0" step="1" /></label>
+              <label>Frequency <input id="movementFrequencyInput" type="number" min="0" step="0.1" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Acceleration <input id="movementAccelerationInput" type="number" min="0" step="1" /></label>
+              <label>Strength <input id="movementStrengthInput" type="number" min="0" step="0.1" /></label>
+              <label>Phase <input id="movementPhaseInput" type="number" step="0.1" /></label>
+            </div>
+            <h2>Aggregate</h2>
+            <div class="split">
+              <label>Kind <select id="aggregateKindSelect"></select></label>
+              <label>Parts <input id="aggregatePartCountInput" type="number" min="0" step="1" /></label>
+            </div>
+            <div class="split">
+              <label>Part Role <input id="aggregateRoleInput" autocomplete="off" /></label>
+              <label>Attachment <input id="aggregateAttachmentInput" autocomplete="off" /></label>
+            </div>
+          <h2>Cell Animation</h2>
+            <div class="split">
+              <label>Kind <select id="animationKindSelect"></select></label>
+              <label>Selector <input id="animationSelectorInput" autocomplete="off" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Amplitude <input id="animationAmplitudeInput" type="number" min="0" step="1" /></label>
+              <label>Frequency <input id="animationFrequencyInput" type="number" min="0" step="0.1" /></label>
+              <label>Phase <input id="animationPhaseInput" type="number" step="0.1" /></label>
+            </div>
+            <div class="split">
+              <label>Opacity Min <input id="opacityMinInput" type="number" min="0" max="1" step="0.05" /></label>
+              <label>Opacity Max <input id="opacityMaxInput" type="number" min="0" max="1" step="0.05" /></label>
+            </div>
+            <textarea id="jsonOutput" spellcheck="false"></textarea>
+            <div id="moduleStatusPanel" class="status"></div>
+            <div class="tool-row">
+              <button id="applyJsonButton" type="button">Apply JSON</button>
+              <button id="copyJsonButton" type="button">Copy</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="/src/editor/enemyEditor.js"></script>
+  </body>
+</html>
