@@ -33,6 +33,7 @@ export function createEnemy(x, y, definition = basicTurretDefinition, patternDef
 export function createEnhancedEnemy(x, y) {
   const enemy = createEnemy(x, y);
   enemy.kind = 'enhanced';
+  addMobileEnemyEngines(enemy);
   enemy.charge = { state: 'idle', timer: 1.8, x: 0, y: 1 };
   enemy.shieldActive = false;
   return enemy;
@@ -65,6 +66,8 @@ export function createPirateShipEnemy(x, y, options = {}) {
     addCell('skull-bulkhead', 'armor', 0, 3, bowPointCarve);
     addCell('bulkhead-port-spike', 'gun', -1, 3, spikeCarve);
     addCell('bulkhead-starboard-spike', 'gun', 1, 3, spikeCarve);
+    addCell('port-engine', 'engine', -1, -2, sternCarve);
+    addCell('starboard-engine', 'engine', 1, -2, sternCarve);
   }
 
   connect(connections, 'core', 'port-hull', 'left');
@@ -82,6 +85,8 @@ export function createPirateShipEnemy(x, y, options = {}) {
     connect(connections, 'bow', 'skull-bulkhead', 'bottom');
     connect(connections, 'skull-bulkhead', 'bulkhead-port-spike', 'left');
     connect(connections, 'skull-bulkhead', 'bulkhead-starboard-spike', 'right');
+    connect(connections, 'stern-left', 'port-engine', 'top');
+    connect(connections, 'stern-right', 'starboard-engine', 'top');
   }
 
   return {
@@ -102,6 +107,16 @@ export function createPirateShipEnemy(x, y, options = {}) {
     ramBulkhead: Boolean(options.ramBulkhead),
     visualHeading: Math.PI / 2,
   };
+}
+
+function addMobileEnemyEngines(enemy) {
+  const left = createCell('engine-left', 'engine', -1, 1);
+  const right = createCell('engine-right', 'engine', 1, 1);
+  enemy.cells.push(left, right);
+  enemy.connections.push(createConnection('armor-left-bottom', left.id, 'bottom'));
+  enemy.connections.push(createConnection('armor-right-bottom', right.id, 'bottom'));
+  enemy.radius = constructRadius(enemy.cells);
+  return enemy;
 }
 
 export function createEnhancedPirateShipEnemy(x, y) {
@@ -519,4 +534,23 @@ export function enemyIntegrity(enemy) {
   const total = enemy.cells.length;
   const remaining = enemy.cells.filter((cell) => !cell.state.destroyed).length;
   return total === 0 ? 0 : remaining / total;
+}
+
+export function enemyGunEfficiency(enemy) {
+  return typedCellEfficiency(enemy, 'gun', 0);
+}
+
+export function enemyEngineEfficiency(enemy) {
+  return typedCellEfficiency(enemy, 'engine', 1);
+}
+
+export function enemyCoreEfficiency(enemy) {
+  return typedCellEfficiency(enemy, 'core', 1);
+}
+
+function typedCellEfficiency(enemy, type, fallback) {
+  const cells = enemy.cells.filter((cell) => cell.type === type);
+  if (cells.length === 0) return fallback;
+  const integrity = cells.reduce((sum, cell) => sum + Math.min(cell.state.deviceIntegrity, cell.state.wiringIntegrity, cell.state.structureIntegrity), 0) / cells.length;
+  return clamp(integrity, 0, 1);
 }

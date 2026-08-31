@@ -289,3 +289,21 @@ test('beam-selected manual aim points from the muzzle through the reticle at hig
   const delta = Math.atan2(Math.sin(headingToReticle - game.vehicle.turretHeading), Math.cos(headingToReticle - game.vehicle.turretHeading));
   assert.equal(Math.abs(delta) < 0.05, true);
 });
+
+test('AI aimed beam fires through the visible reticle even before turret turn catches up', () => {
+  const game = createGame();
+  game.secondary.selected = 'beam';
+  game.vehicle.turretHeading = Math.PI;
+  game.enemies = [createEnemy(game.vehicle.x + 70, game.vehicle.y + 25)];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { secondarySelect: 'beam', secondaryFirePressed: true, gunnerEnabled: true }, 1 / 60);
+
+  const beam = game.playerProjectiles.find((projectile) => projectile.behavior === 'beam');
+  assert.equal(Boolean(beam?.targetHint), true);
+  assert.equal(game.aimReticle.source, 'ai');
+  const dx = beam.targetHint.x - beam.x;
+  const dy = beam.targetHint.y - beam.y;
+  const cross = Math.cos(beam.angle) * dy - Math.sin(beam.angle) * dx;
+  assert.equal(Math.abs(cross) < 0.001, true);
+});

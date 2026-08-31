@@ -13,6 +13,7 @@ import {
 } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, stepGame } from '../src/core/game.js';
+import { recalculateCell } from '../src/core/cell.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
@@ -222,3 +223,44 @@ test('pirate ship enemies use elongated hulls and enhanced ram bulkheads', () =>
   assert.equal(enhanced.ramBulkhead, true);
   assert.equal(enhanced.cells.some((cell) => cell.id === 'skull-bulkhead'), true);
 });
+
+test('damaged enemy guns inhibit firing', () => {
+  const game = createGame();
+  const enemy = createEnemy(game.vehicle.x + 50, game.vehicle.y);
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+  for (const gun of enemy.cells.filter((cell) => cell.type === 'gun')) destroyDeviceVoxels(gun);
+
+  for (let index = 0; index < 160; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.enemyProjectiles.length, 0);
+});
+
+test('damaged enhanced enemy engines inhibit charge acceleration', () => {
+  const healthyGame = createGame();
+  const damagedGame = createGame();
+  const healthy = createEnhancedEnemy(healthyGame.vehicle.x + 70, healthyGame.vehicle.y);
+  const damaged = createEnhancedEnemy(damagedGame.vehicle.x + 70, damagedGame.vehicle.y);
+  healthy.charge = { state: 'charging', timer: 1, x: -1, y: 0 };
+  damaged.charge = { state: 'charging', timer: 1, x: -1, y: 0 };
+  for (const engine of damaged.cells.filter((cell) => cell.type === 'engine')) destroyDeviceVoxels(engine);
+  healthyGame.enemies = [healthy];
+  damagedGame.enemies = [damaged];
+  healthyGame.enemySpawnQueue = [];
+  damagedGame.enemySpawnQueue = [];
+
+  stepGame(healthyGame, { gunnerEnabled: false }, 1 / 60);
+  stepGame(damagedGame, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(Math.abs(damaged.vx) < Math.abs(healthy.vx), true);
+});
+
+function destroyDeviceVoxels(cell) {
+  for (const row of cell.mask) {
+    for (const voxel of row) {
+      if (voxel.role === 'device' || voxel.role === 'wire') voxel.hp = 0;
+    }
+  }
+  recalculateCell(cell);
+}

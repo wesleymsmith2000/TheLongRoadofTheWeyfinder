@@ -25,6 +25,9 @@ import {
   createEnhancedEnemy,
   createEnhancedPirateShipEnemy,
   createPirateShipEnemy,
+  enemyCoreEfficiency,
+  enemyEngineEfficiency,
+  enemyGunEfficiency,
   harvestEnemyScrap,
   traceEnemyVoxelBeam,
   traceEnemyVoxelRay,
@@ -381,8 +384,10 @@ function gunnerAimTarget(game) {
     return distanceSquared(game.vehicle, enemy) < distanceSquared(game.vehicle, nearest) ? enemy : nearest;
   }, null);
   if (!target) return null;
+  const beamSelected = game.secondary.selected === 'beam';
+  const projectileSpeed = beamSelected ? 1_000_000 : PRIMARY_PROJECTILE_SPEED;
   const distance = Math.hypot(target.x - game.vehicle.x, target.y - game.vehicle.y);
-  const leadTime = Math.min(0.75, distance / PRIMARY_PROJECTILE_SPEED);
+  const leadTime = Math.min(beamSelected ? 0.05 : 0.75, distance / projectileSpeed);
   return { x: target.x + (target.vx ?? 0) * leadTime, y: target.y + (target.vy ?? 0) * leadTime };
 }
 
@@ -455,13 +460,14 @@ function updateEnemyVisualHeading(enemy, dt) {
 }
 
 function stepEnhancedEnemy(game, enemy, dt) {
+  const engineScale = enemyMobilityScale(enemy);
   const charge = enemy.charge ?? { state: 'idle', timer: 1.8, x: 0, y: 1 };
   enemy.charge = charge;
   charge.timer -= dt;
   enemy.shieldActive = charge.state === 'charging';
   if (charge.state === 'charging') {
-    enemy.vx += charge.x * 82.5 * dt;
-    enemy.vy += charge.y * 82.5 * dt;
+    enemy.vx += charge.x * 82.5 * engineScale * dt;
+    enemy.vy += charge.y * 82.5 * engineScale * dt;
     const offset = worldToRoadOffset(enemy, game.road);
     if (Math.abs(offset.x) > game.road.halfWidth * 0.45 || Math.abs(offset.y) > game.road.halfHeight * 0.42) charge.timer = Math.min(charge.timer, 0);
   }
@@ -483,7 +489,7 @@ function stepEnhancedEnemy(game, enemy, dt) {
 function stepBossEnemy(game, boss, dt) {
   updateBossArmUnfurl(game, boss, dt);
   steerBossBackToViewArea(game, boss, dt);
-  boss.centerPulseTimer -= dt;
+  boss.centerPulseTimer -= dt * enemyCoreTimerScale(boss);
   stepBossArms(game, boss, dt);
   if (boss.centerPulseTimer <= 0) {
     fireBossCenterPulse(game, boss);
@@ -531,7 +537,7 @@ function stepBossArms(game, boss, dt) {
     arm.aim.y += (game.vehicle.y - arm.aim.y) * 0.18 * dt + Math.sin(arm.phase * 0.7) * 32 * dt;
     if ((boss.armUnfurl ?? 1) < 0.55) continue;
     if (stepBossLaser(game, boss, arm, dt)) continue;
-    arm.fireTimer = (arm.fireTimer ?? game.rng.range(0.2, 1.5)) - dt;
+    arm.fireTimer = (arm.fireTimer ?? game.rng.range(0.2, 1.5)) - dt * bossArmGunTimerScale(boss, arm);
     if (arm.fireTimer > 0) continue;
     arm.fireTimer = game.rng.range(1.8, 4.3);
     fireBossArmAttack(game, boss, arm);
@@ -722,8 +728,10 @@ function fireBossCenterPulse(game, boss) {
 }
 
 function stepEnemyPatterns(game, enemy, dt) {
+  const fireScale = enemyFireTimerScale(enemy);
+  if (fireScale <= 0) return;
   for (const patternState of enemy.patterns ?? []) {
-    patternState.timer -= dt;
+    patternState.timer -= dt * fireScale;
     if (patternState.timer > 0) continue;
     const projectiles = firePattern(patternState, enemy, game.vehicle, game.rng);
     game.enemyProjectiles.push(...projectiles);
@@ -734,6 +742,30 @@ function stepEnemyPatterns(game, enemy, dt) {
     }
     patternState.timer = nextPatternTimer(patternState);
   }
+}
+
+function enemyFireTimerScale(enemy) {
+  const gun = enemyGunEfficiency(enemy);
+  if (gun <= 0.05) return 0;
+  return clamp(0.18 + gun * 0.82, 0, 1);
+}
+
+function enemyMobilityScale(enemy) {
+  const engine = enemyEngineEfficiency(enemy);
+  return clamp(0.25 + engine * 0.75, 0.25, 1);
+}
+
+function enemyCoreTimerScale(enemy) {
+  const core = enemyCoreEfficiency(enemy);
+  return clamp(0.3 + core * 0.7, 0.3, 1);
+}
+
+function bossArmGunTimerScale(boss, arm) {
+  const cells = boss.cells.filter((cell) => cell.id.startsWith(`arm-${arm.index}-`) && cell.type === 'gun');
+  if (cells.length === 0) return 0;
+  const integrity = cells.reduce((sum, cell) => sum + Math.min(cell.state.deviceIntegrity, cell.state.wiringIntegrity, cell.state.structureIntegrity), 0) / cells.length;
+  if (integrity <= 0.05) return 0;
+  return clamp(0.18 + integrity * 0.82, 0, 1);
 }
 
 function nextPatternTimer(patternState) {
@@ -1058,7 +1090,7 @@ function syncBeamProjectiles(game) {
     }
     projectile.x = muzzle.x;
     projectile.y = muzzle.y;
-    projectile.angle = game.vehicle.turretHeading;
+    projectile.angle = projectile.targetHint ? Math.atan2(projectile.targetHint.y - muzzle.y, projectile.targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   }
 }
 

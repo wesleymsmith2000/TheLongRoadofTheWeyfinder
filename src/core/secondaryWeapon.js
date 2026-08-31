@@ -47,7 +47,8 @@ export function fireSecondary(game) {
   if ((secondary.ammo[secondary.selected] ?? 0) <= 0) return false;
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return false;
-  const angle = game.vehicle.turretHeading;
+  const targetHint = (def.targetHint === 'aimReticle' || def.behavior === 'beam') && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
+  const angle = def.behavior === 'beam' && targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   const useVehicleVelocityOnly = Boolean(def.usesVehicleVelocityOnly);
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, projectileVelocityX(game, angle, def, useVehicleVelocityOnly), projectileVelocityY(game, angle, def, useVehicleVelocityOnly), {
@@ -61,7 +62,7 @@ export function fireSecondary(game) {
       turnRate: def.behavior === 'homing' ? def.turnRate : 0,
       acceleration: def.behavior === 'homing' ? def.acceleration : 0,
       maxSpeed: def.behavior === 'homing' ? def.maxSpeed : Infinity,
-      targetHint: def.targetHint === 'aimReticle' && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null,
+      targetHint,
       radius: def.radius,
       damage: def.damage,
       impulse: def.impulse,
@@ -139,6 +140,7 @@ function upgradedSecondaryDefinition(game, weapon) {
       radius: base.radius + level(game, 'beamWidth') * 0.2,
       frames: Math.max(1, Math.round(5 * multiplier(game, 'beamFireTime'))),
       pierce: level(game, 'beamPierce'),
+      targetHint: 'aimReticle',
     };
   }
   return base;
