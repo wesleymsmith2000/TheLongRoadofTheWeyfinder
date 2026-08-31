@@ -330,6 +330,8 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   const wasDestroyed = enemy.destroyed;
   let hit = false;
   let removed = 0;
+  const propagationLoss = options.propagationLoss ?? 0.18;
+  const changedCells = new Set();
 
   for (const cell of enemy.cells) {
     if (cell.state.destroyed) continue;
@@ -344,14 +346,20 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
         if (distanceVoxels > maxDistance) continue;
         const penetration = blastPenetration(distanceVoxels, closeDistance, maxDistance, closePenetration, farPenetration);
         if (enemyVoxelShellDepth(cell, vx, vy) > penetration) continue;
-        const before = voxel.hp;
         const falloff = clamp(1 - distanceVoxels / maxDistance, 0.35, 1);
-        voxel.hp = Math.max(0, voxel.hp - damage * falloff);
+        const before = voxel.hp;
+        const appliedDamage = damage * falloff;
+        voxel.hp = Math.max(0, voxel.hp - appliedDamage);
         hit = true;
         cellHit = true;
         if (before > 0 && voxel.hp <= 0) {
           removed += 1;
           cellRemoved += 1;
+          const excess = Math.max(0, appliedDamage - before) * (1 - propagationLoss);
+          const propagated = propagateBlastExcess(enemy, cell, vx, vy, origin, maxDistance, penetration, excess);
+          removed += propagated.removed;
+          cellRemoved += propagated.removed;
+          for (const changedCell of propagated.changedCells) changedCells.add(changedCell);
         }
       }
     }
@@ -359,9 +367,57 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
     if (cellRemoved > 0) enemy.damageTaken += cellRemoved * 3;
   }
 
+  for (const cell of changedCells) recalculateCell(cell);
   if (hit) enemy.damageTaken += damage * 0.35;
   updateEnemyDestroyed(enemy);
   return { hit, removed, destroyedNow: !wasDestroyed && enemy.destroyed };
+}
+
+function propagateBlastExcess(enemy, sourceCell, sourceVx, sourceVy, origin, maxDistance, penetration, initialPower) {
+  let power = initialPower;
+  let removed = 0;
+  let current = enemyVoxelWorldCenter(enemy, sourceCell, sourceVx, sourceVy);
+  const visited = new Set([`${sourceCell.id}:${sourceVx}:${sourceVy}`]);
+  const changedCells = new Set();
+  while (power > 0.05) {
+    const next = nearestBlastPropagationVoxel(enemy, current, origin, maxDistance, penetration + removed, visited);
+    if (!next) break;
+    visited.add(`${next.cell.id}:${next.vx}:${next.vy}`);
+    const before = next.voxel.hp;
+    next.voxel.hp = Math.max(0, next.voxel.hp - power);
+    changedCells.add(next.cell);
+    if (before > 0 && next.voxel.hp <= 0) {
+      removed += 1;
+      power = Math.max(0, power - before) * 0.82;
+      current = next.world;
+      continue;
+    }
+    power = 0;
+  }
+  return { removed, changedCells };
+}
+
+function nearestBlastPropagationVoxel(enemy, from, origin, maxDistance, penetration, visited) {
+  const voxelSize = CELL_SIZE / VOXELS;
+  let nearest = null;
+  for (const cell of enemy.cells) {
+    if (cell.state.destroyed) continue;
+    for (let vy = 0; vy < VOXELS; vy += 1) {
+      for (let vx = 0; vx < VOXELS; vx += 1) {
+        const key = `${cell.id}:${vx}:${vy}`;
+        if (visited.has(key)) continue;
+        const voxel = cell.mask[vy][vx];
+        if (voxel.hp <= 0) continue;
+        if (enemyVoxelShellDepth(cell, vx, vy) > penetration + 1) continue;
+        const world = enemyVoxelWorldCenter(enemy, cell, vx, vy);
+        const originDistance = Math.hypot(world.x - origin.x, world.y - origin.y) / voxelSize;
+        if (originDistance > maxDistance) continue;
+        const stepDistance = Math.hypot(world.x - from.x, world.y - from.y);
+        if (!nearest || stepDistance < nearest.distance) nearest = { cell, vx, vy, voxel, world, distance: stepDistance };
+      }
+    }
+  }
+  return nearest;
 }
 
 export function harvestEnemyScrap(enemy, rng) {

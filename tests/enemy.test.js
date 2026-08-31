@@ -86,6 +86,19 @@ test('cannon-style blast strips nearby outer shell voxels with shallow penetrati
   assert.equal(coreRemoved, 0);
 });
 
+test('blast excess damage propagates through consecutive voxels in range', () => {
+  const enemy = createEnemy(0, 0);
+  const result = applyEnemyBlastDamage(enemy, { x: -CELL_SIZE * 0.55, y: 0 }, {
+    damage: 80,
+    maxVoxelDistance: 12,
+    closeVoxelDistance: 12,
+    closePenetration: 2,
+    farPenetration: 2,
+  });
+  assert.equal(result.hit, true);
+  assert.equal(result.removed > 4, true);
+});
+
 test('destroyed enemy remaining voxels become collectible scrap', () => {
   const enemy = createEnemy(0, 0);
   enemy.destroyed = true;
@@ -116,6 +129,32 @@ test('sequential enemy pulse projectile explodes after acceleration window', () 
   ];
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'enemy-pulse-blast'), true);
+});
+
+test('boss beam turns off when its source gun is destroyed', () => {
+  const game = createGame();
+  const boss = createBossEnemy(game.vehicle.x + 120, game.vehicle.y);
+  const source = boss.cells.find((cell) => cell.id === 'arm-0-0-gun');
+  game.enemies = [boss];
+  game.enemyProjectiles = [
+    createProjectile(boss.x + source.gridX * CELL_SIZE, boss.y + source.gridY * CELL_SIZE, 0, 0, {
+      team: 'enemy',
+      weapon: 'boss-laser',
+      behavior: 'beam',
+      radius: 2,
+      damage: 5,
+      impulse: 20,
+      lifetime: 1,
+      length: 120,
+      angle: Math.PI,
+      sourceEnemy: boss,
+      sourceCellId: source.id,
+    }),
+  ];
+  source.state.destroyed = true;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const beam = game.enemyProjectiles.find((projectile) => projectile.weapon === 'boss-laser');
+  assert.equal(beam.lifetime <= 0, true);
 });
 
 test('enhanced enemy frontal shield absorbs player projectiles while charging', () => {

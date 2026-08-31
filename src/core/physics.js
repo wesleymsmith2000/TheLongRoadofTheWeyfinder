@@ -5,9 +5,9 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading) {
   const inputX = input.x ?? 0;
   const inputY = input.y ?? 0;
   const inputTurn = input.turn ?? 0;
-  const engineCount = vehicle.cells.filter((cell) => cell.attached && cell.type === 'engine' && cell.state.deviceIntegrity > 0.1).length;
-  const wheelCount = vehicle.cells.filter((cell) => cell.attached && cell.type === 'wheel' && cell.state.deviceIntegrity > 0.1).length;
-  const propulsion = Math.max(0.25, engineCount * 0.85 + wheelCount * 0.35);
+  const enginePower = typedModulePower(vehicle, 'engine');
+  const wheelPower = typedModulePower(vehicle, 'wheel');
+  const propulsion = Math.max(0.25, 0.85 * Math.sqrt(Math.max(0.05, enginePower)) + 0.35 * Math.sqrt(Math.max(0.05, wheelPower)));
   const turnBalance = vehicle.cells
     .filter((cell) => cell.attached && cell.type === 'wheel')
     .reduce((sum, cell) => sum + cell.gridX * cell.state.deviceIntegrity, 0);
@@ -19,6 +19,7 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading) {
   const accel = rotatePoint(localAx, localAy, roadHeading);
   vehicle.vx += accel.x * dt;
   vehicle.vy += accel.y * dt;
+  applyWheelGrounding(vehicle, accel, wheelPower, dt);
   const roadAlignment = angleDelta(vehicle.heading, roadHeading) * 1.4;
   vehicle.angularVelocity += (inputTurn * 3.6 + inputY * pull * 0.45 + roadAlignment) * dt;
 
@@ -28,9 +29,10 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading) {
     vehicle.angularVelocity *= Math.pow(0.02, dt);
   }
 
-  const drag = Math.pow(0.42, dt);
+  const drag = Math.pow(inputMagnitude(inputX, inputY) > 0.05 ? 0.32 : 0.08 / Math.max(1, Math.sqrt(Math.max(1, wheelPower))), dt);
   vehicle.vx *= drag;
   vehicle.vy *= drag;
+  clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty);
   vehicle.angularVelocity *= Math.pow(0.24, dt);
   vehicle.x += vehicle.vx * dt;
   vehicle.y += vehicle.vy * dt;
@@ -46,4 +48,33 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading) {
     piece.life -= dt;
   }
   vehicle.detachedPieces = vehicle.detachedPieces.filter((piece) => piece.life > 0);
+}
+
+function typedModulePower(vehicle, type) {
+  return vehicle.cells
+    .filter((cell) => cell.attached && cell.type === type && !cell.state.destroyed && cell.state.deviceIntegrity > 0.1)
+    .reduce((sum, cell) => sum + Math.min(cell.state.deviceIntegrity, cell.state.wiringIntegrity, cell.state.structureIntegrity), 0);
+}
+
+function inputMagnitude(x, y) {
+  return Math.hypot(x, y);
+}
+
+function applyWheelGrounding(vehicle, accel, wheelPower, dt) {
+  const speed = Math.hypot(vehicle.vx, vehicle.vy);
+  const accelMagnitude = Math.hypot(accel.x, accel.y);
+  if (speed <= 0.001 || accelMagnitude <= 0.001) return;
+  const dot = (vehicle.vx * accel.x + vehicle.vy * accel.y) / (speed * accelMagnitude);
+  if (dot >= 0.15) return;
+  const braking = Math.pow(0.04 / Math.max(1, Math.sqrt(Math.max(1, wheelPower))), dt);
+  vehicle.vx *= braking;
+  vehicle.vy *= braking;
+}
+
+function clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty) {
+  const speed = Math.hypot(vehicle.vx, vehicle.vy);
+  const maxSpeed = (130 + 32 * Math.sqrt(Math.max(0, enginePower)) + 12 * Math.sqrt(Math.max(0, wheelPower))) / Math.max(0.8, massPenalty);
+  if (speed <= maxSpeed) return;
+  vehicle.vx = (vehicle.vx / speed) * maxSpeed;
+  vehicle.vy = (vehicle.vy / speed) * maxSpeed;
 }

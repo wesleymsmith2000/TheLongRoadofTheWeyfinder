@@ -200,9 +200,9 @@
               "speed": 55,
               "delayBeforeAcceleration": [1.4, 2.6],
               "stopBeforeAcceleration": true,
-              "acceleration": 150,
+              "acceleration": 450,
               "accelerationDuration": 3,
-              "maxSpeed": 275
+              "maxSpeed": 825
             }
           },
           {
@@ -235,7 +235,7 @@
         "count": 12,
         "delayBeforeAcceleration": 3,
         "stopBeforeAcceleration": true,
-        "acceleration": 140,
+        "acceleration": 420,
         "accelerationSpreadRadians": 0.04,
         "vanishOffscreen": true
       },

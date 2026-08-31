@@ -42,8 +42,8 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'homing');
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
-  assert.equal(game.playerProjectiles[0].maxSpeed, 65);
-  assert.equal(game.playerProjectiles[0].radius, 1.5);
+  assert.equal(game.playerProjectiles[0].maxSpeed, 97.5);
+  assert.equal(game.playerProjectiles[0].radius, 3);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
 });
@@ -200,6 +200,7 @@ test('cannon uses boosted base damage', () => {
   game.secondary.selected = 'cannon';
   fireSecondary(game);
   assert.equal(game.playerProjectiles[0].damage, 36);
+  assert.equal(game.playerProjectiles[0].radius, 4);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
 });
 
@@ -224,7 +225,7 @@ test('cannon detonates when it reaches the selected aim reticle', () => {
   game.enemies = [];
   game.enemySpawnQueue = [{ at: 10, enemy: createEnemy(game.vehicle.x + 800, game.vehicle.y), markerShown: false, type: 'standard' }];
   fireSecondary(game);
-  for (let index = 0; index < 30; index += 1) stepGame(game, { secondarySelect: 'cannon', gunnerEnabled: false }, 1 / 60);
+  for (let index = 0; index < 16; index += 1) stepGame(game, { secondarySelect: 'cannon', gunnerEnabled: false }, 1 / 60);
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'cannon-blast'), true);
 });
 

@@ -86,10 +86,26 @@ export function hasFunctionalGun(vehicle) {
 }
 
 export function gunMuzzleWorld(vehicle, aimHeading = vehicle.turretHeading) {
-  const gun = vehicle.cells.find((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed);
+  const gun = activeGunCells(vehicle)[0];
   if (!gun) return null;
   const base = localToWorld({ x: gun.gridX * CELL_SIZE, y: gun.gridY * CELL_SIZE }, vehicle);
   return { x: base.x + Math.cos(aimHeading) * CELL_SIZE * 0.72, y: base.y + Math.sin(aimHeading) * CELL_SIZE * 0.72 };
+}
+
+export function gunMuzzlesWorld(vehicle, aimHeading = vehicle.turretHeading) {
+  return activeGunCells(vehicle).map((gun) => {
+    const base = localToWorld({ x: gun.gridX * CELL_SIZE, y: gun.gridY * CELL_SIZE }, vehicle);
+    return {
+      x: base.x + Math.cos(aimHeading) * CELL_SIZE * 0.72,
+      y: base.y + Math.sin(aimHeading) * CELL_SIZE * 0.72,
+      cellId: gun.id,
+      integrity: Math.min(gun.state.deviceIntegrity, gun.state.wiringIntegrity, gun.state.structureIntegrity),
+    };
+  });
+}
+
+function activeGunCells(vehicle) {
+  return vehicle.cells.filter((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed && cell.state.deviceIntegrity > 0.15);
 }
 
 export function applyImpulse(vehicle, worldPoint, direction, impulse) {

@@ -29,6 +29,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     acceleration: options.acceleration ?? 0,
     maxSpeed: options.maxSpeed ?? Infinity,
     targetHint: options.targetHint ?? null,
+    detonateDistance: options.detonateDistance ?? null,
     detonateAtTarget: Boolean(options.detonateAtTarget),
     blastDamage: options.blastDamage ?? 0,
     blastRadius: options.blastRadius ?? 0,
@@ -52,6 +53,9 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     absorbsPlayerProjectiles: Boolean(options.absorbsPlayerProjectiles),
     absorbHp: options.absorbHp ?? 0,
     maxAbsorbHp: options.absorbHp ?? 0,
+    sourceEnemy: options.sourceEnemy ?? null,
+    sourceCellId: options.sourceCellId ?? null,
+    sourceOffset: options.sourceOffset ?? null,
   };
   if (options.destructible && options.shape?.kind === 'cylinderCone') {
     projectile.shape = options.shape;

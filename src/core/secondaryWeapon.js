@@ -50,6 +50,7 @@ export function fireSecondary(game) {
   const targetHint = (def.targetHint === 'aimReticle' || def.behavior === 'beam') && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
   const angle = def.behavior === 'beam' && targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   const useVehicleVelocityOnly = Boolean(def.usesVehicleVelocityOnly);
+  const detonateDistance = def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null;
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, projectileVelocityX(game, angle, def, useVehicleVelocityOnly), projectileVelocityY(game, angle, def, useVehicleVelocityOnly), {
       team: 'player',
@@ -67,6 +68,7 @@ export function fireSecondary(game) {
       maxArcHeight: def.maxArcHeight ?? 1,
       shadowRadius: def.shadowRadius ?? def.radius,
       targetHint,
+      detonateDistance,
       radius: def.radius,
       damage: def.damage,
       impulse: def.impulse,
@@ -111,8 +113,8 @@ function upgradedSecondaryDefinition(game, weapon) {
       cooldown: base.cooldown / multiplier(game, 'cannonFireRate'),
       damage: base.damage * multiplier(game, 'cannonImpactDamage'),
       impulse: base.impulse * multiplier(game, 'cannonKnockback'),
-      blastDamage: 9 * multiplier(game, 'cannonBlastDamage'),
-      blastRadius: CELL_SIZE * 2.55 * multiplier(game, 'cannonBlastRadius'),
+      blastDamage: 18 * multiplier(game, 'cannonBlastDamage'),
+      blastRadius: CELL_SIZE * 5.1 * multiplier(game, 'cannonBlastRadius'),
       blastKnockback: 55 * multiplier(game, 'cannonKnockback'),
       shrapnelCount: 28 + level(game, 'cannonShrapnelCount'),
       shrapnelDamageScale: multiplier(game, 'cannonShrapnelDamage'),
@@ -126,8 +128,8 @@ function upgradedSecondaryDefinition(game, weapon) {
       cooldown: base.cooldown / multiplier(game, 'rocketFireRate'),
       damage: base.damage * multiplier(game, 'rocketImpactDamage'),
       impulse: base.impulse * multiplier(game, 'rocketKnockback'),
-      blastDamage: 4.5 * multiplier(game, 'rocketBlastDamage'),
-      blastRadius: CELL_SIZE * 1.275 * multiplier(game, 'rocketBlastRadius'),
+      blastDamage: 9 * multiplier(game, 'rocketBlastDamage'),
+      blastRadius: CELL_SIZE * 2.55 * multiplier(game, 'rocketBlastRadius'),
       blastKnockback: 27.5 * multiplier(game, 'rocketKnockback'),
       maxSpeed: base.projectileSpeed * multiplier(game, 'rocketMaxVelocity'),
       turnRate: 2.5 * multiplier(game, 'rocketTurning'),
