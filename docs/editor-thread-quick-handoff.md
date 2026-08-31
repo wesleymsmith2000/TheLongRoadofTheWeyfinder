@@ -5,7 +5,8 @@ Pull latest `main` before continuing editor work.
 Latest relevant checkpoints:
 
 ```text
-pending/current: Cannon flechette pierce and weapon loadout direction
+pending/current: Engine-scaled boost drive and gun-scaled boost shielding
+1a31449 Cannon flechette pierce and weapon loadout direction
 0eb5937 Boost mobility upgrade scaling
 f25d968 Rotate main gun firing points
 28ec68a Rebalance explosives and module scaling
@@ -26,6 +27,8 @@ docs/combat-balance-module-scaling-handoff.md
 - Construct editors should treat every active `gun` cell as a real firing point.
 - Construct editors should treat additional `engine` cells as acceleration/top-speed contributors with diminishing returns.
 - Construct editors should treat additional `wheel` cells as braking/control contributors with diminishing returns and possible asymmetry wobble.
+- Construct editors should show that active engines also scale boost drive capacity/recharge/thrust/duration/speed through square-root module power.
+- Construct editors should show that active guns currently scale boost shield duration/radius/repel/absorption until shield modules are introduced.
 - Upgrade editors/menus should include Mobility upgrades: `engineAcceleration`, `engineMaxVelocity`, and `wheelInertiaCompensation`.
 - Enemy editors should expose that boss beams must bind to a source cell and shut off when that cell is destroyed.
 - Boss editors should plan for independent arm-nodule shots, even though this is still partly hardcoded in `src/core/game.js`.

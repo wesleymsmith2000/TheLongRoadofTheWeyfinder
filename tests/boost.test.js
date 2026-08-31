@@ -4,6 +4,8 @@ import { createBoostState, boostRechargeFactor, dodgeDirection, stepBoost } from
 import { createStartingVehicle } from '../src/core/vehicle.js';
 import { createGame, stepGame } from '../src/core/game.js';
 import { createProjectile } from '../src/core/projectile.js';
+import { createCell } from '../src/core/cell.js';
+import { createConnection } from '../src/core/connections.js';
 
 test('boost dodge spends fuel and pushes in the requested direction', () => {
   const vehicle = createStartingVehicle();
@@ -13,6 +15,25 @@ test('boost dodge spends fuel and pushes in the requested direction', () => {
   assert.equal(boost.fuel < boost.maxFuel, true);
   assert.equal(vehicle.vx > 25, true);
   assert.equal(boost.activeTime > 0, true);
+});
+
+test('additional engines scale boost drive reserve recharge and duration', () => {
+  const lightGame = createGame();
+  const engineGame = createGame();
+  addAttachedCell(engineGame.vehicle, createCell('engine-extra', 'engine', 0, 2), 'engine');
+
+  stepGame(lightGame, { gunnerEnabled: false }, 1 / 60);
+  stepGame(engineGame, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(engineGame.boost.maxFuel > lightGame.boost.maxFuel, true);
+  assert.equal(engineGame.boost.rechargeRate > lightGame.boost.rechargeRate, true);
+  assert.equal(engineGame.boost.maxDuration > lightGame.boost.maxDuration, true);
+  assert.equal(engineGame.boost.maxSpeed > lightGame.boost.maxSpeed, true);
+
+  const lightBoost = stepBoost(lightGame.vehicle, lightGame.boost, { dodgePressed: true, dodgeX: 1, dodgeY: 0 }, 0, 1 / 60);
+  const engineBoost = stepBoost(engineGame.vehicle, engineGame.boost, { dodgePressed: true, dodgeX: 1, dodgeY: 0 }, 0, 1 / 60);
+  assert.equal(lightBoost, true);
+  assert.equal(engineBoost, true);
+  assert.equal(engineGame.vehicle.vx > lightGame.vehicle.vx, true);
 });
 
 test('boost defaults to forward dodge without a movement direction', () => {
@@ -47,3 +68,20 @@ test('active boost shield deflects nearby enemy projectiles', () => {
   assert.equal(game.enemyProjectiles[0].vx > 0, true);
   assert.equal(game.vehicle.alive, true);
 });
+
+test('additional guns scale boost shield duration and absorption', () => {
+  const lightGame = createGame();
+  const gunGame = createGame();
+  addAttachedCell(gunGame.vehicle, createCell('gun-extra', 'gun', 0, -2), 'gun');
+
+  stepGame(lightGame, { gunnerEnabled: false }, 1 / 60);
+  stepGame(gunGame, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(gunGame.boost.shieldDuration > lightGame.boost.shieldDuration, true);
+  assert.equal(gunGame.boost.shieldScale > lightGame.boost.shieldScale, true);
+});
+
+function addAttachedCell(vehicle, cell, connectTo = 'core') {
+  vehicle.cells.push(cell);
+  vehicle.connections.push(createConnection(connectTo, cell.id, 'bottom'));
+}

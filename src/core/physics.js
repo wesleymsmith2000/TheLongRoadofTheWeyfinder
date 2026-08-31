@@ -53,7 +53,7 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   vehicle.detachedPieces = vehicle.detachedPieces.filter((piece) => piece.life > 0);
 }
 
-function typedModulePower(vehicle, type) {
+export function typedModulePower(vehicle, type) {
   return vehicle.cells
     .filter((cell) => cell.attached && cell.type === type && !cell.state.destroyed && cell.state.deviceIntegrity > 0.1)
     .reduce((sum, cell) => sum + Math.min(cell.state.deviceIntegrity, cell.state.wiringIntegrity, cell.state.structureIntegrity), 0);

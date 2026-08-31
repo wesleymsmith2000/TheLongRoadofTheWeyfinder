@@ -33,6 +33,8 @@ Player modules:
 - Engine and wheel mobility contributions were boosted by 50%, and base acceleration/max velocity were boosted by about 50%.
 - Wheel module power now improves braking/grounding and release drag. Asymmetric wheels still feed the existing wobble/pull behavior.
 - Upgrade shop now includes `engineAcceleration`, `engineMaxVelocity`, and `wheelInertiaCompensation`.
+- Boost drive now uses active engine power through the square-root rule for launch impulse, sustained thrust, boost speed cap, drive duration, fuel capacity, and recharge rate.
+- Boost shielding temporarily uses active gun power through the square-root rule for shield duration, repel impulse, radius, and absorption until dedicated shield modules exist.
 
 ## Editor Follow-Up
 
@@ -41,6 +43,8 @@ Weapon and construct editors should expose these assumptions:
 - Multiple gun cells are meaningful as distinct firing points.
 - Multiple engine cells are meaningful for acceleration and max speed, with diminishing returns.
 - Multiple wheel cells are meaningful for braking/control, with diminishing returns.
+- Multiple engine cells are also meaningful for boost reserve, recharge, thrust, duration, and speed cap.
+- Multiple gun cells are temporarily meaningful for boost shield duration/radius/repel/absorption until shield modules are introduced.
 - Mobility upgrades should be grouped under a `Mobility` system: engine acceleration, engine max velocity, and wheel inertia compensation.
 - Cannon/mortar-style weapons should prefer `targetHint: "aimReticle"` plus detonation distance/reticle semantics.
 - Explosive weapon previews should treat excess damage as tunneling through consecutive voxels while blast power remains.

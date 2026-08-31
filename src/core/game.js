@@ -1,5 +1,5 @@
 import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, recalculateVehicle } from './vehicle.js';
-import { stepVehicle } from './physics.js';
+import { stepVehicle, typedModulePower } from './physics.js';
 import { applyRocketHullDamage, createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
 import { clamp, distanceSquared } from './math.js';
@@ -487,11 +487,17 @@ function moveToward(from, to, maxDistance) {
 }
 
 function configureBoostFromUpgrades(game) {
-  game.boost.maxFuel = 100 * upgradeMultiplier(game, 'boostCapacity');
+  const engineScale = Math.sqrt(Math.max(1, typedModulePower(game.vehicle, 'engine')));
+  const gunScale = Math.sqrt(Math.max(1, typedModulePower(game.vehicle, 'gun')));
+  game.boost.maxFuel = 100 * upgradeMultiplier(game, 'boostCapacity') * engineScale;
   game.boost.cost = 51 * upgradeReduction(game, 'boostEfficiency');
-  game.boost.rechargeRate = 16 * upgradeMultiplier(game, 'boostRecharge');
-  game.boost.acceleration = 35 * upgradeMultiplier(game, 'boostAcceleration');
-  game.boost.maxDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration');
+  game.boost.rechargeRate = 16 * upgradeMultiplier(game, 'boostRecharge') * engineScale;
+  game.boost.acceleration = 35 * upgradeMultiplier(game, 'boostAcceleration') * engineScale;
+  game.boost.sustainAcceleration = 350 * upgradeMultiplier(game, 'boostAcceleration') * engineScale;
+  game.boost.maxSpeed = 240 * upgradeMultiplier(game, 'boostAcceleration') * engineScale;
+  game.boost.maxDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration') * engineScale;
+  game.boost.shieldDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration') * gunScale;
+  game.boost.shieldScale = gunScale;
   game.boost.cooldownDuration = (20 / 60) * upgradeReduction(game, 'boostCooldown');
 }
 
@@ -934,8 +940,9 @@ function handleBoostRams(game) {
 function handleBoostShieldRepel(game, dt) {
   if (game.boost.activeTime <= 0) return;
   const radius = boostShieldRadius(game);
-  const enemyImpulse = 90 * upgradeMultiplier(game, 'boostShielding');
-  const projectileImpulse = 180 * upgradeMultiplier(game, 'boostShielding');
+  const shieldScale = game.boost.shieldScale ?? 1;
+  const enemyImpulse = 90 * upgradeMultiplier(game, 'boostShielding') * shieldScale;
+  const projectileImpulse = 180 * upgradeMultiplier(game, 'boostShielding') * shieldScale;
   for (const enemy of activeEnemies(game)) knockEnemyFromPoint(enemy, game.vehicle, radius + enemy.radius, enemyImpulse * dt);
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
@@ -955,7 +962,7 @@ function handleBoostShieldRepel(game, dt) {
 }
 
 function boostShieldRadius(game) {
-  return CELL_SIZE * 3.8 * upgradeMultiplier(game, 'boostShielding');
+  return CELL_SIZE * 3.8 * upgradeMultiplier(game, 'boostShielding') * Math.sqrt(game.boost.shieldScale ?? 1);
 }
 
 function handleCollisions(game) {
@@ -1177,7 +1184,7 @@ function projectileReachedDetonationTarget(projectile) {
 
 function shieldedProjectile(game, projectile) {
   if (game.boost.activeTime <= 0) return projectile;
-  const shield = clamp(0.25 * upgradeMultiplier(game, 'boostShielding'), 0, 0.8);
+  const shield = clamp(0.25 * upgradeMultiplier(game, 'boostShielding') * Math.sqrt(game.boost.shieldScale ?? 1), 0, 0.85);
   return { ...projectile, damage: projectile.damage * (1 - shield), impulse: projectile.impulse * (1 - shield) };
 }
 
