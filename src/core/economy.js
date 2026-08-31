@@ -41,6 +41,7 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'beamHeatSink', label: 'Beam Heat Sink', system: 'Particle Beam' },
   { id: 'beamAmmo', label: 'Beam Ammo Capacity', system: 'Particle Beam' },
   { id: 'beamDamage', label: 'Beam Damage', system: 'Particle Beam' },
+  { id: 'beamLength', label: 'Beam Length', system: 'Particle Beam' },
   { id: 'beamPierce', label: 'Beam Pierce', system: 'Particle Beam' },
   { id: 'beamWidth', label: 'Beam Width', system: 'Particle Beam' },
   { id: 'beamFireTime', label: 'Beam Fire Time', system: 'Particle Beam' },

@@ -133,7 +133,7 @@ function distanceSquared(a, b) {
 export function applyRocketHullDamage(rocket, impactProjectile) {
   if (!rocket.hull) return { hit: false, removed: 0, destroyed: false };
   const local = worldToProjectileLocal(rocket, impactProjectile);
-  const radius = Math.max(1, impactProjectile.radius * 2.2);
+  const radius = Math.max(0.5, impactProjectile.radius * 2.2);
   let hit = false;
   let removed = 0;
   for (const section of rocket.hull.sections) {

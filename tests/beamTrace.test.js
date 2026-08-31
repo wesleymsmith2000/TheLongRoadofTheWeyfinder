@@ -29,7 +29,7 @@ test('wide beam trace touches multiple surface voxels without pierce', () => {
 
 test('narrow beam pierce continues through additional voxels', () => {
   const enemy = createEnemy(60, 0);
-  const trace = traceEnemyVoxelBeam([enemy], { x: 0, y: 0 }, 0, 200, 0.5, 3);
+  const trace = traceEnemyVoxelBeam([enemy], { x: 0, y: 0 }, 0, 200, (CELL_SIZE / 6) * 0.4, 3);
   assert.equal(trace.hits.length, 4);
   assert.deepEqual(
     trace.hits.map((hit) => hit.voxelIndex.x),

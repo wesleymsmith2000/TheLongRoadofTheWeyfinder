@@ -193,7 +193,7 @@ function cellMatchesRepairTarget(cell, target) {
 
 function spawnDetachedPiece(vehicle, cell) {
   const world = localToWorld({ x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE }, vehicle);
-  const sideKick = rotatePoint(cell.gridX * 30, cell.gridY * 30, vehicle.heading);
+  const sideKick = rotatePoint(cell.gridX * 15, cell.gridY * 15, vehicle.heading);
   vehicle.detachedPieces.push({
     cell,
     x: world.x,

@@ -52,7 +52,7 @@ test('disabled gunner AI leaves turret heading alone without manual aim', () => 
 test('compensated mouse aim fires through the cursor point after vehicle velocity', () => {
   const vehicle = createStartingVehicle();
   vehicle.vx = 0;
-  vehicle.vy = -180;
+  vehicle.vy = -90;
   const target = { x: 160, y: -40 };
   const angle = compensatedAimHeading(vehicle, target, PRIMARY_PROJECTILE_SPEED);
   vehicle.turretHeading = angle;
@@ -68,7 +68,7 @@ test('compensated mouse aim fires through the cursor point after vehicle velocit
 
 test('manual aim compensation can be disabled', () => {
   const vehicle = createStartingVehicle();
-  vehicle.vy = -180;
+  vehicle.vy = -90;
   const target = { x: 160, y: -40 };
   const direct = resolveTurretAim(vehicle, [], { aimWorld: target, compensatedAim: false });
   const compensated = resolveTurretAim(vehicle, [], { aimWorld: target, compensatedAim: true });

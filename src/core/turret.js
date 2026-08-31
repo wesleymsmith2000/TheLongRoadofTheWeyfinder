@@ -1,7 +1,7 @@
 import { angleDelta, distanceSquared } from './math.js';
 import { gunMuzzleWorld } from './vehicle.js';
 
-export const PRIMARY_PROJECTILE_SPEED = 215;
+export const PRIMARY_PROJECTILE_SPEED = 107.5;
 
 export function stepTurretAim(vehicle, enemies, input, dt) {
   if (input.manualAimActive) vehicle.manualAimGrace = input.manualAimHold ?? 0.45;

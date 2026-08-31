@@ -251,12 +251,43 @@ export function applyEnemyDamage(enemy, projectile) {
     projectile.radius * 3.4,
     projectile.damage,
   );
-  if (!result.hit) return { hit: false, removed: 0, destroyedNow: false };
+  if (!result.hit) {
+    const fallback = damageNearestLiveVoxel(cell, localX - cell.gridX * CELL_SIZE, localY - cell.gridY * CELL_SIZE, projectile);
+    if (!fallback.hit) return { hit: false, removed: 0, destroyedNow: false };
+    recalculateCell(cell);
+    enemy.damageTaken += fallback.damage + fallback.removed * 3;
+    const wasDestroyed = enemy.destroyed;
+    updateEnemyDestroyed(enemy);
+    return { hit: true, cell, removed: fallback.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
+  }
   recalculateCell(cell);
   enemy.damageTaken += projectile.damage + result.removed * 3;
   const wasDestroyed = enemy.destroyed;
   updateEnemyDestroyed(enemy);
   return { hit: true, cell, removed: result.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
+}
+
+function damageNearestLiveVoxel(cell, localX, localY, projectile) {
+  const unit = CELL_SIZE / VOXELS;
+  const maxSearch = Math.max(projectile.radius * 3.4, unit * 2.5);
+  let nearest = null;
+  for (let y = 0; y < VOXELS; y += 1) {
+    for (let x = 0; x < VOXELS; x += 1) {
+      const voxel = cell.mask[y][x];
+      if (voxel.hp <= 0) continue;
+      const cx = (x + 0.5) * unit - CELL_SIZE / 2;
+      const cy = (y + 0.5) * unit - CELL_SIZE / 2;
+      const distance = Math.hypot(localX - cx, localY - cy);
+      if (distance > maxSearch || (nearest && distance >= nearest.distance)) continue;
+      nearest = { voxel, distance };
+    }
+  }
+  if (!nearest) return { hit: false, removed: 0, damage: 0 };
+  const before = nearest.voxel.hp;
+  const falloff = clamp(1 - nearest.distance / Math.max(maxSearch, 1), 0.35, 1);
+  const damage = projectile.damage * falloff;
+  nearest.voxel.hp = Math.max(0, nearest.voxel.hp - damage);
+  return { hit: true, removed: before > 0 && nearest.voxel.hp <= 0 ? 1 : 0, damage };
 }
 
 export function applyEnemyVoxelDamage(enemy, hit, damage) {
@@ -332,10 +363,10 @@ export function harvestEnemyScrap(enemy, rng) {
         pickups.push({
           x: world.x + jitter.x,
           y: world.y + jitter.y,
-          vx: (rng?.range(-35, 35) ?? 0) + enemy.vx * 0.15,
-          vy: (rng?.range(-35, 35) ?? 0) + enemy.vy * 0.15,
+          vx: (rng?.range(-17.5, 17.5) ?? 0) + enemy.vx * 0.15,
+          vy: (rng?.range(-17.5, 17.5) ?? 0) + enemy.vy * 0.15,
           value: 1,
-          radius: Math.max(2.2, unit * 0.55),
+          radius: Math.max(1.1, unit * 0.55),
           life: 18,
         });
         voxel.hp = 0;

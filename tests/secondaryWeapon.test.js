@@ -29,7 +29,7 @@ test('beam secondary creates a short beam blast instead of a traveling shot', ()
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'beam');
-  assert.equal(game.playerProjectiles[0].length > 300, true);
+  assert.equal(game.playerProjectiles[0].length, 256);
   assert.equal(game.playerProjectiles[0].frames, 5);
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_BEAM), true);
@@ -42,8 +42,8 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'homing');
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
-  assert.equal(game.playerProjectiles[0].maxSpeed, 130);
-  assert.equal(game.playerProjectiles[0].radius, 3);
+  assert.equal(game.playerProjectiles[0].maxSpeed, 65);
+  assert.equal(game.playerProjectiles[0].radius, 1.5);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
 });
@@ -211,7 +211,7 @@ test('secondary upgrades alter projectile stats', () => {
   game.upgrades.cannonShrapnelCount = 2;
   fireSecondary(game);
   assert.equal(game.playerProjectiles[0].damage.toFixed(1), '37.8');
-  assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy) > 270, true);
+  assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy) > 135, true);
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
 });
 
@@ -220,7 +220,7 @@ test('cannon detonates when it reaches the selected aim reticle', () => {
   game.secondary.selected = 'cannon';
   game.vehicle.turretHeading = 0;
   const muzzle = gunMuzzleWorld(game.vehicle);
-  game.aimReticle = { x: muzzle.x + 95, y: muzzle.y, active: true, source: 'pointer' };
+  game.aimReticle = { x: muzzle.x + 47.5, y: muzzle.y, active: true, source: 'pointer' };
   game.enemies = [];
   game.enemySpawnQueue = [{ at: 10, enemy: createEnemy(game.vehicle.x + 800, game.vehicle.y), markerShown: false, type: 'standard' }];
   fireSecondary(game);
@@ -232,10 +232,12 @@ test('beam upgrades reduce width growth and base damage while ammo upgrades expa
   const game = createGame();
   game.secondary.selected = 'beam';
   game.upgrades.beamWidth = 2;
+  game.upgrades.beamLength = 1;
   game.upgrades.beamAmmo = 1;
   fireSecondary(game);
   assert.equal(game.playerProjectiles[0].damage, 1.875);
   assert.equal(game.playerProjectiles[0].radius, 1.4);
+  assert.equal(game.playerProjectiles[0].length > 256, true);
   assert.equal(game.secondary.ammo.beam, 39);
 });
 

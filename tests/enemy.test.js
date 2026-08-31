@@ -32,6 +32,19 @@ test('enemy destruction is detected when core is shredded', () => {
   assert.equal(enemy.destroyed, true);
 });
 
+test('projectile impacts damage the nearest live voxel inside a hollowed core cell', () => {
+  const enemy = createEnemy(0, 0);
+  const core = enemy.cells.find((cell) => cell.type === 'core');
+  for (const voxel of core.mask.flat()) {
+    if (voxel.role === 'device') voxel.hp = 0;
+  }
+  const before = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const hit = applyEnemyDamage(enemy, createProjectile(0, 0, 0, 0, { damage: 12, radius: 0.25, team: 'player' }));
+  const after = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(hit.hit, true);
+  assert.equal(after < before, true);
+});
+
 test('destroyed enemies no longer block beam ray tracing', () => {
   const destroyed = createEnemy(40, 0);
   const live = createEnemy(90, 0);

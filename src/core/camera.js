@@ -5,7 +5,7 @@ export function createRoadFrame(vehicle) {
     x: vehicle.x,
     y: vehicle.y,
     heading: vehicle.heading,
-    speed: 60,
+    speed: 30,
     halfWidth: 120,
     halfHeight: 92,
   };
@@ -77,7 +77,7 @@ function applyLaneEdgeCorrection(localVelocity, value, halfSize, dt, axis) {
   const distance = Math.abs(value);
   if (dt <= 0 || distance <= softLimit) return;
   const pressure = clamp((distance - softLimit) / Math.max(1, halfSize - softLimit), 0, 1);
-  localVelocity[axis] -= Math.sign(value) * pressure * 105 * dt;
+  localVelocity[axis] -= Math.sign(value) * pressure * 52.5 * dt;
 }
 
 export function worldToRoadOffset(point, road) {

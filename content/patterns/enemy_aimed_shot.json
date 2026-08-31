@@ -12,15 +12,15 @@
     "kind": "aimed",
     "target": "player",
     "count": 1,
-    "speed": 105,
+    "speed": 52.5,
     "spreadRadians": 0.12,
     "projectile": {
       "team": "enemy",
       "weapon": "bullet",
       "behavior": "ballistic",
-      "radius": 2.5,
+      "radius": 1.25,
       "damage": 10,
-      "impulse": 175,
+      "impulse": 87.5,
       "lifetime": 4
     }
   }

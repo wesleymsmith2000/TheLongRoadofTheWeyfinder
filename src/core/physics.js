@@ -14,8 +14,8 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading) {
   const pull = turnBalance * 0.35;
   const massPenalty = Math.sqrt(vehicle.totalMass / 120);
 
-  const localAx = (inputX * 180 * propulsion) / massPenalty;
-  const localAy = (inputY * 180 * propulsion) / massPenalty;
+  const localAx = (inputX * 90 * propulsion) / massPenalty;
+  const localAy = (inputY * 90 * propulsion) / massPenalty;
   const accel = rotatePoint(localAx, localAy, roadHeading);
   vehicle.vx += accel.x * dt;
   vehicle.vy += accel.y * dt;

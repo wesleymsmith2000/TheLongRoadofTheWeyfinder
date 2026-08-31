@@ -57,14 +57,14 @@ test('aimed pattern emits projectile toward target with deterministic spread', (
   assert.equal(projectiles.length, 1);
   assert.equal(projectiles[0].team, 'enemy');
   assert.equal(projectiles[0].damage, 10);
-  assert.equal(projectiles[0].vx > 100, true);
+  assert.equal(projectiles[0].vx > 50, true);
 });
 
 test('radial pattern emits configured projectile count', () => {
   const radial = { ...radialPatternDefinition, emitter: { ...radialPatternDefinition.emitter, kind: 'radial' } };
   const projectiles = firePattern(radial, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
   assert.equal(projectiles.length, 12);
-  assert.equal(projectiles.every((projectile) => projectile.radius === 3), true);
+  assert.equal(projectiles.every((projectile) => projectile.radius === 1.5), true);
 });
 
 test('sequential radial pattern emits one spoke at a time with delayed acceleration', () => {

@@ -108,7 +108,7 @@ function upgradedSecondaryDefinition(game, weapon) {
       impulse: base.impulse * multiplier(game, 'cannonKnockback'),
       blastDamage: 9 * multiplier(game, 'cannonBlastDamage'),
       blastRadius: CELL_SIZE * 2.55 * multiplier(game, 'cannonBlastRadius'),
-      blastKnockback: 110 * multiplier(game, 'cannonKnockback'),
+      blastKnockback: 55 * multiplier(game, 'cannonKnockback'),
       shrapnelCount: 28 + level(game, 'cannonShrapnelCount'),
       shrapnelDamageScale: multiplier(game, 'cannonShrapnelDamage'),
       targetHint: 'aimReticle',
@@ -123,10 +123,10 @@ function upgradedSecondaryDefinition(game, weapon) {
       impulse: base.impulse * multiplier(game, 'rocketKnockback'),
       blastDamage: 4.5 * multiplier(game, 'rocketBlastDamage'),
       blastRadius: CELL_SIZE * 1.275 * multiplier(game, 'rocketBlastRadius'),
-      blastKnockback: 55 * multiplier(game, 'rocketKnockback'),
+      blastKnockback: 27.5 * multiplier(game, 'rocketKnockback'),
       maxSpeed: base.projectileSpeed * multiplier(game, 'rocketMaxVelocity'),
       turnRate: 2.5 * multiplier(game, 'rocketTurning'),
-      acceleration: 90,
+      acceleration: 45,
     };
   }
   if (weapon === 'beam') {
@@ -135,6 +135,7 @@ function upgradedSecondaryDefinition(game, weapon) {
       cooldown: base.cooldown / multiplier(game, 'beamFireRate'),
       heat: Math.max(1, base.heat * reduction(game, 'beamHeatEfficiency')),
       damage: base.damage * 0.75 * multiplier(game, 'beamDamage'),
+      length: base.length * multiplier(game, 'beamLength', 0.12),
       radius: base.radius + level(game, 'beamWidth') * 0.2,
       frames: Math.max(1, Math.round(5 * multiplier(game, 'beamFireTime'))),
       pierce: level(game, 'beamPierce'),

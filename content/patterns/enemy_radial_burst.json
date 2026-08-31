@@ -12,31 +12,31 @@
     "kind": "sequentialRadial",
     "target": "player",
     "count": 12,
-    "speed": 80,
+    "speed": 40,
     "sequenceRest": 5.36,
     "jitterRadians": 0.04,
     "projectile": {
       "team": "enemy",
       "weapon": "bullet",
       "behavior": "ballistic",
-      "radius": 3,
+      "radius": 1.5,
       "color": "#3d6f8f",
       "absorbsPlayerProjectiles": true,
       "absorbHp": 18,
       "damage": 7,
-      "impulse": 105,
+      "impulse": 52.5,
       "lifetime": 4.8,
       "delayBeforeAcceleration": 0.3333333333333333,
       "stopBeforeAcceleration": true,
-      "acceleration": 140,
+      "acceleration": 70,
       "accelerationDuration": 3,
-      "maxSpeed": 260,
+      "maxSpeed": 130,
       "accelerationSpreadRadians": 0.04,
       "explodeAfterAcceleration": true,
       "blastOnExpire": {
-        "radius": 9.5625,
+        "radius": 4.78125,
         "damage": 4.5,
-        "impulse": 55
+        "impulse": 27.5
       }
     }
   }
