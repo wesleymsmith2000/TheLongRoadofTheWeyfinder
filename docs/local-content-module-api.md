@@ -72,6 +72,7 @@ The current registry can validate and store:
 - constructs
 - weapons
 - patterns
+- status effects
 - enemy archetype packs
 - levels
 - resource descriptors for images, sounds, music, and voxel models

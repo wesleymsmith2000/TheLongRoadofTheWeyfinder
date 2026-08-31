@@ -157,6 +157,15 @@ test('local content packs register enemy archetype descriptors', () => {
   assert.equal(hydrated.registry.assets.get('enemyArchetype').has('community.enemy_archetypes'), true);
 });
 
+test('loose local status effect assets are grouped into packs', () => {
+  const bundle = createLocalContentBundleFromFiles(
+    [file('fire.json', { schemaVersion: '0.1', id: 'creator.fire', type: 'fire' })],
+    { packId: 'local.effects' },
+  );
+  assert.equal(bundle.assets[0].kind, 'statusEffect');
+  assert.deepEqual(bundle.manifests[0].assets.statusEffects, ['fire.json']);
+});
+
 test('example prototype module set imports as a local content pack', () => {
   const files = readJsonFiles(join(process.cwd(), 'content', 'examples', 'prototype0-module-set'));
   const bundle = createLocalContentBundleFromFiles(files);

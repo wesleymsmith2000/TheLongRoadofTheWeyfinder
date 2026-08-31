@@ -41,6 +41,7 @@ content/packs/canon.prototype0.json
     "constructs": ["../constructs/basic_turret.json", "../constructs/starting_vehicle.json"],
     "weapons": ["../weapons/rocket.json", "../weapons/cannon.json", "../weapons/beam.json"],
     "patterns": ["../patterns/enemy_aimed_shot.json", "../patterns/enemy_radial_burst.json"],
+    "statusEffects": ["../status_effects/acid_splash.json"],
     "enemyArchetypes": ["../enemies/prototype0_enemy_archetypes.json"],
     "behaviors": [],
     "encounters": [],
@@ -107,6 +108,7 @@ Current manifest asset keys:
 - `constructs`
 - `weapons`
 - `patterns`
+- `statusEffects`
 - `enemyArchetypes`
 - `behaviors`
 - `encounters`

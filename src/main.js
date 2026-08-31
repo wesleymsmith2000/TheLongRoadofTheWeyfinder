@@ -16,6 +16,7 @@ import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
 import { createPrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
+import { applySaveStateToGame, createSaveState, validateSaveState } from './core/saveState.js';
 import {
   createLocalContentBundleFromFiles,
   createRegistryWithLocalContent,
@@ -162,6 +163,10 @@ const moduleStatusList = document.querySelector('#moduleStatusList');
 const pauseLevelNumber = document.querySelector('#pauseLevelNumber');
 const pauseScrapCount = document.querySelector('#pauseScrapCount');
 const pauseDamageDone = document.querySelector('#pauseDamageDone');
+const exportSaveButton = document.querySelector('#exportSaveButton');
+const importSaveButton = document.querySelector('#importSaveButton');
+const importSaveInput = document.querySelector('#importSaveInput');
+const saveStatus = document.querySelector('#saveStatus');
 const combatPanel = document.querySelector('#combatPanel');
 const debugToggle = document.querySelector('#debugToggle');
 const controlsToggle = document.querySelector('#controlsToggle');
@@ -412,6 +417,9 @@ const shopRepairPressed = createButtonPress(shopRepairButton);
 const shopReplacePressed = createButtonPress(shopReplaceButton);
 const shopRefillAmmoPressed = createButtonPress(shopRefillAmmoButton);
 const shopBuyUpgradePressed = createButtonPress(shopBuyUpgradeButton);
+exportSaveButton.addEventListener('click', exportCurrentSave);
+importSaveButton.addEventListener('click', () => importSaveInput.click());
+importSaveInput.addEventListener('change', importSelectedSave);
 
 function toggleControls() {
   controlsPanel.classList.toggle('hidden');
@@ -477,8 +485,55 @@ function syncPauseUi(hoverWorld = null) {
   pauseLevelNumber.textContent = game.level;
   pauseScrapCount.textContent = game.scrap;
   pauseDamageDone.textContent = game.score.damageDone;
+  if (!saveStatus.textContent) saveStatus.textContent = 'Save exports restore run progress as a checkpoint.';
   renderModuleStatus();
   renderTargetInfo(hoverWorld);
+}
+
+function exportCurrentSave() {
+  const save = createSaveState(game, playerAccount);
+  const blob = new Blob([`${JSON.stringify(save, null, 2)}\n`], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `weyfinder-save-level-${game.level}.json`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  saveStatus.textContent = 'Save exported.';
+}
+
+async function importSelectedSave() {
+  const file = importSaveInput.files?.[0];
+  importSaveInput.value = '';
+  if (!file) return;
+  try {
+    const save = JSON.parse(await file.text());
+    const report = validateSaveState(save);
+    if (!report.valid) {
+      saveStatus.textContent = `Save rejected: ${report.errors.join(' ')}`;
+      return;
+    }
+    if (report.sandboxRequired && !window.confirm('This save was edited or is unofficial. Load it as sandbox progress?')) {
+      saveStatus.textContent = 'Save import canceled.';
+      return;
+    }
+    playerAccount = save.payload.playerAccount ? { ...createPrototypePlayerAccountData(), ...save.payload.playerAccount } : playerAccount;
+    playerVehicleDefinition = save.payload.vehicleDefinition ?? playerAccount.savedVehicle;
+    savePlayerAccount();
+    game = createGame(save.payload.seed ?? 1147, {
+      vehicleDefinition: playerVehicleDefinition ?? undefined,
+      levelMusic: game.levelMusic,
+      startLevel: save.payload.level,
+    });
+    applySaveStateToGame(game, save);
+    awaitingLaunch = false;
+    previous = performance.now();
+    refreshRepairTargets();
+    renderAchievements();
+    syncLaunchScreen();
+    saveStatus.textContent = report.official ? 'Official save loaded.' : 'Sandbox save loaded.';
+  } catch (error) {
+    saveStatus.textContent = `Save import failed: ${error.message}`;
+  }
 }
 
 function syncMusic(forcePlay = false) {

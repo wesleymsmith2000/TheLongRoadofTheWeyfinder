@@ -58,13 +58,14 @@ export function createGame(seed = 1147, options = {}) {
   const vehicle = createStartingVehicle(options.vehicleDefinition);
   const road = createRoadFrame(vehicle);
   const levelMusic = options.levelMusic ?? DEFAULT_LEVEL_MUSIC;
+  const startLevel = Math.max(1, Math.floor(options.startLevel ?? options.level ?? 1));
   const rng = new Rng(seed);
-  const enemySpawnQueue = createLevelEnemySchedule(road, 1, levelMusic, rng);
+  const enemySpawnQueue = createLevelEnemySchedule(road, startLevel, levelMusic, rng);
   const initialSpawns = dequeueReadySpawns(enemySpawnQueue, 0);
   return {
     rng,
     levelMusic,
-    currentMusic: musicForLevel(1, levelMusic),
+    currentMusic: musicForLevel(startLevel, levelMusic),
     vehicleDefinition: options.vehicleDefinition,
     vehicle,
     road,
@@ -85,7 +86,7 @@ export function createGame(seed = 1147, options = {}) {
     playerFireTimer: 0,
     levelComplete: false,
     levelTime: 0,
-    level: 1,
+    level: startLevel,
     levelStartTime: 0,
     levelTimes: [],
     levelsCompleted: 0,

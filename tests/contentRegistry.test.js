@@ -26,6 +26,18 @@ test('content registry registers immutable runtime asset definitions', () => {
   );
 });
 
+test('content registry accepts status effect assets for creator packs', () => {
+  const registry = createContentRegistry();
+  const effect = registerContentAsset(
+    registry,
+    'statusEffect',
+    { schemaVersion: '0.1', id: 'test.fire', type: 'fire', intensity: 1, duration: 3 },
+    'test.pack',
+  );
+  assert.equal(effect.assetId, 'test.fire');
+  assert.equal(getAvailableContent(registry, 'statusEffect').length, 1);
+});
+
 test('level dependency resolution reports missing simulation assets before play', () => {
   const registry = createContentRegistry();
   registerContentAsset(registry, 'level', prototypeLevelDefinition, canonPackManifest.packId);

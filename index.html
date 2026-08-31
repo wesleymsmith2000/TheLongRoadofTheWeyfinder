@@ -458,6 +458,13 @@
         line-height: 1.35;
       }
 
+      .save-status {
+        min-height: 18px;
+        color: #83f7ff;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
       .control-config-panel h2 {
         margin: 0 0 8px;
         font-size: 14px;
@@ -1283,6 +1290,12 @@
               Damage done <span id="pauseDamageDone">0</span>
             </div>
             <button id="resumeButton" type="button">Resume</button>
+            <div class="pause-actions">
+              <button id="exportSaveButton" type="button">Export Save</button>
+              <button id="importSaveButton" type="button">Import Save</button>
+            </div>
+            <input id="importSaveInput" type="file" accept="application/json,.json" hidden />
+            <div id="saveStatus" class="save-status" aria-live="polite"></div>
           </section>
         </div>
       </div>

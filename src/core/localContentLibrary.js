@@ -7,6 +7,7 @@ import {
   manifestKeyForContentKind,
 } from './contentRegistry.js';
 import { CONTENT_SCHEMA_VERSION, isPlainObject } from './contentSchema.js';
+import { STATUS_EFFECT_TYPES } from './statusEffects.js';
 
 export const LOCAL_CONTENT_STORAGE_KEY = 'weyfinder.prototype0.localContentPacks';
 
@@ -151,6 +152,7 @@ export function inferContentKind(definition) {
   if (!isPlainObject(definition)) return null;
   if (isContentPackManifest(definition)) return 'pack';
   if (Array.isArray(definition.archetypes)) return 'enemyArchetype';
+  if (STATUS_EFFECT_TYPES.includes(definition.type)) return 'statusEffect';
   if (definition.emitter) return 'pattern';
   if (definition.projectile && definition.ammo != null) return 'weapon';
   if (definition.background && definition.route) return 'level';
