@@ -253,6 +253,16 @@
           "startsFolded": true,
           "visibleProgressBias": true
         },
+        "beamSource": {
+          "bind": "sourceCell",
+          "selector": "type:gun",
+          "shutoffWhenDestroyed": true
+        },
+        "noduleShots": {
+          "enabled": true,
+          "source": "liveArmGun",
+          "chancePerSecond": 0.08
+        },
         "attackMix": [
           {
             "id": "standardShot",

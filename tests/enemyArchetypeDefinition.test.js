@@ -32,6 +32,8 @@ test('enemy archetype helpers expose editor-facing enemy models', () => {
   assert.equal(getEnemyArchetype('boss.octopus.prototype0').displayName, 'Octagon Boss Prototype');
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.some((entry) => entry.id === 'trackingLaser'), true);
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.find((entry) => entry.id === 'trackingLaser').telegraphSeconds, 3);
+  assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.beamSource.shutoffWhenDestroyed, true);
+  assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.noduleShots.source, 'liveArmGun');
   assert.deepEqual(editableEnemyKnobs('enhanced_charger'), ['construct', 'patterns', 'entry', 'charge', 'palette']);
 });
 

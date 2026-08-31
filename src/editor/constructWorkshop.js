@@ -288,13 +288,43 @@ function renderJson() {
 
 function renderStatus() {
   const report = validateConstructDefinition(normalizedDefinition());
+  const moduleSummary = constructModuleSummary(definition);
   const lines = [
     `<span><strong>${report.valid ? 'Valid construct asset' : 'Construct needs changes'}</strong></span>`,
     `<span>${definition.cells.length} cells, ${(definition.connections ?? []).length} explicit connections</span>`,
+    `<span>${moduleSummary.guns} firing points, main-gun rate x${moduleSummary.gunRateMultiplier}</span>`,
+    `<span>${moduleSummary.engines} engines, acceleration/top speed x${moduleSummary.engineMultiplier}</span>`,
+    `<span>${moduleSummary.wheels} wheels, braking/control x${moduleSummary.wheelMultiplier}${moduleSummary.wheelAsymmetry ? ', asymmetric pull likely' : ''}</span>`,
   ];
   lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
   lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));
   statusPanel.innerHTML = lines.join('');
+}
+
+function constructModuleSummary(construct) {
+  const cells = construct.cells ?? [];
+  const guns = countCells(cells, 'gun');
+  const engines = countCells(cells, 'engine');
+  const wheels = countCells(cells, 'wheel');
+  const leftWheels = cells.filter((cell) => cell.type === 'wheel' && cell.gridX < 0).length;
+  const rightWheels = cells.filter((cell) => cell.type === 'wheel' && cell.gridX > 0).length;
+  return {
+    guns,
+    engines,
+    wheels,
+    gunRateMultiplier: multiplierText(Math.sqrt(Math.max(guns, 1))),
+    engineMultiplier: multiplierText(Math.sqrt(Math.max(engines, 1))),
+    wheelMultiplier: multiplierText(Math.sqrt(Math.max(wheels, 1))),
+    wheelAsymmetry: wheels > 1 && Math.abs(leftWheels - rightWheels) > 1,
+  };
+}
+
+function countCells(cells, type) {
+  return cells.filter((cell) => cell.type === type).length;
+}
+
+function multiplierText(value) {
+  return value.toFixed(2).replace(/\.?0+$/, '');
 }
 
 function normalizedDefinition() {

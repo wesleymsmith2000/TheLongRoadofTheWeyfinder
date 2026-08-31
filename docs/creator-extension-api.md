@@ -536,6 +536,25 @@ Editors should update archetype descriptors when changing enemy art, patterns, p
 
 Prototype 0 boss descriptors may also include `arms.attackMix` entries for standard shots, delayed drifting shots, protective absorbing shots, and laser telegraphs. These are descriptor-facing notes for editors today; the current runtime implementation still lives in `src/core/game.js`.
 
+Boss arm descriptors may also include `arms.beamSource` and `arms.noduleShots` metadata:
+
+```json
+{
+  "beamSource": {
+    "bind": "sourceCell",
+    "selector": "type:gun",
+    "shutoffWhenDestroyed": true
+  },
+  "noduleShots": {
+    "enabled": true,
+    "source": "liveArmGun",
+    "chancePerSecond": 0.08
+  }
+}
+```
+
+These fields mirror the current runtime behavior where boss beams are tied to a live source cell and independent arm nodules may fire at the player.
+
 Enhanced enemy palettes can currently be selected from the active level music through:
 
 ```text

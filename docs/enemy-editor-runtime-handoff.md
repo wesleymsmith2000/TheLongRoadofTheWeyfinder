@@ -34,6 +34,8 @@ The Enemy Editor can now create and export a valid enemy archetype pack with:
 - `movementProfiles`
 - `aggregate`
 - `cellAnimations`
+- boss `arms.beamSource`
+- boss `arms.noduleShots`
 - live validation through `validateEnemyArchetypePack`
 - animated canvas preview for movement and cell animation intent
 - JSON import/export
@@ -135,12 +137,13 @@ To make exported enemies fully playable, the main runtime needs:
 4. A behavior runner for `movementProfiles[]`.
 5. Aggregate entity support for `aggregate.kind = "limbArray"` and `aggregate.kind = "multiPartBoss"`.
 6. Renderer support for `cellAnimations[]` on runtime enemies.
-7. Selector support for at least:
+7. Runtime-backed boss `arms.beamSource` and `arms.noduleShots` support outside hard-coded boss logic.
+8. Selector support for at least:
    - `*`
    - `type:<cellType>`
    - future `id:<cellId>`
    - future `part:<aggregatePartId>`
-8. A playtest bridge:
+9. A playtest bridge:
 
 ```text
 editor JSON -> validate -> register in content registry -> instantiate test encounter/level -> run seeded preview

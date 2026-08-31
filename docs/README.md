@@ -17,6 +17,7 @@ Start here:
 - [Enemy Editor Runtime Handoff](./enemy-editor-runtime-handoff.md)
 - [Creator Suite Local Modules Handoff](./creator-suite-local-modules-handoff.md)
 - [Arc Projectiles And Status Effects Editor Handoff](./arc-status-effects-editor-handoff.md)
+- [Combat Balance Editor Follow-Up Handoff](./combat-balance-editor-followup-handoff.md)
 
 Current priorities:
 

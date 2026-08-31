@@ -60,6 +60,10 @@ const fields = Object.fromEntries(
     'aggregatePartCountInput',
     'aggregateRoleInput',
     'aggregateAttachmentInput',
+    'bossBeamSourceSelectorInput',
+    'bossBeamSourceRequiredInput',
+    'bossNoduleChanceInput',
+    'bossNoduleSourceInput',
     'animationKindSelect',
     'animationSelectorInput',
     'animationAmplitudeInput',
@@ -153,6 +157,10 @@ function syncToFields() {
   fields.aggregatePartCountInput.value = aggregate.parts?.[0]?.count ?? (aggregate.kind === 'multiPartBoss' ? 8 : 0);
   fields.aggregateRoleInput.value = aggregate.parts?.[0]?.role ?? (aggregate.kind === 'singleBody' ? '' : 'arm');
   fields.aggregateAttachmentInput.value = aggregate.parts?.[0]?.attachment ?? (aggregate.kind === 'singleBody' ? '' : 'radial');
+  fields.bossBeamSourceSelectorInput.value = archetype.arms?.beamSource?.selector ?? 'type:gun';
+  fields.bossBeamSourceRequiredInput.checked = archetype.arms?.beamSource?.shutoffWhenDestroyed ?? true;
+  fields.bossNoduleChanceInput.value = archetype.arms?.noduleShots?.chancePerSecond ?? '';
+  fields.bossNoduleSourceInput.value = archetype.arms?.noduleShots?.source ?? 'liveArmGun';
 
   const animation = archetype.cellAnimations?.[0] ?? defaultAnimationFor(archetype);
   fields.animationKindSelect.value = animation.kind ?? 'none';
@@ -194,13 +202,24 @@ function archetypeFromFields() {
       .split(',')
       .map((tag) => tag.trim())
       .filter(Boolean),
-    editable: ['construct', 'patterns', 'entry', 'palette', 'movementProfiles', 'aggregate', 'cellAnimations'],
+    editable: editorKnobsFor(archetype),
   };
+  const arms = bossArmsFromFields();
+  if (arms) next.arms = arms;
   const base = fields.baseArchetypeInput.value.trim();
   if (base) next.baseArchetype = base;
   else delete next.baseArchetype;
   if (fields.animationKindSelect.value === 'none') next.cellAnimations = [];
   return pruneEmpty(next);
+}
+
+function editorKnobsFor(enemy) {
+  const knobs = new Set(enemy.editable ?? ['construct', 'patterns', 'entry', 'palette']);
+  for (const knob of ['movementProfiles', 'aggregate', 'cellAnimations']) knobs.add(knob);
+  if (fields.runtimeFactorySelect.value === 'createBossEnemy' || enemy.arms) {
+    for (const knob of ['arms', 'attackMix', 'beamSource', 'noduleShots']) knobs.add(knob);
+  }
+  return [...knobs];
 }
 
 function packFromFields(enemy) {
@@ -276,6 +295,36 @@ function animationFromFields() {
   return [animation];
 }
 
+function bossArmsFromFields() {
+  if (fields.runtimeFactorySelect.value !== 'createBossEnemy' && !archetype.arms) return null;
+  const arms = { ...(archetype.arms ?? {}) };
+  const selector = fields.bossBeamSourceSelectorInput.value.trim();
+  if (selector) {
+    arms.beamSource = {
+      ...(arms.beamSource ?? {}),
+      bind: 'sourceCell',
+      selector,
+      shutoffWhenDestroyed: fields.bossBeamSourceRequiredInput.checked,
+    };
+  }
+  const chance = Number(fields.bossNoduleChanceInput.value);
+  if (Number.isFinite(chance) && chance > 0) {
+    arms.noduleShots = {
+      ...(arms.noduleShots ?? {}),
+      enabled: true,
+      source: fields.bossNoduleSourceInput.value.trim() || 'liveArmGun',
+      chancePerSecond: chance,
+    };
+  } else if (arms.noduleShots) {
+    arms.noduleShots = {
+      ...arms.noduleShots,
+      enabled: false,
+      chancePerSecond: 0,
+    };
+  }
+  return arms;
+}
+
 function paletteFromArchetype(enemy) {
   return {
     core: enemy.palette?.core ?? '#c8f4ff',
@@ -323,6 +372,12 @@ function renderStatus() {
   ];
   if (movement || (archetype.cellAnimations ?? []).length > 0 || archetype.aggregate?.kind !== 'singleBody') {
     lines.push('<span class="warning">Runtime note: movementProfiles, aggregate, and cellAnimations are validated editor descriptors until the level runner consumes them.</span>');
+  }
+  if (archetype.arms?.beamSource) {
+    lines.push(`<span>Boss beam source: ${escapeHtml(archetype.arms.beamSource.selector)}${archetype.arms.beamSource.shutoffWhenDestroyed ? ', source destruction shuts beam off' : ''}</span>`);
+  }
+  if (archetype.arms?.noduleShots?.enabled) {
+    lines.push(`<span>Boss nodule shots: ${escapeHtml(archetype.arms.noduleShots.source ?? 'liveArmGun')} at ${escapeHtml(archetype.arms.noduleShots.chancePerSecond)} chance/sec</span>`);
   }
   lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
   lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));

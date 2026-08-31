@@ -433,6 +433,7 @@ function drawWeaponPreview() {
   context.beginPath();
   context.arc(origin.x + length, origin.y, Math.max(3, projectile.radius ?? 3), 0, Math.PI * 2);
   context.fill();
+  drawProjectileBlastPreview(origin.x + length, origin.y, projectile);
   if (projectile.behavior === 'homing') drawArc(origin.x + length * 0.45, origin.y - 54, 70, 0.4, 2.6, '#6fe0bf');
 }
 
@@ -461,13 +462,6 @@ function drawPatternPreview() {
     context.stroke();
     context.setLineDash([]);
   }
-  if ((emitter.projectile?.blastOnExpire?.radius ?? 0) > 0) {
-    context.strokeStyle = 'rgb(255 143 97 / 0.52)';
-    context.lineWidth = 2;
-    context.beginPath();
-    context.arc(origin.x, origin.y, Math.min(90, Math.max(10, emitter.projectile.blastOnExpire.radius * 5)), 0, Math.PI * 2);
-    context.stroke();
-  }
 }
 
 function drawArrow(origin, angle, length, index) {
@@ -487,6 +481,33 @@ function drawArrow(origin, angle, length, index) {
   context.beginPath();
   context.arc(end.x, end.y, Math.max(3, projectile.radius ?? 4), 0, Math.PI * 2);
   context.fill();
+  drawProjectileBlastPreview(end.x, end.y, projectile, 0.72);
+}
+
+function drawProjectileBlastPreview(x, y, projectile, scale = 1) {
+  const blastRadius = projectileBlastRadius(projectile);
+  if (blastRadius <= 0) return;
+  const radius = Math.min(120, Math.max(12, blastRadius * 5 * scale));
+  context.save();
+  context.strokeStyle = 'rgb(255 143 97 / 0.62)';
+  context.fillStyle = 'rgb(255 143 97 / 0.1)';
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(x, y, radius, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  drawBlastTunnelPreview(x - radius * 0.42, y, scale);
+  context.restore();
+}
+
+function drawBlastTunnelPreview(x, y, scale) {
+  const size = 10 * scale;
+  for (let index = 0; index < 5; index += 1) {
+    context.globalAlpha = 0.82 - index * 0.12;
+    context.fillStyle = index < 3 ? '#ff8f70' : '#f7c06a';
+    context.fillRect(x + index * size * 0.82, y - size / 2, size, size);
+  }
+  context.globalAlpha = 1;
 }
 
 function drawArcProjectilePath(origin, endX, endY, projectile) {
@@ -562,11 +583,11 @@ function renderStatus() {
 }
 
 function weaponSummary(definition) {
-  return `${definition.projectile?.behavior ?? 'unknown'} projectile, ${definition.projectile?.damage ?? 0} damage, ${definition.ammo ?? 0} ammo`;
+  return `${definition.projectile?.behavior ?? 'unknown'} projectile, ${definition.projectile?.damage ?? 0} damage, ${definition.ammo ?? 0} ammo${blastSummary(definition.projectile)}`;
 }
 
 function patternSummary(definition) {
-  return `${definition.emitter?.kind ?? 'unknown'} emitter, ${definition.emitter?.projectile?.behavior ?? 'unknown'} projectile, ${definition.emitter?.count ?? 0} shots every ${definition.interval ?? 0}s`;
+  return `${definition.emitter?.kind ?? 'unknown'} emitter, ${definition.emitter?.projectile?.behavior ?? 'unknown'} projectile, ${definition.emitter?.count ?? 0} shots every ${definition.interval ?? 0}s${blastSummary(definition.emitter?.projectile)}`;
 }
 
 function statusEffectSummary(definition) {
@@ -605,6 +626,21 @@ function downloadJson() {
 function aimedSpreadOffset(index, count, spread) {
   if (count <= 1) return 0;
   return ((index / (count - 1)) - 0.5) * spread * 2;
+}
+
+function projectileBlastRadius(projectile = {}) {
+  return projectile.blastOnExpire?.radius ?? projectile.blastRadius ?? (projectile.blastRadiusCells != null ? projectile.blastRadiusCells * 2 : 0);
+}
+
+function blastSummary(projectile = {}) {
+  const radius = projectileBlastRadius(projectile);
+  if (radius <= 0) return '';
+  const damage = projectile.blastOnExpire?.damage ?? projectile.blastDamage ?? 0;
+  return `, blast r${roundMetric(radius)} d${roundMetric(damage)} with overkill propagation`;
+}
+
+function roundMetric(value) {
+  return Number(value).toFixed(2).replace(/\.?0+$/, '');
 }
 
 function readNumber(input) {
