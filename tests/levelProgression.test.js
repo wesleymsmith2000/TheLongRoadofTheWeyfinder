@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, createLevelEnemySchedule, startNextLevel, stepGame } from '../src/core/game.js';
+import { TARGETING_MODES, createGame, createLevelEnemySchedule, startNextLevel, stepGame } from '../src/core/game.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 test('starting the next level schedules one more enemy over time', () => {
@@ -22,6 +22,24 @@ test('clearing all enemies records level time and completion count', () => {
   assert.equal(game.levelsCompleted, 1);
   assert.equal(game.levelTime > 12, true);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.STAGE_VICTORY), true);
+});
+
+test('pause freezes simulation while menu state can still change', () => {
+  const game = createGame();
+  const x = game.vehicle.x;
+  const roadY = game.road.y;
+  stepGame(game, { pausePressed: true }, 1 / 60);
+  assert.equal(game.paused, true);
+  stepGame(game, { x: 1, targetingMode: 'guided', targetCycle: 1, secondarySelect: 'beam' }, 1);
+  assert.equal(game.vehicle.x, x);
+  assert.equal(game.road.y, roadY);
+  assert.equal(game.targetingMode, 'guided');
+  assert.equal(game.secondary.selected, 'beam');
+  assert.equal(typeof game.guidedTargetId, 'string');
+});
+
+test('targeting modes expose the pause-menu selector options', () => {
+  assert.deepEqual(TARGETING_MODES, ['manual', 'guided', 'mixed']);
 });
 
 test('enemy pushed outside the center lane accelerates back toward view center', () => {

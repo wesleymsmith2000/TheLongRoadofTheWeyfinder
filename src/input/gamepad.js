@@ -54,12 +54,14 @@ export function mapStandardGamepad(pad, previousButtons = new Set(), bindings = 
     debugTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.debugToggle),
     fireTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.primaryAutofire),
     resetPressed: actionJustPressed(pad, previousButtons, controlBindings.reset),
+    pausePressed: actionJustPressed(pad, previousButtons, controlBindings.pause),
     controlsTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.controlsToggle),
     dodgePressed: actionJustPressed(pad, previousButtons, controlBindings.dodge),
     dodgeX: axes[0] ?? 0,
     dodgeY: axes[1] ?? 0,
     secondaryCycle: actionJustPressed(pad, previousButtons, controlBindings.secondaryRight) ? 1 : actionJustPressed(pad, previousButtons, controlBindings.secondaryLeft) ? -1 : 0,
     secondaryFirePressed: actionJustPressed(pad, previousButtons, controlBindings.secondaryFire),
+    targetCycle: actionJustPressed(pad, previousButtons, controlBindings.targetNext) ? 1 : actionJustPressed(pad, previousButtons, controlBindings.targetPrevious) ? -1 : 0,
   };
 }
 
@@ -84,12 +86,14 @@ function emptyInput() {
     fireTogglePressed: false,
     gunnerTogglePressed: false,
     resetPressed: false,
+    pausePressed: false,
     controlsTogglePressed: false,
     dodgePressed: false,
     dodgeX: 0,
     dodgeY: 0,
     secondaryCycle: 0,
     secondaryFirePressed: false,
+    targetCycle: 0,
   };
 }
 

@@ -27,6 +27,17 @@ test('control binding helpers replace keyboard and gamepad actions', () => {
 test('control binding labels are player readable', () => {
   assert.equal(keyLabel('KeyW'), 'W');
   assert.equal(keyLabel('ArrowLeft'), 'Left');
+  assert.equal(keyLabel('Escape'), 'Esc');
+  assert.equal(keyLabel('Tab'), 'Tab');
   assert.equal(gamepadButtonLabel(0), 'A');
   assert.equal(gamepadButtonLabel(11), 'RS');
+});
+
+test('pause and guided targeting defaults are bindable', () => {
+  const bindings = normalizeControlBindings();
+  assert.deepEqual(bindings.keyboard.pause, ['Escape', 'KeyP']);
+  assert.deepEqual(bindings.keyboard.targetNext, ['Tab']);
+  assert.deepEqual(bindings.keyboard.secondaryFire.includes('Space'), true);
+  assert.deepEqual(bindings.gamepad.targetPrevious, [6]);
+  assert.deepEqual(bindings.gamepad.targetNext, [7]);
 });

@@ -3,7 +3,8 @@ export const CONTROL_ACTIONS = [
   { id: 'moveDown', label: 'Move Down', keyboard: ['KeyS', 'ArrowDown'], gamepad: [] },
   { id: 'moveLeft', label: 'Move Left', keyboard: ['KeyA', 'ArrowLeft'], gamepad: [] },
   { id: 'moveRight', label: 'Move Right', keyboard: ['KeyD', 'ArrowRight'], gamepad: [] },
-  { id: 'brake', label: 'Brake', keyboard: ['Space'], gamepad: [0, 10] },
+  { id: 'brake', label: 'Brake', keyboard: [], gamepad: [10] },
+  { id: 'pause', label: 'Pause / Gear Menu', keyboard: ['Escape', 'KeyP'], gamepad: [9] },
   { id: 'primaryAutofire', label: 'Toggle Primary Autofire', keyboard: ['KeyF'], gamepad: [12] },
   { id: 'debugToggle', label: 'Toggle Debug', keyboard: ['Backquote'], gamepad: [2] },
   { id: 'gunnerToggle', label: 'Toggle Gunner AI', keyboard: ['KeyG'], gamepad: [] },
@@ -11,7 +12,9 @@ export const CONTROL_ACTIONS = [
   { id: 'controlsToggle', label: 'Help / Controls', keyboard: ['KeyH', 'Slash'], gamepad: [8, 9] },
   { id: 'secondaryLeft', label: 'Previous Secondary', keyboard: ['KeyQ', 'KeyZ'], gamepad: [4] },
   { id: 'secondaryRight', label: 'Next Secondary', keyboard: ['KeyE', 'KeyX'], gamepad: [5] },
-  { id: 'secondaryFire', label: 'Fire Secondary', keyboard: ['ShiftLeft', 'ShiftRight'], gamepad: [10, 11] },
+  { id: 'secondaryFire', label: 'Fire Secondary', keyboard: ['Space', 'ShiftLeft', 'ShiftRight'], gamepad: [10, 11] },
+  { id: 'targetPrevious', label: 'Previous AI Target', keyboard: [], gamepad: [6] },
+  { id: 'targetNext', label: 'Next AI Target', keyboard: ['Tab'], gamepad: [7] },
   { id: 'dodge', label: 'Dodge / Boost', keyboard: [], gamepad: [1] },
   { id: 'cursorClick', label: 'Virtual Cursor Click', keyboard: [], gamepad: [0, 1] },
 ];
@@ -47,6 +50,8 @@ export function keyLabel(code) {
   if (code.startsWith('Key')) return code.slice(3);
   if (code.startsWith('Digit')) return code.slice(5);
   if (code === 'Space') return 'Space';
+  if (code === 'Escape') return 'Esc';
+  if (code === 'Tab') return 'Tab';
   if (code === 'Backquote') return '`';
   if (code === 'Slash') return '/';
   if (code.startsWith('Arrow')) return code.replace('Arrow', '');

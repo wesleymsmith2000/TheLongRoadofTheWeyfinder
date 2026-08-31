@@ -49,6 +49,7 @@ import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 
 export const LEVEL_TARGET_DURATION = 180;
+export const TARGETING_MODES = ['manual', 'guided', 'mixed'];
 const SPAWN_WARNING_LEAD = 2.4;
 const BOSS_LASER_CHARGE_TIME = 3;
 const BOSS_LASER_LOCK_TIME = 1;
@@ -95,11 +96,21 @@ export function createGame(seed = 1147, options = {}) {
     time: 0,
     fps: 60,
     gameOver: false,
+    paused: false,
+    targetingMode: 'mixed',
+    guidedTargetId: null,
   };
 }
 
 export function stepGame(game, input, dt) {
   dt = Math.min(dt, 0.033);
+  if (input.targetingMode && TARGETING_MODES.includes(input.targetingMode)) game.targetingMode = input.targetingMode;
+  if (input.pausePressed) game.paused = !game.paused;
+  if (input.targetCycle) cycleGuidedTarget(game, input.targetCycle);
+  if (game.paused) {
+    stepPausedGame(game, input, dt);
+    return game;
+  }
   game.time += dt;
   if (input.resetPressed) return createGame(1147, { vehicleDefinition: game.vehicleDefinition, levelMusic: game.levelMusic });
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
@@ -151,6 +162,14 @@ export function stepGame(game, input, dt) {
     emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
   }
   return game;
+}
+
+function stepPausedGame(game, input, dt) {
+  stepSecondaryWeapon(game, { ...input, secondaryFirePressed: false, secondaryAutofire: false }, dt);
+  const turretInput = aimInputForTurret(game, { ...input, secondaryFirePressed: false }, dt);
+  stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
+  game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
+  stepSmokeParticles(game, dt);
 }
 
 export function startNextLevel(game) {
@@ -361,6 +380,17 @@ function stepShop(game, input) {
 }
 
 function aimInputForTurret(game, input, dt) {
+  const mode = input.targetingMode ?? game.targetingMode ?? 'mixed';
+  if (mode === 'manual') {
+    if (!input.aimWorld) {
+      game.aimReticle = null;
+      return { ...input, gunnerEnabled: false };
+    }
+    game.aimReticle = { ...input.aimWorld, active: true, source: input.aimSource ?? 'manual' };
+    if ((input.secondarySelect ?? game.secondary.selected) === 'beam') return { ...input, gunnerEnabled: false, compensatedAim: true, aimProjectileSpeed: 1_000_000 };
+    return { ...input, gunnerEnabled: false };
+  }
+  if (mode === 'guided') return guidedAimInput(game, input, dt);
   if (input.aimWorld) {
     game.aimReticle = { ...input.aimWorld, active: true, source: input.aimSource ?? 'manual' };
     if ((input.secondarySelect ?? game.secondary.selected) === 'beam') return { ...input, compensatedAim: true, aimProjectileSpeed: 1_000_000 };
@@ -378,17 +408,70 @@ function aimInputForTurret(game, input, dt) {
   return { ...input, aimWorld: game.aiAimReticle, manualAimActive: false };
 }
 
-function gunnerAimTarget(game) {
-  const target = activeEnemies(game).reduce((nearest, enemy) => {
-    if (!nearest) return enemy;
-    return distanceSquared(game.vehicle, enemy) < distanceSquared(game.vehicle, nearest) ? enemy : nearest;
-  }, null);
+function guidedAimInput(game, input, dt) {
+  const target = guidedAimTarget(game);
+  if (!target) {
+    game.aimReticle = null;
+    return { ...input, aimWorld: null, manualAimActive: false };
+  }
+  game.aiAimReticle = moveToward(game.aiAimReticle ?? { x: game.vehicle.x, y: game.vehicle.y }, target, 160 * dt);
+  game.aimReticle = { ...game.aiAimReticle, active: true, source: 'ai' };
+  return { ...input, aimWorld: game.aiAimReticle, manualAimActive: false, compensatedAim: game.secondary.selected !== 'beam' };
+}
+
+function guidedAimTarget(game) {
+  const target = guidedTarget(game) ?? nearestTargetedEnemy(game);
   if (!target) return null;
   const beamSelected = game.secondary.selected === 'beam';
   const projectileSpeed = beamSelected ? 1_000_000 : PRIMARY_PROJECTILE_SPEED;
   const distance = Math.hypot(target.x - game.vehicle.x, target.y - game.vehicle.y);
   const leadTime = Math.min(beamSelected ? 0.05 : 0.75, distance / projectileSpeed);
   return { x: target.x + (target.vx ?? 0) * leadTime, y: target.y + (target.vy ?? 0) * leadTime };
+}
+
+function gunnerAimTarget(game) {
+  const target = nearestTargetedEnemy(game);
+  if (!target) return null;
+  const beamSelected = game.secondary.selected === 'beam';
+  const projectileSpeed = beamSelected ? 1_000_000 : PRIMARY_PROJECTILE_SPEED;
+  const distance = Math.hypot(target.x - game.vehicle.x, target.y - game.vehicle.y);
+  const leadTime = Math.min(beamSelected ? 0.05 : 0.75, distance / projectileSpeed);
+  return { x: target.x + (target.vx ?? 0) * leadTime, y: target.y + (target.vy ?? 0) * leadTime };
+}
+
+function nearestTargetedEnemy(game) {
+  return activeEnemies(game).reduce((nearest, enemy) => {
+    if (!nearest) return enemy;
+    return distanceSquared(game.vehicle, enemy) < distanceSquared(game.vehicle, nearest) ? enemy : nearest;
+  }, null);
+}
+
+function cycleGuidedTarget(game, direction = 1) {
+  const enemies = activeEnemies(game);
+  if (enemies.length === 0) {
+    game.guidedTargetId = null;
+    return null;
+  }
+  const current = enemies.findIndex((enemy) => enemyTargetId(enemy) === game.guidedTargetId);
+  const next = (current + Math.sign(direction || 1) + enemies.length) % enemies.length;
+  game.guidedTargetId = enemyTargetId(enemies[next]);
+  return enemies[next];
+}
+
+function guidedTarget(game) {
+  const enemies = activeEnemies(game);
+  if (enemies.length === 0) {
+    game.guidedTargetId = null;
+    return null;
+  }
+  let target = enemies.find((enemy) => enemyTargetId(enemy) === game.guidedTargetId);
+  if (!target) target = cycleGuidedTarget(game, 1);
+  return target;
+}
+
+function enemyTargetId(enemy) {
+  enemy.targetId ??= `${enemy.assetId ?? enemy.kind ?? 'enemy'}:${Math.round(enemy.x * 100)}:${Math.round(enemy.y * 100)}`;
+  return enemy.targetId;
 }
 
 function moveToward(from, to, maxDistance) {

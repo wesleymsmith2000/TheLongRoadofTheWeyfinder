@@ -225,6 +225,21 @@
         z-index: 30;
       }
 
+      .pause-toggle {
+        position: fixed;
+        right: 202px;
+        top: 14px;
+        min-width: 68px;
+        height: 36px;
+        border: 1px solid rgb(244 238 228 / 0.3);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.78);
+        color: #f4eee4;
+        font-weight: 800;
+        letter-spacing: 0;
+        z-index: 30;
+      }
+
       .hud-toggle {
         position: fixed;
         left: 14px;
@@ -315,6 +330,132 @@
         -webkit-overflow-scrolling: touch;
         touch-action: pan-y;
         z-index: 31;
+      }
+
+      .pause-screen {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 14px;
+        background:
+          linear-gradient(90deg, rgb(12 13 13 / 0.78), rgb(12 13 13 / 0.56)),
+          center / cover no-repeat var(--pause-art, none),
+          rgb(12 13 13 / 0.72);
+        color: #fff6e7;
+        pointer-events: auto;
+        touch-action: pan-y;
+        z-index: 28;
+      }
+
+      .pause-screen.hidden {
+        display: none;
+      }
+
+      .pause-panel {
+        display: grid;
+        gap: 12px;
+        width: min(760px, calc(100vw - 28px));
+        max-height: calc(100vh - 28px);
+        overflow: auto;
+        padding: 14px;
+        border: 1px solid rgb(244 238 228 / 0.24);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.94);
+        scrollbar-gutter: stable;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .pause-panel h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .pause-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .pause-section {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+        padding: 10px;
+        border: 1px solid rgb(244 238 228 / 0.14);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.62);
+      }
+
+      .pause-section h3 {
+        margin: 0;
+        color: #f7c06a;
+        font-size: 13px;
+      }
+
+      .pause-section label {
+        display: grid;
+        gap: 5px;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pause-section select,
+      .pause-section button {
+        min-height: 40px;
+        border: 1px solid rgb(244 238 228 / 0.26);
+        border-radius: 8px;
+        background: rgb(247 192 106 / 0.16);
+        color: #fff6e7;
+        font-weight: 800;
+      }
+
+      .pause-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pause-actions button {
+        flex: 1 1 120px;
+      }
+
+      .module-status-list {
+        display: grid;
+        gap: 5px;
+        max-height: 34vh;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+      }
+
+      .module-status-row {
+        display: grid;
+        grid-template-columns: minmax(74px, 1fr) minmax(70px, auto) minmax(46px, auto);
+        gap: 8px;
+        align-items: center;
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .module-status-bar {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 8px;
+        background: rgb(255 255 255 / 0.12);
+      }
+
+      .module-status-bar div {
+        height: 100%;
+        background: linear-gradient(90deg, #ff7461, #f7c06a, #6fe0bf);
+      }
+
+      .target-info {
+        min-height: 58px;
+        color: #d7ceb8;
+        font-size: 12px;
+        line-height: 1.35;
       }
 
       .control-config-panel h2 {
@@ -856,6 +997,12 @@
           top: 10px;
         }
 
+        .pause-toggle {
+          right: 194px;
+          top: 10px;
+          min-width: 62px;
+        }
+
         .controls-panel {
           right: 10px;
           top: 52px;
@@ -875,6 +1022,21 @@
           top: 52px;
           width: calc(100vw - 20px);
           font-size: 12px;
+        }
+
+        .pause-screen {
+          place-items: stretch;
+          padding: 8px;
+        }
+
+        .pause-panel {
+          width: 100%;
+          max-height: calc(100vh - 16px);
+          padding: 10px;
+        }
+
+        .pause-grid {
+          grid-template-columns: 1fr;
         }
 
         .control-config-row {
@@ -1043,6 +1205,7 @@
       </div>
     </div>
     <button id="hudToggle" class="hud-toggle" type="button" aria-label="Toggle vehicle info">HUD</button>
+    <button id="pauseToggle" class="pause-toggle" type="button" aria-label="Pause and gear menu">PAUSE</button>
     <button id="debugToggle" class="debug-toggle" type="button" aria-label="Toggle debug stats">DBG</button>
     <button id="controlConfigToggle" class="control-config-toggle" type="button" aria-label="Configure controls">CFG</button>
     <button id="achievementsToggle" class="achievements-toggle" type="button" aria-label="Toggle achievements">ACH</button>
@@ -1061,8 +1224,8 @@
     <div id="controlsPanel" class="controls-panel hidden">
       <h2>Help</h2>
       <h3>Controls</h3>
-      <p>Keyboard: WASD/arrows move, mouse aims, click fires secondary, Q/E cycles secondary, G toggles gunner AI.</p>
-      <p>Controller: left stick moves, right stick aims, triggers rotate, bumpers cycle secondary.</p>
+      <p>Keyboard: WASD/arrows move, mouse aims, Space fires secondary, Q/E cycles secondary, Tab cycles guided targets, Esc/P pauses.</p>
+      <p>Controller: left stick moves, right stick aims, bumpers cycle secondary, L2/R2 cycle guided targets, Start pauses.</p>
       <p>When a menu is open, left stick/D-pad moves the cursor, A/B clicks, and right stick scrolls or changes selects.</p>
       <p>Mobile: left side drags movement, right side aims and fires.</p>
       <p>Right stick moves an aim reticle. Comp aim bends manual aim against vehicle velocity so shots pass through the selected point.</p>
@@ -1072,6 +1235,56 @@
       <h3>Scrap</h3>
       <p>Surviving enemy voxels become scrap. Gold pieces magnetize toward the craft at about 30 voxel range.</p>
       <p>Between levels, spend scrap to repair systems, replace detached modules, and replenish selected secondary ammo.</p>
+    </div>
+    <div id="pauseScreen" class="pause-screen hidden" aria-hidden="true">
+      <div class="pause-panel">
+        <h2>Paused</h2>
+        <div class="pause-grid">
+          <section class="pause-section">
+            <h3>Weapons</h3>
+            <label for="pauseSecondarySelect">
+              Secondary
+              <select id="pauseSecondarySelect">
+                <option value="none">None</option>
+                <option value="rocket">Rocket</option>
+                <option value="cannon">Cannon</option>
+                <option value="beam">Particle Beam</option>
+              </select>
+            </label>
+            <label><input id="pauseSecondaryAutofire" type="checkbox" /> Secondary autofire</label>
+            <button id="pauseSecondaryFire" type="button">Arm Selected</button>
+          </section>
+          <section class="pause-section">
+            <h3>Targeting</h3>
+            <label for="targetingModeSelect">
+              Mode
+              <select id="targetingModeSelect">
+                <option value="mixed">Mixed</option>
+                <option value="guided">Guided AI</option>
+                <option value="manual">Manual Aim</option>
+              </select>
+            </label>
+            <div class="pause-actions">
+              <button id="targetPreviousButton" type="button">Previous Target</button>
+              <button id="targetNextButton" type="button">Next Target</button>
+            </div>
+            <div id="targetInfo" class="target-info"></div>
+          </section>
+          <section class="pause-section">
+            <h3>Rover</h3>
+            <div id="moduleStatusList" class="module-status-list"></div>
+          </section>
+          <section class="pause-section">
+            <h3>Run</h3>
+            <div class="target-info">
+              Level <span id="pauseLevelNumber">1</span><br />
+              Scrap <span id="pauseScrapCount">0</span><br />
+              Damage done <span id="pauseDamageDone">0</span>
+            </div>
+            <button id="resumeButton" type="button">Resume</button>
+          </section>
+        </div>
+      </div>
     </div>
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
     <button id="secondaryTouchCycle" class="secondary-cycle-button" type="button" aria-label="Cycle secondary weapon">SWAP</button>

@@ -1,4 +1,4 @@
-import { LEVEL_TARGET_DURATION, createGame, stepGame } from './core/game.js';
+import { LEVEL_TARGET_DURATION, TARGETING_MODES, createGame, stepGame } from './core/game.js';
 import { configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
@@ -147,6 +147,20 @@ const vehicleConnectButton = document.querySelector('#vehicleConnectButton');
 const vehicleResetButton = document.querySelector('#vehicleResetButton');
 const vehicleEditorStatus = document.querySelector('#vehicleEditorStatus');
 const hudToggle = document.querySelector('#hudToggle');
+const pauseToggle = document.querySelector('#pauseToggle');
+const pauseScreen = document.querySelector('#pauseScreen');
+const resumeButton = document.querySelector('#resumeButton');
+const pauseSecondarySelect = document.querySelector('#pauseSecondarySelect');
+const pauseSecondaryAutofire = document.querySelector('#pauseSecondaryAutofire');
+const pauseSecondaryFire = document.querySelector('#pauseSecondaryFire');
+const targetingModeSelect = document.querySelector('#targetingModeSelect');
+const targetPreviousButton = document.querySelector('#targetPreviousButton');
+const targetNextButton = document.querySelector('#targetNextButton');
+const targetInfo = document.querySelector('#targetInfo');
+const moduleStatusList = document.querySelector('#moduleStatusList');
+const pauseLevelNumber = document.querySelector('#pauseLevelNumber');
+const pauseScrapCount = document.querySelector('#pauseScrapCount');
+const pauseDamageDone = document.querySelector('#pauseDamageDone');
 const combatPanel = document.querySelector('#combatPanel');
 const debugToggle = document.querySelector('#debugToggle');
 const controlsToggle = document.querySelector('#controlsToggle');
@@ -210,6 +224,7 @@ const touchBoost = createPointerButtonInput(boostButton);
 const touchSecondary = createPointerButtonInput(secondaryFire);
 const touchSecondaryCycle = createPointerButtonInput(secondaryTouchCycle);
 const touchSecondaryFloating = createPointerButtonInput(secondaryTouchFire);
+const pauseSecondaryPress = createPointerButtonInput(pauseSecondaryFire);
 const debug = createDebugOverlay();
 
 const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
@@ -285,6 +300,7 @@ function frame(now) {
   const touchBoostPressed = touchBoost.consume();
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
+  const targetCycle = keyInput.targetCycle || padInput.targetCycle || targetPreviousPressed.consume() * -1 || targetNextPressed.consume();
   if (keyInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
   updatePadReticle(padReticle, padInput, dt);
   const padAimWorld = padReticle.active && padReticle.idle <= 5 ? screenToWorld(padReticle, game.camera, viewport()) : null;
@@ -293,7 +309,7 @@ function frame(now) {
   const input = {
     x: movementSource.x,
     y: movementSource.y,
-    turn: keyInput.turn || padInput.turn,
+    turn: targetingModeSelect.value === 'guided' ? 0 : keyInput.turn || padInput.turn,
     aimX: 0,
     aimY: 0,
     aimWorld,
@@ -307,6 +323,7 @@ function frame(now) {
     debugTogglePressed: keyInput.debugTogglePressed,
     fireTogglePressed: keyInput.fireTogglePressed,
     resetPressed: keyInput.resetPressed || restartButtonPressed.consume(),
+    pausePressed: keyInput.pausePressed || padInput.pausePressed || pauseTogglePressed.consume() || resumeButtonPressed.consume(),
     controlsTogglePressed: keyInput.controlsTogglePressed || padInput.controlsTogglePressed,
     nextLevelPressed: nextLevelButtonPressed.consume(),
     shopRepairPressed: shopRepairPressed.consume(),
@@ -327,7 +344,10 @@ function frame(now) {
       padInput.secondaryFirePressed ||
       mouseInput.firePressed ||
       touchSecondary.consume() ||
-      touchSecondaryFloating.consume(),
+      touchSecondaryFloating.consume() ||
+      pauseSecondaryPress.consume(),
+    targetingMode: targetingModeSelect.value,
+    targetCycle,
   };
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) toggleDebug();
@@ -351,6 +371,7 @@ function frame(now) {
   levelNumber.textContent = game.level;
   levelsCompleted.textContent = game.levelsCompleted;
   updateShopUi();
+  syncPauseUi(mouseInput.aimWorld ?? padAimWorld);
   boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
   secondarySelect.value = game.secondary.selected;
   secondaryIcon.dataset.icon = game.secondary.selected;
@@ -373,8 +394,16 @@ bindButtonActivation(controlsToggle, toggleControls);
 bindButtonActivation(controlConfigToggle, toggleControlConfig);
 bindButtonActivation(achievementsToggle, toggleAchievements);
 bindButtonActivation(launchButton, launchVehicle);
+secondarySelect.addEventListener('change', syncSecondarySelects);
+pauseSecondarySelect.addEventListener('change', syncSecondarySelects);
+secondaryAutofire.addEventListener('change', syncSecondaryAutofire);
+pauseSecondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 controlConfigReset.addEventListener('click', resetControlBindings);
 window.addEventListener('keydown', captureKeyboardBinding, { capture: true });
+const pauseTogglePressed = createButtonPress(pauseToggle);
+const resumeButtonPressed = createButtonPress(resumeButton);
+const targetPreviousPressed = createButtonPress(targetPreviousButton);
+const targetNextPressed = createButtonPress(targetNextButton);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
 const shopRepairPressed = createButtonPress(shopRepairButton);
@@ -392,6 +421,19 @@ function toggleControlConfig() {
 
 function toggleAchievements() {
   achievementsPanel.classList.toggle('hidden');
+}
+
+function syncSecondarySelects(event) {
+  const value = event?.target?.value;
+  if (!value) return;
+  secondarySelect.value = value;
+  pauseSecondarySelect.value = value;
+}
+
+function syncSecondaryAutofire(event) {
+  const checked = Boolean(event?.target?.checked);
+  secondaryAutofire.checked = checked;
+  pauseSecondaryAutofire.checked = checked;
 }
 
 function toggleDebug() {
@@ -421,10 +463,26 @@ function syncLaunchScreen() {
   launchScreen.setAttribute('aria-hidden', String(!visible));
 }
 
+function syncPauseUi(hoverWorld = null) {
+  const visible = Boolean(game.paused);
+  pauseScreen.classList.toggle('hidden', !visible);
+  pauseScreen.setAttribute('aria-hidden', String(!visible));
+  pauseToggle.setAttribute('aria-pressed', String(visible));
+  if (!TARGETING_MODES.includes(targetingModeSelect.value)) targetingModeSelect.value = 'mixed';
+  targetingModeSelect.value = game.targetingMode ?? targetingModeSelect.value;
+  pauseSecondarySelect.value = secondarySelect.value;
+  pauseSecondaryAutofire.checked = secondaryAutofire.checked;
+  pauseLevelNumber.textContent = game.level;
+  pauseScrapCount.textContent = game.scrap;
+  pauseDamageDone.textContent = game.score.damageDone;
+  renderModuleStatus();
+  renderTargetInfo(hoverWorld);
+}
+
 function syncMusic(forcePlay = false) {
   const trackName = game.currentMusic;
   const src = MUSIC_URLS[trackName];
-  if (!src || awaitingLaunch || game.gameOver || game.levelComplete) {
+  if (!src || awaitingLaunch || game.gameOver || game.levelComplete || game.paused) {
     musicAudio.pause();
     return;
   }
@@ -669,12 +727,57 @@ function axisMagnitude(input) {
 function isVirtualPointerEnabled() {
   return (
     awaitingLaunch ||
+    game.paused ||
     game.levelComplete ||
     game.gameOver ||
     !controlsPanel.classList.contains('hidden') ||
     !controlConfigPanel.classList.contains('hidden') ||
     !achievementsPanel.classList.contains('hidden')
   );
+}
+
+function renderModuleStatus() {
+  moduleStatusList.replaceChildren(
+    ...game.vehicle.cells.map((cell) => {
+      const row = document.createElement('div');
+      row.className = 'module-status-row';
+      const name = document.createElement('span');
+      name.textContent = `${cell.id} ${cell.attached ? '' : 'lost'}`;
+      const bar = document.createElement('div');
+      bar.className = 'module-status-bar';
+      const fill = document.createElement('div');
+      const integrity = Math.max(0, Math.min(1, Math.min(cell.state.structureIntegrity, cell.state.wiringIntegrity, cell.state.deviceIntegrity)));
+      fill.style.width = `${integrity * 100}%`;
+      bar.append(fill);
+      const value = document.createElement('span');
+      value.textContent = `${Math.round(integrity * 100)}%`;
+      row.append(name, bar, value);
+      return row;
+    }),
+  );
+}
+
+function renderTargetInfo(hoverWorld) {
+  const hover = hoverWorld ? enemyAtWorld(hoverWorld) : null;
+  const guided = game.enemies.find((enemy) => !enemy.destroyed && enemy.targetId === game.guidedTargetId);
+  const enemy = hover ?? guided;
+  if (!enemy) {
+    targetInfo.textContent = 'No target selected';
+    return;
+  }
+  const living = enemy.cells.filter((cell) => !cell.state.destroyed).length;
+  const guns = enemy.cells.filter((cell) => cell.type === 'gun' && !cell.state.destroyed).length;
+  const engines = enemy.cells.filter((cell) => cell.type === 'engine' && !cell.state.destroyed).length;
+  targetInfo.textContent = `${enemy.kind ?? 'enemy'} ${hover ? 'hover' : 'target'} | cells ${living}/${enemy.cells.length} | guns ${guns} | engines ${engines}`;
+}
+
+function enemyAtWorld(point) {
+  return game.enemies.find((enemy) => {
+    if (enemy.destroyed) return false;
+    const dx = point.x - enemy.x;
+    const dy = point.y - enemy.y;
+    return dx * dx + dy * dy <= enemy.radius * enemy.radius;
+  });
 }
 
 function updatePadReticle(reticle, input, dt) {
