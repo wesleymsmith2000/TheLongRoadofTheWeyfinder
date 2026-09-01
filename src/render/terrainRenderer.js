@@ -8,19 +8,24 @@ const MATERIAL_COLORS = Object.freeze({
 });
 
 export class TerrainRenderer {
+  constructor(atlasLibrary = null) {
+    this.atlasLibrary = atlasLibrary;
+  }
+
   drawWorld(ctx, terrain, camera, viewportWidth, viewportHeight, debug = {}) {
     if (!terrain?.chunks) return;
     const range = Math.max(viewportWidth, viewportHeight) * 1.55;
+    const atlasReady = this.atlasLibrary?.ready() ?? false;
     for (const chunk of terrain.chunks.values()) {
       if (!chunkNearCamera(chunk, camera, range)) continue;
-      const cache = chunk.cache ?? this.createChunkCache(chunk, terrain.generator.config);
+      const cache = !chunk.cache || chunk.cache.atlasReady !== atlasReady ? this.createChunkCache(chunk, terrain.generator.config, atlasReady) : chunk.cache;
       chunk.cache = cache;
       ctx.drawImage(cache.canvas, chunk.originX, chunk.originY, chunk.size, chunk.size);
     }
     if (debug.visible) drawTerrainDebug(ctx, terrain, camera, range);
   }
 
-  createChunkCache(chunk, config) {
+  createChunkCache(chunk, config, atlasReady = this.atlasLibrary?.ready() ?? false) {
     const canvas = document.createElement('canvas');
     canvas.width = chunk.size;
     canvas.height = chunk.size;
@@ -30,20 +35,33 @@ export class TerrainRenderer {
     ctx.fillRect(0, 0, chunk.size, chunk.size);
     for (let y = 0; y < tileCount; y += 1) {
       for (let x = 0; x < tileCount; x += 1) {
-        drawTile(ctx, chunk.tiles[y][x], x * config.tileSize, y * config.tileSize, config.tileSize);
+        drawTile(ctx, chunk.tiles[y][x], x * config.tileSize, y * config.tileSize, config.tileSize, this.atlasLibrary);
       }
     }
-    return { canvas, createdAt: performance.now?.() ?? Date.now() };
+    return { canvas, createdAt: performance.now?.() ?? Date.now(), atlasReady };
   }
 }
 
-function drawTile(ctx, tile, x, y, size) {
+function drawTile(ctx, tile, x, y, size, atlasLibrary) {
   const baseMaterial = tile.semantic?.materialGrid?.[0]?.[0] ?? 'ghost_forest.ground';
   const isRoad = tile.tags.includes('road');
+  if (drawAtlasTile(ctx, tile, x, y, size, atlasLibrary)) return;
   ctx.fillStyle = MATERIAL_COLORS[baseMaterial] ?? MATERIAL_COLORS['safe.default'];
   ctx.fillRect(x, y, size, size);
   drawGroundVariation(ctx, tile, x, y, size);
   if (isRoad) drawRoadShape(ctx, tile, x, y, size);
+}
+
+function drawAtlasTile(ctx, tile, x, y, size, atlasLibrary) {
+  const resolved = atlasLibrary?.resolve(tile.render?.baseAsset);
+  if (!resolved?.image?.complete || resolved.image.naturalWidth <= 0) return false;
+  const { source } = resolved;
+  ctx.save();
+  ctx.translate(x + size / 2, y + size / 2);
+  ctx.rotate((tile.rotation * Math.PI) / 180);
+  ctx.drawImage(resolved.image, source.x, source.y, source.width, source.height, -size / 2, -size / 2, size, size);
+  ctx.restore();
+  return true;
 }
 
 function drawGroundVariation(ctx, tile, x, y, size) {

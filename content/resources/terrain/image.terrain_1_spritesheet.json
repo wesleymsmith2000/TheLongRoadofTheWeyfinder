@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "image.terrain.core_ground_sets.v0",
+  "path": "assets/images/terrain_1_spritesheet.png",
+  "displayName": "Terrain Core Ground Sets Sheet",
+  "tags": ["terrain", "atlas", "presentation-source"]
+}

@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import terrainPackManifest from '../content/packs/terrain.ghost_forest.v0.json' with { type: 'json' };
+import fs from 'node:fs';
+import path from 'node:path';
+import coreGroundSetsAtlas from '../content/resources/terrain/atlas.terrain_1_core_ground_sets.json' with { type: 'json' };
+import pathsEdgesTransitionsAtlas from '../content/resources/terrain/atlas.terrain_2_paths_edges_transitions.json' with { type: 'json' };
 import ghostForestGroundMaterial from '../content/terrain/materials/ghost_forest_ground.json' with { type: 'json' };
 import ghostForestPathMaterial from '../content/terrain/materials/ghost_forest_path.json' with { type: 'json' };
 import ghostForestSlipperyMossMaterial from '../content/terrain/materials/ghost_forest_slippery_moss.json' with { type: 'json' };
@@ -16,6 +20,7 @@ import { createTileVariants, tileMatchesRoadSockets, validateTerrainTileDefiniti
 
 const terrainMaterials = [ghostForestGroundMaterial, ghostForestPathMaterial, ghostForestSlipperyMossMaterial];
 const terrainTiles = [ghostForestFloorTile, ghostForestPathStraightTile, ghostForestPathTurnTile, ghostForestPathSlipperyTile];
+const terrainAtlases = [coreGroundSetsAtlas, pathsEdgesTransitionsAtlas];
 
 test('terrain config keeps prototype chunk and tile dimensions coherent', () => {
   const config = normalizeTerrainConfig();
@@ -56,9 +61,31 @@ test('ghost forest terrain tile assets validate and rotate road sockets', () => 
   );
 });
 
+test('terrain atlas metadata matches source image dimensions and sprite rects', () => {
+  for (const atlas of terrainAtlases) {
+    const size = pngSize(path.join(process.cwd(), atlas.image.path));
+    assert.equal(size.width, atlas.image.width);
+    assert.equal(size.height, atlas.image.height);
+    assert.equal(atlas.nativeTileSize, 32);
+  }
+
+  const straight = spriteRect(pathsEdgesTransitionsAtlas, 'ghost_forest.path_straight');
+  assert.deepEqual(straight, { x: 211, y: 323, width: 72, height: 72 });
+  assert.equal(Boolean(pathsEdgesTransitionsAtlas.sprites['ghost_forest.path_turn']), true);
+  assert.equal(Boolean(coreGroundSetsAtlas.sprites['ghost_forest.ground_a']), true);
+});
+
+test('ghost forest tile render assets resolve to atlas sprite references', () => {
+  assert.equal(ghostForestFloorTile.render.baseAsset, 'atlas:terrain.atlas.paths_edges_transitions.v0#ghost_forest.ground');
+  assert.equal(ghostForestPathStraightTile.render.baseAsset, 'atlas:terrain.atlas.paths_edges_transitions.v0#ghost_forest.path_straight');
+  assert.equal(ghostForestPathTurnTile.render.baseAsset, 'atlas:terrain.atlas.paths_edges_transitions.v0#ghost_forest.path_turn');
+  assert.equal(ghostForestPathSlipperyTile.render.baseAsset, 'atlas:terrain.atlas.paths_edges_transitions.v0#ghost_forest.slippery_hazard');
+});
+
 test('terrain pack manifest registers material and tile assets', () => {
   const report = validateContentPack(terrainPackManifest);
   assert.equal(report.valid, true);
+  assert.equal(terrainPackManifest.assets.images.length, 2);
 
   const registry = createContentRegistry();
   for (const material of terrainMaterials) registerContentAsset(registry, 'terrainMaterial', material, terrainPackManifest.packId);
@@ -68,6 +95,26 @@ test('terrain pack manifest registers material and tile assets', () => {
   assert.equal(getAvailableContent(registry, 'terrainTile', { tag: 'road' }).length, 3);
   assert.equal(registry.assets.get('terrainMaterial').get('terrain.material.ghost_forest.path').materialId, 'ghost_forest.path');
 });
+
+function spriteRect(atlas, spriteId) {
+  const sprite = atlas.sprites[spriteId];
+  const row = atlas.rows[sprite.row];
+  const column = atlas.columns[sprite.column];
+  return {
+    x: sprite.x ?? column.x,
+    y: sprite.y ?? row.y,
+    width: sprite.width ?? atlas.sourceTileSize.width,
+    height: sprite.height ?? atlas.sourceTileSize.height,
+  };
+}
+
+function pngSize(filePath) {
+  const data = fs.readFileSync(filePath);
+  return {
+    width: data.readUInt32BE(16),
+    height: data.readUInt32BE(20),
+  };
+}
 
 test('loose local terrain JSON files are grouped into terrain asset manifest keys', () => {
   const bundle = createLocalContentBundleFromFiles([

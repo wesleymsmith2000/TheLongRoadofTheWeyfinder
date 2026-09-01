@@ -49,6 +49,21 @@ Socket vocabulary is intentionally small:
 
 The runtime rotates sockets and semantic grids for legal `allowedRotations`; creators do not need to duplicate metadata for simple rotated variants.
 
+## Atlas Metadata
+
+The first terrain source sheets live in `assets/images/` and are described by atlas metadata files in `content/resources/terrain/`:
+
+- `atlas.terrain_1_core_ground_sets.json`
+- `atlas.terrain_2_paths_edges_transitions.json`
+
+Tile definitions use atlas sprite references in `render.baseAsset`:
+
+```json
+"baseAsset": "atlas:terrain.atlas.paths_edges_transitions.v0#ghost_forest.path_straight"
+```
+
+The v0.1 renderer crops the referenced source rectangle from the presentation sheet, scales it into the configured terrain tile size, and rotates it according to the tile variant. Gameplay materials still come from `semantic.materialGrid`.
+
 ## Level Terrain Field
 
 Levels may declare procedural terrain:

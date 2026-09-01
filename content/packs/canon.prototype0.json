@@ -43,7 +43,9 @@
       "../resources/weapons/sprite.weapon.mortar_player_shell.json",
       "../resources/weapons/sprite.weapon.mortar_enemy_shell.json",
       "../resources/weapons/sprite.weapon.mortar_player_marker.json",
-      "../resources/weapons/sprite.weapon.mortar_enemy_marker.json"
+      "../resources/weapons/sprite.weapon.mortar_enemy_marker.json",
+      "../resources/terrain/image.terrain_1_spritesheet.json",
+      "../resources/terrain/image.terrain_2_spritesheet.json"
     ],
     "behaviors": [],
     "encounters": [],

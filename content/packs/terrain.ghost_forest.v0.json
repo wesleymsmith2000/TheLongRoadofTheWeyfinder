@@ -19,6 +19,10 @@
       "../terrain/tiles/ghost_forest_path_straight.json",
       "../terrain/tiles/ghost_forest_path_turn.json",
       "../terrain/tiles/ghost_forest_path_slippery.json"
+    ],
+    "images": [
+      "../resources/terrain/image.terrain_1_spritesheet.json",
+      "../resources/terrain/image.terrain_2_spritesheet.json"
     ]
   }
 }

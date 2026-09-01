@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "terrain.atlas.core_ground_sets.v0",
+  "displayName": "Core Ground Sets Terrain Atlas",
+  "image": {
+    "path": "assets/images/terrain_1_spritesheet.png",
+    "width": 1448,
+    "height": 1086,
+    "hasAlpha": false
+  },
+  "nativeTileSize": 32,
+  "sourceTileSize": { "width": 88, "height": 88 },
+  "rows": {
+    "weyfinders_road": { "y": 113 },
+    "starlight_road": { "y": 213 },
+    "ghost_forest": { "y": 313 },
+    "shadowed_desert": { "y": 416 },
+    "pirates_road": { "y": 516 },
+    "freedoms_pass": { "y": 616 },
+    "shadowed_road": { "y": 718 },
+    "digitized_stream": { "y": 818 }
+  },
+  "columns": {
+    "base_ground_a": { "x": 134 },
+    "base_ground_b": { "x": 230 },
+    "base_ground_c": { "x": 326 },
+    "road_path_center": { "x": 422 },
+    "path_edge_left": { "x": 518 },
+    "path_edge_right": { "x": 614 },
+    "curve_corner": { "x": 710 },
+    "junction_split": { "x": 806 },
+    "rough_patch": { "x": 902 },
+    "hazard_surface": { "x": 998 },
+    "height_raised_lip": { "x": 1050 },
+    "shadow_marker": { "x": 1134 }
+  },
+  "sprites": {
+    "ghost_forest.ground_a": { "row": "ghost_forest", "column": "base_ground_a" },
+    "ghost_forest.ground_b": { "row": "ghost_forest", "column": "base_ground_b" },
+    "ghost_forest.ground_c": { "row": "ghost_forest", "column": "base_ground_c" },
+    "ghost_forest.path_center": { "row": "ghost_forest", "column": "road_path_center" },
+    "ghost_forest.path_edge_left": { "row": "ghost_forest", "column": "path_edge_left" },
+    "ghost_forest.path_edge_right": { "row": "ghost_forest", "column": "path_edge_right" },
+    "ghost_forest.path_turn": { "row": "ghost_forest", "column": "curve_corner" },
+    "ghost_forest.hazard_surface": { "row": "ghost_forest", "column": "hazard_surface" }
+  },
+  "notes": "Presentation sheet coordinates. Use source rectangles as cropped tile art; visible sheet labels and notes are outside these rectangles."
+}

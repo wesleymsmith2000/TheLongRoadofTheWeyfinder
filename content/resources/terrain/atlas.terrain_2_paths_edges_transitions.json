@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "terrain.atlas.paths_edges_transitions.v0",
+  "displayName": "Paths, Edges, And Transitions Terrain Atlas",
+  "image": {
+    "path": "assets/images/terrain_2_spritesheet.png",
+    "width": 1448,
+    "height": 1086,
+    "hasAlpha": false
+  },
+  "nativeTileSize": 32,
+  "sourceTileSize": { "width": 72, "height": 72 },
+  "rows": {
+    "weyfinders_road": { "y": 131 },
+    "starlight_road": { "y": 228 },
+    "ghost_forest": { "y": 323 },
+    "shadowed_desert": { "y": 421 },
+    "pirates_road": { "y": 517 },
+    "freedoms_pass": { "y": 614 },
+    "shadowed_road": { "y": 711 },
+    "digitized_stream": { "y": 808 }
+  },
+  "columns": {
+    "base_ground": { "x": 134 },
+    "road_straight": { "x": 211 },
+    "road_straight_alt": { "x": 288 },
+    "curve_corner": { "x": 365 },
+    "t_junction": { "x": 442 },
+    "x_crossing": { "x": 519 },
+    "soft_shoulder": { "x": 596 },
+    "hard_edge_curb": { "x": 673 },
+    "transition_strip": { "x": 750 },
+    "hazard_strip": { "x": 827 },
+    "drop_off_edge": { "x": 904 },
+    "void_water_border": { "x": 981 },
+    "height_step_lip": { "x": 1058 },
+    "nav_marker": { "x": 1135 }
+  },
+  "sprites": {
+    "ghost_forest.ground": { "row": "ghost_forest", "column": "base_ground" },
+    "ghost_forest.path_straight": { "row": "ghost_forest", "column": "road_straight" },
+    "ghost_forest.path_straight_alt": { "row": "ghost_forest", "column": "road_straight_alt" },
+    "ghost_forest.path_turn": { "row": "ghost_forest", "column": "curve_corner" },
+    "ghost_forest.path_t": { "row": "ghost_forest", "column": "t_junction" },
+    "ghost_forest.path_cross": { "row": "ghost_forest", "column": "x_crossing" },
+    "ghost_forest.soft_shoulder": { "row": "ghost_forest", "column": "soft_shoulder" },
+    "ghost_forest.hard_edge_curb": { "row": "ghost_forest", "column": "hard_edge_curb" },
+    "ghost_forest.transition_strip": { "row": "ghost_forest", "column": "transition_strip" },
+    "ghost_forest.slippery_hazard": { "row": "ghost_forest", "column": "hazard_strip" },
+    "ghost_forest.drop_off_edge": { "row": "ghost_forest", "column": "drop_off_edge" },
+    "ghost_forest.void_water_border": { "row": "ghost_forest", "column": "void_water_border" },
+    "ghost_forest.height_step_lip": { "row": "ghost_forest", "column": "height_step_lip" },
+    "ghost_forest.nav_marker": { "row": "ghost_forest", "column": "nav_marker" }
+  },
+  "notes": "Presentation sheet coordinates. v0.1 runtime mapping uses the Ghost Forest floor, straight, turn, and slippery hazard sprites."
+}

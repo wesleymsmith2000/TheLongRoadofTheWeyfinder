@@ -1,5 +1,6 @@
 import { CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
+import { createTerrainAtlasLibrary } from './terrainAtlas.js';
 import { TerrainRenderer } from './terrainRenderer.js';
 
 const COLORS = {
@@ -32,7 +33,7 @@ export class CanvasRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.terrainRenderer = new TerrainRenderer();
+    this.terrainRenderer = new TerrainRenderer(createTerrainAtlasLibrary());
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }

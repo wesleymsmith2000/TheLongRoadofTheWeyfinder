@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "image.terrain.paths_edges_transitions.v0",
+  "path": "assets/images/terrain_2_spritesheet.png",
+  "displayName": "Terrain Paths Edges And Transitions Sheet",
+  "tags": ["terrain", "atlas", "presentation-source"]
+}

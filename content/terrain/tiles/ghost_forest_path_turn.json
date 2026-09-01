@@ -10,7 +10,7 @@
     "west": { "road": "closed", "height": 0, "fluid": "none" }
   },
   "render": {
-    "baseAsset": "procedural:ghost_forest.path_turn",
+    "baseAsset": "atlas:terrain.atlas.paths_edges_transitions.v0#ghost_forest.path_turn",
     "animatedLayers": []
   },
   "semantic": {
