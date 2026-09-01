@@ -9,7 +9,7 @@ import {
   removeEditableVehicleCell,
   setGunLoadoutSlot,
 } from '../core/playerVehicleEditor.js';
-import { PRIMARY_WEAPON_IDS, SECONDARY_WEAPON_IDS } from '../core/weaponLoadout.js';
+import { availablePrimaryWeaponIds, availableSecondaryWeaponIds } from '../core/weaponLoadout.js';
 
 const cellColors = {
   armor: '#8fa6ad',
@@ -64,6 +64,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     },
     setAccount(account) {
       state.account = account;
+      populateLoadoutSelects();
       render();
     },
     reset() {
@@ -257,9 +258,12 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
 
   function populateLoadoutSelects() {
     for (const select of elements.loadoutSelects ?? []) {
-      const allowed = select.dataset.slotKind === 'primary' ? PRIMARY_WEAPON_IDS : SECONDARY_WEAPON_IDS;
-      select.append(new Option('None', ''));
+      const allowed = select.dataset.slotKind === 'primary' ? availablePrimaryWeaponIds(state.account) : availableSecondaryWeaponIds(state.account);
+      const current = select.value;
+      select.replaceChildren(new Option('None', ''));
       for (const id of allowed) select.append(new Option(labelForWeapon(id), id));
+      if (current && !allowed.includes(current)) select.append(new Option(`${labelForWeapon(current)} (locked)`, current));
+      select.value = current;
     }
   }
 
@@ -269,7 +273,11 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     for (const select of elements.loadoutSelects ?? []) {
       const enabled = selectedCell?.type === 'gun' && selectedLoadout;
       select.disabled = !enabled;
-      select.value = enabled ? selectedLoadout[select.dataset.slotKind][Number(select.dataset.slotIndex)] ?? '' : '';
+      const value = enabled ? selectedLoadout[select.dataset.slotKind][Number(select.dataset.slotIndex)] ?? '' : '';
+      if (value && ![...select.options].some((option) => option.value === value)) {
+        select.append(new Option(`${labelForWeapon(value)} (locked)`, value));
+      }
+      select.value = value;
     }
   }
 }

@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
+import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
 import {
   SHOP_COSTS,
   ammoCapacityWithUpgrades,
   ammoModuleCost,
   ammoRefillCost,
+  availableUpgradeDefinitions,
   buyUpgradeWithScrap,
   refillAmmoWithScrap,
   repairCost,
@@ -18,6 +20,8 @@ import {
 } from '../src/core/economy.js';
 import { applyVehicleDamage } from '../src/core/vehicle.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
+import { createPrototypePlayerAccountData } from '../src/core/playerAccount.js';
+import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
 
 test('repair shop spends scrap to restore damaged attached voxels', () => {
   const game = createGame();
@@ -184,4 +188,17 @@ test('armor toughness upgrade thickens armor voxels', () => {
   buyUpgradeWithScrap(game, 'armorToughness');
   const after = Math.max(...armor.mask.flat().map((voxel) => voxel.maxHp));
   assert.equal(after > before, true);
+});
+
+test('repair screen upgrade list only includes unlocked installed systems', () => {
+  const account = createPrototypePlayerAccountData();
+  const game = createGame(1147, { vehicleDefinition: startingVehicleDefinition });
+  const baseline = availableUpgradeDefinitions(game, account, startingVehicleDefinition).map((upgrade) => upgrade.id);
+  assert.equal(baseline.includes('rocketImpactDamage'), true);
+  assert.equal(baseline.includes('beamDamage'), true);
+  assert.equal(baseline.includes('scrapMagnetDistance'), false);
+
+  const withoutBeam = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 2, null).definition;
+  const filtered = availableUpgradeDefinitions(game, account, withoutBeam).map((upgrade) => upgrade.id);
+  assert.equal(filtered.includes('beamDamage'), false);
 });

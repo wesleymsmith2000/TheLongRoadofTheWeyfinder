@@ -16,6 +16,10 @@ export function createPrototypePlayerAccountData() {
       engine: { unlocked: true, quantity: 3 },
     },
     achievements: { unlocked: [] },
+    weaponUnlocks: {
+      primary: ['main.basic', 'mini_beam'],
+      secondary: ['rocket', 'cannon', 'beam'],
+    },
     savedVehicle: null,
   };
 }
@@ -41,6 +45,11 @@ export function validatePlayerAccountData(account) {
 
   if (account.equipment?.core) warnings.push('Core equipment is ignored; player vehicles may only contain one core.');
   if (account.achievements != null && !Array.isArray(account.achievements?.unlocked)) errors.push('achievements.unlocked must be an array when provided.');
+  if (account.weaponUnlocks != null) {
+    if (!Array.isArray(account.weaponUnlocks?.primary)) errors.push('weaponUnlocks.primary must be an array when provided.');
+    if (!Array.isArray(account.weaponUnlocks?.secondary)) errors.push('weaponUnlocks.secondary must be an array when provided.');
+  }
+  if (account.moduleUnlocks != null && !Array.isArray(account.moduleUnlocks)) errors.push('moduleUnlocks must be an array when provided.');
   return { valid: errors.length === 0, errors, warnings };
 }
 

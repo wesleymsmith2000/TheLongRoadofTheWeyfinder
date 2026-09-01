@@ -6,6 +6,8 @@ import beamDefinition from '../content/weapons/beam.json' with { type: 'json' };
 import trackingFlechetteDefinition from '../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../content/weapons/mortar.json' with { type: 'json' };
 import miniBeamDefinition from '../content/weapons/mini_beam.json' with { type: 'json' };
+import tractorBeamDefinition from '../content/weapons/tractor_beam.json' with { type: 'json' };
+import repulsorBeamDefinition from '../content/weapons/repulsor_beam.json' with { type: 'json' };
 import staMissileDefinition from '../content/weapons/sta_missile.json' with { type: 'json' };
 import orbOfBladesDefinition from '../content/weapons/orb_of_blades.json' with { type: 'json' };
 import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
@@ -22,6 +24,8 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
     trackingFlechetteDefinition,
     mortarDefinition,
     miniBeamDefinition,
+    tractorBeamDefinition,
+    repulsorBeamDefinition,
     staMissileDefinition,
     orbOfBladesDefinition,
   ]) {

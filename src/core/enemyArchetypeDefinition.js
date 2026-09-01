@@ -1,5 +1,6 @@
 import canonEnemyArchetypes from '../../content/enemies/prototype0_enemy_archetypes.json' with { type: 'json' };
 import { CANON_STATUSES, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
+import { TARGET_CONDITIONS } from './combatEvents.js';
 
 export const CANON_ENEMY_ARCHETYPE_PACK = canonEnemyArchetypes;
 export const ENEMY_RUNTIME_FACTORIES = ['createEnemy', 'createEnhancedEnemy', 'createPirateShipEnemy', 'createEnhancedPirateShipEnemy', 'createBossEnemy'];
@@ -21,6 +22,7 @@ export const ENEMY_MOVEMENT_KINDS = [
 ];
 export const ENEMY_AGGREGATE_KINDS = ['singleBody', 'limbArray', 'multiPartBoss'];
 export const ENEMY_CELL_ANIMATION_KINDS = ['none', 'opacityPulse', 'sineWave', 'swirl', 'fabricWeave', 'phaseFade', 'legStride', 'wingBeat'];
+export const ENEMY_TARGET_CONDITIONS = Object.freeze(Object.values(TARGET_CONDITIONS));
 
 export function validateEnemyArchetypePack(definition) {
   const errors = [];
@@ -84,10 +86,35 @@ function validateArchetypes(archetypes, errors, warnings) {
     validateMovementProfiles(archetype.movementProfiles, `${prefix}.movementProfiles`, errors);
     validateAggregate(archetype.aggregate, `${prefix}.aggregate`, errors);
     validateCellAnimations(archetype.cellAnimations, `${prefix}.cellAnimations`, errors);
+    validateTargeting(archetype.targeting, `${prefix}.targeting`, errors);
     if (archetype.editable != null && !isStringArray(archetype.editable)) errors.push(`${prefix}.editable must be an array of strings when provided.`);
     if (archetype.palette != null && !isPlainObject(archetype.palette)) errors.push(`${prefix}.palette must be an object when provided.`);
     if (archetype.baseArchetype != null && !ids.has(archetype.baseArchetype)) {
       warnings.push(`${prefix}.baseArchetype "${archetype.baseArchetype}" should reference an earlier archetype in the same pack.`);
+    }
+  }
+}
+
+function validateTargeting(targeting, path, errors) {
+  if (targeting == null) return;
+  if (!isPlainObject(targeting)) {
+    errors.push(`${path} must be an object when provided.`);
+    return;
+  }
+  validateTargetConditionArray(targeting.preferConditions, `${path}.preferConditions`, errors);
+  validateTargetConditionArray(targeting.requireConditions, `${path}.requireConditions`, errors);
+  validateTargetConditionArray(targeting.ignoreConditions, `${path}.ignoreConditions`, errors);
+}
+
+function validateTargetConditionArray(conditions, path, errors) {
+  if (conditions == null) return;
+  if (!Array.isArray(conditions)) {
+    errors.push(`${path} must be an array when provided.`);
+    return;
+  }
+  for (const [index, condition] of conditions.entries()) {
+    if (!ENEMY_TARGET_CONDITIONS.includes(condition)) {
+      errors.push(`${path}[${index}] must be one of: ${ENEMY_TARGET_CONDITIONS.join(', ')}.`);
     }
   }
 }

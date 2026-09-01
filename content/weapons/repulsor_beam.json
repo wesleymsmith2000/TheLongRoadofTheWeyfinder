@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "repulsor_beam",
+  "displayName": "Repulsor Beam",
+  "author": "Weyfinder prototype",
+  "provenance": "Prototype primary defensive beam contract.",
+  "canonStatus": "CANON",
+  "tags": ["primary", "beam", "utility", "repulsor", "prototype"],
+  "ammo": 0,
+  "heat": 9,
+  "cooldown": 0.5,
+  "projectile": {
+    "team": "player",
+    "weapon": "repulsor_beam",
+    "behavior": "beam",
+    "projectileSpeed": 0,
+    "radius": 1,
+    "damage": 0.35,
+    "impulse": 85,
+    "lifetime": 0.14,
+    "length": 105,
+    "frames": 5,
+    "pierce": 0,
+    "targetHint": "aimReticle",
+    "forceMode": "push",
+    "affects": ["construct", "projectile"]
+  }
+}

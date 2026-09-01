@@ -242,7 +242,7 @@ Player/construct definitions may carry per-gun weapon loadouts:
 }
 ```
 
-Current primary ids are `main.basic`, `tracking_flechette`, `mortar`, and `mini_beam`. Current secondary ids are `rocket`, `cannon`, `beam`, `sta_missile`, and `orb_of_blades`. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`.
+Current primary ids are `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`, `tractor_beam`, and `repulsor_beam`. Current secondary ids are `rocket`, `cannon`, `beam`, `sta_missile`, and `orb_of_blades`. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`.
 
 Available equipment is read from player account data rather than hard-coded into the editor. Prototype 0 uses local in-memory account data:
 
@@ -257,6 +257,11 @@ Available equipment is read from player account data rather than hard-coded into
     "wheel": { "unlocked": true, "quantity": 4 },
     "engine": { "unlocked": true, "quantity": 3 }
   },
+  "weaponUnlocks": {
+    "primary": ["main.basic", "mini_beam"],
+    "secondary": ["rocket", "cannon", "beam"]
+  },
+  "moduleUnlocks": [],
   "savedVehicle": null
 }
 ```
@@ -568,6 +573,69 @@ Current `cellAnimations[].kind` values:
 - `wingBeat`
 
 Editors should update archetype descriptors when changing enemy art, patterns, palettes, entry behavior, or balance knobs. If a change needs a new simulation verb, add a named runtime primitive and then expose it in this descriptor layer.
+
+## Current Combat Event And Targeting Hook Contract
+
+Current runtime/editor entry point:
+
+```text
+src/core/combatEvents.js
+```
+
+The public defeat counters are:
+
+```json
+{
+  "score": {
+    "enemyDefeats": {
+      "heavy_mortar_boat.pirates_road": 4
+    },
+    "specialDefeats": {
+      "inchwormAllSegmentsFirst": 1,
+      "frogDistractedByConstruct": 1,
+      "buzzardLandedForScrap": 1
+    }
+  }
+}
+```
+
+Editors and runtime enemy behaviors should prefer these stable hook names over one-off local flags. Current special defeat hooks:
+
+- `inchwormAllSegmentsFirst`
+- `frogDistractedByConstruct`
+- `buzzardLandedForScrap`
+
+Constructs/enemies may expose transient activity flags for other enemies to reason about:
+
+- `distractedByEnemy`
+- `distractedByConstruct`
+- `collectingScrap`
+- `landedForScrap`
+- `phasedIn`
+- `phasedOut`
+- `firingSequence`
+
+Enemy targeting descriptors may use these condition ids:
+
+- `targetIsDistracted`
+- `targetIsCollectingScrap`
+- `targetIsLandedForScrap`
+- `targetIsPhasedIn`
+- `targetIsDamaged`
+
+Example thief/jackal-style targeting:
+
+```json
+{
+  "targeting": {
+    "targetTeams": ["player", "construct"],
+    "preferConditions": ["targetIsDistracted", "targetIsCollectingScrap"],
+    "ignoreConditions": ["targetIsPhasedIn"]
+  }
+}
+```
+
+These hooks are outward-facing architecture. A behavior runner may implement them with utility scoring, hard filters, or state-machine transitions, but exported content should continue to use these names.
 
 `movementProfiles`, `aggregate`, and `cellAnimations` are validated editor-facing descriptors in this prototype. They let editors describe authored movement patterns, multi-part enemies such as the octopus boss, and animateable voxel/module behavior such as transparent fabric-like enemies. Runtime execution of these descriptors should enter through named behavior primitives or a level runner rather than ad hoc editor state.
 

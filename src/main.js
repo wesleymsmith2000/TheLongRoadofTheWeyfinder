@@ -30,10 +30,10 @@ import { ACHIEVEMENT_DEFINITIONS, achievementRewardText, achievementStatsFromGam
 import { consumeSoundEvents, SOUND_EVENTS } from './core/soundEvents.js';
 import {
   SHOP_COSTS,
-  UPGRADE_DEFINITIONS,
   ammoCapacityWithUpgrades,
   ammoRefillCost,
   ammoStatus,
+  availableUpgradeDefinitions,
   repairCost,
   repairStatus,
   replacementStatus,
@@ -1003,7 +1003,7 @@ function viewport() {
 }
 
 function populateUpgradeSelect() {
-  for (const upgrade of UPGRADE_DEFINITIONS) {
+  for (const upgrade of availableShopUpgrades()) {
     const option = document.createElement('option');
     option.value = upgrade.id;
     shopUpgradeSelect.append(option);
@@ -1013,11 +1013,16 @@ function populateUpgradeSelect() {
 
 function refreshUpgradeOptions() {
   const selected = shopUpgradeSelect.value;
-  for (const option of shopUpgradeSelect.options) {
-    const upgrade = UPGRADE_DEFINITIONS.find((candidate) => candidate.id === option.value);
-    option.textContent = `${upgrade.system}: ${upgrade.label} Lv ${game.upgrades?.[upgrade.id] ?? 0}`;
-  }
-  shopUpgradeSelect.value = selected || UPGRADE_DEFINITIONS[0]?.id || '';
+  const upgrades = availableShopUpgrades();
+  shopUpgradeSelect.replaceChildren(
+    ...upgrades.map((upgrade) => {
+      const option = document.createElement('option');
+      option.value = upgrade.id;
+      option.textContent = `${upgrade.system}: ${upgrade.label} Lv ${game.upgrades?.[upgrade.id] ?? 0}`;
+      return option;
+    }),
+  );
+  shopUpgradeSelect.value = upgrades.some((upgrade) => upgrade.id === selected) ? selected : upgrades[0]?.id || '';
 }
 
 function refreshRepairTargets() {
@@ -1042,7 +1047,7 @@ function refreshUpgradeSummary() {
       .map((details) => details.dataset.system),
   );
   const groups = new Map();
-  for (const upgrade of UPGRADE_DEFINITIONS) {
+  for (const upgrade of availableShopUpgrades()) {
     if (!groups.has(upgrade.system)) groups.set(upgrade.system, []);
     groups.get(upgrade.system).push(upgrade);
   }
@@ -1081,10 +1086,10 @@ function updateShopUi() {
   const ammoCost = ammoRefillCost(ammoWeapon);
   const ammo = game.secondary.ammo[ammoWeapon];
   const ammoCapacity = ammoCapacityWithUpgrades(game, ammoWeapon);
-  const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
   refreshRepairTargets();
-  const selectedRepairCost = repairCost(game, shopRepairTarget.value);
   refreshUpgradeOptions();
+  const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
+  const selectedRepairCost = repairCost(game, shopRepairTarget.value);
   refreshUpgradeSummary();
   shopRepairCost.textContent = selectedRepairCost;
   shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;
@@ -1100,4 +1105,8 @@ function updateShopUi() {
   shopReplaceButton.disabled = game.scrap < SHOP_COSTS.replaceDetached || countDetachedVehicleCells(game.vehicle) === 0;
   shopRefillAmmoButton.disabled = !Number.isFinite(ammoCost) || game.scrap < ammoCost || ammo == null || ammo >= ammoCapacity;
   shopBuyUpgradeButton.disabled = !Number.isFinite(selectedUpgradeCost) || game.scrap < selectedUpgradeCost;
+}
+
+function availableShopUpgrades() {
+  return availableUpgradeDefinitions(game, playerAccount, playerVehicleDefinition ?? game.vehicleDefinition);
 }

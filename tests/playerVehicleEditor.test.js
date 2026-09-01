@@ -13,6 +13,7 @@ import {
   vehicleToConstructDefinition,
 } from '../src/core/playerVehicleEditor.js';
 import { weaponStackMultiplier } from '../src/core/weaponLoadout.js';
+import { availablePrimaryWeaponIds, availableSecondaryWeaponIds } from '../src/core/weaponLoadout.js';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 
 test('prototype player account exposes non-core equipment quantities', () => {
@@ -81,4 +82,14 @@ test('player vehicle editor stores configurable weapon loadouts on gun cells', (
   assert.equal(loadout.primary[0], 'tracking_flechette');
   assert.equal(loadout.secondary[1], 'orb_of_blades');
   assert.equal(weaponStackMultiplier(secondaryResult.definition, 'rocket') >= 1, true);
+});
+
+test('prototype account exposes only unlocked player weapon choices', () => {
+  const account = createPrototypePlayerAccountData();
+  assert.deepEqual(availablePrimaryWeaponIds(account), ['main.basic', 'mini_beam']);
+  assert.deepEqual(availableSecondaryWeaponIds(account), ['rocket', 'cannon', 'beam']);
+  account.weaponUnlocks.primary.push('mortar');
+  account.weaponUnlocks.secondary.push('sta_missile');
+  assert.equal(availablePrimaryWeaponIds(account).includes('mortar'), true);
+  assert.equal(availableSecondaryWeaponIds(account).includes('sta_missile'), true);
 });

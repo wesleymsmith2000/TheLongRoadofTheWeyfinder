@@ -22,3 +22,21 @@
 - On a wing and a prayer
  - criteria: survive a wave with nothing but the core and gun module left
  - reward: +1 gun module available in the vehicle build screen
+- Mortar Combat
+ - criteria: Defeat 4 mortar boats
+ - reward: unlock mortar primary gun
+- Look Out, Its MOTHRA-pillar
+ - criteria: Defeat a caterpillar enemy after destroying all of its segments first
+ - reward: unlock tracking flechette primary gun
+- Beware the Danger Skittles
+ - criteria: Defeat a frog enemy while it is distracted with another construct
+ - reward: unlock tractor and repulsor beams
+- Buzz Off
+ - criteria: Defeat a buzzard enemy after it lands to eat scraps
+ - reward: unlock STA missile secondary weapon
+- Getting a Leg Up on the Competition
+ - criteria: Defeat a walker enemy
+ - reward: unlock orb of blades secondary weapon
+- Crouching Weyfinder Hidden Phantom
+ - criteria: Defeat a ghost
+ - reward: unlock cloaking module

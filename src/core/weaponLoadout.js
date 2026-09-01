@@ -1,4 +1,4 @@
-export const PRIMARY_WEAPON_IDS = ['main.basic', 'tracking_flechette', 'mortar', 'mini_beam'];
+export const PRIMARY_WEAPON_IDS = ['main.basic', 'tracking_flechette', 'mortar', 'mini_beam', 'tractor_beam', 'repulsor_beam'];
 export const SECONDARY_WEAPON_IDS = ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'];
 export const MAX_PRIMARY_SLOTS = 2;
 export const MAX_SECONDARY_SLOTS = 3;
@@ -52,6 +52,20 @@ export function weaponStackMultiplier(definition, weaponId) {
   return Math.sqrt(Math.max(1, copies));
 }
 
+export function availablePrimaryWeaponIds(account) {
+  return availableWeaponIds(account, 'primary', PRIMARY_WEAPON_IDS, ['main.basic', 'mini_beam']);
+}
+
+export function availableSecondaryWeaponIds(account) {
+  return availableWeaponIds(account, 'secondary', SECONDARY_WEAPON_IDS, ['rocket', 'cannon', 'beam']);
+}
+
+export function weaponUnlocked(account, slotKind, weaponId) {
+  if (!weaponId) return true;
+  const allowed = slotKind === 'primary' ? availablePrimaryWeaponIds(account) : availableSecondaryWeaponIds(account);
+  return allowed.includes(weaponId);
+}
+
 function normalizeSlots(value, allowed, maxSlots, fallback) {
   const source = Array.isArray(value) ? value : fallback == null ? [] : [fallback];
   const slots = source.slice(0, maxSlots).map((id) => (allowed.includes(id) ? id : null));
@@ -61,4 +75,10 @@ function normalizeSlots(value, allowed, maxSlots, fallback) {
 
 function cloneDefinition(definition) {
   return JSON.parse(JSON.stringify(definition));
+}
+
+function availableWeaponIds(account, slotKind, fullList, fallback) {
+  const unlocks = account?.weaponUnlocks?.[slotKind];
+  if (!Array.isArray(unlocks)) return [...fallback];
+  return fullList.filter((id) => unlocks.includes(id));
 }

@@ -74,8 +74,10 @@ weaponStackMultiplier(definition, weaponId)
 
 Current slot lists:
 
-- Primary: `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`
+- Primary: `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`, `tractor_beam`, `repulsor_beam`
 - Secondary: `rocket`, `cannon`, `beam`, `sta_missile`, `orb_of_blades`
+
+The launch build screen filters these choices through `account.weaponUnlocks`; the construct workshop keeps the full list available for editor/dev work.
 
 Runtime firing still needs a follow-up pass to consume loadouts for actual primary/secondary firing. The data is now present for the editor and construction UI.
 
@@ -86,10 +88,27 @@ New canon weapon definitions:
 - `content/weapons/tracking_flechette.json`
 - `content/weapons/mortar.json`
 - `content/weapons/mini_beam.json`
+- `content/weapons/tractor_beam.json`
+- `content/weapons/repulsor_beam.json`
 - `content/weapons/sta_missile.json`
 - `content/weapons/orb_of_blades.json`
 
 The canon content pack includes these weapons for registry/editor discovery.
+
+## Achievement, Targeting, And Shop Hooks
+
+New achievement rewards unlock advanced weapons/modules:
+
+- `mortar-combat`: defeat 4 `heavy_mortar_boat.pirates_road` enemies; unlocks `mortar`.
+- `mothra-pillar`: emit `specialDefeats.inchwormAllSegmentsFirst`; unlocks `tracking_flechette`.
+- `danger-skittles`: emit `specialDefeats.frogDistractedByConstruct`; unlocks `tractor_beam` and `repulsor_beam`.
+- `buzz-off`: emit `specialDefeats.buzzardLandedForScrap`; unlocks `sta_missile`.
+- `leg-up`: defeat a Starlight or Twilight walker; unlocks `orb_of_blades`.
+- `crouching-weyfinder-hidden-phantom`: defeat a ghost phaser; unlocks the future `cloaking` module.
+
+Public hooks live in `src/core/combatEvents.js`. Editors can use `targeting.preferConditions`, `targeting.requireConditions`, and `targeting.ignoreConditions` with `targetIsDistracted`, `targetIsCollectingScrap`, `targetIsLandedForScrap`, `targetIsPhasedIn`, and `targetIsDamaged`.
+
+The repair/upgrade screen now filters upgrade rows through `availableUpgradeDefinitions(game, account, vehicleDefinition)`. Upgrades should only appear when the player has the relevant module/weapon unlocked and currently installed on the craft.
 
 ## Runtime Follow-Up
 

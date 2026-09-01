@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "tractor_beam",
+  "displayName": "Tractor Beam",
+  "author": "Weyfinder prototype",
+  "provenance": "Prototype primary utility beam contract.",
+  "canonStatus": "CANON",
+  "tags": ["primary", "beam", "utility", "tractor", "prototype"],
+  "ammo": 0,
+  "heat": 8,
+  "cooldown": 0.45,
+  "projectile": {
+    "team": "player",
+    "weapon": "tractor_beam",
+    "behavior": "beam",
+    "projectileSpeed": 0,
+    "radius": 0.9,
+    "damage": 0.2,
+    "impulse": 20,
+    "lifetime": 0.16,
+    "length": 120,
+    "frames": 6,
+    "pierce": 0,
+    "targetHint": "aimReticle",
+    "forceMode": "pull",
+    "affects": ["scrap", "construct", "projectile"]
+  }
+}

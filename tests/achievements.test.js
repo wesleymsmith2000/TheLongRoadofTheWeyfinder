@@ -14,6 +14,33 @@ test('achievement rewards unlock account equipment for future builds', () => {
   assert.equal(equipmentLimit(awarded, 'wheel'), equipmentLimit(account, 'wheel') + 1);
 });
 
+test('enemy achievements unlock new weapon and module rewards', () => {
+  const account = createPrototypePlayerAccountData();
+  const awarded = awardAchievements(account, {
+    levelsCompleted: 0,
+    bossLevelsCompleted: 0,
+    scrapCollected: 0,
+    damageDone: 0,
+    enemyDefeats: {
+      'heavy_mortar_boat.pirates_road': 4,
+      'starlight_walker.prototype0': 1,
+      'ghost_phaser.ghost_forrest': 1,
+    },
+    specialDefeats: {
+      inchwormAllSegmentsFirst: 1,
+      frogDistractedByConstruct: 1,
+      buzzardLandedForScrap: 1,
+    },
+  });
+  assert.equal(awarded.weaponUnlocks.primary.includes('mortar'), true);
+  assert.equal(awarded.weaponUnlocks.primary.includes('tracking_flechette'), true);
+  assert.equal(awarded.weaponUnlocks.primary.includes('tractor_beam'), true);
+  assert.equal(awarded.weaponUnlocks.primary.includes('repulsor_beam'), true);
+  assert.equal(awarded.weaponUnlocks.secondary.includes('sta_missile'), true);
+  assert.equal(awarded.weaponUnlocks.secondary.includes('orb_of_blades'), true);
+  assert.equal(awarded.moduleUnlocks.includes('cloaking'), true);
+});
+
 test('achievement awards are not applied twice', () => {
   const account = awardAchievements(createPrototypePlayerAccountData(), { levelsCompleted: 1, bossLevelsCompleted: 0, scrapCollected: 0, damageDone: 0 });
   const awardedAgain = awardAchievements(account, { levelsCompleted: 1, bossLevelsCompleted: 0, scrapCollected: 0, damageDone: 0 });
@@ -26,10 +53,14 @@ test('achievement stats are derived from run state', () => {
   game.bossLevelsCompleted = 1;
   game.score.scrapCollected = 33;
   game.score.damageDone = 444;
+  game.score.enemyDefeats = { 'heavy_mortar_boat.pirates_road': 2 };
+  game.score.specialDefeats = { buzzardLandedForScrap: 1 };
   assert.deepEqual(achievementStatsFromGame(game), {
     levelsCompleted: 2,
     bossLevelsCompleted: 1,
     scrapCollected: 33,
     damageDone: 444,
+    enemyDefeats: { 'heavy_mortar_boat.pirates_road': 2 },
+    specialDefeats: { buzzardLandedForScrap: 1 },
   });
 });

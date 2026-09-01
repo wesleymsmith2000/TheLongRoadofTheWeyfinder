@@ -17,6 +17,8 @@
       "../weapons/tracking_flechette.json",
       "../weapons/mortar.json",
       "../weapons/mini_beam.json",
+      "../weapons/tractor_beam.json",
+      "../weapons/repulsor_beam.json",
       "../weapons/sta_missile.json",
       "../weapons/orb_of_blades.json"
     ],

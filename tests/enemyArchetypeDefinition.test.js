@@ -5,6 +5,7 @@ import {
   ENEMY_AGGREGATE_KINDS,
   ENEMY_CELL_ANIMATION_KINDS,
   ENEMY_MOVEMENT_KINDS,
+  ENEMY_TARGET_CONDITIONS,
   editableEnemyKnobs,
   getEnemyArchetype,
   listEnemyArchetypes,
@@ -23,6 +24,8 @@ test('canon enemy archetype pack validates', () => {
   assert.equal(ENEMY_AGGREGATE_KINDS.includes('multiPartBoss'), true);
   assert.equal(ENEMY_CELL_ANIMATION_KINDS.includes('fabricWeave'), true);
   assert.equal(ENEMY_CELL_ANIMATION_KINDS.includes('phaseFade'), true);
+  assert.equal(ENEMY_TARGET_CONDITIONS.includes('targetIsDistracted'), true);
+  assert.equal(ENEMY_TARGET_CONDITIONS.includes('targetIsCollectingScrap'), true);
 });
 
 test('enemy archetype helpers expose editor-facing enemy models', () => {
@@ -36,9 +39,11 @@ test('enemy archetype helpers expose editor-facing enemy models', () => {
   assert.equal(getEnemyArchetype('ghost_fabric.prototype0').cellAnimations[0].kind, 'fabricWeave');
   assert.equal(getEnemyArchetype('ghost_phaser.ghost_forrest').phase.intangibleWhenOutOfPhase, true);
   assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').movementProfiles[0].kind, 'hop');
+  assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').targeting.preferConditions.includes('targetIsDistracted'), true);
   assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').artillery.weapon, 'mortar');
   assert.equal(getEnemyArchetype('starlight_walker.prototype0').fallWhenSupportsDestroyed.landedBehavior, 'stationaryTurret');
   assert.equal(getEnemyArchetype('scrap_buzzard.shadowed_desert').elevation.arcCollision, true);
+  assert.deepEqual(getEnemyArchetype('scrap_buzzard.shadowed_desert').zoneAliases, ['ShadowedDessert']);
   assert.equal(getEnemyArchetype('inchworm_carrier.freedoms_pass').spawns.archetype, 'moth_bomber.freedoms_pass');
   assert.equal(getEnemyArchetype('boss.octopus.prototype0').displayName, 'Octagon Boss Prototype');
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.some((entry) => entry.id === 'trackingLaser'), true);

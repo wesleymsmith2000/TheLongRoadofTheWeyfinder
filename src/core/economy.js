@@ -2,6 +2,7 @@ import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairVehicleDam
 import { secondaryAmmoCapacity } from './secondaryWeapon.js';
 import { recalculateCell } from './cell.js';
 import { Roles } from './voxelMask.js';
+import { normalizeGunLoadouts, weaponUnlocked } from './weaponLoadout.js';
 
 export const SHOP_COSTS = {
   repair: 2,
@@ -16,54 +17,54 @@ export const SHOP_COSTS = {
 const REPAIR_POWER_PER_SCRAP = 16;
 
 export const UPGRADE_DEFINITIONS = [
-  { id: 'gunAccuracy', label: 'Main Gun Accuracy', system: 'Main Gun' },
-  { id: 'gunFireRate', label: 'Main Gun Fire Rate', system: 'Main Gun' },
-  { id: 'gunDamage', label: 'Main Gun Damage', system: 'Main Gun' },
-  { id: 'gunVelocity', label: 'Main Gun Shot Velocity', system: 'Main Gun' },
-  { id: 'cannonAmmo', label: 'Cannon Ammo Capacity', system: 'Cannon' },
-  { id: 'cannonImpactDamage', label: 'Cannon Impact Damage', system: 'Cannon' },
-  { id: 'cannonBlastDamage', label: 'Cannon Blast Damage', system: 'Cannon' },
-  { id: 'cannonBlastRadius', label: 'Cannon Blast Radius', system: 'Cannon' },
-  { id: 'cannonShrapnelCount', label: 'Cannon Shrapnel Count', system: 'Cannon' },
-  { id: 'cannonShrapnelDamage', label: 'Cannon Shrapnel Damage', system: 'Cannon' },
-  { id: 'cannonKnockback', label: 'Cannon Knockback', system: 'Cannon' },
-  { id: 'cannonVelocity', label: 'Cannon Shot Velocity', system: 'Cannon' },
-  { id: 'cannonFlechettePierce', label: 'Cannon Flechette Pierce', system: 'Cannon' },
-  { id: 'cannonFireRate', label: 'Cannon Fire Rate', system: 'Cannon' },
-  { id: 'rocketAmmo', label: 'Rocket Ammo Capacity', system: 'Rocket' },
-  { id: 'rocketImpactDamage', label: 'Rocket Impact Damage', system: 'Rocket' },
-  { id: 'rocketBlastDamage', label: 'Rocket Blast Damage', system: 'Rocket' },
-  { id: 'rocketBlastRadius', label: 'Rocket Blast Radius', system: 'Rocket' },
-  { id: 'rocketMaxVelocity', label: 'Rocket Max Velocity', system: 'Rocket' },
-  { id: 'rocketTurning', label: 'Rocket Turning', system: 'Rocket' },
-  { id: 'rocketKnockback', label: 'Rocket Knockback', system: 'Rocket' },
-  { id: 'rocketFireRate', label: 'Rocket Fire Rate', system: 'Rocket' },
-  { id: 'beamHeatEfficiency', label: 'Beam Heat Efficiency', system: 'Particle Beam' },
-  { id: 'beamHeatSink', label: 'Beam Heat Sink', system: 'Particle Beam' },
-  { id: 'beamAmmo', label: 'Beam Ammo Capacity', system: 'Particle Beam' },
-  { id: 'beamDamage', label: 'Beam Damage', system: 'Particle Beam' },
-  { id: 'beamLength', label: 'Beam Length', system: 'Particle Beam' },
-  { id: 'beamPierce', label: 'Beam Pierce', system: 'Particle Beam' },
-  { id: 'beamWidth', label: 'Beam Width', system: 'Particle Beam' },
-  { id: 'beamFireTime', label: 'Beam Fire Time', system: 'Particle Beam' },
-  { id: 'beamFireRate', label: 'Beam Fire Rate', system: 'Particle Beam' },
-  { id: 'armorToughness', label: 'Armor Toughness', system: 'Armor' },
-  { id: 'engineAcceleration', label: 'Engine Acceleration', system: 'Mobility' },
-  { id: 'engineMaxVelocity', label: 'Engine Max Velocity', system: 'Mobility' },
-  { id: 'wheelInertiaCompensation', label: 'Wheel Inertia Compensation', system: 'Mobility' },
-  { id: 'boostAcceleration', label: 'Booster Acceleration', system: 'Boosters' },
-  { id: 'boostDuration', label: 'Booster Max Duration', system: 'Boosters' },
-  { id: 'boostEfficiency', label: 'Booster Efficiency', system: 'Boosters' },
-  { id: 'boostRecharge', label: 'Booster Recharge Rate', system: 'Boosters' },
-  { id: 'boostCapacity', label: 'Booster Charge Capacity', system: 'Boosters' },
-  { id: 'boostRamDamage', label: 'Booster Ram Damage', system: 'Boosters' },
-  { id: 'boostRecoilDamage', label: 'Booster Recoil Damage Dampening', system: 'Boosters' },
-  { id: 'boostRecoilKnockback', label: 'Booster Recoil Knockback Dampening', system: 'Boosters' },
-  { id: 'boostShielding', label: 'Booster Damage Shielding', system: 'Boosters' },
-  { id: 'boostCooldown', label: 'Booster Cooldown', system: 'Boosters' },
-  { id: 'scrapMagnetDistance', label: 'Magnet Distance', system: 'Scrap Collection' },
-  { id: 'scrapMagnetStrength', label: 'Magnet Strength', system: 'Scrap Collection' },
-  { id: 'scrapCaptureRadius', label: 'Capture Radius', system: 'Scrap Collection' },
+  { id: 'gunAccuracy', label: 'Main Gun Accuracy', system: 'Main Gun', requires: { module: 'gun', primary: 'main.basic' } },
+  { id: 'gunFireRate', label: 'Main Gun Fire Rate', system: 'Main Gun', requires: { module: 'gun', primary: 'main.basic' } },
+  { id: 'gunDamage', label: 'Main Gun Damage', system: 'Main Gun', requires: { module: 'gun', primary: 'main.basic' } },
+  { id: 'gunVelocity', label: 'Main Gun Shot Velocity', system: 'Main Gun', requires: { module: 'gun', primary: 'main.basic' } },
+  { id: 'cannonAmmo', label: 'Cannon Ammo Capacity', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonImpactDamage', label: 'Cannon Impact Damage', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonBlastDamage', label: 'Cannon Blast Damage', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonBlastRadius', label: 'Cannon Blast Radius', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonShrapnelCount', label: 'Cannon Shrapnel Count', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonShrapnelDamage', label: 'Cannon Shrapnel Damage', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonKnockback', label: 'Cannon Knockback', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonVelocity', label: 'Cannon Shot Velocity', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonFlechettePierce', label: 'Cannon Flechette Pierce', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'cannonFireRate', label: 'Cannon Fire Rate', system: 'Cannon', requires: { module: 'gun', secondary: 'cannon' } },
+  { id: 'rocketAmmo', label: 'Rocket Ammo Capacity', system: 'Rocket', requires: { module: 'gun', secondary: 'rocket' } },
+  { id: 'rocketImpactDamage', label: 'Rocket Impact Damage', system: 'Rocket', requires: { module: 'gun', secondary: 'rocket' } },
+  { id: 'rocketBlastDamage', label: 'Rocket Blast Damage', system: 'Rocket', requires: { module: 'gun', secondary: 'rocket' } },
+  { id: 'rocketBlastRadius', label: 'Rocket Blast Radius', system: 'Rocket', requires: { module: 'gun', secondary: 'rocket' } },
+  { id: 'rocketMaxVelocity', label: 'Rocket Max Velocity', system: 'Rocket', requires: { module: 'gun', secondary: 'rocket' } },
+  { id: 'rocketTurning', label: 'Rocket Turning', system: 'Rocket', requires: { module: 'gun', secondary: 'rocket' } },
+  { id: 'rocketKnockback', label: 'Rocket Knockback', system: 'Rocket', requires: { module: 'gun', secondary: 'rocket' } },
+  { id: 'rocketFireRate', label: 'Rocket Fire Rate', system: 'Rocket', requires: { module: 'gun', secondary: 'rocket' } },
+  { id: 'beamHeatEfficiency', label: 'Beam Heat Efficiency', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'beamHeatSink', label: 'Beam Heat Sink', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'beamAmmo', label: 'Beam Ammo Capacity', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'beamDamage', label: 'Beam Damage', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'beamLength', label: 'Beam Length', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'beamPierce', label: 'Beam Pierce', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'beamWidth', label: 'Beam Width', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'beamFireTime', label: 'Beam Fire Time', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'beamFireRate', label: 'Beam Fire Rate', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'armorToughness', label: 'Armor Toughness', system: 'Armor', requires: { module: 'armor' } },
+  { id: 'engineAcceleration', label: 'Engine Acceleration', system: 'Mobility', requires: { module: 'engine' } },
+  { id: 'engineMaxVelocity', label: 'Engine Max Velocity', system: 'Mobility', requires: { module: 'engine' } },
+  { id: 'wheelInertiaCompensation', label: 'Wheel Inertia Compensation', system: 'Mobility', requires: { module: 'wheel' } },
+  { id: 'boostAcceleration', label: 'Booster Acceleration', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'boostDuration', label: 'Booster Max Duration', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'boostEfficiency', label: 'Booster Efficiency', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'boostRecharge', label: 'Booster Recharge Rate', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'boostCapacity', label: 'Booster Charge Capacity', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'boostRamDamage', label: 'Booster Ram Damage', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'boostRecoilDamage', label: 'Booster Recoil Damage Dampening', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'boostRecoilKnockback', label: 'Booster Recoil Knockback Dampening', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'boostShielding', label: 'Booster Damage Shielding', system: 'Boosters', requires: { module: 'gun' } },
+  { id: 'boostCooldown', label: 'Booster Cooldown', system: 'Boosters', requires: { module: 'engine' } },
+  { id: 'scrapMagnetDistance', label: 'Magnet Distance', system: 'Scrap Collection', requires: { moduleUnlock: 'scrap_magnet' } },
+  { id: 'scrapMagnetStrength', label: 'Magnet Strength', system: 'Scrap Collection', requires: { moduleUnlock: 'scrap_magnet' } },
+  { id: 'scrapCaptureRadius', label: 'Capture Radius', system: 'Scrap Collection', requires: { moduleUnlock: 'scrap_magnet' } },
 ];
 
 export function createUpgradeState() {
@@ -95,7 +96,23 @@ export function upgradeStatus(game, id) {
   return game.scrap >= cost ? `Level ${level}, ready` : `Level ${level}, need ${cost - game.scrap}`;
 }
 
-export function buyUpgradeWithScrap(game, id) {
+export function availableUpgradeDefinitions(game, account = game.account, vehicleDefinition = game.vehicleDefinition) {
+  return UPGRADE_DEFINITIONS.filter((upgrade) => upgradeAvailable(game, upgrade.id, account, vehicleDefinition));
+}
+
+export function upgradeAvailable(game, id, account = game.account, vehicleDefinition = game.vehicleDefinition) {
+  const upgrade = UPGRADE_DEFINITIONS.find((candidate) => candidate.id === id);
+  if (!upgrade) return false;
+  const requires = upgrade.requires ?? {};
+  if (requires.module && !moduleInstalledAndUnlocked(game, account, requires.module)) return false;
+  if (requires.moduleUnlock && !account?.moduleUnlocks?.includes(requires.moduleUnlock)) return false;
+  if (requires.primary && !weaponInstalledAndUnlocked(account, vehicleDefinition, 'primary', requires.primary)) return false;
+  if (requires.secondary && !weaponInstalledAndUnlocked(account, vehicleDefinition, 'secondary', requires.secondary)) return false;
+  return true;
+}
+
+export function buyUpgradeWithScrap(game, id, account = game.account, vehicleDefinition = game.vehicleDefinition) {
+  if (!upgradeAvailable(game, id, account, vehicleDefinition)) return false;
   const cost = upgradeCost(game, id);
   if (!Number.isFinite(cost) || game.scrap < cost) return false;
   game.scrap -= cost;
@@ -103,6 +120,19 @@ export function buyUpgradeWithScrap(game, id) {
   game.upgrades[id] = upgradeLevel(game, id) + 1;
   applyUpgradeSideEffects(game, id);
   return true;
+}
+
+function moduleInstalledAndUnlocked(game, account, moduleType) {
+  const installed = game.vehicle?.cells?.some((cell) => cell.type === moduleType);
+  if (!installed) return false;
+  const entry = account?.equipment?.[moduleType];
+  return entry == null || entry.unlocked !== false;
+}
+
+function weaponInstalledAndUnlocked(account, vehicleDefinition, slotKind, weaponId) {
+  if (!weaponUnlocked(account, slotKind, weaponId)) return false;
+  if (!vehicleDefinition?.cells) return ['main.basic', 'rocket', 'cannon', 'beam'].includes(weaponId);
+  return normalizeGunLoadouts(vehicleDefinition).some((loadout) => loadout[slotKind].includes(weaponId));
 }
 
 export function repairCost(game, target = 'all') {

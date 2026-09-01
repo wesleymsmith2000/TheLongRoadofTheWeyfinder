@@ -49,6 +49,7 @@ import {
 import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from './levelMusic.js';
 import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
+import { createCombatEventStats, recordEnemyDefeat } from './combatEvents.js';
 
 export const LEVEL_TARGET_DURATION = 180;
 export const TARGETING_MODES = ['manual', 'guided', 'mixed'];
@@ -94,7 +95,7 @@ export function createGame(seed = 1147, options = {}) {
     levelTimes: [],
     levelsCompleted: 0,
     bossLevelsCompleted: 0,
-    score: { damageDone: 0, scrapCollected: 0 },
+    score: { damageDone: 0, scrapCollected: 0, ...createCombatEventStats() },
     aiAimReticle: null,
     aimReticle: null,
     time: 0,
@@ -1500,6 +1501,7 @@ function samplePoisson(rng, mean) {
 
 function explodeEnemy(game, enemy) {
   enemy.explosionStart = game.time;
+  recordEnemyDefeat(game.score, enemy);
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
   game.scrapPickups.push(...harvestEnemyScrap(enemy, game.rng));
   game.playerProjectiles.push(
