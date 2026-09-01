@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.weapon.orb_of_blades_core",
+  "kind": "image",
+  "displayName": "Orb Of Blades Core Sprite",
+  "path": "assets/images/weapons/orb_of_blades_core.png",
+  "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+  "nativeSize": [57, 54],
+  "tags": ["weapon", "projectile", "orb", "core"]
+}

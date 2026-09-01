@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.weapon.mortar_player_marker",
+  "kind": "image",
+  "displayName": "Player Mortar Landing Marker Sprite",
+  "path": "assets/images/weapons/mortar_player_marker.png",
+  "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
+  "nativeSize": [126, 56],
+  "tags": ["weapon", "marker", "mortar", "player"]
+}

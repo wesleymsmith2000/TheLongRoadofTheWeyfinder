@@ -1,5 +1,6 @@
 import { createProjectile } from './projectile.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
+import { validateSpriteDescriptor } from './weaponDefinition.js';
 
 export const PATTERN_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const PATTERN_EMITTER_KINDS = ['aimed', 'radial', 'sequentialRadial'];
@@ -104,6 +105,8 @@ function createPatternProjectile(source, emitter, angle, target = null, rng = nu
     gravity: projectile.gravity ?? 0,
     maxArcHeight: projectile.maxArcHeight ?? projectile.arcHeight ?? 1,
     shadowRadius: projectile.shadowRadius ?? projectile.radius,
+    targetHint: projectile.targetHint ?? null,
+    detonateAtTarget: projectile.detonateAtTarget,
     delayBeforeAcceleration: projectile.delayBeforeAcceleration ?? 0,
     stopBeforeAcceleration: projectile.stopBeforeAcceleration,
     acceleration: projectile.acceleration ?? 0,
@@ -113,9 +116,15 @@ function createPatternProjectile(source, emitter, angle, target = null, rng = nu
     maxSpeed: projectile.maxSpeed ?? Infinity,
     explodeAfterAcceleration: projectile.explodeAfterAcceleration,
     blastOnExpire: projectile.blastOnExpire,
+    pierce: projectile.pierce ?? 0,
+    pierceDamageScale: projectile.pierceDamageScale ?? 0.7,
+    pierceDamageFalloff: projectile.pierceDamageFalloff ?? 0.68,
     vanishOffscreen: projectile.vanishOffscreen,
     absorbsPlayerProjectiles: projectile.absorbsPlayerProjectiles,
     absorbHp: projectile.absorbHp,
+    sprite: projectile.sprite,
+    landingMarkerSprite: projectile.landingMarkerSprite,
+    zCollision: projectile.zCollision,
   });
 }
 
@@ -165,7 +174,12 @@ function validateProjectile(projectile, errors) {
   if (projectile.accelerationDuration != null) validateNumber(projectile.accelerationDuration, 'emitter.projectile.accelerationDuration', errors, { min: 0 });
   if (projectile.maxSpeed != null) validateNumber(projectile.maxSpeed, 'emitter.projectile.maxSpeed', errors, { min: 0 });
   if (projectile.accelerationSpreadRadians != null) validateNumber(projectile.accelerationSpreadRadians, 'emitter.projectile.accelerationSpreadRadians', errors, { min: 0 });
+  if (projectile.pierce != null) validateNumber(projectile.pierce, 'emitter.projectile.pierce', errors, { min: 0 });
+  if (projectile.pierceDamageScale != null) validateNumber(projectile.pierceDamageScale, 'emitter.projectile.pierceDamageScale', errors, { min: 0 });
+  if (projectile.pierceDamageFalloff != null) validateNumber(projectile.pierceDamageFalloff, 'emitter.projectile.pierceDamageFalloff', errors, { min: 0, max: 1 });
   if (projectile.blastOnExpire != null) validateBlastOnExpire(projectile.blastOnExpire, errors);
+  validateSpriteDescriptor(projectile.sprite, 'emitter.projectile.sprite', errors);
+  validateSpriteDescriptor(projectile.landingMarkerSprite, 'emitter.projectile.landingMarkerSprite', errors);
 }
 
 function validateBlastOnExpire(blast, errors) {
@@ -185,4 +199,5 @@ function validateNumber(value, label, errors, options = {}) {
   }
   if (options.integer && !Number.isInteger(value)) errors.push(`${label} must be an integer.`);
   if (options.min != null && value < options.min) errors.push(`${label} must be at least ${options.min}.`);
+  if (options.max != null && value > options.max) errors.push(`${label} must be at most ${options.max}.`);
 }

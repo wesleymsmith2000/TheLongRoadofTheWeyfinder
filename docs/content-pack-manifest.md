@@ -119,6 +119,8 @@ Current manifest asset keys:
 - `music`
 - `voxelModels`
 
+Resource entries may be paths to resource JSON files or inline descriptors. Image resource descriptors should include an `assetId` and either `path` or `uri`. Weapon and pattern projectile `sprite.assetId` values should match entries in `assets.images` when the image is packaged with the content pack.
+
 ## Canon And Community
 
 `CANON` means the pack is part of the canonical repo or an accepted first-party release.

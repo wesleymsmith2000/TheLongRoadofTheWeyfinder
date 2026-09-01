@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.weapon.mortar_player_shell",
+  "kind": "image",
+  "displayName": "Player Mortar Shell Sprite",
+  "path": "assets/images/weapons/mortar_player_shell.png",
+  "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
+  "nativeSize": [44, 49],
+  "tags": ["weapon", "projectile", "mortar", "player"]
+}

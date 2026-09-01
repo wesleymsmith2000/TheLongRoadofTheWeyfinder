@@ -20,6 +20,24 @@
       "behavior": "arc",
       "radius": 3.5,
       "color": "#ff7a1a",
+      "sprite": {
+        "assetId": "sprite.weapon.mortar_enemy_shell",
+        "path": "assets/images/weapons/mortar_enemy_shell.png",
+        "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
+        "nativeSize": [44, 61],
+        "displaySize": [15, 21],
+        "anchor": [0.5, 0.6],
+        "alignToVelocity": false
+      },
+      "landingMarkerSprite": {
+        "assetId": "sprite.weapon.mortar_enemy_marker",
+        "path": "assets/images/weapons/mortar_enemy_marker.png",
+        "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
+        "nativeSize": [126, 53],
+        "displaySize": [58, 24],
+        "anchor": [0.5, 0.5],
+        "alignToVelocity": false
+      },
       "damage": 0,
       "impulse": 90,
       "lifetime": 3.4,

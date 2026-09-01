@@ -21,6 +21,15 @@
     "turnRate": 7.5,
     "acceleration": 210,
     "maxSpeed": 322.5,
+    "sprite": {
+      "assetId": "sprite.weapon.tracking_flechette",
+      "path": "assets/images/weapons/tracking_flechette.png",
+      "sourceSheet": "assets/stylesheets/weapons__Flechettes__sprite_stylesheet.png",
+      "nativeSize": [66, 25],
+      "displaySize": [22, 8],
+      "anchor": [0.5, 0.5],
+      "alignToVelocity": true
+    },
     "pierce": 2,
     "pierceDamageScale": 0.85,
     "pierceDamageFalloff": 0.7,

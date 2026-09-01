@@ -6,6 +6,7 @@ import { gunMuzzleWorld } from '../src/core/vehicle.js';
 import { fireSecondary, stepSecondaryWeapon } from '../src/core/secondaryWeapon.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
+import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
 
 test('secondary weapon can be fired manually and spends ammo', () => {
   const game = createGame();
@@ -373,4 +374,40 @@ test('new secondary weapons are live runtime choices', () => {
   const blade = orbGame.playerProjectiles.find((projectile) => projectile.weapon === 'orb_flechette');
   assert.equal(Boolean(blade), true);
   assert.equal(blade.radius, 3.33);
+});
+
+test('tractor beam is a secondary utility beam with unlimited reserve', () => {
+  const game = createGame();
+  game.secondary.selected = 'tractor_beam';
+  game.aimReticle = { x: game.vehicle.x + 80, y: game.vehicle.y, active: true, source: 'pointer' };
+  assert.equal(fireSecondary(game), true);
+  const beam = game.playerProjectiles[0];
+  assert.equal(beam.weapon, 'tractor_beam');
+  assert.equal(beam.behavior, 'beam');
+  assert.equal(beam.forceMode, 'pull');
+  assert.equal(game.secondary.ammo.tractor_beam, Infinity);
+});
+
+test('repulsor primary only fires when close threats are present and aims at them', () => {
+  const definition = structuredClone(startingVehicleDefinition);
+  definition.gunLoadouts = [{ cellId: 'gun', primary: ['repulsor_beam'], secondary: ['rocket', null, null] }];
+  const game = createGame(1147, { vehicleDefinition: definition });
+  game.autofire = true;
+  game.vehicle.turretHeading = Math.PI;
+  game.enemies = [createEnemy(game.vehicle.x + CELL_SIZE * 4, game.vehicle.y)];
+  game.enemySpawnQueue = [];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const beam = game.playerProjectiles.find((projectile) => projectile.weapon === 'repulsor_beam');
+  assert.equal(Boolean(beam), true);
+  assert.equal(beam.forceMode, 'push');
+  assert.equal(beam.alpha, 0.5);
+  const expectedAngle = Math.atan2(game.enemies[0].y - beam.y, game.enemies[0].x - beam.x);
+  const angleDelta = Math.atan2(Math.sin(expectedAngle - beam.angle), Math.cos(expectedAngle - beam.angle));
+  assert.equal(Math.abs(angleDelta) < 0.001, true);
+
+  const quietGame = createGame(1147, { vehicleDefinition: definition });
+  quietGame.enemies = [];
+  quietGame.enemySpawnQueue = [];
+  stepGame(quietGame, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(quietGame.playerProjectiles.some((projectile) => projectile.weapon === 'repulsor_beam'), false);
 });

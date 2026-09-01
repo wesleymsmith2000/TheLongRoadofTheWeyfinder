@@ -57,7 +57,6 @@ import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
-import tractorBeamDefinition from '../../content/weapons/tractor_beam.json' with { type: 'json' };
 import repulsorBeamDefinition from '../../content/weapons/repulsor_beam.json' with { type: 'json' };
 
 export const LEVEL_TARGET_DURATION = 180;
@@ -69,7 +68,6 @@ const PRIMARY_WEAPON_DEFINITIONS = {
   tracking_flechette: runtimeWeaponDefinition(trackingFlechetteDefinition),
   mortar: runtimeWeaponDefinition(mortarDefinition),
   mini_beam: runtimeWeaponDefinition(miniBeamDefinition),
-  tractor_beam: runtimeWeaponDefinition(tractorBeamDefinition),
   repulsor_beam: runtimeWeaponDefinition(repulsorBeamDefinition),
 };
 const ENEMY_UPGRADE_TYPES = ['damage', 'attackRate', 'armor', 'movementSpeed'];
@@ -104,6 +102,7 @@ export function createGame(seed = 1147, options = {}) {
     soundEvents: [],
     autofire: true,
     primaryHeat: { heat: 0, maxHeat: 100 },
+    repulsor: { charges: 5, maxCharges: 5, rechargeTimer: 0, cooldown: 4.5 },
     playerFireTimer: 0,
     playerGunIndex: 0,
     levelComplete: false,
@@ -610,6 +609,7 @@ function configureBoostFromUpgrades(game) {
 function stepPlayerGun(game, dt) {
   game.primaryHeat ??= { heat: 0, maxHeat: 100 };
   game.primaryHeat.heat = Math.max(0, game.primaryHeat.heat - primaryHeatSinkRate(game) * dt);
+  stepRepulsorRecharge(game, dt);
   game.playerFireTimer -= dt;
   if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
   const mounts = primaryFiringMounts(game);
@@ -624,7 +624,9 @@ function stepPlayerGun(game, dt) {
   if (mount.weaponId !== 'main.basic') {
     const def = upgradedPrimaryWeaponDefinition(game, mount.weaponId);
     if (!def || game.primaryHeat.heat + def.heat > game.primaryHeat.maxHeat) return;
+    if (mount.weaponId === 'repulsor_beam' && !repulsorReadyForThreat(game, muzzle)) return;
     firePrimaryWeapon(game, muzzle, def);
+    if (mount.weaponId === 'repulsor_beam') consumeRepulsorCharge(game);
     game.primaryHeat.heat += def.heat;
     game.playerFireTimer = primaryWeaponFireInterval(game, def, mounts.length) * primaryHeatCooldownScale(game.primaryHeat);
     return;
@@ -682,14 +684,20 @@ function firePrimaryWeapon(game, muzzle, def) {
       pierceDamageScale: def.pierceDamageScale,
       pierceDamageFalloff: def.pierceDamageFalloff,
       emitsProjectiles: def.emitsProjectiles,
+      forceMode: def.forceMode,
+      affects: def.affects,
+      sprite: def.sprite,
+      landingMarkerSprite: def.landingMarkerSprite,
+      zCollision: def.zCollision,
     }),
   );
   emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
 }
 
 function firePrimaryBeam(game, muzzle, def) {
-  const targetHint = game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
-  const angle = targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
+  const threat = def.id === 'repulsor_beam' ? nearestRepulsorThreat(game, muzzle) : null;
+  const targetHint = def.targetHint === 'aimReticle' && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
+  const angle = threat ? Math.atan2(threat.y - muzzle.y, threat.x - muzzle.x) : targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, 0, 0, {
       team: 'player',
@@ -703,6 +711,11 @@ function firePrimaryBeam(game, muzzle, def) {
       damage: def.damage,
       impulse: def.impulse,
       pierce: def.pierce,
+      color: def.color,
+      alpha: def.alpha,
+      forceMode: def.forceMode,
+      affects: def.affects,
+      sprite: def.sprite,
       frames: def.frames,
       lifetime: Math.max(1, def.frames) / 60,
       maxLifetime: Math.max(1, def.frames) / 60,
@@ -712,7 +725,7 @@ function firePrimaryBeam(game, muzzle, def) {
 }
 
 function upgradedPrimaryWeaponDefinition(game, weaponId) {
-  const base = PRIMARY_WEAPON_DEFINITIONS[weaponId];
+  const base = PRIMARY_WEAPON_DEFINITIONS[weaponId] ? { ...PRIMARY_WEAPON_DEFINITIONS[weaponId], id: weaponId } : null;
   if (!base) return null;
   if (weaponId === 'mini_beam') {
     return {
@@ -722,6 +735,16 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
       damage: base.damage * upgradeMultiplier(game, 'miniBeamDamage'),
       length: base.length * upgradeMultiplier(game, 'miniBeamLength', 0.12),
       pierce: upgradeLevel(game, 'miniBeamPierce'),
+    };
+  }
+  if (weaponId === 'repulsor_beam') {
+    return {
+      ...base,
+      radius: base.radius * 3,
+      color: '#5cff9a',
+      alpha: 0.5,
+      targetHint: null,
+      cooldown: 0.18,
     };
   }
   return base;
@@ -752,6 +775,45 @@ function primaryHeatSinkRate(game) {
 
 function primaryHeatCooldownScale(primaryHeat) {
   return 1 / Math.max(0.08, 1 - primaryHeat.heat / primaryHeat.maxHeat);
+}
+
+function stepRepulsorRecharge(game, dt) {
+  game.repulsor ??= { charges: 5, maxCharges: 5, rechargeTimer: 0, cooldown: 4.5 };
+  if (game.repulsor.charges > 0) return;
+  game.repulsor.rechargeTimer -= dt;
+  if (game.repulsor.rechargeTimer > 0) return;
+  game.repulsor.charges = game.repulsor.maxCharges;
+}
+
+function repulsorReadyForThreat(game, muzzle) {
+  game.repulsor ??= { charges: 5, maxCharges: 5, rechargeTimer: 0, cooldown: 4.5 };
+  if (game.repulsor.charges <= 0) return false;
+  return Boolean(nearestRepulsorThreat(game, muzzle));
+}
+
+function nearestRepulsorThreat(game, muzzle) {
+  const range = CELL_SIZE * 18;
+  let best = null;
+  let bestDistance = Infinity;
+  for (const enemy of activeEnemies(game)) {
+    const distance = distanceSquared(enemy, muzzle);
+    if (distance > (enemy.radius + range) ** 2 || distance >= bestDistance) continue;
+    best = enemy;
+    bestDistance = distance;
+  }
+  for (const projectile of game.enemyProjectiles) {
+    if (projectile.lifetime <= 0 || projectile.behavior === 'beam' || projectile.behavior === 'blast') continue;
+    const distance = distanceSquared(projectile, muzzle);
+    if (distance > (projectile.radius + range) ** 2 || distance >= bestDistance) continue;
+    best = projectile;
+    bestDistance = distance;
+  }
+  return best;
+}
+
+function consumeRepulsorCharge(game) {
+  game.repulsor.charges -= 1;
+  if (game.repulsor.charges <= 0) game.repulsor.rechargeTimer = game.repulsor.cooldown;
 }
 
 function stepEnemies(game, dt) {
@@ -1518,6 +1580,7 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     pierce: emitter.pierce ?? 0,
     pierceDamageScale: 0.85,
     pierceDamageFalloff: 0.72,
+    sprite: emitter.sprite,
   });
 }
 
@@ -1680,6 +1743,7 @@ function hitVehicleWithEnemyBeam(game, projectile) {
 
 function hitEnemiesWithBeam(game, projectile) {
   const halfWidth = beamHalfWidth(projectile);
+  if (projectile.forceMode === 'push') repelEnemyProjectilesWithBeam(game, projectile, halfWidth);
   const shieldTrace = traceAbsorbingEnemyProjectileRay(game.enemyProjectiles, projectile, projectile.angle, projectile.length, halfWidth);
   if (shieldTrace) {
     projectile.renderEndX = shieldTrace.x;
@@ -1698,10 +1762,29 @@ function hitEnemiesWithBeam(game, projectile) {
     const hit = applyEnemyVoxelDamage(voxelHit.enemy, voxelHit, projectile.damage * scale);
     if (hit.hit) {
       game.score.damageDone += Math.round(projectile.damage * scale + hit.removed * 3);
-      voxelHit.enemy.vx += Math.cos(projectile.angle) * projectile.impulse * 0.0015 * scale;
-      voxelHit.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * 0.0015 * scale;
+      const forceDirection = projectile.forceMode === 'pull' ? -1 : 1;
+      const forceScale = projectile.forceMode ? 0.035 : 0.0015;
+      voxelHit.enemy.vx += Math.cos(projectile.angle) * projectile.impulse * forceScale * scale * forceDirection;
+      voxelHit.enemy.vy += Math.sin(projectile.angle) * projectile.impulse * forceScale * scale * forceDirection;
       if (hit.destroyedNow) explodeEnemy(game, voxelHit.enemy);
     }
+  }
+}
+
+function repelEnemyProjectilesWithBeam(game, projectile, halfWidth) {
+  const dx = Math.cos(projectile.angle);
+  const dy = Math.sin(projectile.angle);
+  for (const target of game.enemyProjectiles) {
+    if (target.lifetime <= 0 || target.behavior === 'beam' || target.behavior === 'blast') continue;
+    const along = (target.x - projectile.x) * dx + (target.y - projectile.y) * dy;
+    if (along < 0 || along > projectile.length) continue;
+    const closest = { x: projectile.x + dx * along, y: projectile.y + dy * along };
+    if (distanceSquared(target, closest) > (halfWidth + target.radius) ** 2) continue;
+    const speed = Math.max(90, Math.hypot(target.vx, target.vy));
+    target.vx = dx * (speed + projectile.impulse * 0.95);
+    target.vy = dy * (speed + projectile.impulse * 0.95);
+    target.angle = projectile.angle;
+    target.lifetime = Math.min(target.lifetime, 1.2);
   }
 }
 
@@ -1738,7 +1821,12 @@ function syncBeamProjectiles(game) {
     }
     projectile.x = muzzle.x;
     projectile.y = muzzle.y;
-    projectile.angle = projectile.targetHint ? Math.atan2(projectile.targetHint.y - muzzle.y, projectile.targetHint.x - muzzle.x) : game.vehicle.turretHeading;
+    const threat = projectile.weapon === 'repulsor_beam' ? nearestRepulsorThreat(game, muzzle) : null;
+    projectile.angle = threat
+      ? Math.atan2(threat.y - muzzle.y, threat.x - muzzle.x)
+      : projectile.targetHint
+        ? Math.atan2(projectile.targetHint.y - muzzle.y, projectile.targetHint.x - muzzle.x)
+        : game.vehicle.turretHeading;
   }
 }
 

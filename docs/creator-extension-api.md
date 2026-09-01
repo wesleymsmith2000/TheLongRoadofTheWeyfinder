@@ -242,7 +242,7 @@ Player/construct definitions may carry per-gun weapon loadouts:
 }
 ```
 
-Current primary ids are `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`, `tractor_beam`, and `repulsor_beam`. Current secondary ids are `rocket`, `cannon`, `beam`, `sta_missile`, and `orb_of_blades`. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`.
+Current primary ids are `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`, and `repulsor_beam`. Current secondary ids are `rocket`, `cannon`, `beam`, `tractor_beam`, `sta_missile`, and `orb_of_blades`. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`.
 
 Available equipment is read from player account data rather than hard-coded into the editor. Prototype 0 uses local in-memory account data:
 
@@ -358,10 +358,27 @@ Particle beams are width-aware at the voxel layer. Runtime sampling follows the 
 
 Optional projectile presentation/simulation fields:
 
+- `sprite`: optional image descriptor for drawing the projectile.
+- `landingMarkerSprite`: optional image descriptor for arc/telegraph ground markers.
 - `destructible`: when true, the projectile has a damageable hull.
 - `shape`: currently supports `{ "kind": "cylinderCone" }` for rockets, with body/cone dimensions and voxel grid counts.
 - `contrail`: optional short-lived visual particle settings. This is render-facing metadata carried by the projectile definition, not editor UI state.
 - `emitsProjectiles`: optional moving-emitter payload, currently used by `orb_of_blades`.
+
+Sprite descriptors are render-facing JSON and should not change simulation results. A minimal descriptor:
+
+```json
+{
+  "assetId": "sprite.weapon.tracking_flechette",
+  "path": "assets/images/weapons/tracking_flechette.png",
+  "nativeSize": [66, 25],
+  "displaySize": [22, 8],
+  "anchor": [0.5, 0.5],
+  "alignToVelocity": true
+}
+```
+
+`assetId` is required. `path` or `uri` should resolve to an `image` resource in the active content pack when available. `sourceSheet` may point back to the editable or annotated source art. `anchor`, `nativeSize`, and `displaySize` are two-number arrays. `alignToVelocity` lets the renderer rotate missile, flechette, and blade sprites along the current projectile heading.
 
 Destructible projectile data must still validate through `src/core/weaponDefinition.js`; editors should not emit private rocket-shape fields outside this contract.
 
@@ -667,6 +684,10 @@ Enhanced enemy palettes can currently be selected from the active level music th
 src/core/levelStyle.js
 assets/stylesheets/
 ```
+
+Terrain texture sheets can also be selected from the active level music/biome name. The current runtime uses bundled image assets named like `assets/stylesheets/terrain__BiomeA_BiomeB__textures.png` and maps each listed biome to the same scrolling sheet in `src/render/canvasRenderer.js`. Editors should treat these as resource-backed level/background layers now, with a future route runner stitching procedural road segments, turns, scenery, and obstacle layers from level `route` data.
+
+Runtime road travel is represented by the pure simulation road frame in `src/core/camera.js`: `x`, `y`, `heading`, `speed`, `halfWidth`, and `halfHeight`. Spawn directions such as ahead, behind, left, and right should be expressed relative to that road frame. Discrete road turns are heading changes in 22.5-degree steps up to 90 degrees, so level editors should export turn events in road-frame degrees/radians rather than screen-space directions.
 
 ## Current Level Contract
 

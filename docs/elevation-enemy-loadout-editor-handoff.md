@@ -74,8 +74,8 @@ weaponStackMultiplier(definition, weaponId)
 
 Current slot lists:
 
-- Primary: `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`, `tractor_beam`, `repulsor_beam`
-- Secondary: `rocket`, `cannon`, `beam`, `sta_missile`, `orb_of_blades`
+- Primary: `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`, `repulsor_beam`
+- Secondary: `rocket`, `cannon`, `beam`, `tractor_beam`, `sta_missile`, `orb_of_blades`
 
 The launch build screen filters these choices through `account.weaponUnlocks`; the construct workshop keeps the full list available for editor/dev work.
 
@@ -101,7 +101,7 @@ New achievement rewards unlock advanced weapons/modules:
 
 - `mortar-combat`: defeat 4 `heavy_mortar_boat.pirates_road` enemies; unlocks `mortar`.
 - `mothra-pillar`: emit `specialDefeats.inchwormAllSegmentsFirst`; unlocks `tracking_flechette`.
-- `danger-skittles`: emit `specialDefeats.frogDistractedByConstruct`; unlocks `tractor_beam` and `repulsor_beam`.
+- `danger-skittles`: emit `specialDefeats.frogDistractedByConstruct`; unlocks secondary `tractor_beam` and primary `repulsor_beam`.
 - `buzz-off`: emit `specialDefeats.buzzardLandedForScrap`; unlocks `sta_missile`.
 - `leg-up`: defeat a Starlight or Twilight walker; unlocks `orb_of_blades`.
 - `crouching-weyfinder-hidden-phantom`: defeat a ghost phaser; unlocks the future `cloaking` module.

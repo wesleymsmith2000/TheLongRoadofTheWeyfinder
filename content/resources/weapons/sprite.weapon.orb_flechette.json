@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.weapon.orb_flechette",
+  "kind": "image",
+  "displayName": "Orb Flechette Sprite",
+  "path": "assets/images/weapons/orb_flechette.png",
+  "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+  "nativeSize": [40, 16],
+  "tags": ["weapon", "projectile", "flechette", "orb"]
+}

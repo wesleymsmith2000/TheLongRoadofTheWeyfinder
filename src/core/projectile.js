@@ -12,12 +12,15 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     maxRadius: options.maxRadius ?? options.radius ?? 4,
     damage: options.damage ?? 7,
     color: options.color ?? null,
+    alpha: options.alpha ?? null,
     impulse: options.impulse ?? 240,
     team: options.team ?? 'enemy',
     weapon: options.weapon ?? 'bullet',
     behavior: options.behavior ?? 'ballistic',
     lifetime: options.lifetime ?? 4,
     maxLifetime: options.lifetime ?? 4,
+    sprite: options.sprite ? structuredClone(options.sprite) : null,
+    landingMarkerSprite: options.landingMarkerSprite ? structuredClone(options.landingMarkerSprite) : null,
     z: options.z ?? options.altitude ?? 0,
     vz: options.vz ?? options.verticalVelocity ?? 0,
     gravity: options.gravity ?? 0,
@@ -31,6 +34,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     targetHint: options.targetHint ?? null,
     detonateDistance: options.detonateDistance ?? null,
     detonateAtTarget: Boolean(options.detonateAtTarget),
+    zCollision: Boolean(options.zCollision),
     blastDamage: options.blastDamage ?? 0,
     blastRadius: options.blastRadius ?? 0,
     blastKnockback: options.blastKnockback ?? 0,
@@ -61,6 +65,8 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     emitsProjectiles: options.emitsProjectiles ? structuredClone(options.emitsProjectiles) : null,
     emitTimer: options.emitsProjectiles?.interval ?? 0,
     emitIndex: 0,
+    forceMode: options.forceMode ?? null,
+    affects: options.affects ?? null,
   };
   if (options.destructible && options.shape?.kind === 'cylinderCone') {
     projectile.shape = options.shape;

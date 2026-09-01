@@ -29,6 +29,20 @@ test('road frame advances constantly in its forward direction', () => {
   assert.equal(delta.dy < 0, true);
 });
 
+test('road frame makes infrequent deterministic discrete turns', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  road.turnTimer = 0.001;
+  const beforeHeading = road.heading;
+  stepRoadFrame(road, 1 / 60);
+  const turnSteps = Math.abs(road.lastTurnAngle) / (Math.PI / 8);
+  assert.equal(road.heading !== beforeHeading, true);
+  assert.equal(Number.isInteger(Math.round(turnSteps)), true);
+  assert.equal(Math.abs(road.lastTurnAngle) >= Math.PI / 8, true);
+  assert.equal(Math.abs(road.lastTurnAngle) <= Math.PI / 2, true);
+  assert.equal(road.turnTimer >= 12, true);
+});
+
 test('road camera rotates toward road heading', () => {
   const vehicle = createStartingVehicle();
   const road = createRoadFrame(vehicle);

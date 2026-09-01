@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.weapon.mortar_enemy_marker",
+  "kind": "image",
+  "displayName": "Enemy Mortar Landing Marker Sprite",
+  "path": "assets/images/weapons/mortar_enemy_marker.png",
+  "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
+  "nativeSize": [126, 53],
+  "tags": ["weapon", "marker", "mortar", "enemy"]
+}

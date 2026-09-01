@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.weapon.tracking_flechette",
+  "kind": "image",
+  "displayName": "Tracking Flechette Sprite",
+  "path": "assets/images/weapons/tracking_flechette.png",
+  "sourceSheet": "assets/stylesheets/weapons__Flechettes__sprite_stylesheet.png",
+  "nativeSize": [66, 25],
+  "tags": ["weapon", "projectile", "flechette", "player"]
+}

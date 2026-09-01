@@ -22,6 +22,7 @@ Start here:
 - [Combat Balance Editor Follow-Up Handoff](./combat-balance-editor-followup-handoff.md)
 - [Editor New Weapons, Enemies, And Pages Handoff](./editor-new-weapons-enemies-pages-handoff.md)
 - [Zone Enemy Example Pack Handoff](./zone-enemy-example-pack-handoff.md)
+- [Weapon Sprite Content Handoff](./weapon-sprite-content-handoff.md)
 
 Current priorities:
 

@@ -5,6 +5,8 @@ import basicTurretDefinition from '../content/constructs/basic_turret.json' with
 import prototypeLevelDefinition from '../content/levels/prototype0_road_trial.json' with { type: 'json' };
 import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
+import trackingFlechetteSprite from '../content/resources/weapons/sprite.weapon.tracking_flechette.json' with { type: 'json' };
+import mortarPlayerShellSprite from '../content/resources/weapons/sprite.weapon.mortar_player_shell.json' with { type: 'json' };
 import { createContentRegistry, getAvailableContent, instantiateLevel, registerContentAsset, resolveContentDependencies, validateContentPack } from '../src/core/contentRegistry.js';
 
 test('canon content pack manifest validates for registry import', () => {
@@ -36,6 +38,16 @@ test('content registry accepts status effect assets for creator packs', () => {
   );
   assert.equal(effect.assetId, 'test.fire');
   assert.equal(getAvailableContent(registry, 'statusEffect').length, 1);
+});
+
+test('content registry accepts weapon image resource descriptors', () => {
+  const registry = createContentRegistry();
+  const flechette = registerContentAsset(registry, 'image', trackingFlechetteSprite, canonPackManifest.packId);
+  const mortar = registerContentAsset(registry, 'image', mortarPlayerShellSprite, canonPackManifest.packId);
+
+  assert.equal(flechette.assetId, 'sprite.weapon.tracking_flechette');
+  assert.equal(mortar.path, 'assets/images/weapons/mortar_player_shell.png');
+  assert.equal(getAvailableContent(registry, 'image', { tag: 'weapon' }).length, 2);
 });
 
 test('weapon validation accepts arcing projectile fields', () => {

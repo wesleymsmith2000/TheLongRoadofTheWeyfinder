@@ -385,7 +385,7 @@ function frame(now) {
   secondarySelect.value = game.secondary.selected;
   secondaryIcon.dataset.icon = game.secondary.selected;
   const selectedAmmo = game.secondary.ammo[game.secondary.selected];
-  secondaryAmmo.textContent = selectedAmmo == null ? '-' : selectedAmmo;
+  secondaryAmmo.textContent = selectedAmmo == null ? '-' : formatAmmoValue(selectedAmmo);
   secondaryHeat.style.width = `${game.secondary.heat}%`;
   scrapCount.textContent = game.scrap;
   scoreDamage.textContent = game.score.damageDone;
@@ -1105,6 +1105,11 @@ function updateShopUi() {
   shopReplaceButton.disabled = game.scrap < SHOP_COSTS.replaceDetached || countDetachedVehicleCells(game.vehicle) === 0;
   shopRefillAmmoButton.disabled = !Number.isFinite(ammoCost) || game.scrap < ammoCost || ammo == null || ammo >= ammoCapacity;
   shopBuyUpgradeButton.disabled = !Number.isFinite(selectedUpgradeCost) || game.scrap < selectedUpgradeCost;
+}
+
+function formatAmmoValue(value) {
+  if (value == null) return '-';
+  return Number.isFinite(value) ? String(value) : 'unlimited';
 }
 
 function availableShopUpgrades() {

@@ -1,0 +1,35 @@
+- ice -> causes gun, rocket, and cannon to fire more slowly or fail to fire occasionally, causes wheels or crawler legs to skid (loss of motion control). Will greatly increase particle beam and booster heat dissipation... and booster and weapon fire heat will accelerate de-icing
+- fire -> causes damage over time to most armor (other than heat resistant) flamable armor types will cause flames to spread and burn hotter. Fire near guns will cause particle beam to greatly loose heatsink efficiency. After a certain threshold rocket or cannon ammo starts getting a chance to detonate if gun modules get too hot. Engines may also explode if overheated too far by fire. In some biomes, fire may break out automatically if a flamable voxel gets too hot from environmental heat in some levels.
+- ion surge -> causes weapons to fire unexpectedly or fail to fire. causes random unintended boosts and accelerations or breakings. At sufficient levels (if core is affected) may cause glitch effects in play screen (sensor glitches) like ghost images of enemies, incorrect incoming enemy marks (radar) and even the play screen itself having static drift across or completely fill with static
+- acid -> eats through armor and systems. some armor types are immune like gold or rubber, some resistant like ceramic, and some like wood or standard metal are highly vulnerable
+- shields -> already in place during boosts but want to add standalone modules for player and enemy along with a 'shield' button (shields automatically fire when hit if shield module is up but this will cost more shield power than if button is pressed just before)
+- refractive armor -> some enemies and eventually player modules will cause a 'ghost' image of the enemy / player to show up. This will make it tricky for the player to know which is real and for enemies it will cause their targetting to randomly aim at the ghost image instead of the player
+- reflective armor -> causes beam weapons to 'bounce' off and reduces some or all of the damage to the corresponding voxel depending on quality. Pierce effects will only propogate whatever percentage of damage is not reflected.
+- bouncing attacks -> some weapons / projectiles will bounce off instead of being absorbed after contacting an armor or other projectile voxel
+- arcing attacks -> beam weapons that bounce off and hit another module or enemy within arcing range.
+- orbital drones / drone modules -> creates a drone that orbits in a circle around the player or enemy craft. These can be to provide armor or shield guards, or pack a weapon system that automatically fires.
+- flak / shrapnel guardian gun -> an automatically firing gun that shoots shrapnel projectiles at incoming projectiles. Cheap and effective with high, but still finite ammo count
+- guardian beam -> same as flak or shrapnel version but fires a beam. Has same overheating issues as a normal beam but no ammo limit
+- self destructing enemies -> fairly self explanatory, allows creation of enemies that attempt to dart toward the player (or maybe their ghost image if refractive armor is up) and explode
+- Ammo drone -> can be deployed to collect scrap and restock whichever weapon has the lowest ammuntion percentage
+- repair drone -> deploy to collect scrap and the repair whichever system is most damaged (cannot reconstruct lost modules)
+- mechanic drone -> helps negative effects to dissipate more quickly (puts out fires, grounds ions, de-ices)
+- alternate main gun types:
+-- shotgun -> high innacuracy, slow fire rate, but very high damage at close range. shoots bursts of several shrapnel instead of individual bullets
+-- shatter bolt gun -> very slow fire rate but bullets explode at after flying to the reticle (or traveling a corresponding distance) or if they strike another destructible object (like an enemy or enemy rocket). No blast or knockback, but releases a burst of shrapnel
+-- tracking flechet -> fires homing flechets that turn toward the enemy nearest the target reticle and once aimed in the correct direction stop turning and accelerate toward the target. Low damage but has a pierce attribute that lets them potentially damage modules that are not behind enough armor.
+-- pulse beam -> behaves similar to the boss octopus laser, but does not freeze before the main firing. Fixed beam width and active fire time of 1 second, but can have damage, pierce, and range upgraded as well as heat sink and charge rate (asymptotically down to 1 second between firings at optimal heat).
+- tractor / repulsor beam -> does not deal damage but can pull or attract (respectively) any object within the beam. (good as a scrap collection item for players).
+- cloaking module -> enemy craft would not be able to directly target the player (though may still fire radial ballistic patterns). For enemies, based on the player's sensor upgrade level, the enemy may appear transparent / translucent to the point that they may be nearly impossible to see (still show up on radar though)
+- stealth module -> enemy craft may decide not to engage if player is not actively firing or engaging another enemy. For player, the player would not see the enemy on radar and would not get an enemy approaching warning if their radar is not upgraded well enough
+- sensor and radar -> part of a 'telemetry' module. Upgraded separately. For sensors, higher upgrades will also give the player more info when they mouse over / query an enemy. At first it will just be a name, but later things like damage, equipped weapons and gear, status effects, etc. will become available. Radar at higher level will start giving information about what enemies are coming next and eventually provide a radar minimap that can give terrain information as well
+
+
+-Save state json -> lets give players a way to save their progress and be able to load it. The save state should include everything needed to recreate their current play state (current level, achievements / unlocks, best times / scores, etc). It should also have some kind of checksum / cryptographic watermark so players cant just open it and fiddle with the numbers. (or they can pick an unofficial/sandbox mode when they load it if they still want to play from an invalid one). This can be simple at first but mainly we want it in place so it can be expanded to use as an official stamp later.
+
+-Score: Different enemies should be worth points as well as stage completion. Completing a stage with less damage should earn more points as well, and so should completing a stage fast.
+
+-Achievement notices (there is a sound present in the assets/sounds) have a non-invasive pop up above and outside of the play area when an achievement is earned.
+
+
+Not all of these need to be resolved now. Pick whatever can get done with remaining usage and earmark the rest. Make sure to also let the editors be aware of the new features if possible and make a handoff for the editor thread.

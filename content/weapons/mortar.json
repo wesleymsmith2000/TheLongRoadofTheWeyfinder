@@ -22,6 +22,24 @@
     "gravity": 96,
     "maxArcHeight": 120,
     "shadowRadius": 4.5,
+    "sprite": {
+      "assetId": "sprite.weapon.mortar_player_shell",
+      "path": "assets/images/weapons/mortar_player_shell.png",
+      "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
+      "nativeSize": [44, 49],
+      "displaySize": [16, 18],
+      "anchor": [0.5, 0.58],
+      "alignToVelocity": false
+    },
+    "landingMarkerSprite": {
+      "assetId": "sprite.weapon.mortar_player_marker",
+      "path": "assets/images/weapons/mortar_player_marker.png",
+      "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
+      "nativeSize": [126, 56],
+      "displaySize": [54, 24],
+      "anchor": [0.5, 0.5],
+      "alignToVelocity": false
+    },
     "targetHint": "aimReticle",
     "detonateAtTarget": true,
     "blastDamage": 90,

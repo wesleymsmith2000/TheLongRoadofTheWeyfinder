@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.weapon.mortar_enemy_shell",
+  "kind": "image",
+  "displayName": "Enemy Mortar Shell Sprite",
+  "path": "assets/images/weapons/mortar_enemy_shell.png",
+  "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
+  "nativeSize": [44, 61],
+  "tags": ["weapon", "projectile", "mortar", "enemy"]
+}

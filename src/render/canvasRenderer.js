@@ -1,5 +1,8 @@
 import { CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
+import ghostTwilightDesertTerrainUrl from '../../assets/stylesheets/terrain__GhostForrest_TwilightCrossroads_ShadowedDesert__textures.png';
+import piratesFreedomDigitizedTerrainUrl from '../../assets/stylesheets/terrain__PiratesRoad_FreedomsPass_DigitizedStream__textures.png';
+import weyfinderStarlightShadowedTerrainUrl from '../../assets/stylesheets/terrain__WeyfindersRoad_StarlightRoad_ShadowedRoad__textures.png';
 
 const COLORS = {
   core: '#e4d66b',
@@ -27,10 +30,27 @@ const ROLE_SHADE = {
   [Roles.DEVICE]: 64,
 };
 
+const TERRAIN_TEXTURE_URLS = {
+  GhostForrest: ghostTwilightDesertTerrainUrl,
+  GhostForrestPathway: ghostTwilightDesertTerrainUrl,
+  TwilightCrossroads: ghostTwilightDesertTerrainUrl,
+  ShadowedDesert: ghostTwilightDesertTerrainUrl,
+  ShadowedDessert: ghostTwilightDesertTerrainUrl,
+  PiratesRoad: piratesFreedomDigitizedTerrainUrl,
+  FreedomsPass: piratesFreedomDigitizedTerrainUrl,
+  DigitizedStream: piratesFreedomDigitizedTerrainUrl,
+  WeyfindersRoad: weyfinderStarlightShadowedTerrainUrl,
+  TheWeyfindersRoad: weyfinderStarlightShadowedTerrainUrl,
+  TheWeyFindersRoad: weyfinderStarlightShadowedTerrainUrl,
+  StarlightRoad: weyfinderStarlightShadowedTerrainUrl,
+  ShadowedRoad: weyfinderStarlightShadowedTerrainUrl,
+};
+
 export class CanvasRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.terrainImages = createTerrainImages(TERRAIN_TEXTURE_URLS);
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -51,6 +71,7 @@ export class CanvasRenderer {
     ctx.fillRect(0, 0, w, h);
     ctx.save();
     applyCameraTransform(ctx, game.camera, w, h);
+    drawTerrain(ctx, game, this.terrainImages, w, h);
     drawRoad(ctx, game.camera, w, h, game.time);
     drawRoadLane(ctx, game.road);
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
@@ -65,6 +86,70 @@ export class CanvasRenderer {
     ctx.restore();
     if (debug.visible) drawDebugOverlay(ctx, game);
   }
+}
+
+function createTerrainImages(urls) {
+  const images = new Map();
+  if (typeof Image === 'undefined') return images;
+  for (const [zone, url] of Object.entries(urls)) {
+    if (images.has(url)) {
+      images.set(zone, images.get(url));
+      continue;
+    }
+    const image = new Image();
+    image.src = url;
+    images.set(url, image);
+    images.set(zone, image);
+  }
+  return images;
+}
+
+function drawTerrain(ctx, game, terrainImages, w, h) {
+  const image = terrainImages.get(zoneNameFromTrack(game.currentMusic));
+  const range = Math.max(w, h) * 1.9;
+  if (!image?.complete || image.naturalWidth <= 0) {
+    drawBiomeTint(ctx, game, range);
+    return;
+  }
+  const pattern = ctx.createPattern(image, 'repeat');
+  if (!pattern) return;
+  ctx.save();
+  ctx.globalAlpha = 0.44;
+  ctx.fillStyle = pattern;
+  const textureScale = 0.28;
+  const offsetX = -game.road.x * textureScale;
+  const offsetY = -game.road.y * textureScale;
+  ctx.translate(game.road.x, game.road.y);
+  ctx.rotate(game.road.heading);
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(textureScale, textureScale);
+  ctx.fillRect((-range - offsetX) / textureScale, (-range - offsetY) / textureScale, (range * 2) / textureScale, (range * 2) / textureScale);
+  ctx.restore();
+}
+
+function drawBiomeTint(ctx, game, range) {
+  const zone = zoneNameFromTrack(game.currentMusic);
+  const color = {
+    GhostForrest: '#1b2a32',
+    GhostForrestPathway: '#1b2a32',
+    TwilightCrossroads: '#221a30',
+    ShadowedDesert: '#30271d',
+    ShadowedDessert: '#30271d',
+    PiratesRoad: '#17262a',
+    FreedomsPass: '#233019',
+    DigitizedStream: '#112d36',
+    StarlightRoad: '#1c2438',
+    ShadowedRoad: '#1b1f22',
+  }[zone] ?? '#171a1b';
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.fillRect(game.road.x - range, game.road.y - range, range * 2, range * 2);
+  ctx.restore();
+}
+
+function zoneNameFromTrack(trackName = '') {
+  const match = String(trackName).match(/^([A-Za-z]+(?:[A-Z][a-z]+)*)(?:_|$)/);
+  return match?.[1] ?? trackName;
 }
 
 function drawIncomingMarkers(ctx, markers = [], time = 0) {
@@ -725,7 +810,7 @@ function drawBeam(ctx, projectile) {
   const endX = projectile.renderEndX ?? projectile.x + Math.cos(projectile.angle) * projectile.length;
   const endY = projectile.renderEndY ?? projectile.y + Math.sin(projectile.angle) * projectile.length;
   ctx.save();
-  ctx.globalAlpha = 0.35 + widthEnvelope * 0.65;
+  ctx.globalAlpha = (projectile.alpha ?? 1) * (0.35 + widthEnvelope * 0.65);
   ctx.strokeStyle = projectile.color ?? '#83f7ff';
   ctx.lineWidth = (CELL_SIZE / VOXELS) * voxelWidth;
   ctx.lineCap = 'round';

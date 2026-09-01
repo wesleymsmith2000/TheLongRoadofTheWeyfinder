@@ -21,6 +21,15 @@
       "behavior": "homing",
       "radius": 2.2,
       "color": "#bff5ff",
+      "sprite": {
+        "assetId": "sprite.weapon.orb_flechette",
+        "path": "assets/images/weapons/orb_flechette.png",
+        "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+        "nativeSize": [40, 16],
+        "displaySize": [18, 7],
+        "anchor": [0.5, 0.5],
+        "alignToVelocity": true
+      },
       "damage": 8,
       "impulse": 45,
       "lifetime": 5,

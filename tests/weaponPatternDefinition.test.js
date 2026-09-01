@@ -12,6 +12,7 @@ import staMissileDefinition from '../content/weapons/sta_missile.json' with { ty
 import orbOfBladesDefinition from '../content/weapons/orb_of_blades.json' with { type: 'json' };
 import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
+import mortarLinePatternDefinition from '../content/examples/prototype0-zone-enemy-set/patterns/example.mortar_line_7.json' with { type: 'json' };
 import { createPatternState, firePattern, validatePatternDefinition } from '../src/core/patternDefinition.js';
 import { runtimeWeaponDefinition, validateWeaponDefinition } from '../src/core/weaponDefinition.js';
 import { Rng } from '../src/core/rng.js';
@@ -37,6 +38,8 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
     assert.equal(runtime.radius, definition.projectile.radius);
     assert.equal(runtime.pierceDamageScale, definition.projectile.pierceDamageScale ?? 0.7);
     assert.equal(runtime.pierceDamageFalloff, definition.projectile.pierceDamageFalloff ?? 0.68);
+    assert.deepEqual(runtime.sprite, definition.projectile.sprite ?? null);
+    assert.deepEqual(runtime.landingMarkerSprite, definition.projectile.landingMarkerSprite ?? null);
   }
 });
 
@@ -85,6 +88,13 @@ test('radial pattern emits configured projectile count', () => {
   const projectiles = firePattern(radial, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
   assert.equal(projectiles.length, 12);
   assert.equal(projectiles.every((projectile) => projectile.radius === 3), true);
+});
+
+test('pattern projectiles preserve sprite metadata for renderer handoff', () => {
+  const projectiles = firePattern(mortarLinePatternDefinition, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
+  assert.equal(projectiles.length, 7);
+  assert.equal(projectiles[0].sprite.assetId, 'sprite.weapon.mortar_enemy_shell');
+  assert.equal(projectiles[0].landingMarkerSprite.assetId, 'sprite.weapon.mortar_enemy_marker');
 });
 
 test('sequential radial pattern emits one spoke at a time with delayed acceleration', () => {

@@ -61,7 +61,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     id: 'danger-skittles',
     title: 'Beware the Danger Skittles',
     description: 'Defeat a frog enemy while it is distracted with another construct.',
-    reward: { weaponUnlocks: { primary: ['tractor_beam', 'repulsor_beam'] } },
+    reward: { weaponUnlocks: { primary: ['repulsor_beam'], secondary: ['tractor_beam'] } },
     earned: (stats) => (stats.specialDefeats?.[SPECIAL_DEFEAT_HOOKS.frogDistractedByConstruct] ?? 0) >= 1,
   },
   {

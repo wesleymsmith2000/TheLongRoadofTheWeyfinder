@@ -18,6 +18,15 @@
     "damage": 2,
     "impulse": 90,
     "lifetime": 3.5,
+    "sprite": {
+      "assetId": "sprite.weapon.orb_of_blades_core",
+      "path": "assets/images/weapons/orb_of_blades_core.png",
+      "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+      "nativeSize": [57, 54],
+      "displaySize": [18, 17],
+      "anchor": [0.5, 0.5],
+      "alignToVelocity": false
+    },
     "emitsProjectiles": {
       "kind": "sequentialRadial",
       "weapon": "orb_flechette",
@@ -26,7 +35,16 @@
       "damage": 18,
       "projectileSpeed": 320,
       "radius": 3.33,
-      "pierce": 4
+      "pierce": 4,
+      "sprite": {
+        "assetId": "sprite.weapon.orb_blade_shard",
+        "path": "assets/images/weapons/orb_blade_shard.png",
+        "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+        "nativeSize": [33, 37],
+        "displaySize": [14, 16],
+        "anchor": [0.5, 0.5],
+        "alignToVelocity": true
+      }
     }
   }
 }

@@ -34,8 +34,8 @@ test('enemy achievements unlock new weapon and module rewards', () => {
   });
   assert.equal(awarded.weaponUnlocks.primary.includes('mortar'), true);
   assert.equal(awarded.weaponUnlocks.primary.includes('tracking_flechette'), true);
-  assert.equal(awarded.weaponUnlocks.primary.includes('tractor_beam'), true);
   assert.equal(awarded.weaponUnlocks.primary.includes('repulsor_beam'), true);
+  assert.equal(awarded.weaponUnlocks.secondary.includes('tractor_beam'), true);
   assert.equal(awarded.weaponUnlocks.secondary.includes('sta_missile'), true);
   assert.equal(awarded.weaponUnlocks.secondary.includes('orb_of_blades'), true);
   assert.equal(awarded.moduleUnlocks.includes('cloaking'), true);

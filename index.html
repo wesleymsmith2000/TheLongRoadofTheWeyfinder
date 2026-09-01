@@ -197,7 +197,7 @@
 
       .achievements-toggle {
         position: fixed;
-        right: 154px;
+        right: 202px;
         top: 14px;
         min-width: 44px;
         height: 36px;
@@ -212,7 +212,7 @@
 
       .debug-toggle {
         position: fixed;
-        right: 106px;
+        right: 154px;
         top: 14px;
         min-width: 44px;
         height: 36px;
@@ -227,7 +227,7 @@
 
       .pause-toggle {
         position: fixed;
-        right: 202px;
+        right: 250px;
         top: 14px;
         min-width: 68px;
         height: 36px;
@@ -242,10 +242,10 @@
 
       .hud-toggle {
         position: fixed;
-        left: 14px;
-        bottom: 14px;
+        right: 106px;
+        top: 14px;
         min-width: 54px;
-        height: 38px;
+        height: 36px;
         border: 1px solid rgb(244 238 228 / 0.3);
         border-radius: 8px;
         background: rgb(20 23 24 / 0.78);
@@ -601,8 +601,8 @@
 
       .combat-panel {
         position: fixed;
-        left: 14px;
-        bottom: 60px;
+        right: 14px;
+        top: 58px;
         width: min(350px, calc(100vw - 110px));
         padding: 12px;
         border: 1px solid rgb(244 238 228 / 0.2);
@@ -1010,7 +1010,7 @@
         }
 
         .debug-toggle {
-          right: 98px;
+          right: 146px;
           top: 10px;
         }
 
@@ -1020,14 +1020,19 @@
         }
 
         .achievements-toggle {
-          right: 146px;
+          right: 194px;
           top: 10px;
         }
 
         .pause-toggle {
-          right: 194px;
+          right: 242px;
           top: 10px;
           min-width: 62px;
+        }
+
+        .hud-toggle {
+          right: 98px;
+          top: 10px;
         }
 
         .controls-panel {
@@ -1075,10 +1080,10 @@
         }
 
         .combat-panel {
-          left: 10px;
-          bottom: 60px;
-          width: calc(100vw - 20px);
-          max-height: 34vh;
+          right: 10px;
+          top: 52px;
+          width: min(330px, calc(100vw - 20px));
+          max-height: 30vh;
           overflow: auto;
           padding: 8px;
           font-size: 12px;
@@ -1300,6 +1305,9 @@
                 <option value="rocket">Rocket</option>
                 <option value="cannon">Cannon</option>
                 <option value="beam">Particle Beam</option>
+                <option value="tractor_beam">Tractor Beam</option>
+                <option value="sta_missile">STA Missile</option>
+                <option value="orb_of_blades">Orb Of Blades</option>
               </select>
             </label>
             <label><input id="pauseSecondaryAutofire" type="checkbox" /> Secondary autofire</label>
@@ -1356,6 +1364,9 @@
           <option value="rocket" selected>Rocket</option>
           <option value="cannon">Cannon</option>
           <option value="beam">Particle Beam</option>
+          <option value="tractor_beam">Tractor Beam</option>
+          <option value="sta_missile">STA Missile</option>
+          <option value="orb_of_blades">Orb Of Blades</option>
         </select>
         <button id="secondaryFire" type="button">Fire</button>
       </div>
@@ -1406,6 +1417,9 @@
               <option value="rocket">Rocket</option>
               <option value="cannon">Cannon</option>
               <option value="beam">Particle Beam</option>
+              <option value="tractor_beam">Tractor Beam</option>
+              <option value="sta_missile">STA Missile</option>
+              <option value="orb_of_blades">Orb Of Blades</option>
             </select>
           </label>
           <div class="shop-upgrade-row">

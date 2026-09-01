@@ -75,6 +75,11 @@ export function runtimeWeaponDefinition(definition) {
     shape: projectile.shape ?? null,
     contrail: projectile.contrail ?? null,
     emitsProjectiles: projectile.emitsProjectiles ?? null,
+    forceMode: projectile.forceMode ?? null,
+    affects: projectile.affects ?? null,
+    sprite: cloneSpriteDescriptor(projectile.sprite),
+    landingMarkerSprite: cloneSpriteDescriptor(projectile.landingMarkerSprite),
+    zCollision: Boolean(projectile.zCollision),
   };
 }
 
@@ -109,6 +114,31 @@ function validateProjectile(projectile, errors, warnings) {
   if (projectile.behavior === 'homing' && (projectile.acceleration ?? 0) <= 0) warnings.push('Homing projectile has no positive acceleration.');
   validateProjectileHull(projectile, errors, warnings);
   validateContrail(projectile.contrail, errors);
+  validateSpriteDescriptor(projectile.sprite, 'projectile.sprite', errors);
+  validateSpriteDescriptor(projectile.landingMarkerSprite, 'projectile.landingMarkerSprite', errors);
+  if (projectile.emitsProjectiles?.sprite != null) {
+    validateSpriteDescriptor(projectile.emitsProjectiles.sprite, 'projectile.emitsProjectiles.sprite', errors);
+  }
+}
+
+export function validateSpriteDescriptor(sprite, label, errors) {
+  if (sprite == null) return;
+  if (!isPlainObject(sprite)) {
+    errors.push(`${label} must be an object when provided.`);
+    return;
+  }
+  if (!isNonEmptyString(sprite.assetId)) errors.push(`${label}.assetId must be a non-empty string.`);
+  if (sprite.path != null && !isNonEmptyString(sprite.path)) errors.push(`${label}.path must be a non-empty string when provided.`);
+  if (sprite.uri != null && !isNonEmptyString(sprite.uri)) errors.push(`${label}.uri must be a non-empty string when provided.`);
+  if (sprite.sourceSheet != null && !isNonEmptyString(sprite.sourceSheet)) errors.push(`${label}.sourceSheet must be a non-empty string when provided.`);
+  if (sprite.alignToVelocity != null && typeof sprite.alignToVelocity !== 'boolean') errors.push(`${label}.alignToVelocity must be a boolean when provided.`);
+  validateNumberPair(sprite.anchor, `${label}.anchor`, errors, { min: 0, max: 1 });
+  validateNumberPair(sprite.nativeSize, `${label}.nativeSize`, errors, { min: 0.001 });
+  validateNumberPair(sprite.displaySize, `${label}.displaySize`, errors, { min: 0.001 });
+}
+
+function cloneSpriteDescriptor(sprite) {
+  return sprite ? structuredClone(sprite) : null;
 }
 
 function validateNumber(value, label, errors, options = {}) {
@@ -120,6 +150,16 @@ function validateNumber(value, label, errors, options = {}) {
   if (options.integer && !Number.isInteger(value)) errors.push(`${label} must be an integer.`);
   if (options.min != null && value < options.min) errors.push(`${label} must be at least ${options.min}.`);
   if (options.max != null && value > options.max) errors.push(`${label} must be at most ${options.max}.`);
+}
+
+function validateNumberPair(value, label, errors, options = {}) {
+  if (value == null) return;
+  if (!Array.isArray(value) || value.length !== 2) {
+    errors.push(`${label} must be a two-number array when provided.`);
+    return;
+  }
+  validateNumber(value[0], `${label}[0]`, errors, options);
+  validateNumber(value[1], `${label}[1]`, errors, options);
 }
 
 function validateProjectileHull(projectile, errors, warnings) {

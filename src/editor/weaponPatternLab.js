@@ -8,6 +8,8 @@ import beamDefinition from '../../content/weapons/beam.json' with { type: 'json'
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
+import tractorBeamDefinition from '../../content/weapons/tractor_beam.json' with { type: 'json' };
+import repulsorBeamDefinition from '../../content/weapons/repulsor_beam.json' with { type: 'json' };
 import staMissileDefinition from '../../content/weapons/sta_missile.json' with { type: 'json' };
 import orbOfBladesDefinition from '../../content/weapons/orb_of_blades.json' with { type: 'json' };
 import aimedPatternDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
@@ -22,6 +24,8 @@ const canonAssets = {
     trackingFlechetteDefinition,
     mortarDefinition,
     miniBeamDefinition,
+    tractorBeamDefinition,
+    repulsorBeamDefinition,
     staMissileDefinition,
     orbOfBladesDefinition,
   ],
@@ -90,6 +94,8 @@ const fields = Object.fromEntries(
     'weaponTargetHintInput',
     'weaponDetonateAtTargetInput',
     'weaponZCollisionInput',
+    'weaponSpriteInput',
+    'weaponLandingMarkerSpriteInput',
     'weaponEmitsProjectilesInput',
     'patternKindSelect',
     'patternTargetSelect',
@@ -125,6 +131,8 @@ const fields = Object.fromEntries(
     'blastDamageInput',
     'blastImpulseInput',
     'patternLifetimeInput',
+    'patternSpriteInput',
+    'patternLandingMarkerSpriteInput',
     'statusEffectTypeSelect',
     'statusEffectIntensityInput',
     'statusEffectDurationInput',
@@ -214,6 +222,8 @@ function syncWeaponToFields() {
   fields.weaponTargetHintInput.value = projectile.targetHint ?? '';
   fields.weaponDetonateAtTargetInput.checked = Boolean(projectile.detonateAtTarget);
   fields.weaponZCollisionInput.checked = Boolean(projectile.zCollision);
+  fields.weaponSpriteInput.value = projectile.sprite ? JSON.stringify(projectile.sprite, null, 2) : '';
+  fields.weaponLandingMarkerSpriteInput.value = projectile.landingMarkerSprite ? JSON.stringify(projectile.landingMarkerSprite, null, 2) : '';
   fields.weaponEmitsProjectilesInput.value = projectile.emitsProjectiles ? JSON.stringify(projectile.emitsProjectiles, null, 2) : '';
 }
 
@@ -254,6 +264,8 @@ function syncPatternToFields() {
   fields.blastDamageInput.value = projectile.blastOnExpire?.damage ?? 0;
   fields.blastImpulseInput.value = projectile.blastOnExpire?.impulse ?? 0;
   fields.patternLifetimeInput.value = projectile.lifetime ?? 0;
+  fields.patternSpriteInput.value = projectile.sprite ? JSON.stringify(projectile.sprite, null, 2) : '';
+  fields.patternLandingMarkerSpriteInput.value = projectile.landingMarkerSprite ? JSON.stringify(projectile.landingMarkerSprite, null, 2) : '';
 }
 
 function syncStatusEffectToFields() {
@@ -315,6 +327,8 @@ function weaponFromFields() {
   assignOptionalString(projectile, 'targetHint', fields.weaponTargetHintInput, asset.projectile?.targetHint);
   assignOptionalBoolean(projectile, 'detonateAtTarget', fields.weaponDetonateAtTargetInput, asset.projectile?.detonateAtTarget);
   assignOptionalBoolean(projectile, 'zCollision', fields.weaponZCollisionInput, asset.projectile?.zCollision);
+  assignOptionalObject(projectile, 'sprite', fields.weaponSpriteInput, asset.projectile?.sprite);
+  assignOptionalObject(projectile, 'landingMarkerSprite', fields.weaponLandingMarkerSpriteInput, asset.projectile?.landingMarkerSprite);
   assignOptionalObject(projectile, 'emitsProjectiles', fields.weaponEmitsProjectilesInput, asset.projectile?.emitsProjectiles);
   assignArcFields(projectile, {
     behavior: fields.weaponBehaviorSelect.value,
@@ -359,6 +373,8 @@ function patternFromFields() {
   assignOptionalNumber(projectile, 'pierce', fields.patternPierceInput, previousProjectile.pierce);
   assignOptionalNumber(projectile, 'pierceDamageScale', fields.patternPierceDamageScaleInput, previousProjectile.pierceDamageScale, 0.7);
   assignOptionalNumber(projectile, 'pierceDamageFalloff', fields.patternPierceDamageFalloffInput, previousProjectile.pierceDamageFalloff, 0.68);
+  assignOptionalObject(projectile, 'sprite', fields.patternSpriteInput, previousProjectile.sprite);
+  assignOptionalObject(projectile, 'landingMarkerSprite', fields.patternLandingMarkerSpriteInput, previousProjectile.landingMarkerSprite);
   assignArcFields(projectile, {
     behavior: fields.patternBehaviorSelect.value,
     previousProjectile,

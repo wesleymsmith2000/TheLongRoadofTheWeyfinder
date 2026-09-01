@@ -7,16 +7,18 @@ import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
+import tractorBeamDefinition from '../../content/weapons/tractor_beam.json' with { type: 'json' };
 import staMissileDefinition from '../../content/weapons/sta_missile.json' with { type: 'json' };
 import orbOfBladesDefinition from '../../content/weapons/orb_of_blades.json' with { type: 'json' };
 
-export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'];
+export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam', 'tractor_beam', 'sta_missile', 'orb_of_blades'];
 
 export const SECONDARY_DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
   rocket: runtimeWeaponDefinition(rocketDefinition),
   cannon: runtimeWeaponDefinition(cannonDefinition),
   beam: runtimeWeaponDefinition(beamDefinition),
+  tractor_beam: { ...runtimeWeaponDefinition(tractorBeamDefinition), ammo: Infinity },
   sta_missile: runtimeWeaponDefinition(staMissileDefinition),
   orb_of_blades: runtimeWeaponDefinition(orbOfBladesDefinition),
 };
@@ -24,7 +26,7 @@ export const SECONDARY_DEFINITIONS = {
 export function createSecondaryState() {
   return {
     selected: 'rocket',
-    ammo: { rocket: 12, cannon: 18, beam: 40, sta_missile: 8, orb_of_blades: 6 },
+    ammo: { rocket: 12, cannon: 18, beam: 40, tractor_beam: Infinity, sta_missile: 8, orb_of_blades: 6 },
     ammoBonus: {},
     heat: 0,
     maxHeat: 100,
@@ -94,10 +96,15 @@ export function fireSecondary(game) {
       shape: def.shape,
       contrail: def.contrail,
       emitsProjectiles: def.emitsProjectiles,
+      forceMode: def.forceMode,
+      affects: def.affects,
+      sprite: def.sprite,
+      landingMarkerSprite: def.landingMarkerSprite,
+      zCollision: def.zCollision,
       lifetime: def.behavior === 'beam' ? def.frames / 60 : def.lifetime,
     }),
   );
-  secondary.ammo[secondary.selected] -= 1;
+  if (Number.isFinite(secondary.ammo[secondary.selected])) secondary.ammo[secondary.selected] -= 1;
   secondary.heat += def.heat;
   secondary.cooldown = def.cooldown * heatCooldownScale(secondary);
   emitSoundEvent(game, secondary.selected === 'beam' ? SOUND_EVENTS.PLAYER_BEAM : SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH);
@@ -163,6 +170,7 @@ function upgradedSecondaryDefinition(game, weapon) {
       targetHint: 'aimReticle',
     };
   }
+  if (weapon === 'tractor_beam') return { ...base, targetHint: 'aimReticle' };
   if (weapon === 'sta_missile') return { ...base, targetHint: 'aimReticle', detonateAtTarget: true };
   if (weapon === 'orb_of_blades') return { ...base, targetHint: 'aimReticle' };
   return base;
