@@ -41,6 +41,61 @@ test('enemy achievements unlock new weapon and module rewards', () => {
   assert.equal(awarded.moduleUnlocks.includes('cloaking'), true);
 });
 
+test('later achievements award the next equipment module bundle', () => {
+  const account = createPrototypePlayerAccountData();
+  account.moduleUnlocks.push('cloaking');
+  account.achievements.unlocked.push(
+    'calmari',
+    'road-tested',
+    'first-clear',
+    'scrap-hauler',
+    'damage-scribe',
+    'crouching-weyfinder-hidden-phantom',
+  );
+  const awarded = awardAchievements(account, {
+    levelsCompleted: 12,
+    bossLevelsCompleted: 3,
+    scrapCollected: 150,
+    damageDone: 5000,
+    enemyDefeats: {
+      'ghost_phaser.ghost_forrest': 3,
+    },
+    specialDefeats: {},
+  });
+  assert.equal(equipmentLimit(awarded, 'armor'), equipmentLimit(account, 'armor') + 10);
+  assert.equal(equipmentLimit(awarded, 'gun'), equipmentLimit(account, 'gun') + 2);
+  assert.equal(equipmentLimit(awarded, 'engine'), equipmentLimit(account, 'engine') + 2);
+  assert.equal(equipmentLimit(awarded, 'wheel'), equipmentLimit(account, 'wheel') + 3);
+  assert.equal(awarded.modules.cloaking.quantity, 1);
+});
+
+test('cloaking module quantity achievement requires the cloak unlock first', () => {
+  const account = createPrototypePlayerAccountData();
+  const awarded = awardAchievements(account, {
+    levelsCompleted: 0,
+    bossLevelsCompleted: 0,
+    scrapCollected: 0,
+    damageDone: 0,
+    enemyDefeats: {
+      'ghost_phaser.ghost_forrest': 3,
+    },
+    specialDefeats: {},
+  });
+  assert.equal(awarded.moduleUnlocks.includes('cloaking'), true);
+  assert.equal(awarded.modules.cloaking, undefined);
+  const awardedAgain = awardAchievements(awarded, {
+    levelsCompleted: 0,
+    bossLevelsCompleted: 0,
+    scrapCollected: 0,
+    damageDone: 0,
+    enemyDefeats: {
+      'ghost_phaser.ghost_forrest': 3,
+    },
+    specialDefeats: {},
+  });
+  assert.equal(awardedAgain.modules.cloaking.quantity, 1);
+});
+
 test('achievement awards are not applied twice', () => {
   const account = awardAchievements(createPrototypePlayerAccountData(), { levelsCompleted: 1, bossLevelsCompleted: 0, scrapCollected: 0, damageDone: 0 });
   const awardedAgain = awardAchievements(account, { levelsCompleted: 1, bossLevelsCompleted: 0, scrapCollected: 0, damageDone: 0 });

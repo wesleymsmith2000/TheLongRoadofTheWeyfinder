@@ -262,6 +262,7 @@ Available equipment is read from player account data rather than hard-coded into
     "secondary": ["rocket", "cannon", "beam"]
   },
   "moduleUnlocks": [],
+  "modules": {},
   "savedVehicle": null
 }
 ```

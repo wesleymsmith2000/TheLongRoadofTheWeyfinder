@@ -80,6 +80,92 @@ export const ACHIEVEMENT_DEFINITIONS = [
     earned: (stats) =>
       (stats.enemyDefeats?.['ghost_phaser.ghost_forrest'] ?? 0) + (stats.enemyDefeats?.['example.ghost_phase_mob.ghost_forrest'] ?? 0) >= 1,
   },
+  {
+    id: 'bulwark-cartographer',
+    title: 'Bulwark Cartographer',
+    description: 'Complete 6 levels in a run.',
+    reward: { equipment: { armor: 3 } },
+    earned: (stats) => stats.levelsCompleted >= 6,
+  },
+  {
+    id: 'iron-keepsake',
+    title: 'Iron Keepsake',
+    description: 'Deal 2500 damage in a run.',
+    reward: { equipment: { armor: 2 } },
+    earned: (stats) => stats.damageDone >= 2500,
+  },
+  {
+    id: 'road-bastion',
+    title: 'Road Bastion',
+    description: 'Complete 10 levels in a run.',
+    reward: { equipment: { armor: 3 } },
+    earned: (stats) => stats.levelsCompleted >= 10,
+  },
+  {
+    id: 'storm-shell',
+    title: 'Storm Shell',
+    description: 'Defeat 3 boss levels.',
+    reward: { equipment: { armor: 2 } },
+    earned: (stats) => stats.bossLevelsCompleted >= 3,
+  },
+  {
+    id: 'gunrunner',
+    title: 'Gunrunner',
+    description: 'Complete 8 levels in a run.',
+    reward: { equipment: { gun: 1 } },
+    earned: (stats) => stats.levelsCompleted >= 8,
+  },
+  {
+    id: 'arsenal-architect',
+    title: 'Arsenal Architect',
+    description: 'Deal 5000 damage in a run.',
+    reward: { equipment: { gun: 1 } },
+    earned: (stats) => stats.damageDone >= 5000,
+  },
+  {
+    id: 'long-haul-mechanic',
+    title: 'Long Haul Mechanic',
+    description: 'Complete 5 levels in a run.',
+    reward: { equipment: { engine: 1 } },
+    earned: (stats) => stats.levelsCompleted >= 5,
+  },
+  {
+    id: 'overdrive-surveyor',
+    title: 'Overdrive Surveyor',
+    description: 'Complete 12 levels in a run.',
+    reward: { equipment: { engine: 1 } },
+    earned: (stats) => stats.levelsCompleted >= 12,
+  },
+  {
+    id: 'spoke-singer',
+    title: 'Spoke Singer',
+    description: 'Collect 150 scrap in a run.',
+    reward: { equipment: { wheel: 1 } },
+    earned: (stats) => stats.scrapCollected >= 150,
+  },
+  {
+    id: 'drift-correction',
+    title: 'Drift Correction',
+    description: 'Complete 7 levels in a run.',
+    reward: { equipment: { wheel: 1 } },
+    earned: (stats) => stats.levelsCompleted >= 7,
+  },
+  {
+    id: 'four-corners',
+    title: 'Four Corners',
+    description: 'Defeat 2 boss levels.',
+    reward: { equipment: { wheel: 1 } },
+    earned: (stats) => stats.bossLevelsCompleted >= 2,
+  },
+  {
+    id: 'vanishing-act',
+    title: 'Vanishing Act',
+    description: 'Defeat 3 ghosts after unlocking cloaking.',
+    prerequisite: { moduleUnlocks: ['cloaking'] },
+    reward: { modules: { cloaking: 1 } },
+    earned: (stats) =>
+      (stats.enemyDefeats?.['ghost_phaser.ghost_forrest'] ?? 0) + (stats.enemyDefeats?.['example.ghost_phase_mob.ghost_forrest'] ?? 0) >= 3,
+  },
 ];
 
 export function achievementStatsFromGame(game) {
@@ -97,10 +183,11 @@ export function awardAchievements(account, stats) {
   const next = structuredClone(account);
   next.achievements ??= { unlocked: [] };
   next.achievements.unlocked ??= [];
+  const prerequisiteAccount = structuredClone(next);
   const unlocked = new Set(next.achievements.unlocked);
   let changed = false;
   for (const achievement of ACHIEVEMENT_DEFINITIONS) {
-    if (unlocked.has(achievement.id) || !achievement.earned(stats)) continue;
+    if (unlocked.has(achievement.id) || !achievementPrerequisitesMet(prerequisiteAccount, achievement.prerequisite) || !achievement.earned(stats)) continue;
     unlocked.add(achievement.id);
     applyReward(next, achievement.reward);
     changed = true;
@@ -115,11 +202,13 @@ export function achievementRewardText(reward) {
   const primaryWeapons = reward.weaponUnlocks?.primary ?? [];
   const secondaryWeapons = reward.weaponUnlocks?.secondary ?? [];
   const modules = reward.moduleUnlocks ?? [];
+  const moduleCopies = Object.entries(reward.modules ?? {});
   const lines = [
     ...equipment.map(([type, amount]) => `+${amount} ${labelForEquipment(type)}`),
     ...primaryWeapons.map((id) => `Unlock ${labelForWeapon(id)} primary`),
     ...secondaryWeapons.map((id) => `Unlock ${labelForWeapon(id)} secondary`),
     ...modules.map((id) => `Unlock ${labelForModule(id)} module`),
+    ...moduleCopies.map(([id, amount]) => `+${amount} ${labelForModule(id)} module`),
   ];
   if (lines.length === 0) return 'Reward pending';
   return lines.join(', ');
@@ -143,6 +232,23 @@ function applyReward(account, reward) {
     account.moduleUnlocks ??= [];
     if (!account.moduleUnlocks.includes(moduleId)) account.moduleUnlocks.push(moduleId);
   }
+  for (const [moduleId, amount] of Object.entries(reward.modules ?? {})) {
+    account.modules ??= {};
+    account.modules[moduleId] ??= { unlocked: true, quantity: 0 };
+    account.modules[moduleId].unlocked = true;
+    account.modules[moduleId].quantity = Math.max(0, account.modules[moduleId].quantity ?? 0) + amount;
+  }
+}
+
+function achievementPrerequisitesMet(account, prerequisite) {
+  if (!prerequisite) return true;
+  for (const achievementId of prerequisite.achievements ?? []) {
+    if (!account.achievements?.unlocked?.includes(achievementId)) return false;
+  }
+  for (const moduleId of prerequisite.moduleUnlocks ?? []) {
+    if (!account.moduleUnlocks?.includes(moduleId)) return false;
+  }
+  return true;
 }
 
 function labelForEquipment(type) {

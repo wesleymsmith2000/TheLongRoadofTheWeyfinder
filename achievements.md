@@ -40,3 +40,39 @@
 - Crouching Weyfinder Hidden Phantom
  - criteria: Defeat a ghost
  - reward: unlock cloaking module
+- Bulwark Cartographer
+ - criteria: Complete 6 levels in a run
+ - reward: +3 armor modules in build screen
+- Iron Keepsake
+ - criteria: Deal 2500 damage in a run
+ - reward: +2 armor modules in build screen
+- Road Bastion
+ - criteria: Complete 10 levels in a run
+ - reward: +3 armor modules in build screen
+- Storm Shell
+ - criteria: Defeat 3 boss levels
+ - reward: +2 armor modules in build screen
+- Gunrunner
+ - criteria: Complete 8 levels in a run
+ - reward: +1 gun module in build screen
+- Arsenal Architect
+ - criteria: Deal 5000 damage in a run
+ - reward: +1 gun module in build screen
+- Long Haul Mechanic
+ - criteria: Complete 5 levels in a run
+ - reward: +1 engine module in build screen
+- Overdrive Surveyor
+ - criteria: Complete 12 levels in a run
+ - reward: +1 engine module in build screen
+- Spoke Singer
+ - criteria: Collect 150 scrap in a run
+ - reward: +1 wheel module in build screen
+- Drift Correction
+ - criteria: Complete 7 levels in a run
+ - reward: +1 wheel module in build screen
+- Four Corners
+ - criteria: Defeat 2 boss levels
+ - reward: +1 wheel module in build screen
+- Vanishing Act
+ - criteria: Defeat 3 ghosts after unlocking cloaking
+ - reward: +1 cloaking module

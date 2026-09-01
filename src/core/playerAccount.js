@@ -20,6 +20,8 @@ export function createPrototypePlayerAccountData() {
       primary: ['main.basic', 'mini_beam'],
       secondary: ['rocket', 'cannon', 'beam'],
     },
+    moduleUnlocks: [],
+    modules: {},
     savedVehicle: null,
   };
 }
@@ -50,6 +52,15 @@ export function validatePlayerAccountData(account) {
     if (!Array.isArray(account.weaponUnlocks?.secondary)) errors.push('weaponUnlocks.secondary must be an array when provided.');
   }
   if (account.moduleUnlocks != null && !Array.isArray(account.moduleUnlocks)) errors.push('moduleUnlocks must be an array when provided.');
+  if (account.modules != null && !isPlainObject(account.modules)) errors.push('modules must be an object when provided.');
+  for (const [moduleId, entry] of Object.entries(account.modules ?? {})) {
+    if (!isPlainObject(entry)) {
+      errors.push(`modules.${moduleId} must be an object.`);
+      continue;
+    }
+    if (typeof entry.unlocked !== 'boolean') errors.push(`modules.${moduleId}.unlocked must be a boolean.`);
+    if (!Number.isInteger(entry.quantity) || entry.quantity < 0) errors.push(`modules.${moduleId}.quantity must be a non-negative integer.`);
+  }
   return { valid: errors.length === 0, errors, warnings };
 }
 
