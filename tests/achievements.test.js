@@ -41,6 +41,12 @@ test('enemy achievements unlock new weapon and module rewards', () => {
   assert.equal(awarded.moduleUnlocks.includes('cloaking'), true);
 });
 
+test('scrap collection unlocks the scrap magnet upgrade family', () => {
+  const account = createPrototypePlayerAccountData();
+  const awarded = awardAchievements(account, { levelsCompleted: 0, bossLevelsCompleted: 0, scrapCollected: 100, damageDone: 0 });
+  assert.equal(awarded.moduleUnlocks.includes('scrap_magnet'), true);
+});
+
 test('later achievements award the next equipment module bundle', () => {
   const account = createPrototypePlayerAccountData();
   account.moduleUnlocks.push('cloaking');

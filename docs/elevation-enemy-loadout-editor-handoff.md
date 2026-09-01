@@ -105,6 +105,7 @@ New achievement rewards unlock advanced weapons/modules:
 - `buzz-off`: emit `specialDefeats.buzzardLandedForScrap`; unlocks `sta_missile`.
 - `leg-up`: defeat a Starlight or Twilight walker; unlocks `orb_of_blades`.
 - `crouching-weyfinder-hidden-phantom`: defeat a ghost phaser; unlocks the future `cloaking` module.
+- `magnetic-personality`: collect 100 scrap in a run; unlocks the `scrap_magnet` upgrade family.
 
 Public hooks live in `src/core/combatEvents.js`. Editors can use `targeting.preferConditions`, `targeting.requireConditions`, and `targeting.ignoreConditions` with `targetIsDistracted`, `targetIsCollectingScrap`, `targetIsLandedForScrap`, `targetIsPhasedIn`, and `targetIsDamaged`.
 

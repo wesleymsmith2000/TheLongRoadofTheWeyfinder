@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
+import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
+import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
 
 test('standard turret bullets use boosted damage', () => {
   const game = createGame();
@@ -50,4 +52,16 @@ test('additional gun modules fire in succession and improve fire interval', () =
   assert.equal(bullets.length, 2);
   assert.notEqual(bullets[0].sourceCellId, bullets[1].sourceCellId);
   assert.equal(game.playerFireTimer < singleGunInterval, true);
+});
+
+test('primary gun loadouts can fire mini beam slots', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 1, 'mini_beam').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+  game.playerFireTimer = 0;
+  stepGame(game, {}, 1 / 60);
+  const beam = game.playerProjectiles.find((projectile) => projectile.weapon === 'mini_beam');
+  assert.equal(beam.behavior, 'beam');
+  assert.equal(beam.sourceCellId, 'gun');
 });

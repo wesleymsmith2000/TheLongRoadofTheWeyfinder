@@ -30,6 +30,13 @@ export const ACHIEVEMENT_DEFINITIONS = [
     earned: (stats) => stats.scrapCollected >= 50,
   },
   {
+    id: 'magnetic-personality',
+    title: 'Magnetic Personality',
+    description: 'Collect 100 scrap in a run.',
+    reward: { moduleUnlocks: ['scrap_magnet'] },
+    earned: (stats) => stats.scrapCollected >= 100,
+  },
+  {
     id: 'damage-scribe',
     title: 'Damage Scribe',
     description: 'Deal 1000 damage in a run.',

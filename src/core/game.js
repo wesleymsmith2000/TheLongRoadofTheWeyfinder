@@ -50,12 +50,19 @@ import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLeve
 import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { createCombatEventStats, recordEnemyDefeat } from './combatEvents.js';
+import { getEnemyArchetype } from './enemyArchetypeDefinition.js';
+import { normalizeGunLoadouts } from './weaponLoadout.js';
+import { runtimeWeaponDefinition } from './weaponDefinition.js';
+import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
 
 export const LEVEL_TARGET_DURATION = 180;
 export const TARGETING_MODES = ['manual', 'guided', 'mixed'];
 const SPAWN_WARNING_LEAD = 2.4;
 const BOSS_LASER_CHARGE_TIME = 3;
 const BOSS_LASER_LOCK_TIME = 1;
+const PRIMARY_WEAPON_DEFINITIONS = {
+  mini_beam: runtimeWeaponDefinition(miniBeamDefinition),
+};
 
 export function createGame(seed = 1147, options = {}) {
   const vehicle = createStartingVehicle(options.vehicleDefinition);
@@ -232,19 +239,22 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
     const spread = count === 1 ? 0 : (i - (count - 1) / 2) * 45;
     const row = Math.floor(i / 4) * 35;
     const kind = i < standardCount ? 'standard' : 'enhanced';
+    const archetype = zoneArchetypeForMusic(currentMusic, kind, i);
     const world =
       kind === 'enhanced'
         ? roadOffsetToWorld({ x: spread, y: road.halfHeight + 47.5 + row }, road)
         : roadOffsetToWorld({ x: spread, y: -road.halfHeight - 47.5 - row }, road);
     const pirateShip = usesBoatSilhouetteEnemy(currentMusic, level);
-    const enemy =
-      kind === 'enhanced'
+    const enemy = archetype
+      ? createEnemyForArchetype(archetype, world.x, world.y, kind)
+      : kind === 'enhanced'
         ? pirateShip
           ? createEnhancedPirateShipEnemy(world.x, world.y)
           : createEnhancedEnemy(world.x, world.y)
         : pirateShip
           ? createPirateShipEnemy(world.x, world.y)
           : createEnemy(world.x, world.y);
+    if (archetype) applyArchetypeRuntimeMetadata(enemy, archetype);
     if (kind === 'enhanced') {
       enemy.palette = enhancedEnemyPaletteForMusic(currentMusic);
       const velocity = roadDirectionToWorld(0, -1, road);
@@ -267,6 +277,48 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
     enemies.push(boss);
   }
   return enemies;
+}
+
+function zoneArchetypeForMusic(trackName, kind, index) {
+  if (kind === 'enhanced') return null;
+  const zone = zoneNameFromTrack(trackName);
+  const ids = {
+    GhostForrest: ['ghost_phaser.ghost_forrest'],
+    GhostForrestPathway: ['ghost_phaser.ghost_forrest'],
+    DigitizedStream: ['hopping_stream_mob.digitized_stream'],
+    PiratesRoad: ['heavy_mortar_boat.pirates_road'],
+    StarlightRoad: ['starlight_walker.prototype0'],
+    TwilightCrossroads: ['twilight_walker.prototype0'],
+    ShadowedDesert: ['scrap_buzzard.shadowed_desert'],
+    ShadowedDessert: ['scrap_buzzard.shadowed_desert'],
+    FreedomsPass: ['inchworm_carrier.freedoms_pass'],
+  }[zone];
+  if (!ids?.length) return null;
+  return getEnemyArchetype(ids[index % ids.length]);
+}
+
+function zoneNameFromTrack(trackName = '') {
+  const match = String(trackName).match(/^([A-Za-z]+(?:[A-Z][a-z]+)*)(?:_|$)/);
+  return match?.[1] ?? trackName;
+}
+
+function createEnemyForArchetype(archetype, x, y, kind) {
+  const factory = archetype.runtimeFactory;
+  if (factory === 'createPirateShipEnemy') return createPirateShipEnemy(x, y, { kind });
+  if (factory === 'createEnhancedPirateShipEnemy') return createEnhancedPirateShipEnemy(x, y);
+  if (factory === 'createEnhancedEnemy') return createEnhancedEnemy(x, y);
+  return createEnemy(x, y);
+}
+
+function applyArchetypeRuntimeMetadata(enemy, archetype) {
+  enemy.archetypeId = archetype.id;
+  enemy.displayName = archetype.displayName;
+  enemy.zone = archetype.zone;
+  if (archetype.palette) enemy.palette = { ...archetype.palette };
+  if (archetype.elevation) enemy.elevation = structuredClone(archetype.elevation);
+  if (archetype.phase) enemy.phase = structuredClone(archetype.phase);
+  if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);
+  if (archetype.artillery) enemy.artillery = structuredClone(archetype.artillery);
 }
 
 function usesBoatSilhouetteEnemy(trackName, level) {
@@ -508,14 +560,20 @@ function configureBoostFromUpgrades(game) {
 function stepPlayerGun(game, dt) {
   game.playerFireTimer -= dt;
   if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
-  const muzzles = gunMuzzlesWorld(game.vehicle);
-  if (muzzles.length === 0) return;
+  const mounts = primaryFiringMounts(game);
+  if (mounts.length === 0) return;
   const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy');
   const damage = 8 * upgradeMultiplier(game, 'gunDamage');
   const speed = PRIMARY_PROJECTILE_SPEED * upgradeMultiplier(game, 'gunVelocity');
-  const muzzle = muzzles[game.playerGunIndex % muzzles.length];
-  game.playerGunIndex = (game.playerGunIndex + 1) % muzzles.length;
-  const angle = game.vehicle.turretHeading + game.rng.range(-spread, spread);
+  const mount = mounts[game.playerGunIndex % mounts.length];
+  game.playerGunIndex = (game.playerGunIndex + 1) % mounts.length;
+  const muzzle = mount.muzzle;
+  const angle = game.vehicle.turretHeading + (mount.weaponId === 'main.basic' ? game.rng.range(-spread, spread) : 0);
+  if (mount.weaponId === 'mini_beam') {
+    firePrimaryBeam(game, muzzle, PRIMARY_WEAPON_DEFINITIONS.mini_beam);
+    game.playerFireTimer = playerGunFireInterval(game, mounts.length);
+    return;
+  }
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
       team: 'player',
@@ -528,12 +586,46 @@ function stepPlayerGun(game, dt) {
     }),
   );
   emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
-  game.playerFireTimer = playerGunFireInterval(game);
+  game.playerFireTimer = playerGunFireInterval(game, mounts.length);
 }
 
-function playerGunFireInterval(game) {
-  const activeGuns = gunMuzzlesWorld(game.vehicle).length;
-  return 0.22 / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeGuns + 1)));
+function firePrimaryBeam(game, muzzle, def) {
+  const targetHint = game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
+  const angle = targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
+  game.playerProjectiles.push(
+    createProjectile(muzzle.x, muzzle.y, 0, 0, {
+      team: 'player',
+      weapon: def.id,
+      behavior: 'beam',
+      angle,
+      sourceCellId: muzzle.cellId,
+      targetHint,
+      length: def.length,
+      radius: def.radius,
+      damage: def.damage,
+      impulse: def.impulse,
+      pierce: def.pierce,
+      frames: def.frames,
+      lifetime: Math.max(1, def.frames) / 60,
+      maxLifetime: Math.max(1, def.frames) / 60,
+    }),
+  );
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_BEAM);
+}
+
+function primaryFiringMounts(game) {
+  const muzzles = gunMuzzlesWorld(game.vehicle);
+  if (muzzles.length === 0) return [];
+  const definition = game.vehicleDefinition?.cells ? game.vehicleDefinition : { cells: game.vehicle.cells.map((cell) => ({ id: cell.id, type: cell.type })) };
+  const loadouts = new Map(normalizeGunLoadouts(definition).map((loadout) => [loadout.cellId, loadout]));
+  return muzzles.flatMap((muzzle) => {
+    const weapons = (loadouts.get(muzzle.cellId)?.primary ?? ['main.basic']).filter(Boolean);
+    return (weapons.length ? weapons : ['main.basic']).map((weaponId) => ({ muzzle, weaponId }));
+  });
+}
+
+function playerGunFireInterval(game, activeMounts = primaryFiringMounts(game).length) {
+  return 0.22 / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeMounts + 1)));
 }
 
 function stepEnemies(game, dt) {
@@ -1261,9 +1353,9 @@ function enemyShieldBlocks(enemy, point) {
 }
 
 function syncBeamProjectiles(game) {
-  const muzzle = gunMuzzleWorld(game.vehicle);
   for (const projectile of game.playerProjectiles) {
     if (projectile.behavior !== 'beam') continue;
+    const muzzle = beamSourceMuzzle(game, projectile);
     if (!muzzle) {
       projectile.lifetime = 0;
       continue;
@@ -1272,6 +1364,11 @@ function syncBeamProjectiles(game) {
     projectile.y = muzzle.y;
     projectile.angle = projectile.targetHint ? Math.atan2(projectile.targetHint.y - muzzle.y, projectile.targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   }
+}
+
+function beamSourceMuzzle(game, projectile) {
+  if (!projectile.sourceCellId) return gunMuzzleWorld(game.vehicle);
+  return gunMuzzlesWorld(game.vehicle).find((muzzle) => muzzle.cellId === projectile.sourceCellId) ?? null;
 }
 
 function beamDamageScale(projectile) {

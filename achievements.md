@@ -10,6 +10,9 @@
 - Savvy Scavy
  - criteria: collect one hundred thousand scrap
  - reward: 5% discount on upgrades
+- Magnetic Personality
+ - criteria: Collect 100 scrap in a run
+ - reward: unlock scrap magnet upgrades
 - Beam them up Scotty!
  - criteria: defeat every enemy in a zone including the boss by dealing the killing blow with the particle beam
  - reward: particle beam color selection available during repair screens (cosmetic)

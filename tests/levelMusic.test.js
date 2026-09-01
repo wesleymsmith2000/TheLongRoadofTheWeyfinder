@@ -35,3 +35,14 @@ test('game tracks current music when starting the next level', () => {
   stepGame(game, { nextLevelPressed: true }, 1 / 60);
   assert.equal(game.currentMusic, 'BossFight_two');
 });
+
+test('zone soundtrack names route standard spawns to zone archetypes', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  assert.equal(createLevelEnemies(road, 1, ['GhostForrestPathway_1'])[0].archetypeId, 'ghost_phaser.ghost_forrest');
+  assert.equal(createLevelEnemies(road, 1, ['DigitizedStream_1'])[0].archetypeId, 'hopping_stream_mob.digitized_stream');
+  assert.equal(createLevelEnemies(road, 1, ['PiratesRoad_1'])[0].archetypeId, 'heavy_mortar_boat.pirates_road');
+  assert.equal(createLevelEnemies(road, 1, ['StarlightRoad_1'])[0].archetypeId, 'starlight_walker.prototype0');
+  assert.equal(createLevelEnemies(road, 1, ['TwilightCrossroads'])[0].archetypeId, 'twilight_walker.prototype0');
+  assert.equal(createLevelEnemies(road, 1, ['ShadowedDesert_Journey'])[0].archetypeId, 'scrap_buzzard.shadowed_desert');
+  assert.equal(createLevelEnemies(road, 1, ['FreedomsPass_Journey'])[0].archetypeId, 'inchworm_carrier.freedoms_pass');
+});
