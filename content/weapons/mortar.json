@@ -25,7 +25,7 @@
     "targetHint": "aimReticle",
     "detonateAtTarget": true,
     "blastDamage": 90,
-    "blastRadiusCells": 25.5,
+    "blastRadiusCells": 19.125,
     "blastKnockback": 140,
     "zCollision": true
   }

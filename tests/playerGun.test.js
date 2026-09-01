@@ -4,6 +4,7 @@ import { createGame, stepGame } from '../src/core/game.js';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
 import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
+import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('standard turret bullets use boosted damage', () => {
   const game = createGame();
@@ -110,7 +111,7 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   stepGame(mortarGame, {}, 1 / 60);
   const mortar = mortarGame.playerProjectiles.find((projectile) => projectile.weapon === 'mortar');
   assert.equal(mortar.behavior, 'arc');
-  assert.equal(mortar.blastRadius > 0, true);
+  assert.equal(mortar.blastRadius.toFixed(3), (19.125 * CELL_SIZE).toFixed(3));
 
   const flechetteDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'tracking_flechette').definition;
   const flechetteGame = createGame(1147, { vehicleDefinition: flechetteDefinition });
@@ -118,5 +119,7 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   stepGame(flechetteGame, {}, 1 / 60);
   const flechette = flechetteGame.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
   assert.equal(flechette.behavior, 'homing');
+  assert.equal(flechette.radius, 1.65);
+  assert.equal(flechette.maxSpeed, 322.5);
   assert.equal(flechette.pierce, 2);
 });

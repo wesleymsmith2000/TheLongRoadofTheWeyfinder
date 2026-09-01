@@ -525,6 +525,10 @@ function drawProjectiles(ctx, projectiles, color) {
       drawBossMissile(ctx, projectile);
       continue;
     }
+    if (projectile.weapon === 'orb_flechette') {
+      drawOrbFlechette(ctx, projectile);
+      continue;
+    }
     if (projectile.shape?.kind === 'cylinderCone') {
       drawProjectileShell(ctx, projectile);
       continue;
@@ -543,6 +547,36 @@ function drawProjectiles(ctx, projectiles, color) {
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawOrbFlechette(ctx, projectile) {
+  const teeth = 10;
+  const outer = projectile.radius;
+  const inner = outer * 0.58;
+  const spin = (projectile.maxLifetime - projectile.lifetime) * 26 + projectile.angle;
+  ctx.save();
+  ctx.translate(projectile.x, projectile.y);
+  ctx.rotate(spin);
+  ctx.fillStyle = '#d7eef1';
+  ctx.strokeStyle = '#5e7278';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  for (let index = 0; index < teeth * 2; index += 1) {
+    const radius = index % 2 === 0 ? outer : inner;
+    const angle = (Math.PI * 2 * index) / (teeth * 2);
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#88a9b3';
+  ctx.beginPath();
+  ctx.arc(0, 0, outer * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawArcProjectile(ctx, projectile, color) {

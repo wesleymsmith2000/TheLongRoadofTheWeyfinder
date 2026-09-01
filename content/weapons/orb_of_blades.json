@@ -25,7 +25,7 @@
       "interval": 0.07,
       "damage": 18,
       "projectileSpeed": 320,
-      "radius": 0.8,
+      "radius": 3.33,
       "pierce": 4
     }
   }
