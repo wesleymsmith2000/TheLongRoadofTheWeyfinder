@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "0.1",
+  "packId": "terrain.ghost_forest.v0",
+  "displayName": "Ghost Forest Terrain v0",
+  "author": "Weyfinder prototype",
+  "provenance": "Starter procedural terrain ingest pack for future route-first terrain work.",
+  "canonStatus": "EXPERIMENTAL",
+  "description": "Phase 0 terrain material and tile definitions for Ghost Forest Pathway procedural terrain experiments.",
+  "tags": ["terrain", "ghost-forest", "prototype", "phase-0"],
+  "dependencies": [],
+  "assets": {
+    "terrainMaterials": [
+      "../terrain/materials/ghost_forest_ground.json",
+      "../terrain/materials/ghost_forest_path.json",
+      "../terrain/materials/ghost_forest_slippery_moss.json"
+    ],
+    "terrainTiles": [
+      "../terrain/tiles/ghost_forest_floor.json",
+      "../terrain/tiles/ghost_forest_path_straight.json",
+      "../terrain/tiles/ghost_forest_path_turn.json",
+      "../terrain/tiles/ghost_forest_path_slippery.json"
+    ]
+  }
+}

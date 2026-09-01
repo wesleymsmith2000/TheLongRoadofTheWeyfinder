@@ -46,7 +46,9 @@ content/packs/canon.prototype0.json
     "behaviors": [],
     "encounters": [],
     "routes": [],
-    "levels": ["../levels/prototype0_road_trial.json"]
+    "levels": ["../levels/prototype0_road_trial.json"],
+    "terrainMaterials": ["../terrain/materials/ghost_forest_ground.json"],
+    "terrainTiles": ["../terrain/tiles/ghost_forest_path_straight.json"]
   }
 }
 ```
@@ -114,6 +116,8 @@ Current manifest asset keys:
 - `encounters`
 - `routes`
 - `levels`
+- `terrainMaterials`
+- `terrainTiles`
 - `images`
 - `sounds`
 - `music`

@@ -30,6 +30,11 @@
       }
     ]
   },
+  "terrain": {
+    "mode": "procedural",
+    "packId": "canon.prototype0",
+    "seed": 1147
+  },
   "route": {
     "startHeading": -1.5707963267948966,
     "segments": [

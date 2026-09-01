@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "terrain.tile.ghost_forest.path_slippery",
+  "biome": "ghost_forest",
+  "allowedRotations": [0, 90, 180, 270],
+  "sockets": {
+    "north": { "road": "standard", "height": 0, "fluid": "none" },
+    "east": { "road": "closed", "height": 0, "fluid": "none" },
+    "south": { "road": "standard", "height": 0, "fluid": "none" },
+    "west": { "road": "closed", "height": 0, "fluid": "none" }
+  },
+  "render": {
+    "baseAsset": "procedural:ghost_forest.path_slippery",
+    "animatedLayers": []
+  },
+  "semantic": {
+    "materialGrid": [
+      ["ghost_forest.ground", "ghost_forest.slippery_moss", "ghost_forest.slippery_moss", "ghost_forest.ground"],
+      ["ghost_forest.ground", "ghost_forest.slippery_moss", "ghost_forest.slippery_moss", "ghost_forest.ground"],
+      ["ghost_forest.ground", "ghost_forest.slippery_moss", "ghost_forest.slippery_moss", "ghost_forest.ground"],
+      ["ghost_forest.ground", "ghost_forest.slippery_moss", "ghost_forest.slippery_moss", "ghost_forest.ground"]
+    ],
+    "heightGrid": [],
+    "fluidGrid": []
+  },
+  "decorSockets": [],
+  "eventSockets": [],
+  "intrinsicHazards": [],
+  "tags": ["road", "straight", "slippery"],
+  "weight": 1
+}

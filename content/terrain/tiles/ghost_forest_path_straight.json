@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "terrain.tile.ghost_forest.path_straight",
+  "biome": "ghost_forest",
+  "allowedRotations": [0, 90, 180, 270],
+  "sockets": {
+    "north": { "road": "standard", "height": 0, "fluid": "none" },
+    "east": { "road": "closed", "height": 0, "fluid": "none" },
+    "south": { "road": "standard", "height": 0, "fluid": "none" },
+    "west": { "road": "closed", "height": 0, "fluid": "none" }
+  },
+  "render": {
+    "baseAsset": "procedural:ghost_forest.path_straight",
+    "animatedLayers": []
+  },
+  "semantic": {
+    "materialGrid": [
+      ["ghost_forest.ground", "ghost_forest.path", "ghost_forest.path", "ghost_forest.ground"],
+      ["ghost_forest.ground", "ghost_forest.path", "ghost_forest.path", "ghost_forest.ground"],
+      ["ghost_forest.ground", "ghost_forest.path", "ghost_forest.path", "ghost_forest.ground"],
+      ["ghost_forest.ground", "ghost_forest.path", "ghost_forest.path", "ghost_forest.ground"]
+    ],
+    "heightGrid": [],
+    "fluidGrid": []
+  },
+  "decorSockets": [],
+  "eventSockets": [],
+  "intrinsicHazards": [],
+  "tags": ["road", "straight"],
+  "weight": 1
+}

@@ -687,6 +687,13 @@ assets/stylesheets/
 
 Terrain texture sheets can also be selected from the active level music/biome name. The current runtime uses bundled image assets named like `assets/stylesheets/terrain__BiomeA_BiomeB__textures.png` and maps each listed biome to the same scrolling sheet in `src/render/canvasRenderer.js`. Editors should treat these as resource-backed level/background layers now, with a future route runner stitching procedural road segments, turns, scenery, and obstacle layers from level `route` data.
 
+Prototype terrain ingest now supports first-class content pack entries for:
+
+- `terrainMaterial`: validated by `src/core/terrainMaterial.js`.
+- `terrainTile`: validated by `src/core/terrainTileDefinition.js`.
+
+These assets are data-only for now. They are intended to become the shared content language for procedural road/path generation, semantic material queries, future obstacles/scenery sockets, and biome-specific creator packs.
+
 Runtime road travel is represented by the pure simulation road frame in `src/core/camera.js`: `x`, `y`, `heading`, `speed`, `halfWidth`, and `halfHeight`. Spawn directions such as ahead, behind, left, and right should be expressed relative to that road frame. Discrete road turns are heading changes in 22.5-degree steps up to 90 degrees, so level editors should export turn events in road-frame degrees/radians rather than screen-space directions.
 
 ## Current Level Contract
@@ -758,6 +765,8 @@ Current dependency kinds:
 - `encounter`
 - `route`
 - `level`
+- `terrainMaterial`
+- `terrainTile`
 - `image`
 - `sound`
 - `music`

@@ -52,6 +52,9 @@ import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { createCombatEventStats, recordEnemyDefeat } from './combatEvents.js';
 import { getEnemyArchetype } from './enemyArchetypeDefinition.js';
+import { createTerrainGenerator } from './terrainGenerator.js';
+import { sampleTerrain } from './terrainQuery.js';
+import { createTerrainState, updateTerrainStreaming } from './terrainStreaming.js';
 import { normalizeGunLoadouts } from './weaponLoadout.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
@@ -75,6 +78,10 @@ const ENEMY_UPGRADE_TYPES = ['damage', 'attackRate', 'armor', 'movementSpeed'];
 export function createGame(seed = 1147, options = {}) {
   const vehicle = createStartingVehicle(options.vehicleDefinition);
   const road = createRoadFrame(vehicle);
+  const terrainGenerator = createTerrainGenerator({ seed: options.terrainSeed ?? seed, route: options.terrainRoute });
+  const terrain = createTerrainState(terrainGenerator);
+  updateTerrainStreaming(terrain, road);
+  const terrainSample = sampleTerrain(terrain, vehicle.x, vehicle.y);
   const levelMusic = options.levelMusic ?? DEFAULT_LEVEL_MUSIC;
   const startLevel = Math.max(1, Math.floor(options.startLevel ?? options.level ?? 1));
   const rng = new Rng(seed);
@@ -88,6 +95,8 @@ export function createGame(seed = 1147, options = {}) {
     vehicle,
     road,
     camera: createRoadCamera(road),
+    terrain,
+    terrainSample,
     enemies: initialSpawns,
     enemySpawnQueue,
     incomingMarkers: [],
@@ -149,7 +158,8 @@ export function stepGame(game, input, dt) {
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
   stepEnemySpawner(game, dt);
-  stepVehicle(game.vehicle, input, dt, game.road.heading, game.upgrades);
+  game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
+  stepVehicle(game.vehicle, input, dt, game.road.heading, game.upgrades, game.terrainSample);
   configureBoostFromUpgrades(game);
   stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
   const turretInput = aimInputForTurret(game, input, dt);
@@ -178,6 +188,8 @@ export function stepGame(game, input, dt) {
   recalculateVehicle(game.vehicle);
   syncBeamProjectiles(game);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
+  updateTerrainStreaming(game.terrain, game.camera);
+  game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   game.gameOver = !game.vehicle.alive;
   if (activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0 && game.scrapPickups.length === 0) {
     game.levelComplete = true;

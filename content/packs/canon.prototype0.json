@@ -24,6 +24,17 @@
     ],
     "patterns": ["../patterns/enemy_aimed_shot.json", "../patterns/enemy_radial_burst.json"],
     "enemyArchetypes": ["../enemies/prototype0_enemy_archetypes.json"],
+    "terrainMaterials": [
+      "../terrain/materials/ghost_forest_ground.json",
+      "../terrain/materials/ghost_forest_path.json",
+      "../terrain/materials/ghost_forest_slippery_moss.json"
+    ],
+    "terrainTiles": [
+      "../terrain/tiles/ghost_forest_floor.json",
+      "../terrain/tiles/ghost_forest_path_straight.json",
+      "../terrain/tiles/ghost_forest_path_turn.json",
+      "../terrain/tiles/ghost_forest_path_slippery.json"
+    ],
     "images": [
       "../resources/weapons/sprite.weapon.tracking_flechette.json",
       "../resources/weapons/sprite.weapon.orb_flechette.json",

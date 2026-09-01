@@ -4,10 +4,44 @@ import { collectLevelDependencies, validateLevelDefinition } from './levelDefini
 import { validateEnemyArchetypePack } from './enemyArchetypeDefinition.js';
 import { validatePatternDefinition } from './patternDefinition.js';
 import { validateStatusEffectDefinition } from './statusEffects.js';
+import { validateTerrainMaterialDefinition } from './terrainMaterial.js';
+import { validateTerrainTileDefinition } from './terrainTileDefinition.js';
 import { validateWeaponDefinition } from './weaponDefinition.js';
 
-export const CONTENT_ASSET_KINDS = ['construct', 'weapon', 'pattern', 'statusEffect', 'enemyArchetype', 'behavior', 'encounter', 'route', 'level', 'image', 'sound', 'music', 'voxelModel'];
-export const CONTENT_MANIFEST_ASSET_KEYS = ['constructs', 'weapons', 'patterns', 'statusEffects', 'enemyArchetypes', 'behaviors', 'encounters', 'routes', 'levels', 'images', 'sounds', 'music', 'voxelModels'];
+export const CONTENT_ASSET_KINDS = [
+  'construct',
+  'weapon',
+  'pattern',
+  'statusEffect',
+  'enemyArchetype',
+  'behavior',
+  'encounter',
+  'route',
+  'level',
+  'terrainMaterial',
+  'terrainTile',
+  'image',
+  'sound',
+  'music',
+  'voxelModel',
+];
+export const CONTENT_MANIFEST_ASSET_KEYS = [
+  'constructs',
+  'weapons',
+  'patterns',
+  'statusEffects',
+  'enemyArchetypes',
+  'behaviors',
+  'encounters',
+  'routes',
+  'levels',
+  'terrainMaterials',
+  'terrainTiles',
+  'images',
+  'sounds',
+  'music',
+  'voxelModels',
+];
 export const RESOURCE_ASSET_KINDS = ['image', 'sound', 'music', 'voxelModel'];
 
 const KIND_TO_MANIFEST_KEY = Object.freeze({
@@ -20,6 +54,8 @@ const KIND_TO_MANIFEST_KEY = Object.freeze({
   encounter: 'encounters',
   route: 'routes',
   level: 'levels',
+  terrainMaterial: 'terrainMaterials',
+  terrainTile: 'terrainTiles',
   image: 'images',
   sound: 'sounds',
   music: 'music',
@@ -35,6 +71,8 @@ const VALIDATORS = Object.freeze({
   statusEffect: validateStatusEffectDefinition,
   enemyArchetype: validateEnemyArchetypePack,
   level: validateLevelDefinition,
+  terrainMaterial: validateTerrainMaterialDefinition,
+  terrainTile: validateTerrainTileDefinition,
 });
 
 export function createContentRegistry() {

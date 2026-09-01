@@ -155,6 +155,8 @@ export function inferContentKind(definition) {
   if (STATUS_EFFECT_TYPES.includes(definition.type)) return 'statusEffect';
   if (definition.emitter) return 'pattern';
   if (definition.projectile && definition.ammo != null) return 'weapon';
+  if (definition.materialId && definition.physics) return 'terrainMaterial';
+  if (definition.biome && definition.sockets && definition.semantic) return 'terrainTile';
   if (definition.background && definition.route) return 'level';
   if (Array.isArray(definition.cells) && Array.isArray(definition.connections)) return 'construct';
   if (definition.path || definition.uri) return definition.kind ?? null;

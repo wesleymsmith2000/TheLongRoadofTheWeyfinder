@@ -3,9 +3,25 @@ import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNo
 export const LEVEL_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const LEVEL_BACKGROUND_MODES = ['procedural', 'prebaked', 'mixed'];
 export const LEVEL_BACKGROUND_SOURCES = ['procedural', 'image', 'video', 'canvas'];
+export const LEVEL_TERRAIN_MODES = ['procedural'];
 export const LEVEL_OBSTACLE_KINDS = ['procedural_field', 'construct', 'hazard', 'decor'];
 export const LEVEL_TRIGGER_KINDS = ['voiceover', 'cue', 'music', 'scripted_event'];
-export const LEVEL_DEPENDENCY_KINDS = ['pack', 'construct', 'weapon', 'pattern', 'behavior', 'encounter', 'route', 'level', 'image', 'sound', 'music', 'voxelModel'];
+export const LEVEL_DEPENDENCY_KINDS = [
+  'pack',
+  'construct',
+  'weapon',
+  'pattern',
+  'behavior',
+  'encounter',
+  'route',
+  'level',
+  'terrainMaterial',
+  'terrainTile',
+  'image',
+  'sound',
+  'music',
+  'voxelModel',
+];
 
 export function validateLevelDefinition(definition) {
   const errors = [];
@@ -15,6 +31,7 @@ export function validateLevelDefinition(definition) {
   validateMetadata(definition, errors, warnings);
   validateDependencies(definition.dependencies, errors, warnings);
   validateBackground(definition.background, errors, warnings);
+  validateTerrain(definition.terrain, errors, warnings);
   validateRoute(definition.route, errors, warnings);
   validateObstacles(definition.obstacles ?? [], errors, warnings);
   validateWaves(definition.waves ?? [], errors, warnings);
@@ -38,6 +55,9 @@ export function collectLevelDependencies(definition) {
   for (const layer of definition.background?.layers ?? []) {
     if (layer.assetRef) dependencies.push({ kind: layer.kind ?? 'image', assetId: layer.assetRef, required: layer.required === true });
   }
+  if (definition.terrain?.packId) dependencies.push({ kind: 'pack', packId: definition.terrain.packId, required: definition.terrain.required !== false });
+  for (const materialId of definition.terrain?.materials ?? []) dependencies.push({ kind: 'terrainMaterial', assetId: materialId, required: true });
+  for (const tileId of definition.terrain?.tiles ?? []) dependencies.push({ kind: 'terrainTile', assetId: tileId, required: true });
   for (const obstacle of definition.obstacles ?? []) {
     if (obstacle.assetRef) dependencies.push({ kind: obstacle.kind === 'construct' ? 'construct' : 'voxelModel', assetId: obstacle.assetRef, required: obstacle.kind === 'construct' || obstacle.required === true });
   }
@@ -116,6 +136,22 @@ function validateBackground(background, errors, warnings) {
     if (layer.source === 'procedural' && !isNonEmptyString(layer.generator)) errors.push(`${label}.generator is required for procedural layers.`);
     if (layer.source !== 'procedural' && !isNonEmptyString(layer.assetRef)) errors.push(`${label}.assetRef is required for prebaked layers.`);
     validateFiniteNumber(layer.parallax ?? 1, `${label}.parallax`, errors, { min: 0 });
+  }
+}
+
+function validateTerrain(terrain, errors, warnings) {
+  if (terrain == null) return;
+  if (!isPlainObject(terrain)) {
+    errors.push('terrain must be an object when provided.');
+    return;
+  }
+  if (!LEVEL_TERRAIN_MODES.includes(terrain.mode)) errors.push(`terrain.mode must be one of: ${LEVEL_TERRAIN_MODES.join(', ')}.`);
+  if (terrain.packId != null && !isNonEmptyString(terrain.packId)) errors.push('terrain.packId must be a non-empty string when provided.');
+  if (terrain.seed != null) validateFiniteNumber(terrain.seed, 'terrain.seed', errors, { integer: true });
+  if (terrain.materials != null && !isStringArray(terrain.materials)) errors.push('terrain.materials must be an array of strings when provided.');
+  if (terrain.tiles != null && !isStringArray(terrain.tiles)) errors.push('terrain.tiles must be an array of strings when provided.');
+  if (!terrain.packId && (terrain.materials?.length ?? 0) === 0 && (terrain.tiles?.length ?? 0) === 0) {
+    warnings.push('Procedural terrain has no packId or explicit terrain asset references.');
   }
 }
 

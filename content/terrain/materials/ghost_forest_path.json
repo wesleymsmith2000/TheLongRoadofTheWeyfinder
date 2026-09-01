@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "terrain.material.ghost_forest.path",
+  "materialId": "ghost_forest.path",
+  "displayName": "Ghost Forest Path",
+  "physics": {
+    "traction": 1.08,
+    "rollingResistance": 0.04,
+    "roughness": 0.08
+  },
+  "systems": {
+    "thermalFlux": 0,
+    "ignitionRisk": 0,
+    "conductivity": 0.1
+  },
+  "hazardTags": []
+}

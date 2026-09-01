@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "terrain.material.ghost_forest.slippery_moss",
+  "materialId": "ghost_forest.slippery_moss",
+  "displayName": "Slippery Ghost Moss",
+  "physics": {
+    "traction": 0.42,
+    "rollingResistance": 0.02,
+    "roughness": 0.03
+  },
+  "systems": {
+    "thermalFlux": 0,
+    "ignitionRisk": 0,
+    "conductivity": 0.14
+  },
+  "hazardTags": ["slippery"]
+}

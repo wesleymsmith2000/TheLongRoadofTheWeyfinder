@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "terrain.material.ghost_forest.ground",
+  "materialId": "ghost_forest.ground",
+  "displayName": "Ghost Forest Ground",
+  "physics": {
+    "traction": 1,
+    "rollingResistance": 0.05,
+    "roughness": 0.12
+  },
+  "systems": {
+    "thermalFlux": 0,
+    "ignitionRisk": 0,
+    "conductivity": 0.08
+  },
+  "hazardTags": []
+}

@@ -1,10 +1,12 @@
-import { angleDelta, rotatePoint } from './math.js';
+import { angleDelta, clamp, rotatePoint } from './math.js';
+import { SAFE_TERRAIN_SAMPLE } from './terrainMaterial.js';
 
-export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, upgrades = {}) {
+export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, upgrades = {}, terrainContact = SAFE_TERRAIN_SAMPLE) {
   if (!vehicle.alive) return;
   const inputX = input.x ?? 0;
   const inputY = input.y ?? 0;
   const inputTurn = input.turn ?? 0;
+  const terrain = normalizeTerrainContact(terrainContact);
   const enginePower = typedModulePower(vehicle, 'engine');
   const wheelPower = typedModulePower(vehicle, 'wheel');
   const engineAcceleration = upgradeMultiplier(upgrades, 'engineAcceleration', 0.08);
@@ -17,22 +19,26 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   const pull = turnBalance * 0.35;
   const massPenalty = Math.sqrt(vehicle.totalMass / 120);
 
-  const localAx = (inputX * 135 * propulsion * engineAcceleration) / massPenalty;
-  const localAy = (inputY * 135 * propulsion * engineAcceleration) / massPenalty;
+  const localAx = (inputX * 135 * propulsion * engineAcceleration * terrain.traction) / massPenalty;
+  const localAy = (inputY * 135 * propulsion * engineAcceleration * terrain.traction) / massPenalty;
   const accel = rotatePoint(localAx, localAy, roadHeading);
   vehicle.vx += accel.x * dt;
   vehicle.vy += accel.y * dt;
-  applyWheelGrounding(vehicle, accel, wheelPower, wheelInertiaCompensation, dt);
+  applyWheelGrounding(vehicle, accel, wheelPower, wheelInertiaCompensation * terrain.traction, dt);
   const roadAlignment = angleDelta(vehicle.heading, roadHeading) * 1.4;
-  vehicle.angularVelocity += (inputTurn * 3.6 + inputY * pull * 0.45 + roadAlignment) * dt;
+  vehicle.angularVelocity += (inputTurn * 3.6 * terrain.traction + inputY * pull * 0.45 * terrain.traction + roadAlignment) * dt;
 
   if (input.brake) {
-    vehicle.vx *= Math.pow(0.04, dt);
-    vehicle.vy *= Math.pow(0.04, dt);
-    vehicle.angularVelocity *= Math.pow(0.02, dt);
+    const brakeGrip = clamp(terrain.traction, 0.18, 1);
+    vehicle.vx *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt);
+    vehicle.vy *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt);
+    vehicle.angularVelocity *= Math.pow(1 - (1 - 0.02) * brakeGrip, dt);
   }
 
-  const drag = Math.pow(inputMagnitude(inputX, inputY) > 0.05 ? 0.32 : 0.08 / (Math.max(1, Math.sqrt(Math.max(1, wheelPower))) * wheelInertiaCompensation), dt);
+  const baseDrag = inputMagnitude(inputX, inputY) > 0.05 ? 0.32 : 0.08 / (Math.max(1, Math.sqrt(Math.max(1, wheelPower))) * wheelInertiaCompensation);
+  const tractionDrag = 1 - (1 - baseDrag) * clamp(terrain.traction, 0.05, 1.5);
+  const resistanceDrag = clamp(tractionDrag - terrain.rollingResistance * 0.12, 0.02, 0.99);
+  const drag = Math.pow(resistanceDrag, dt);
   vehicle.vx *= drag;
   vehicle.vy *= drag;
   clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty, engineMaxVelocity);
@@ -61,6 +67,13 @@ export function typedModulePower(vehicle, type) {
 
 function inputMagnitude(x, y) {
   return Math.hypot(x, y);
+}
+
+function normalizeTerrainContact(terrainContact) {
+  return {
+    traction: clamp(terrainContact?.traction ?? SAFE_TERRAIN_SAMPLE.traction, 0.05, 2),
+    rollingResistance: clamp(terrainContact?.rollingResistance ?? SAFE_TERRAIN_SAMPLE.rollingResistance, 0, 1),
+  };
 }
 
 function applyWheelGrounding(vehicle, accel, wheelPower, inertiaCompensation, dt) {

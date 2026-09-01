@@ -16,6 +16,10 @@ export function drawDebugOverlay(ctx, game) {
     `road ${game.road.x.toFixed(0)}, ${game.road.y.toFixed(0)} ${game.road.speed.toFixed(0)}`,
     `lane ${game.road.halfWidth.toFixed(0)} x ${game.road.halfHeight.toFixed(0)}`,
     `camera ${game.camera.x.toFixed(0)}, ${game.camera.y.toFixed(0)} ${game.camera.heading.toFixed(2)}`,
+    game.terrainSample
+      ? `terrain ${game.terrainSample.materialId} t:${game.terrainSample.traction.toFixed(2)} c:${game.terrainSample.chunkX},${game.terrainSample.chunkY}`
+      : '',
+    game.terrain ? `terrain chunks ${game.terrain.chunks.size} gen ${game.terrain.stats.generatedChunks} retired ${game.terrain.stats.retiredChunks}` : '',
     `last hit ${lastHit?.id ?? 'none'}`,
     lastHit ? `structure ${lastHit.state.structureIntegrity.toFixed(2)}` : '',
     lastHit ? `anchors ${Object.entries(lastHit.state.anchorIntegrity).map(([k, v]) => `${k[0]}:${v.toFixed(2)}`).join(' ')}` : '',
