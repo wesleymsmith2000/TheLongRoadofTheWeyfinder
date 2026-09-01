@@ -10,6 +10,14 @@ import {
 } from '../core/enemyArchetypeDefinition.js';
 import aimedPatternDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
+import ghostPhaseHomingRadial from '../../content/examples/prototype0-zone-enemy-set/patterns/example.ghost_phase_homing_radial.json' with { type: 'json' };
+import frogTractorBeam from '../../content/examples/prototype0-zone-enemy-set/patterns/example.frog_tractor_beam.json' with { type: 'json' };
+import frogShortLaser from '../../content/examples/prototype0-zone-enemy-set/patterns/example.frog_short_laser.json' with { type: 'json' };
+import mortarLine7 from '../../content/examples/prototype0-zone-enemy-set/patterns/example.mortar_line_7.json' with { type: 'json' };
+import buzzardTrailingMortar from '../../content/examples/prototype0-zone-enemy-set/patterns/example.buzzard_trailing_mortar.json' with { type: 'json' };
+import inchwormRepulsorEye from '../../content/examples/prototype0-zone-enemy-set/patterns/example.inchworm_repulsor_eye.json' with { type: 'json' };
+import inchwormEyeMiniBeam from '../../content/examples/prototype0-zone-enemy-set/patterns/example.inchworm_eye_mini_beam.json' with { type: 'json' };
+import zoneEnemyArchetypes from '../../content/examples/prototype0-zone-enemy-set/enemies/example.zone_enemy_archetypes.json' with { type: 'json' };
 import {
   installLocalContentBundle,
   installLocalContentFiles,
@@ -76,17 +84,29 @@ const fields = Object.fromEntries(
     'animationPhaseInput',
     'opacityMinInput',
     'opacityMaxInput',
+    'advancedDescriptorInput',
   ].map((id) => [id, document.querySelector(`#${id}`)]),
 );
 
-const PATTERN_DEFINITIONS = [aimedPatternDefinition, radialPatternDefinition];
+const TEMPLATE_ARCHETYPES = [...CANON_ENEMY_ARCHETYPE_PACK.archetypes, ...zoneEnemyArchetypes.archetypes];
+const PATTERN_DEFINITIONS = [
+  aimedPatternDefinition,
+  radialPatternDefinition,
+  ghostPhaseHomingRadial,
+  frogTractorBeam,
+  frogShortLaser,
+  mortarLine7,
+  buzzardTrailingMortar,
+  inchwormRepulsorEye,
+  inchwormEyeMiniBeam,
+];
 const CONSTRUCT_OPTIONS = [
-  ...new Set(['basic_turret', 'runtime.pirate_ship.prototype0', 'runtime.pirate_ram_ship.prototype0', ...CANON_ENEMY_ARCHETYPE_PACK.archetypes.map((enemy) => enemy.construct).filter(Boolean)]),
+  ...new Set(['basic_turret', 'runtime.pirate_ship.prototype0', 'runtime.pirate_ram_ship.prototype0', ...TEMPLATE_ARCHETYPES.map((enemy) => enemy.construct).filter(Boolean)]),
 ];
 let pack = clone(CANON_ENEMY_ARCHETYPE_PACK);
 let archetype = clone(CANON_ENEMY_ARCHETYPE_PACK.archetypes.find((candidate) => candidate.id === 'ghost_fabric.prototype0') ?? CANON_ENEMY_ARCHETYPE_PACK.archetypes[0]);
 
-for (const template of CANON_ENEMY_ARCHETYPE_PACK.archetypes) fields.templateSelect.append(new Option(template.displayName ?? template.id, template.id));
+for (const template of TEMPLATE_ARCHETYPES) fields.templateSelect.append(new Option(template.displayName ?? template.id, template.id));
 for (const factory of ENEMY_RUNTIME_FACTORIES) fields.runtimeFactorySelect.append(new Option(factory, factory));
 for (const construct of CONSTRUCT_OPTIONS) fields.constructSelect.append(new Option(construct, construct));
 for (const status of CANON_STATUSES) fields.canonStatusSelect.append(new Option(status, status));
@@ -105,8 +125,8 @@ for (const pattern of PATTERN_DEFINITIONS) {
 }
 
 fields.templateSelect.addEventListener('change', () => {
-  const next = CANON_ENEMY_ARCHETYPE_PACK.archetypes.find((candidate) => candidate.id === fields.templateSelect.value);
-  if (next) loadArchetype(next);
+  const next = TEMPLATE_ARCHETYPES.find((candidate) => candidate.id === fields.templateSelect.value);
+  if (next) loadArchetype(next, packForTemplate(next));
 });
 for (const field of Object.values(fields)) field.addEventListener('input', renderFromFields);
 downloadButton.addEventListener('click', downloadJson);
@@ -182,6 +202,7 @@ function syncToFields() {
   fields.animationPhaseInput.value = animation.phaseOffset ?? '';
   fields.opacityMinInput.value = animation.opacityMin ?? '';
   fields.opacityMaxInput.value = animation.opacityMax ?? '';
+  fields.advancedDescriptorInput.value = JSON.stringify(advancedDescriptorFor(archetype), null, 2);
 }
 
 function syncPatterns() {
@@ -197,8 +218,10 @@ function renderFromFields() {
 }
 
 function archetypeFromFields() {
+  const advanced = parseJsonObject(fields.advancedDescriptorInput.value, advancedDescriptorFor(archetype));
   const next = {
     ...archetype,
+    ...advanced,
     id: fields.enemyIdInput.value.trim(),
     displayName: fields.enemyNameInput.value.trim(),
     runtimeFactory: fields.runtimeFactorySelect.value,
@@ -225,6 +248,28 @@ function archetypeFromFields() {
   return pruneEmpty(next);
 }
 
+function advancedDescriptorFor(enemy) {
+  const controlledKeys = new Set([
+    'id',
+    'assetIdAlias',
+    'displayName',
+    'runtimeFactory',
+    'baseArchetype',
+    'construct',
+    'patterns',
+    'entry',
+    'palette',
+    'movementProfiles',
+    'aggregate',
+    'cellAnimations',
+    'canonStatus',
+    'tags',
+    'editable',
+    'arms',
+  ]);
+  return Object.fromEntries(Object.entries(enemy ?? {}).filter(([key]) => !controlledKeys.has(key)));
+}
+
 function editorKnobsFor(enemy) {
   const knobs = new Set(enemy.editable ?? ['construct', 'patterns', 'entry', 'palette']);
   for (const knob of ['movementProfiles', 'aggregate', 'cellAnimations']) knobs.add(knob);
@@ -249,9 +294,16 @@ function packFromFields(enemy) {
 }
 
 function selectedPatterns() {
-  return [...patternList.querySelectorAll('input')]
+  const visiblePatternIds = new Set(PATTERN_DEFINITIONS.map((pattern) => pattern.assetId));
+  const checked = [...patternList.querySelectorAll('input')]
     .filter((checkbox) => checkbox.checked)
     .map((checkbox) => checkbox.value);
+  return [...new Set([...checked, ...(archetype.patterns ?? []).filter((id) => !visiblePatternIds.has(id))])];
+}
+
+function packForTemplate(template) {
+  if (zoneEnemyArchetypes.archetypes.some((candidate) => candidate.id === template.id)) return zoneEnemyArchetypes;
+  return CANON_ENEMY_ARCHETYPE_PACK;
 }
 
 function entryFromFields() {
@@ -713,6 +765,15 @@ function lerp(a, b, t) {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function parseJsonObject(value, fallback = {}) {
+  try {
+    const parsed = JSON.parse(value || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function escapeHtml(value) {

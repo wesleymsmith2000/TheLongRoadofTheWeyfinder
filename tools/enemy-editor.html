@@ -77,6 +77,10 @@
         line-height: 1.45;
       }
 
+      textarea.compact {
+        min-height: 130px;
+      }
+
       .shell {
         display: grid;
         grid-template-rows: auto 1fr;
@@ -360,6 +364,11 @@
               <label>Opacity Min <input id="opacityMinInput" type="number" min="0" max="1" step="0.05" /></label>
               <label>Opacity Max <input id="opacityMaxInput" type="number" min="0" max="1" step="0.05" /></label>
             </div>
+            <h2>Advanced</h2>
+            <label>
+              Descriptor JSON
+              <textarea id="advancedDescriptorInput" class="compact" spellcheck="false"></textarea>
+            </label>
             <textarea id="jsonOutput" spellcheck="false"></textarea>
             <div id="moduleStatusPanel" class="status"></div>
             <div class="tool-row">

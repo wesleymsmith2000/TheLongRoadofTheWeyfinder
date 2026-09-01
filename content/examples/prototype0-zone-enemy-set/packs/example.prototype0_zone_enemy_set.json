@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "0.1",
+  "packId": "example.prototype0_zone_enemy_set",
+  "displayName": "Prototype 0 Zone Enemy Example Set",
+  "author": "Weyfinder editor thread",
+  "provenance": "Example enemy content pack authored from the zone enemy wish list.",
+  "canonStatus": "COMMUNITY",
+  "description": "Descriptor-first enemy examples for GhostForrest, DigitizedStream, PiratesRoad, StarlightRoad, TwilightCrossroads, ShadowedDesert, and FreedomsPass.",
+  "tags": ["example", "enemy", "zone", "prototype"],
+  "dependencies": [
+    { "kind": "pack", "packId": "canon.prototype0", "required": true }
+  ],
+  "assets": {
+    "patterns": [
+      "../patterns/example.ghost_phase_homing_radial.json",
+      "../patterns/example.frog_tractor_beam.json",
+      "../patterns/example.frog_short_laser.json",
+      "../patterns/example.mortar_line_7.json",
+      "../patterns/example.buzzard_trailing_mortar.json",
+      "../patterns/example.inchworm_repulsor_eye.json",
+      "../patterns/example.inchworm_eye_mini_beam.json"
+    ],
+    "enemyArchetypes": ["../enemies/example.zone_enemy_archetypes.json"],
+    "behaviors": ["../behaviors/example.zone_enemy_behavior_contracts.json"]
+  }
+}

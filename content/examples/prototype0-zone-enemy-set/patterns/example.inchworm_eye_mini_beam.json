@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.inchworm_eye_mini_beam",
+  "displayName": "Inchworm Eye Mini Beam",
+  "author": "Weyfinder editor thread",
+  "provenance": "Close-range particle beam from inchworm eye guns.",
+  "canonStatus": "COMMUNITY",
+  "tags": ["enemy", "inchworm", "beam", "close-range"],
+  "initialDelay": 0.2,
+  "interval": 0.75,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 1,
+    "speed": 0,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "inchworm-eye-mini-beam",
+      "behavior": "beam",
+      "radius": 0.8,
+      "color": "#f4eee4",
+      "damage": 1.2,
+      "impulse": 40,
+      "lifetime": 0.16,
+      "length": 92
+    }
+  }
+}

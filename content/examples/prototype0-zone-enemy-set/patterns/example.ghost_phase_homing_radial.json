@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.ghost_phase_homing_radial",
+  "displayName": "Ghost Phase Homing Radial",
+  "author": "Weyfinder editor thread",
+  "provenance": "Sequential homing radial burst for GhostForrest phasing mobs.",
+  "canonStatus": "COMMUNITY",
+  "tags": ["enemy", "ghost", "phase", "radial", "homing"],
+  "initialDelay": 1,
+  "interval": 0.07,
+  "emitter": {
+    "kind": "sequentialRadial",
+    "target": "player",
+    "count": 16,
+    "speed": 55,
+    "sequenceRest": 1,
+    "jitterRadians": 0.025,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "ghost-homing-burst",
+      "behavior": "homing",
+      "radius": 2.2,
+      "color": "#bff5ff",
+      "damage": 8,
+      "impulse": 45,
+      "lifetime": 5,
+      "delayBeforeAcceleration": 0.2,
+      "stopBeforeAcceleration": true,
+      "acceleration": 450,
+      "accelerationDuration": 3,
+      "maxSpeed": 825,
+      "accelerationSpreadRadians": 0.04
+    }
+  }
+}

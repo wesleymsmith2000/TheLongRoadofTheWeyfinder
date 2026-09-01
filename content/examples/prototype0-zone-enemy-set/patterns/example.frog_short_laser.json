@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.frog_short_laser",
+  "displayName": "Digitized Frog Short Laser",
+  "author": "Weyfinder editor thread",
+  "provenance": "Quarter-length beam attack for frog-like DigitizedStream mobs.",
+  "canonStatus": "COMMUNITY",
+  "tags": ["enemy", "frog", "laser", "beam"],
+  "initialDelay": 0.6,
+  "interval": 1.1,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 1,
+    "speed": 0,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "frog-short-laser",
+      "behavior": "beam",
+      "radius": 0.9,
+      "color": "#f26cff",
+      "damage": 2.4,
+      "impulse": 55,
+      "lifetime": 0.2,
+      "length": 160
+    }
+  }
+}

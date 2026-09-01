@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.mortar_line_7",
+  "displayName": "Seven Mortar Walking Line",
+  "author": "Weyfinder editor thread",
+  "provenance": "Seven arcing shells walking along a line toward the target.",
+  "canonStatus": "COMMUNITY",
+  "tags": ["enemy", "mortar", "pirates-road", "arc", "salvo"],
+  "initialDelay": 1.2,
+  "interval": 0.18,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 7,
+    "speed": 70,
+    "spreadRadians": 0.08,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "enemy-line-mortar",
+      "behavior": "arc",
+      "radius": 3.5,
+      "color": "#ff7a1a",
+      "damage": 0,
+      "impulse": 90,
+      "lifetime": 3.4,
+      "verticalVelocity": 145,
+      "gravity": 96,
+      "maxArcHeight": 120,
+      "shadowRadius": 4.5,
+      "targetHint": "playerLine",
+      "detonateAtTarget": true,
+      "blastOnExpire": {
+        "radius": 38,
+        "damage": 28,
+        "impulse": 85
+      }
+    }
+  },
+  "salvoLine": {
+    "shots": 7,
+    "spacing": 34,
+    "cadenceSeconds": 0.18,
+    "line": "sourceToPredictedTarget"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.buzzard_trailing_mortar",
+  "displayName": "Buzzard Trailing Mortar",
+  "author": "Weyfinder editor thread",
+  "provenance": "Rear-dropped arcing mortar for ShadowedDesert aerial strafers.",
+  "canonStatus": "COMMUNITY",
+  "tags": ["enemy", "buzzard", "mortar", "arc", "air"],
+  "initialDelay": 0.4,
+  "interval": 0.32,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 1,
+    "speed": 42,
+    "spreadRadians": 0.05,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "buzzard-tail-mortar",
+      "behavior": "arc",
+      "radius": 2.8,
+      "color": "#c95b37",
+      "damage": 0,
+      "impulse": 70,
+      "lifetime": 2.8,
+      "verticalVelocity": 112,
+      "gravity": 92,
+      "maxArcHeight": 95,
+      "shadowRadius": 3.5,
+      "targetHint": "rearDrop",
+      "detonateAtTarget": true,
+      "blastOnExpire": {
+        "radius": 30,
+        "damage": 18,
+        "impulse": 60
+      }
+    }
+  }
+}

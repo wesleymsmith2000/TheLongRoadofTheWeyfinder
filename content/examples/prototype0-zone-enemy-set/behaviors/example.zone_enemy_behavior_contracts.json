@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.zone_enemy_behavior_contracts",
+  "displayName": "Zone Enemy Behavior Contracts",
+  "author": "Weyfinder editor thread",
+  "provenance": "Shared behavior notes for the Prototype 0 zone enemy examples.",
+  "canonStatus": "COMMUNITY",
+  "tags": ["example", "behavior", "enemy"],
+  "contracts": [
+    "phaseInBeforeFire",
+    "cancelSequenceOnHit",
+    "teleportAfterPhaseOut",
+    "tractorScrapHeal",
+    "mortarLineSalvo",
+    "elevatedUntilSupportsDestroyed",
+    "aerialStrafeLoop",
+    "segmentReleaseFlechettes",
+    "repulsorEyeDefense"
+  ]
+}

@@ -1,5 +1,6 @@
 import { installLocalContentBundle, installLocalContentFiles, listLocalContentPacks, removeLocalContentPack } from '../core/localContentLibrary.js';
 import { EXAMPLE_PROTOTYPE0_MODULE_SET_BUNDLE } from './examplePrototype0ModuleSet.js';
+import { EXAMPLE_ZONE_ENEMY_SET_BUNDLE } from './exampleZoneEnemySet.js';
 
 const editorFrame = document.querySelector('#editorFrame');
 const editorButtons = [...document.querySelectorAll('[data-editor]')];
@@ -8,6 +9,7 @@ const importFolderInput = document.querySelector('#importFolderInput');
 const importFilesButton = document.querySelector('#importFilesButton');
 const importFilesInput = document.querySelector('#importFilesInput');
 const installExampleButton = document.querySelector('#installExampleButton');
+const installZoneEnemyExampleButton = document.querySelector('#installZoneEnemyExampleButton');
 const refreshModulesButton = document.querySelector('#refreshModulesButton');
 const clearStatusButton = document.querySelector('#clearStatusButton');
 const moduleStatus = document.querySelector('#moduleStatus');
@@ -21,6 +23,7 @@ importFolderInput.addEventListener('change', () => importModuleFiles(importFolde
 importFilesButton.addEventListener('click', () => importFilesInput.click());
 importFilesInput.addEventListener('change', () => importModuleFiles(importFilesInput));
 installExampleButton.addEventListener('click', installExampleModuleSet);
+installZoneEnemyExampleButton.addEventListener('click', installZoneEnemyExampleSet);
 refreshModulesButton.addEventListener('click', () => renderModuleList());
 clearStatusButton.addEventListener('click', () => {
   moduleStatus.textContent = '';
@@ -46,6 +49,12 @@ async function importModuleFiles(input) {
 
 function installExampleModuleSet() {
   const result = installLocalContentBundle(EXAMPLE_PROTOTYPE0_MODULE_SET_BUNDLE);
+  renderImportStatus(result);
+  renderModuleList();
+}
+
+function installZoneEnemyExampleSet() {
+  const result = installLocalContentBundle(EXAMPLE_ZONE_ENEMY_SET_BUNDLE);
   renderImportStatus(result);
   renderModuleList();
 }

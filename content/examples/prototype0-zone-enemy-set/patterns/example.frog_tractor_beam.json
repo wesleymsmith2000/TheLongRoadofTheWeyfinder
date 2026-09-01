@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.frog_tractor_beam",
+  "displayName": "Digitized Frog Tractor Beam",
+  "author": "Weyfinder editor thread",
+  "provenance": "Short tractor beam descriptor for frog-like DigitizedStream mobs.",
+  "canonStatus": "COMMUNITY",
+  "tags": ["enemy", "frog", "tractor", "beam", "scrap"],
+  "initialDelay": 0.2,
+  "interval": 0.35,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 1,
+    "speed": 0,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "frog-tractor",
+      "behavior": "beam",
+      "radius": 3,
+      "color": "#72fff3",
+      "damage": 0.2,
+      "impulse": 115,
+      "lifetime": 0.45,
+      "length": 120
+    }
+  }
+}

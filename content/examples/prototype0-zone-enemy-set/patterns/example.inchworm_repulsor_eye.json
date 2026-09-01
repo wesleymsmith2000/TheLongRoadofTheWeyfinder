@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.inchworm_repulsor_eye",
+  "displayName": "Inchworm Repulsor Eye Beam",
+  "author": "Weyfinder editor thread",
+  "provenance": "Eye-gun defensive beam that repels nearby projectiles and hostiles.",
+  "canonStatus": "COMMUNITY",
+  "tags": ["enemy", "inchworm", "repulsor", "beam", "defense"],
+  "initialDelay": 0.1,
+  "interval": 0.45,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 1,
+    "speed": 0,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "inchworm-repulsor-eye",
+      "behavior": "beam",
+      "radius": 1.4,
+      "color": "#d7ff9b",
+      "damage": 0.35,
+      "impulse": 260,
+      "lifetime": 0.18,
+      "length": 105,
+      "repelsProjectiles": true
+    }
+  }
+}
