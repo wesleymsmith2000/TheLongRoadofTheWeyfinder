@@ -20,6 +20,7 @@ Start here:
 - [Elevation Enemy And Loadout Editor Handoff](./elevation-enemy-loadout-editor-handoff.md)
 - [Arc Projectiles And Status Effects Editor Handoff](./arc-status-effects-editor-handoff.md)
 - [Combat Balance Editor Follow-Up Handoff](./combat-balance-editor-followup-handoff.md)
+- [Editor New Weapons, Enemies, And Pages Handoff](./editor-new-weapons-enemies-pages-handoff.md)
 
 Current priorities:
 

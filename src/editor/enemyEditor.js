@@ -56,6 +56,11 @@ const fields = Object.fromEntries(
     'movementAccelerationInput',
     'movementStrengthInput',
     'movementPhaseInput',
+    'movementDurationInput',
+    'movementZInput',
+    'movementMinZInput',
+    'movementMaxZInput',
+    'movementHopHeightInput',
     'aggregateKindSelect',
     'aggregatePartCountInput',
     'aggregateRoleInput',
@@ -75,7 +80,9 @@ const fields = Object.fromEntries(
 );
 
 const PATTERN_DEFINITIONS = [aimedPatternDefinition, radialPatternDefinition];
-const CONSTRUCT_OPTIONS = ['basic_turret', 'runtime.pirate_ship.prototype0', 'runtime.pirate_ram_ship.prototype0'];
+const CONSTRUCT_OPTIONS = [
+  ...new Set(['basic_turret', 'runtime.pirate_ship.prototype0', 'runtime.pirate_ram_ship.prototype0', ...CANON_ENEMY_ARCHETYPE_PACK.archetypes.map((enemy) => enemy.construct).filter(Boolean)]),
+];
 let pack = clone(CANON_ENEMY_ARCHETYPE_PACK);
 let archetype = clone(CANON_ENEMY_ARCHETYPE_PACK.archetypes.find((candidate) => candidate.id === 'ghost_fabric.prototype0') ?? CANON_ENEMY_ARCHETYPE_PACK.archetypes[0]);
 
@@ -151,6 +158,11 @@ function syncToFields() {
   fields.movementAccelerationInput.value = movement.acceleration ?? '';
   fields.movementStrengthInput.value = movement.strength ?? '';
   fields.movementPhaseInput.value = movement.phaseOffset ?? '';
+  fields.movementDurationInput.value = movement.duration ?? '';
+  fields.movementZInput.value = movement.z ?? '';
+  fields.movementMinZInput.value = movement.minZ ?? '';
+  fields.movementMaxZInput.value = movement.maxZ ?? '';
+  fields.movementHopHeightInput.value = movement.hopHeight ?? '';
 
   const aggregate = archetype.aggregate ?? defaultAggregateFor(archetype);
   fields.aggregateKindSelect.value = aggregate.kind ?? 'singleBody';
@@ -194,7 +206,7 @@ function archetypeFromFields() {
     patterns: selectedPatterns(),
     entry: entryFromFields(),
     palette: paletteFromArchetype(archetype),
-    movementProfiles: [movementFromFields()],
+    movementProfiles: movementProfilesFromFields(),
     aggregate: aggregateFromFields(),
     cellAnimations: animationFromFields(),
     canonStatus: fields.canonStatusSelect.value,
@@ -254,7 +266,8 @@ function entryFromFields() {
 
 function movementFromFields() {
   const movement = {
-    id: 'primary-movement',
+    ...(archetype.movementProfiles?.[0] ?? {}),
+    id: archetype.movementProfiles?.[0]?.id ?? 'primary-movement',
     kind: fields.movementKindSelect.value,
     target: fields.movementTargetSelect.value,
   };
@@ -264,20 +277,31 @@ function movementFromFields() {
   assignNumber(movement, 'acceleration', fields.movementAccelerationInput);
   assignNumber(movement, 'strength', fields.movementStrengthInput);
   assignNumber(movement, 'phaseOffset', fields.movementPhaseInput);
+  assignNumber(movement, 'duration', fields.movementDurationInput);
+  assignNumber(movement, 'z', fields.movementZInput);
+  assignNumber(movement, 'minZ', fields.movementMinZInput);
+  assignNumber(movement, 'maxZ', fields.movementMaxZInput);
+  assignNumber(movement, 'hopHeight', fields.movementHopHeightInput);
   return movement;
+}
+
+function movementProfilesFromFields() {
+  return [movementFromFields(), ...(archetype.movementProfiles ?? []).slice(1)];
 }
 
 function aggregateFromFields() {
   const aggregate = { kind: fields.aggregateKindSelect.value };
   if (aggregate.kind === 'singleBody') return aggregate;
+  const previousParts = archetype.aggregate?.kind === aggregate.kind ? archetype.aggregate?.parts ?? [] : [];
   const part = {
+    ...(previousParts[0] ?? {}),
     id: fields.aggregateRoleInput.value.trim() || 'part',
     role: fields.aggregateRoleInput.value.trim() || 'part',
     attachment: fields.aggregateAttachmentInput.value.trim() || 'radial',
-    movementProfile: 'primary-movement',
+    movementProfile: previousParts[0]?.movementProfile ?? archetype.movementProfiles?.[0]?.id ?? 'primary-movement',
   };
   assignNumber(part, 'count', fields.aggregatePartCountInput);
-  aggregate.parts = [part];
+  aggregate.parts = [part, ...previousParts.slice(1)];
   return aggregate;
 }
 
@@ -372,6 +396,9 @@ function renderStatus() {
   ];
   if (movement || (archetype.cellAnimations ?? []).length > 0 || archetype.aggregate?.kind !== 'singleBody') {
     lines.push('<span class="warning">Runtime note: movementProfiles, aggregate, and cellAnimations are validated editor descriptors until the level runner consumes them.</span>');
+  }
+  if (movement?.kind) {
+    lines.push(`<span>Movement descriptor: ${escapeHtml(movement.kind)}${movement.z != null ? ` at z ${escapeHtml(movement.z)}` : ''}${movement.hopHeight != null ? `, hop ${escapeHtml(movement.hopHeight)}` : ''}</span>`);
   }
   if (archetype.arms?.beamSource) {
     lines.push(`<span>Boss beam source: ${escapeHtml(archetype.arms.beamSource.selector)}${archetype.arms.beamSource.shutoffWhenDestroyed ? ', source destruction shuts beam off' : ''}</span>`);
@@ -512,6 +539,12 @@ function movementPoint(movement, t, time) {
   const phase = (movement.phaseOffset ?? 0) + time * (movement.frequency ?? 0.8) * Math.PI * 2;
   if (movement.kind === 'orbitTarget') return { x: Math.cos(t * Math.PI * 2 + phase) * amp * 1.8, y: Math.sin(t * Math.PI * 2 + phase) * amp };
   if (movement.kind === 'weave') return { x: Math.sin(t * Math.PI * 4 + phase) * amp, y: 130 - t * 260 };
+  if (movement.kind === 'phase') return { x: Math.sin(t * Math.PI * 2 + phase) * amp * 0.6, y: 120 - t * 240 };
+  if (movement.kind === 'hop') return { x: Math.sin(t * Math.PI * 2 + phase) * amp * 0.5, y: 130 - t * 260 - Math.sin(t * Math.PI) * ((movement.hopHeight ?? 42) * 0.65) };
+  if (movement.kind === 'flyStrafe') return { x: (t - 0.5) * amp * 5, y: Math.sin(t * Math.PI * 2 + phase) * amp * 0.7 };
+  if (movement.kind === 'walkerLegs') return { x: Math.sin(t * Math.PI * 2 + phase) * amp * 0.35, y: 115 - t * 230 };
+  if (movement.kind === 'circleArtillery') return { x: Math.cos(t * Math.PI * 2 + phase) * amp * 1.6, y: Math.sin(t * Math.PI * 2 + phase) * amp * 1.15 };
+  if (movement.kind === 'carrierRelease') return { x: Math.sin(t * Math.PI * 6 + phase) * amp * 0.55, y: 120 - t * 240 };
   if (movement.kind === 'strafeBroadside') return { x: (t - 0.5) * amp * 4, y: Math.sin(t * Math.PI * 2 + phase) * amp * 0.4 };
   if (movement.kind === 'returnToView') return { x: Math.cos(t * Math.PI) * amp * 2, y: (t - 0.5) * amp };
   if (movement.kind === 'charge') return { x: 0, y: 150 - t * 300 };
@@ -606,6 +639,7 @@ function drawCell(x, y, type, time, seed = 0) {
 
 function selectorMatches(selector, type) {
   if (!selector) return false;
+  if (selector === 'all') return true;
   if (selector === '*') return true;
   if (selector.startsWith('type:')) return selector.slice(5) === type;
   return false;

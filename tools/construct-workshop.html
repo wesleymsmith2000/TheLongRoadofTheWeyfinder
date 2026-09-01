@@ -159,6 +159,13 @@
         gap: 8px;
       }
 
+      .loadout-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 12px;
+      }
+
       .canvas-panel {
         display: grid;
         grid-template-rows: auto 1fr auto;
@@ -296,6 +303,14 @@
           <div id="cellList" class="list"></div>
           <h2>Connections</h2>
           <div id="connectionList" class="list"></div>
+          <h2>Gun Loadout</h2>
+          <div class="loadout-grid">
+            <label>Primary 1 <select id="primarySlot0Select" data-slot-kind="primary" data-slot-index="0"></select></label>
+            <label>Primary 2 <select id="primarySlot1Select" data-slot-kind="primary" data-slot-index="1"></select></label>
+            <label>Secondary 1 <select id="secondarySlot0Select" data-slot-kind="secondary" data-slot-index="0"></select></label>
+            <label>Secondary 2 <select id="secondarySlot1Select" data-slot-kind="secondary" data-slot-index="1"></select></label>
+            <label>Secondary 3 <select id="secondarySlot2Select" data-slot-kind="secondary" data-slot-index="2"></select></label>
+          </div>
         </aside>
         <section class="panel canvas-panel">
           <h2>Grid</h2>

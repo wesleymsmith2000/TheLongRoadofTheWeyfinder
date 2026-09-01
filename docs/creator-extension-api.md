@@ -228,6 +228,22 @@ The launch-screen vehicle editor edits a construct definition before deployment.
 
 The editor does not allow adding or removing `core`. Player vehicles must contain exactly one core.
 
+Player/construct definitions may carry per-gun weapon loadouts:
+
+```json
+{
+  "gunLoadouts": [
+    {
+      "cellId": "gun",
+      "primary": ["main.basic", null],
+      "secondary": ["rocket", "cannon", "beam"]
+    }
+  ]
+}
+```
+
+Current primary ids are `main.basic`, `tracking_flechette`, `mortar`, and `mini_beam`. Current secondary ids are `rocket`, `cannon`, `beam`, `sta_missile`, and `orb_of_blades`. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`.
+
 Available equipment is read from player account data rather than hard-coded into the editor. Prototype 0 uses local in-memory account data:
 
 ```json
@@ -322,6 +338,15 @@ Arc projectile fields:
 - `gravity`: downward acceleration.
 - `maxArcHeight`: visual height cap.
 - `shadowRadius`: ground tell / landing-shadow size.
+- `targetHint`: optional targeting hint such as `aimReticle`.
+- `detonateAtTarget`: if true, landing/target arrival triggers blast handling.
+- `zCollision`: if true, future z-aware collision should use projectile height.
+
+Pierce fields:
+
+- `pierce`: follow-through voxel hits after the first impact.
+- `pierceDamageScale`: fraction of impact damage available to the first pierced voxel.
+- `pierceDamageFalloff`: remaining pierce damage multiplier after each voxel.
 
 Particle beams are width-aware at the voxel layer. Runtime sampling follows the animated beam width, damages the first damageable voxel on each sampled lane, and continues through additional voxels only according to `pierce`. Wide low-pierce beams strip surface area; narrow high-pierce beams drill deeper.
 
@@ -330,6 +355,7 @@ Optional projectile presentation/simulation fields:
 - `destructible`: when true, the projectile has a damageable hull.
 - `shape`: currently supports `{ "kind": "cylinderCone" }` for rockets, with body/cone dimensions and voxel grid counts.
 - `contrail`: optional short-lived visual particle settings. This is render-facing metadata carried by the projectile definition, not editor UI state.
+- `emitsProjectiles`: optional moving-emitter payload, currently used by `orb_of_blades`.
 
 Destructible projectile data must still validate through `src/core/weaponDefinition.js`; editors should not emit private rocket-shape fields outside this contract.
 
@@ -505,6 +531,8 @@ Current `entry.kind` values:
 - `aheadDrift`
 - `behindCharge`
 - `aheadBoss`
+- `airStrafe`
+- `zoneAmbush`
 
 Current `movementProfiles[].kind` values:
 
@@ -515,6 +543,12 @@ Current `movementProfiles[].kind` values:
 - `strafeBroadside`
 - `weave`
 - `bossTentacleSwarm`
+- `phase`
+- `hop`
+- `flyStrafe`
+- `walkerLegs`
+- `circleArtillery`
+- `carrierRelease`
 
 Current `aggregate.kind` values:
 
@@ -529,6 +563,9 @@ Current `cellAnimations[].kind` values:
 - `sineWave`
 - `swirl`
 - `fabricWeave`
+- `phaseFade`
+- `legStride`
+- `wingBeat`
 
 Editors should update archetype descriptors when changing enemy art, patterns, palettes, entry behavior, or balance knobs. If a change needs a new simulation verb, add a named runtime primitive and then expose it in this descriptor layer.
 

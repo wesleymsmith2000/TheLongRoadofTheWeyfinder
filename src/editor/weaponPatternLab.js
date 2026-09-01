@@ -5,11 +5,26 @@ import { PROJECTILE_BEHAVIORS, validateWeaponDefinition } from '../core/weaponDe
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
+import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
+import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
+import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
+import staMissileDefinition from '../../content/weapons/sta_missile.json' with { type: 'json' };
+import orbOfBladesDefinition from '../../content/weapons/orb_of_blades.json' with { type: 'json' };
 import aimedPatternDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
+import { CELL_SIZE } from '../core/voxelMask.js';
 
 const canonAssets = {
-  weapon: [rocketDefinition, cannonDefinition, beamDefinition],
+  weapon: [
+    rocketDefinition,
+    cannonDefinition,
+    beamDefinition,
+    trackingFlechetteDefinition,
+    mortarDefinition,
+    miniBeamDefinition,
+    staMissileDefinition,
+    orbOfBladesDefinition,
+  ],
   pattern: [aimedPatternDefinition, radialPatternDefinition],
   statusEffect: Object.values(STATUS_EFFECT_DEFINITIONS).map((definition) => ({
     schemaVersion: CONTENT_SCHEMA_VERSION,
@@ -59,10 +74,23 @@ const fields = Object.fromEntries(
     'weaponImpulseInput',
     'weaponLifetimeInput',
     'weaponLengthInput',
+    'weaponTurnRateInput',
+    'weaponAccelerationInput',
+    'weaponMaxSpeedInput',
+    'weaponPierceInput',
+    'weaponPierceDamageScaleInput',
+    'weaponPierceDamageFalloffInput',
     'weaponVerticalVelocityInput',
     'weaponGravityInput',
     'weaponMaxArcHeightInput',
     'weaponShadowRadiusInput',
+    'weaponBlastRadiusInput',
+    'weaponBlastDamageInput',
+    'weaponBlastKnockbackInput',
+    'weaponTargetHintInput',
+    'weaponDetonateAtTargetInput',
+    'weaponZCollisionInput',
+    'weaponEmitsProjectilesInput',
     'patternKindSelect',
     'patternTargetSelect',
     'patternBehaviorSelect',
@@ -83,6 +111,9 @@ const fields = Object.fromEntries(
     'patternRadiusInput',
     'patternDamageInput',
     'patternImpulseInput',
+    'patternPierceInput',
+    'patternPierceDamageScaleInput',
+    'patternPierceDamageFalloffInput',
     'patternColorInput',
     'absorbsPlayerProjectilesInput',
     'absorbHpInput',
@@ -167,10 +198,23 @@ function syncWeaponToFields() {
   fields.weaponImpulseInput.value = projectile.impulse ?? 0;
   fields.weaponLifetimeInput.value = projectile.lifetime ?? 0;
   fields.weaponLengthInput.value = projectile.length ?? 0;
+  fields.weaponTurnRateInput.value = projectile.turnRate ?? 0;
+  fields.weaponAccelerationInput.value = projectile.acceleration ?? 0;
+  fields.weaponMaxSpeedInput.value = projectile.maxSpeed ?? 0;
+  fields.weaponPierceInput.value = projectile.pierce ?? 0;
+  fields.weaponPierceDamageScaleInput.value = projectile.pierceDamageScale ?? 0.7;
+  fields.weaponPierceDamageFalloffInput.value = projectile.pierceDamageFalloff ?? 0.68;
   fields.weaponVerticalVelocityInput.value = projectile.verticalVelocity ?? projectile.vz ?? 0;
   fields.weaponGravityInput.value = projectile.gravity ?? 0;
   fields.weaponMaxArcHeightInput.value = projectile.maxArcHeight ?? projectile.arcHeight ?? 1;
   fields.weaponShadowRadiusInput.value = projectile.shadowRadius ?? projectile.radius ?? 0;
+  fields.weaponBlastRadiusInput.value = projectile.blastRadiusCells ?? (projectile.blastRadius != null ? projectile.blastRadius / CELL_SIZE : 0);
+  fields.weaponBlastDamageInput.value = projectile.blastDamage ?? 0;
+  fields.weaponBlastKnockbackInput.value = projectile.blastKnockback ?? 0;
+  fields.weaponTargetHintInput.value = projectile.targetHint ?? '';
+  fields.weaponDetonateAtTargetInput.checked = Boolean(projectile.detonateAtTarget);
+  fields.weaponZCollisionInput.checked = Boolean(projectile.zCollision);
+  fields.weaponEmitsProjectilesInput.value = projectile.emitsProjectiles ? JSON.stringify(projectile.emitsProjectiles, null, 2) : '';
 }
 
 function syncPatternToFields() {
@@ -196,6 +240,9 @@ function syncPatternToFields() {
   fields.patternRadiusInput.value = projectile.radius ?? 0;
   fields.patternDamageInput.value = projectile.damage ?? 0;
   fields.patternImpulseInput.value = projectile.impulse ?? 0;
+  fields.patternPierceInput.value = projectile.pierce ?? 0;
+  fields.patternPierceDamageScaleInput.value = projectile.pierceDamageScale ?? 0.7;
+  fields.patternPierceDamageFalloffInput.value = projectile.pierceDamageFalloff ?? 0.68;
   fields.patternColorInput.value = projectile.color ?? '#ffb25f';
   fields.absorbsPlayerProjectilesInput.checked = Boolean(projectile.absorbsPlayerProjectiles);
   fields.absorbHpInput.value = projectile.absorbHp ?? 0;
@@ -256,6 +303,19 @@ function weaponFromFields() {
     lifetime: readNumber(fields.weaponLifetimeInput),
     length: readNumber(fields.weaponLengthInput),
   });
+  assignOptionalNumber(projectile, 'turnRate', fields.weaponTurnRateInput, asset.projectile?.turnRate);
+  assignOptionalNumber(projectile, 'acceleration', fields.weaponAccelerationInput, asset.projectile?.acceleration);
+  assignOptionalNumber(projectile, 'maxSpeed', fields.weaponMaxSpeedInput, asset.projectile?.maxSpeed);
+  assignOptionalNumber(projectile, 'pierce', fields.weaponPierceInput, asset.projectile?.pierce);
+  assignOptionalNumber(projectile, 'pierceDamageScale', fields.weaponPierceDamageScaleInput, asset.projectile?.pierceDamageScale, 0.7);
+  assignOptionalNumber(projectile, 'pierceDamageFalloff', fields.weaponPierceDamageFalloffInput, asset.projectile?.pierceDamageFalloff, 0.68);
+  assignOptionalNumber(projectile, 'blastRadiusCells', fields.weaponBlastRadiusInput, asset.projectile?.blastRadiusCells);
+  assignOptionalNumber(projectile, 'blastDamage', fields.weaponBlastDamageInput, asset.projectile?.blastDamage);
+  assignOptionalNumber(projectile, 'blastKnockback', fields.weaponBlastKnockbackInput, asset.projectile?.blastKnockback);
+  assignOptionalString(projectile, 'targetHint', fields.weaponTargetHintInput, asset.projectile?.targetHint);
+  assignOptionalBoolean(projectile, 'detonateAtTarget', fields.weaponDetonateAtTargetInput, asset.projectile?.detonateAtTarget);
+  assignOptionalBoolean(projectile, 'zCollision', fields.weaponZCollisionInput, asset.projectile?.zCollision);
+  assignOptionalObject(projectile, 'emitsProjectiles', fields.weaponEmitsProjectilesInput, asset.projectile?.emitsProjectiles);
   assignArcFields(projectile, {
     behavior: fields.weaponBehaviorSelect.value,
     previousProjectile: asset.projectile,
@@ -296,6 +356,9 @@ function patternFromFields() {
   assignOptionalNumber(projectile, 'maxSpeed', fields.maxSpeedInput, previousProjectile.maxSpeed);
   assignOptionalNumber(projectile, 'accelerationSpreadRadians', fields.accelerationSpreadInput, previousProjectile.accelerationSpreadRadians);
   assignOptionalBoolean(projectile, 'explodeAfterAcceleration', fields.explodeAfterAccelerationInput, previousProjectile.explodeAfterAcceleration);
+  assignOptionalNumber(projectile, 'pierce', fields.patternPierceInput, previousProjectile.pierce);
+  assignOptionalNumber(projectile, 'pierceDamageScale', fields.patternPierceDamageScaleInput, previousProjectile.pierceDamageScale, 0.7);
+  assignOptionalNumber(projectile, 'pierceDamageFalloff', fields.patternPierceDamageFalloffInput, previousProjectile.pierceDamageFalloff, 0.68);
   assignArcFields(projectile, {
     behavior: fields.patternBehaviorSelect.value,
     previousProjectile,
@@ -361,9 +424,9 @@ function assignArcNumber(target, key, input, previousValue, force) {
   if (force || value > 0 || previousValue != null) target[key] = value;
 }
 
-function assignOptionalNumber(target, key, input, previousValue) {
+function assignOptionalNumber(target, key, input, previousValue, defaultValue = 0) {
   const value = readNumber(input);
-  if (value > 0 || previousValue != null) target[key] = value;
+  if (value !== defaultValue || previousValue != null) target[key] = value;
 }
 
 function assignOptionalBoolean(target, key, input, previousValue) {
@@ -373,6 +436,16 @@ function assignOptionalBoolean(target, key, input, previousValue) {
 function assignOptionalString(target, key, input, previousValue, defaultValue = '') {
   const value = input.value.trim();
   if (value !== defaultValue || previousValue != null) target[key] = value;
+}
+
+function assignOptionalObject(target, key, input, previousValue) {
+  const value = input.value.trim();
+  if (!value) {
+    delete target[key];
+    return;
+  }
+  const parsed = parseJsonObject(value, previousValue ?? null);
+  if (parsed) target[key] = parsed;
 }
 
 function optionalBlastOnExpire(previousBlast) {
@@ -583,11 +656,11 @@ function renderStatus() {
 }
 
 function weaponSummary(definition) {
-  return `${definition.projectile?.behavior ?? 'unknown'} projectile, ${definition.projectile?.damage ?? 0} damage, ${definition.ammo ?? 0} ammo${blastSummary(definition.projectile)}`;
+  return `${definition.projectile?.behavior ?? 'unknown'} projectile, ${definition.projectile?.damage ?? 0} damage, ${definition.ammo ?? 0} ammo${pierceSummary(definition.projectile)}${blastSummary(definition.projectile)}`;
 }
 
 function patternSummary(definition) {
-  return `${definition.emitter?.kind ?? 'unknown'} emitter, ${definition.emitter?.projectile?.behavior ?? 'unknown'} projectile, ${definition.emitter?.count ?? 0} shots every ${definition.interval ?? 0}s${blastSummary(definition.emitter?.projectile)}`;
+  return `${definition.emitter?.kind ?? 'unknown'} emitter, ${definition.emitter?.projectile?.behavior ?? 'unknown'} projectile, ${definition.emitter?.count ?? 0} shots every ${definition.interval ?? 0}s${pierceSummary(definition.emitter?.projectile)}${blastSummary(definition.emitter?.projectile)}`;
 }
 
 function statusEffectSummary(definition) {
@@ -629,7 +702,7 @@ function aimedSpreadOffset(index, count, spread) {
 }
 
 function projectileBlastRadius(projectile = {}) {
-  return projectile.blastOnExpire?.radius ?? projectile.blastRadius ?? (projectile.blastRadiusCells != null ? projectile.blastRadiusCells * 2 : 0);
+  return projectile.blastOnExpire?.radius ?? projectile.blastRadius ?? (projectile.blastRadiusCells != null ? projectile.blastRadiusCells * CELL_SIZE : 0);
 }
 
 function blastSummary(projectile = {}) {
@@ -637,6 +710,12 @@ function blastSummary(projectile = {}) {
   if (radius <= 0) return '';
   const damage = projectile.blastOnExpire?.damage ?? projectile.blastDamage ?? 0;
   return `, blast r${roundMetric(radius)} d${roundMetric(damage)} with overkill propagation`;
+}
+
+function pierceSummary(projectile = {}) {
+  const pierce = projectile.pierce ?? 0;
+  if (pierce <= 0) return '';
+  return `, pierces ${roundMetric(pierce)} voxel hits`;
 }
 
 function roundMetric(value) {

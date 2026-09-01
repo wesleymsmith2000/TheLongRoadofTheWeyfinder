@@ -294,11 +294,35 @@
               <label>Length <input id="weaponLengthInput" type="number" min="0" step="10" /></label>
             </div>
             <div class="wide-split">
+              <label>Turn Rate <input id="weaponTurnRateInput" type="number" min="0" step="0.1" /></label>
+              <label>Acceleration <input id="weaponAccelerationInput" type="number" min="0" step="1" /></label>
+              <label>Max Speed <input id="weaponMaxSpeedInput" type="number" min="0" step="1" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Pierce <input id="weaponPierceInput" type="number" min="0" step="1" /></label>
+              <label>Pierce Scale <input id="weaponPierceDamageScaleInput" type="number" min="0" step="0.01" /></label>
+              <label>Pierce Falloff <input id="weaponPierceDamageFalloffInput" type="number" min="0" max="1" step="0.01" /></label>
+            </div>
+            <div class="wide-split">
               <label>Vertical Velocity <input id="weaponVerticalVelocityInput" type="number" min="0" step="1" /></label>
               <label>Gravity <input id="weaponGravityInput" type="number" min="0" step="1" /></label>
               <label>Arc Height <input id="weaponMaxArcHeightInput" type="number" min="0" step="1" /></label>
             </div>
             <label>Shadow Radius <input id="weaponShadowRadiusInput" type="number" min="0" step="0.5" /></label>
+            <div class="wide-split">
+              <label>Blast Cells <input id="weaponBlastRadiusInput" type="number" min="0" step="0.5" /></label>
+              <label>Blast Damage <input id="weaponBlastDamageInput" type="number" min="0" step="0.5" /></label>
+              <label>Blast Knockback <input id="weaponBlastKnockbackInput" type="number" min="0" step="1" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Target Hint <input id="weaponTargetHintInput" autocomplete="off" /></label>
+              <label>Detonate At Target <input id="weaponDetonateAtTargetInput" type="checkbox" /></label>
+              <label>Z Collision <input id="weaponZCollisionInput" type="checkbox" /></label>
+            </div>
+            <label>
+              Emits Projectiles JSON
+              <textarea id="weaponEmitsProjectilesInput" class="compact" spellcheck="false"></textarea>
+            </label>
           </div>
           <div id="patternFields" class="form" hidden>
             <div class="split">
@@ -334,6 +358,11 @@
               <label>Radius <input id="patternRadiusInput" type="number" min="0" step="0.5" /></label>
               <label>Damage <input id="patternDamageInput" type="number" min="0" step="0.5" /></label>
               <label>Impulse <input id="patternImpulseInput" type="number" min="0" step="1" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Pierce <input id="patternPierceInput" type="number" min="0" step="1" /></label>
+              <label>Pierce Scale <input id="patternPierceDamageScaleInput" type="number" min="0" step="0.01" /></label>
+              <label>Pierce Falloff <input id="patternPierceDamageFalloffInput" type="number" min="0" max="1" step="0.01" /></label>
             </div>
             <div class="wide-split">
               <label>Color <input id="patternColorInput" type="color" /></label>

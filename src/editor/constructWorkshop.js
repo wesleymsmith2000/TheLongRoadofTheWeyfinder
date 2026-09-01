@@ -5,6 +5,15 @@ import {
   CONSTRUCT_SCHEMA_VERSION,
   validateConstructDefinition,
 } from '../core/constructDefinition.js';
+import {
+  MAX_PRIMARY_SLOTS,
+  MAX_SECONDARY_SLOTS,
+  PRIMARY_WEAPON_IDS,
+  SECONDARY_WEAPON_IDS,
+  normalizeGunLoadouts,
+  setGunLoadoutSlot,
+  weaponStackMultiplier,
+} from '../core/weaponLoadout.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
 
 const canvas = document.querySelector('#constructCanvas');
@@ -25,6 +34,13 @@ const jsonOutput = document.querySelector('#jsonOutput');
 const statusPanel = document.querySelector('#statusPanel');
 const cellList = document.querySelector('#cellList');
 const connectionList = document.querySelector('#connectionList');
+const loadoutSelects = [
+  document.querySelector('#primarySlot0Select'),
+  document.querySelector('#primarySlot1Select'),
+  document.querySelector('#secondarySlot0Select'),
+  document.querySelector('#secondarySlot1Select'),
+  document.querySelector('#secondarySlot2Select'),
+];
 
 const cellColors = {
   armor: '#818a8b',
@@ -49,6 +65,7 @@ for (const status of CANON_STATUSES) {
 for (const type of CELL_TYPES) {
   cellTypeSelect.append(new Option(type, type));
 }
+populateLoadoutSelects();
 
 canvas.addEventListener('click', handleCanvasClick);
 assetIdInput.addEventListener('input', syncFieldsToDefinition);
@@ -62,6 +79,13 @@ resetButton.addEventListener('click', () => loadDefinition(basicTurretDefinition
 downloadButton.addEventListener('click', downloadJson);
 copyJsonButton.addEventListener('click', copyJson);
 applyJsonButton.addEventListener('click', applyJsonFromOutput);
+for (const select of loadoutSelects) {
+  select.addEventListener('change', () => {
+    const result = setGunLoadoutSlot(definition, selectedCellId, select.dataset.slotKind, Number(select.dataset.slotIndex), select.value || null);
+    if (result.changed) definition = result.definition;
+    render();
+  });
+}
 
 loadDefinition(definition);
 
@@ -73,6 +97,7 @@ function loadDefinition(nextDefinition) {
   definition.cells ??= [];
   definition.connections ??= [];
   definition.modules ??= [];
+  definition.gunLoadouts = normalizeGunLoadouts(definition);
   selectedCellId = null;
   syncDefinitionToFields();
   render();
@@ -152,8 +177,10 @@ function removeCell(id) {
 
 function render() {
   syncFieldsToDefinitionSilently();
+  definition.gunLoadouts = normalizeGunLoadouts(definition);
   drawCanvas();
   renderLists();
+  syncLoadoutControls();
   renderJson();
   renderStatus();
 }
@@ -296,6 +323,11 @@ function renderStatus() {
     `<span>${moduleSummary.engines} engines, acceleration/top speed x${moduleSummary.engineMultiplier}</span>`,
     `<span>${moduleSummary.wheels} wheels, braking/control x${moduleSummary.wheelMultiplier}${moduleSummary.wheelAsymmetry ? ', asymmetric pull likely' : ''}</span>`,
   ];
+  const selectedLoadout = normalizeGunLoadouts(definition).find((loadout) => loadout.cellId === selectedCellId);
+  if (selectedLoadout) lines.push(`<span>Selected gun loadout: ${escapeHtml(loadoutLabel(selectedLoadout))}</span>`);
+  for (const weaponId of installedWeaponIds(definition)) {
+    lines.push(`<span>${escapeHtml(labelForWeapon(weaponId))} stack x${multiplierText(weaponStackMultiplier(definition, weaponId))}</span>`);
+  }
   lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
   lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));
   statusPanel.innerHTML = lines.join('');
@@ -340,7 +372,51 @@ function normalizedDefinition() {
     cells: [...definition.cells].sort((a, b) => a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id)),
     connections: [...(definition.connections ?? [])],
     modules: definition.modules ?? [],
+    gunLoadouts: normalizeGunLoadouts(definition),
   };
+}
+
+function populateLoadoutSelects() {
+  for (const select of loadoutSelects) {
+    const allowed = select.dataset.slotKind === 'primary' ? PRIMARY_WEAPON_IDS : SECONDARY_WEAPON_IDS;
+    select.replaceChildren(new Option('None', ''));
+    for (const id of allowed) select.append(new Option(labelForWeapon(id), id));
+  }
+}
+
+function syncLoadoutControls() {
+  const selectedCell = definition.cells.find((cell) => cell.id === selectedCellId);
+  const selectedLoadout = normalizeGunLoadouts(definition).find((loadout) => loadout.cellId === selectedCellId);
+  for (const select of loadoutSelects) {
+    const slotKind = select.dataset.slotKind;
+    const slotIndex = Number(select.dataset.slotIndex);
+    const enabled = selectedCell?.type === 'gun' && selectedLoadout;
+    select.disabled = !enabled;
+    select.value = enabled ? selectedLoadout[slotKind][slotIndex] ?? '' : '';
+  }
+}
+
+function installedWeaponIds(construct) {
+  return [
+    ...new Set(
+      normalizeGunLoadouts(construct)
+        .flatMap((loadout) => [...loadout.primary, ...loadout.secondary])
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function loadoutLabel(loadout) {
+  const primary = loadout.primary.slice(0, MAX_PRIMARY_SLOTS).map((id) => id || 'empty').join(', ');
+  const secondary = loadout.secondary.slice(0, MAX_SECONDARY_SLOTS).map((id) => id || 'empty').join(', ');
+  return `primary ${primary}; secondary ${secondary}`;
+}
+
+function labelForWeapon(id) {
+  return id
+    .replaceAll('_', ' ')
+    .replaceAll('.', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function applyJsonFromOutput() {
