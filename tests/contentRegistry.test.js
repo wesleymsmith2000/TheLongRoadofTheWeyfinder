@@ -7,6 +7,8 @@ import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' w
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 import trackingFlechetteSprite from '../content/resources/weapons/sprite.weapon.tracking_flechette.json' with { type: 'json' };
 import mortarPlayerShellSprite from '../content/resources/weapons/sprite.weapon.mortar_player_shell.json' with { type: 'json' };
+import ghostForestGroundMaterial from '../content/terrain/materials/ghost_forest_ground.json' with { type: 'json' };
+import ghostForestFloorTile from '../content/terrain/tiles/ghost_forest_floor.json' with { type: 'json' };
 import {
   createContentRegistry,
   getAvailableContent,
@@ -56,6 +58,16 @@ test('content registry accepts weapon image resource descriptors', () => {
   assert.equal(flechette.assetId, 'sprite.weapon.tracking_flechette');
   assert.equal(mortar.path, 'assets/images/weapons/mortar_player_shell.png');
   assert.equal(getAvailableContent(registry, 'image', { tag: 'weapon' }).length, 2);
+});
+
+test('content registry accepts terrain material and tile assets', () => {
+  const registry = createContentRegistry();
+  const material = registerContentAsset(registry, 'terrainMaterial', ghostForestGroundMaterial, canonPackManifest.packId);
+  const tile = registerContentAsset(registry, 'terrainTile', ghostForestFloorTile, canonPackManifest.packId);
+
+  assert.equal(material.materialId, 'ghost_forest.ground');
+  assert.equal(tile.assetId, 'terrain.tile.ghost_forest.floor');
+  assert.equal(getAvailableContent(registry, 'terrainTile', { tag: 'ground' }).length, 1);
 });
 
 test('weapon validation accepts arcing projectile fields', () => {

@@ -96,7 +96,7 @@ Hard errors:
 - asset list is not an array
 - an asset path is not a string
 
-Level imports should be resolved jointly with dependencies declared inside the level asset. If a level depends on a construct, pattern, behavior, image, music track, or another pack, the importing runtime should load or prompt for the dependent pieces together rather than letting the level enter a half-installed state.
+Level imports should be resolved jointly with dependencies declared inside the level asset. If a level depends on a construct, pattern, terrain material, terrain tile, behavior, image, music track, or another pack, the importing runtime should load or prompt for the dependent pieces together rather than letting the level enter a half-installed state.
 
 Warnings:
 
@@ -124,6 +124,8 @@ Current manifest asset keys:
 - `voxelModels`
 
 Resource entries may be paths to resource JSON files or inline descriptors. Image resource descriptors should include an `assetId` and either `path` or `uri`. Weapon and pattern projectile `sprite.assetId` values should match entries in `assets.images` when the image is packaged with the content pack.
+
+Terrain material and tile entries may also be paths or inline descriptors. Levels can refer to a terrain pack with `terrain.packId`, or to explicit material/tile assets through `terrain.materials` and `terrain.tiles`.
 
 ## Canon And Community
 

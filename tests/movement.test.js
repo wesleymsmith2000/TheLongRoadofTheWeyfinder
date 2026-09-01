@@ -42,3 +42,11 @@ test('wheel inertia compensation improves release deceleration', () => {
   stepVehicle(upgraded, {}, 0.5, 0, { wheelInertiaCompensation: 3 });
   assert.equal(Math.abs(upgraded.vx) < Math.abs(base.vx), true);
 });
+
+test('low-traction terrain reduces vehicle acceleration response', () => {
+  const normal = createStartingVehicle();
+  const slippery = createStartingVehicle();
+  stepVehicle(normal, { x: 0, y: -1 }, 1 / 10, 0, {}, { traction: 1, rollingResistance: 0.05 });
+  stepVehicle(slippery, { x: 0, y: -1 }, 1 / 10, 0, {}, { traction: 0.42, rollingResistance: 0.02 });
+  assert.equal(Math.abs(slippery.vy) < Math.abs(normal.vy), true);
+});
