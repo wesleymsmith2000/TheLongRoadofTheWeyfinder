@@ -3,10 +3,24 @@ import { CANON_STATUSES, isCompatibleSchemaVersion, isNonEmptyString, isPlainObj
 
 export const CANON_ENEMY_ARCHETYPE_PACK = canonEnemyArchetypes;
 export const ENEMY_RUNTIME_FACTORIES = ['createEnemy', 'createEnhancedEnemy', 'createPirateShipEnemy', 'createEnhancedPirateShipEnemy', 'createBossEnemy'];
-export const ENEMY_ENTRY_KINDS = ['aheadDrift', 'behindCharge', 'aheadBoss'];
-export const ENEMY_MOVEMENT_KINDS = ['drift', 'charge', 'returnToView', 'orbitTarget', 'strafeBroadside', 'weave', 'bossTentacleSwarm'];
+export const ENEMY_ENTRY_KINDS = ['aheadDrift', 'behindCharge', 'aheadBoss', 'airStrafe', 'zoneAmbush'];
+export const ENEMY_MOVEMENT_KINDS = [
+  'drift',
+  'charge',
+  'returnToView',
+  'orbitTarget',
+  'strafeBroadside',
+  'weave',
+  'bossTentacleSwarm',
+  'phase',
+  'hop',
+  'flyStrafe',
+  'walkerLegs',
+  'circleArtillery',
+  'carrierRelease',
+];
 export const ENEMY_AGGREGATE_KINDS = ['singleBody', 'limbArray', 'multiPartBoss'];
-export const ENEMY_CELL_ANIMATION_KINDS = ['none', 'opacityPulse', 'sineWave', 'swirl', 'fabricWeave'];
+export const ENEMY_CELL_ANIMATION_KINDS = ['none', 'opacityPulse', 'sineWave', 'swirl', 'fabricWeave', 'phaseFade', 'legStride', 'wingBeat'];
 
 export function validateEnemyArchetypePack(definition) {
   const errors = [];
@@ -99,6 +113,10 @@ function validateMovementProfiles(profiles, path, errors) {
     validateOptionalNumber(profile.phaseOffset, `${label}.phaseOffset`, errors);
     validateOptionalNumber(profile.strength, `${label}.strength`, errors);
     validateOptionalNumber(profile.duration, `${label}.duration`, errors);
+    validateOptionalNumber(profile.z, `${label}.z`, errors);
+    validateOptionalNumber(profile.minZ, `${label}.minZ`, errors);
+    validateOptionalNumber(profile.maxZ, `${label}.maxZ`, errors);
+    validateOptionalNumber(profile.hopHeight, `${label}.hopHeight`, errors);
     if (profile.target != null && !isNonEmptyString(profile.target)) errors.push(`${label}.target must be a non-empty string when provided.`);
   }
 }

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sta_missile",
+  "displayName": "STA Missile",
+  "author": "Weyfinder prototype",
+  "provenance": "Prototype secondary surface-to-air missile contract.",
+  "canonStatus": "CANON",
+  "tags": ["secondary", "arc", "missile", "anti-air", "prototype"],
+  "ammo": 8,
+  "heat": 26,
+  "cooldown": 1.15,
+  "projectile": {
+    "team": "player",
+    "weapon": "sta_missile",
+    "behavior": "arc",
+    "projectileSpeed": 54,
+    "radius": 3,
+    "damage": 24,
+    "impulse": 140,
+    "lifetime": 4.5,
+    "verticalVelocity": 220,
+    "gravity": 130,
+    "maxArcHeight": 180,
+    "shadowRadius": 3.5,
+    "targetHint": "aimReticle",
+    "detonateAtTarget": true,
+    "blastDamage": 28,
+    "blastRadiusCells": 4.5,
+    "blastKnockback": 90,
+    "tracksReticleInArc": true,
+    "zCollision": true
+  }
+}

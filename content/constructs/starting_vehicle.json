@@ -22,5 +22,12 @@
     { "a": "core", "b": "wheel-right", "aSide": "right" },
     { "a": "core", "b": "engine", "aSide": "bottom" }
   ],
+  "gunLoadouts": [
+    {
+      "cellId": "gun",
+      "primary": ["main.basic", null],
+      "secondary": ["rocket", "cannon", "beam"]
+    }
+  ],
   "modules": []
 }

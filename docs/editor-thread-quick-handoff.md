@@ -5,7 +5,9 @@ Pull latest `main` before continuing editor work.
 Latest relevant checkpoints:
 
 ```text
-pending/current: Engine-scaled boost drive and gun-scaled boost shielding
+pending/current: Elevation enemies and construction-screen weapon loadouts
+2714342 Add damaging boost exhaust
+38b2b6c Engine-scaled boost drive and gun-scaled boost shielding
 1a31449 Cannon flechette pierce and weapon loadout direction
 0eb5937 Boost mobility upgrade scaling
 f25d968 Rotate main gun firing points
@@ -16,6 +18,7 @@ Full handoff:
 
 ```text
 docs/combat-balance-module-scaling-handoff.md
+docs/elevation-enemy-loadout-editor-handoff.md
 ```
 
 ## Runtime Changes Editors Should Match
@@ -23,6 +26,8 @@ docs/combat-balance-module-scaling-handoff.md
 - Weapon/projectile editors should show the current canon rocket/cannon sizes, speeds, blast radii, and blast damage from `content/weapons/rocket.json` and `content/weapons/cannon.json`.
 - Weapon/projectile editors should expose general projectile pierce fields: `pierce`, `pierceDamageScale`, and `pierceDamageFalloff`.
 - Weapon loadout editors should target `docs/weapon-loadout-and-flechette-handoff.md`: one primary slot plus up to three secondary slots per gun cell, duplicate-weapon square-root scaling, and round-robin firing mounts.
+- Construction-screen gun loadouts now persist in vehicle definitions as `gunLoadouts[]`; editors should use the same shape.
+- Enemy editors can now emit descriptor examples for phase, hop, flyStrafe, walkerLegs, circleArtillery, and carrierRelease movement profiles.
 - Pattern editors should show redirect projectile fields from `content/patterns/enemy_radial_burst.json`: delayed stop, triple redirect acceleration, triple max speed, and doubled projectile/blast radius.
 - Construct editors should treat every active `gun` cell as a real firing point.
 - Construct editors should treat additional `engine` cells as acceleration/top-speed contributors with diminishing returns.

@@ -155,6 +155,139 @@
       "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "cellAnimations"]
     },
     {
+      "id": "ghost_phaser.ghost_forrest",
+      "displayName": "Ghost Forrest Phaser",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "ghost_fabric.prototype0",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot"],
+      "zone": "GhostForrest",
+      "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 46 },
+      "palette": { "core": "#d7fbff", "armor": "#8fa6ff", "gun": "#f3f0b8", "phase": "#bff5ff" },
+      "movementProfiles": [
+        { "id": "phase-cycle", "kind": "phase", "target": "player", "duration": 4.2, "minZ": 0, "maxZ": 18 }
+      ],
+      "phase": { "intangibleWhenOutOfPhase": true, "opacityMin": 0.16, "opacityMax": 0.82, "weaponPassThrough": "most" },
+      "cellAnimations": [{ "selector": "all", "kind": "phaseFade", "frequency": 0.24, "opacityMin": 0.16, "opacityMax": 0.82 }],
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "phase", "cellAnimations"]
+    },
+    {
+      "id": "hopping_stream_mob.digitized_stream",
+      "displayName": "Digitized Stream Hopper",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "standard",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot"],
+      "zone": "DigitizedStream",
+      "entry": { "kind": "zoneAmbush", "direction": "roadForward", "speed": 32 },
+      "palette": { "core": "#72fff3", "armor": "#334fff", "gun": "#ffec7a", "accent": "#f26cff" },
+      "movementProfiles": [
+        { "id": "hop-to-point", "kind": "hop", "target": "player", "speed": 82, "hopHeight": 52, "duration": 0.65, "frequency": 0.55 }
+      ],
+      "elevation": { "z": 0, "canBeHitByGroundFire": true, "arcCollision": true },
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "elevation"]
+    },
+    {
+      "id": "heavy_mortar_boat.pirates_road",
+      "displayName": "Pirates Road Heavy Mortar Boat",
+      "runtimeFactory": "createPirateShipEnemy",
+      "baseArchetype": "pirate_ship.prototype0",
+      "construct": "runtime.pirate_ship.prototype0",
+      "patterns": ["enemy_aimed_shot"],
+      "zone": "PiratesRoad",
+      "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 24 },
+      "palette": { "core": "#f6d260", "armor": "#20242a", "gun": "#ff7a1a", "trim": "#a33a22" },
+      "movementProfiles": [{ "id": "circle-shelling", "kind": "circleArtillery", "target": "player", "speed": 34, "frequency": 0.18 }],
+      "artillery": { "weapon": "mortar", "target": "playerLead", "arcHeight": 120, "preferredRange": 180 },
+      "editable": ["patterns", "entry", "palette", "movementProfiles", "artillery", "silhouette", "model"]
+    },
+    {
+      "id": "starlight_walker.prototype0",
+      "displayName": "Starlight Walker",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "standard",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot"],
+      "zone": "StarlightRoad",
+      "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 28 },
+      "palette": { "core": "#fff0a8", "armor": "#26315f", "gun": "#ff8f52", "leg": "#a7c8ff" },
+      "movementProfiles": [{ "id": "legged-body", "kind": "walkerLegs", "target": "roadCenter", "speed": 30, "z": 52 }],
+      "aggregate": {
+        "kind": "limbArray",
+        "parts": [
+          { "id": "body", "role": "elevatedBody", "attachment": "legs", "count": 1 },
+          { "id": "legs", "role": "supportLeg", "movementProfile": "legged-body", "count": 4 }
+        ]
+      },
+      "fallWhenSupportsDestroyed": { "supportRole": "supportLeg", "landedBehavior": "stationaryTurret" },
+      "cellAnimations": [{ "selector": "role:supportLeg", "kind": "legStride", "frequency": 0.9, "amplitude": 16 }],
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "fallWhenSupportsDestroyed", "cellAnimations"]
+    },
+    {
+      "id": "twilight_walker.prototype0",
+      "displayName": "Twilight Crossroads Walker",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "starlight_walker.prototype0",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "zone": "TwilightCrossroads",
+      "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 22 },
+      "palette": { "core": "#f7c06a", "armor": "#4b355f", "gun": "#ff7a1a", "leg": "#83f7ff" },
+      "movementProfiles": [{ "id": "heavy-leg-cycle", "kind": "walkerLegs", "target": "player", "speed": 24, "z": 64 }],
+      "aggregate": { "kind": "limbArray", "parts": [{ "id": "body", "role": "elevatedBody", "count": 1 }, { "id": "legs", "role": "supportLeg", "count": 6 }] },
+      "fallWhenSupportsDestroyed": { "supportRole": "supportLeg", "landedBehavior": "sproutMiniLegs" },
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "fallWhenSupportsDestroyed"]
+    },
+    {
+      "id": "scrap_buzzard.shadowed_desert",
+      "displayName": "Shadowed Desert Scrap Buzzard",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "standard",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot"],
+      "zone": "ShadowedDesert",
+      "entry": { "kind": "airStrafe", "direction": "roadForward", "speed": 120, "warningLeadSeconds": 2.4 },
+      "palette": { "core": "#ffe1a8", "armor": "#6f6b62", "gun": "#c95b37", "wing": "#d6cfb9" },
+      "movementProfiles": [
+        { "id": "strafe-run", "kind": "flyStrafe", "target": "player", "speed": 150, "minZ": 80, "maxZ": 150 },
+        { "id": "land-for-scrap", "kind": "hop", "target": "scrap", "speed": 90, "hopHeight": 80 }
+      ],
+      "cellAnimations": [{ "selector": "role:wing", "kind": "wingBeat", "frequency": 4.5, "amplitude": 20 }],
+      "elevation": { "z": 110, "canBeHitByGroundFire": false, "arcCollision": true, "landsToEatScrap": true },
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "cellAnimations", "elevation"]
+    },
+    {
+      "id": "inchworm_carrier.freedoms_pass",
+      "displayName": "Freedoms Pass Inchworm Carrier",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "standard",
+      "construct": "basic_turret",
+      "patterns": ["enemy_aimed_shot"],
+      "zone": "FreedomsPass",
+      "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 30 },
+      "palette": { "core": "#d7ff9b", "armor": "#516c40", "gun": "#ffb55e", "moth": "#f4eee4" },
+      "movementProfiles": [
+        { "id": "inchworm-crawl", "kind": "weave", "target": "roadCenter", "speed": 30, "amplitude": 18, "frequency": 0.7 },
+        { "id": "release-moths", "kind": "carrierRelease", "target": "player", "frequency": 0.18 }
+      ],
+      "spawns": { "archetype": "moth_bomber.freedoms_pass", "count": [1, 3], "trigger": "timedOrDamaged" },
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "spawns"]
+    },
+    {
+      "id": "moth_bomber.freedoms_pass",
+      "displayName": "Freedoms Pass Moth Bomber",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "standard",
+      "construct": "basic_turret",
+      "patterns": [],
+      "zone": "FreedomsPass",
+      "entry": { "kind": "airStrafe", "direction": "roadForward", "speed": 180 },
+      "palette": { "core": "#f4eee4", "armor": "#b9d990", "gun": "#ff7a1a" },
+      "movementProfiles": [{ "id": "fast-suicide-flight", "kind": "flyStrafe", "target": "player", "speed": 210, "minZ": 20, "maxZ": 70 }],
+      "detonation": { "trigger": "contactPlayer", "damage": 18, "radiusCells": 2.5 },
+      "editable": ["construct", "entry", "palette", "movementProfiles", "detonation"]
+    },
+    {
       "id": "boss.octagon.prototype0",
       "displayName": "Octagon Boss Prototype",
       "runtimeFactory": "createBossEnemy",

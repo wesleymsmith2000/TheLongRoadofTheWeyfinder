@@ -147,6 +147,7 @@ const vehiclePlaceButton = document.querySelector('#vehiclePlaceButton');
 const vehicleEraseButton = document.querySelector('#vehicleEraseButton');
 const vehicleConnectButton = document.querySelector('#vehicleConnectButton');
 const vehicleResetButton = document.querySelector('#vehicleResetButton');
+const gunLoadoutSelects = [...document.querySelectorAll('.gun-loadout-select')];
 const vehicleEditorStatus = document.querySelector('#vehicleEditorStatus');
 const hudToggle = document.querySelector('#hudToggle');
 const pauseToggle = document.querySelector('#pauseToggle');
@@ -277,6 +278,7 @@ const vehicleEditor = createPlayerVehicleLaunchEditor(
     eraseButton: vehicleEraseButton,
     connectButton: vehicleConnectButton,
     resetButton: vehicleResetButton,
+    loadoutSelects: gunLoadoutSelects,
     status: vehicleEditorStatus,
   },
   {

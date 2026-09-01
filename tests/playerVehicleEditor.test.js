@@ -7,9 +7,12 @@ import {
   connectEditableVehicleCells,
   createVehicleFromConstructDefinition,
   editableVehicleReport,
+  normalizeGunLoadouts,
   removeEditableVehicleCell,
+  setGunLoadoutSlot,
   vehicleToConstructDefinition,
 } from '../src/core/playerVehicleEditor.js';
+import { weaponStackMultiplier } from '../src/core/weaponLoadout.js';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 
 test('prototype player account exposes non-core equipment quantities', () => {
@@ -66,4 +69,16 @@ test('edited player vehicle definitions instantiate into runtime vehicles', () =
   const report = editableVehicleReport(roundTrip, account);
   assert.equal(vehicle.cells.length, 8);
   assert.equal(report.valid, true);
+});
+
+test('player vehicle editor stores configurable weapon loadouts on gun cells', () => {
+  const account = createPrototypePlayerAccountData();
+  const addResult = addEditableVehicleCell(startingVehicleDefinition, account, 'gun', 0, -2);
+  const gun = addResult.definition.cells.find((cell) => cell.gridX === 0 && cell.gridY === -2);
+  const primaryResult = setGunLoadoutSlot(addResult.definition, gun.id, 'primary', 0, 'tracking_flechette');
+  const secondaryResult = setGunLoadoutSlot(primaryResult.definition, gun.id, 'secondary', 1, 'orb_of_blades');
+  const loadout = normalizeGunLoadouts(secondaryResult.definition).find((candidate) => candidate.cellId === gun.id);
+  assert.equal(loadout.primary[0], 'tracking_flechette');
+  assert.equal(loadout.secondary[1], 'orb_of_blades');
+  assert.equal(weaponStackMultiplier(secondaryResult.definition, 'rocket') >= 1, true);
 });

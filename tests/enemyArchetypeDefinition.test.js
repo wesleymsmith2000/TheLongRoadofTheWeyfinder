@@ -16,19 +16,30 @@ test('canon enemy archetype pack validates', () => {
   assert.equal(report.valid, true);
   assert.deepEqual(report.errors, []);
   assert.equal(ENEMY_MOVEMENT_KINDS.includes('weave'), true);
+  assert.equal(ENEMY_MOVEMENT_KINDS.includes('phase'), true);
+  assert.equal(ENEMY_MOVEMENT_KINDS.includes('hop'), true);
+  assert.equal(ENEMY_MOVEMENT_KINDS.includes('flyStrafe'), true);
+  assert.equal(ENEMY_MOVEMENT_KINDS.includes('walkerLegs'), true);
   assert.equal(ENEMY_AGGREGATE_KINDS.includes('multiPartBoss'), true);
   assert.equal(ENEMY_CELL_ANIMATION_KINDS.includes('fabricWeave'), true);
+  assert.equal(ENEMY_CELL_ANIMATION_KINDS.includes('phaseFade'), true);
 });
 
 test('enemy archetype helpers expose editor-facing enemy models', () => {
   const archetypes = listEnemyArchetypes();
-  assert.equal(archetypes.length, 6);
+  assert.equal(archetypes.length, 14);
   assert.deepEqual(
-    archetypes.map((archetype) => archetype.id),
-    ['standard', 'enhanced_charger', 'pirate_ship.prototype0', 'pirate_ram_ship.prototype0', 'ghost_fabric.prototype0', 'boss.octagon.prototype0'],
+    archetypes.slice(0, 6).map((archetype) => archetype.id),
+    ['standard', 'enhanced_charger', 'pirate_ship.prototype0', 'pirate_ram_ship.prototype0', 'ghost_fabric.prototype0', 'ghost_phaser.ghost_forrest'],
   );
   assert.equal(getEnemyArchetype('pirate_ram_ship.prototype0').silhouette.kind, 'pirateShip');
   assert.equal(getEnemyArchetype('ghost_fabric.prototype0').cellAnimations[0].kind, 'fabricWeave');
+  assert.equal(getEnemyArchetype('ghost_phaser.ghost_forrest').phase.intangibleWhenOutOfPhase, true);
+  assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').movementProfiles[0].kind, 'hop');
+  assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').artillery.weapon, 'mortar');
+  assert.equal(getEnemyArchetype('starlight_walker.prototype0').fallWhenSupportsDestroyed.landedBehavior, 'stationaryTurret');
+  assert.equal(getEnemyArchetype('scrap_buzzard.shadowed_desert').elevation.arcCollision, true);
+  assert.equal(getEnemyArchetype('inchworm_carrier.freedoms_pass').spawns.archetype, 'moth_bomber.freedoms_pass');
   assert.equal(getEnemyArchetype('boss.octopus.prototype0').displayName, 'Octagon Boss Prototype');
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.some((entry) => entry.id === 'trackingLaser'), true);
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.find((entry) => entry.id === 'trackingLaser').telegraphSeconds, 3);

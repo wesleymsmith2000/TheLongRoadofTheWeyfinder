@@ -5,8 +5,11 @@ import {
   addEditableVehicleCell,
   connectEditableVehicleCells,
   editableVehicleReport,
+  normalizeGunLoadouts,
   removeEditableVehicleCell,
+  setGunLoadoutSlot,
 } from '../core/playerVehicleEditor.js';
+import { PRIMARY_WEAPON_IDS, SECONDARY_WEAPON_IDS } from '../core/weaponLoadout.js';
 
 const cellColors = {
   armor: '#8fa6ad',
@@ -33,6 +36,19 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
   bindTool(elements.placeButton, 'place');
   bindTool(elements.eraseButton, 'erase');
   bindTool(elements.connectButton, 'connect');
+  populateLoadoutSelects();
+  for (const select of elements.loadoutSelects ?? []) {
+    select.addEventListener('change', () => {
+      const result = setGunLoadoutSlot(
+        state.definition,
+        state.selectedCellId,
+        select.dataset.slotKind,
+        Number(select.dataset.slotIndex),
+        select.value || null,
+      );
+      applyResult(result);
+    });
+  }
   elements.resetButton.addEventListener('click', () => {
     state.definition = cloneDefinition(startingVehicleDefinition);
     state.selectedCellId = null;
@@ -70,7 +86,16 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     if (!grid) return;
     const cell = cellAt(grid.x, grid.y);
     if (state.tool === 'place') {
+      if (cell?.type === 'gun') {
+        state.selectedCellId = cell.id;
+        state.message = `Selected ${cell.id}.`;
+        render();
+        return;
+      }
       const result = addEditableVehicleCell(state.definition, state.account, elements.partSelect.value, grid.x, grid.y);
+      if (result.changed && result.definition.cells.find((candidate) => candidate.gridX === grid.x && candidate.gridY === grid.y)?.type === 'gun') {
+        state.selectedCellId = result.definition.cells.find((candidate) => candidate.gridX === grid.x && candidate.gridY === grid.y).id;
+      }
       applyResult(result);
       return;
     }
@@ -111,7 +136,9 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
   }
 
   function render() {
+    state.definition.gunLoadouts = normalizeGunLoadouts(state.definition);
     syncToolButtons();
+    syncLoadoutControls();
     draw();
     renderStatus();
   }
@@ -179,6 +206,13 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(cell.type.toUpperCase().slice(0, 2), center.x, center.y);
+    if (cell.type === 'gun') {
+      const loadout = normalizeGunLoadouts(state.definition).find((candidate) => candidate.cellId === cell.id);
+      const loadedCount = [...(loadout?.primary ?? []), ...(loadout?.secondary ?? [])].filter(Boolean).length;
+      context.fillStyle = '#f4eee4';
+      context.font = '700 10px Inter, sans-serif';
+      context.fillText(String(loadedCount), center.x + size * 0.27, center.y + size * 0.27);
+    }
   }
 
   function renderStatus() {
@@ -190,6 +224,10 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
       `<span>${escapeHtml(usage)}</span>`,
     ];
     if (state.message) lines.push(`<span>${escapeHtml(state.message)}</span>`);
+    const selectedLoadout = normalizeGunLoadouts(state.definition).find((loadout) => loadout.cellId === state.selectedCellId);
+    if (selectedLoadout) {
+      lines.push(`<span>Selected gun: ${escapeHtml([...selectedLoadout.primary, ...selectedLoadout.secondary].filter(Boolean).join(', ') || 'empty')}</span>`);
+    }
     lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
     lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));
     elements.status.innerHTML = lines.join('');
@@ -216,6 +254,24 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
   function cellAt(gridX, gridY) {
     return state.definition.cells.find((cell) => cell.gridX === gridX && cell.gridY === gridY);
   }
+
+  function populateLoadoutSelects() {
+    for (const select of elements.loadoutSelects ?? []) {
+      const allowed = select.dataset.slotKind === 'primary' ? PRIMARY_WEAPON_IDS : SECONDARY_WEAPON_IDS;
+      select.append(new Option('None', ''));
+      for (const id of allowed) select.append(new Option(labelForWeapon(id), id));
+    }
+  }
+
+  function syncLoadoutControls() {
+    const selectedCell = state.definition.cells.find((cell) => cell.id === state.selectedCellId);
+    const selectedLoadout = normalizeGunLoadouts(state.definition).find((loadout) => loadout.cellId === state.selectedCellId);
+    for (const select of elements.loadoutSelects ?? []) {
+      const enabled = selectedCell?.type === 'gun' && selectedLoadout;
+      select.disabled = !enabled;
+      select.value = enabled ? selectedLoadout[select.dataset.slotKind][Number(select.dataset.slotIndex)] ?? '' : '';
+    }
+  }
 }
 
 function labelForType(type) {
@@ -224,6 +280,13 @@ function labelForType(type) {
   if (type === 'engine') return 'Engine';
   if (type === 'armor') return 'Armor';
   return type;
+}
+
+function labelForWeapon(id) {
+  return id
+    .replaceAll('_', ' ')
+    .replaceAll('.', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function cloneDefinition(definition) {

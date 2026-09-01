@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import rocketDefinition from '../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../content/weapons/beam.json' with { type: 'json' };
+import trackingFlechetteDefinition from '../content/weapons/tracking_flechette.json' with { type: 'json' };
+import mortarDefinition from '../content/weapons/mortar.json' with { type: 'json' };
+import miniBeamDefinition from '../content/weapons/mini_beam.json' with { type: 'json' };
+import staMissileDefinition from '../content/weapons/sta_missile.json' with { type: 'json' };
+import orbOfBladesDefinition from '../content/weapons/orb_of_blades.json' with { type: 'json' };
 import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 import { createPatternState, firePattern, validatePatternDefinition } from '../src/core/patternDefinition.js';
@@ -10,7 +15,16 @@ import { runtimeWeaponDefinition, validateWeaponDefinition } from '../src/core/w
 import { Rng } from '../src/core/rng.js';
 
 test('canon secondary weapon assets validate and normalize for runtime use', () => {
-  for (const definition of [rocketDefinition, cannonDefinition, beamDefinition]) {
+  for (const definition of [
+    rocketDefinition,
+    cannonDefinition,
+    beamDefinition,
+    trackingFlechetteDefinition,
+    mortarDefinition,
+    miniBeamDefinition,
+    staMissileDefinition,
+    orbOfBladesDefinition,
+  ]) {
     const report = validateWeaponDefinition(definition);
     assert.equal(report.valid, true);
     const runtime = runtimeWeaponDefinition(definition);

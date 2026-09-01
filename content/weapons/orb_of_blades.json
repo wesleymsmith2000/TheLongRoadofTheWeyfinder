@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "orb_of_blades",
+  "displayName": "Orb Of Blades",
+  "author": "Weyfinder prototype",
+  "provenance": "Prototype secondary moving emitter contract.",
+  "canonStatus": "CANON",
+  "tags": ["secondary", "orb", "flechette", "radial", "prototype"],
+  "ammo": 6,
+  "heat": 34,
+  "cooldown": 1.8,
+  "projectile": {
+    "team": "player",
+    "weapon": "orb_of_blades",
+    "behavior": "ballistic",
+    "projectileSpeed": 120,
+    "radius": 5,
+    "damage": 2,
+    "impulse": 90,
+    "lifetime": 3.5,
+    "emitsProjectiles": {
+      "kind": "sequentialRadial",
+      "weapon": "orb_flechette",
+      "count": 10,
+      "interval": 0.07,
+      "damage": 18,
+      "projectileSpeed": 320,
+      "radius": 0.8,
+      "pierce": 4
+    }
+  }
+}

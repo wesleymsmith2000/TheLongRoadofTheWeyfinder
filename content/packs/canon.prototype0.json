@@ -10,7 +10,16 @@
   "dependencies": [],
   "assets": {
     "constructs": ["../constructs/basic_turret.json", "../constructs/starting_vehicle.json"],
-    "weapons": ["../weapons/rocket.json", "../weapons/cannon.json", "../weapons/beam.json"],
+    "weapons": [
+      "../weapons/rocket.json",
+      "../weapons/cannon.json",
+      "../weapons/beam.json",
+      "../weapons/tracking_flechette.json",
+      "../weapons/mortar.json",
+      "../weapons/mini_beam.json",
+      "../weapons/sta_missile.json",
+      "../weapons/orb_of_blades.json"
+    ],
     "patterns": ["../patterns/enemy_aimed_shot.json", "../patterns/enemy_radial_burst.json"],
     "enemyArchetypes": ["../enemies/prototype0_enemy_archetypes.json"],
     "behaviors": [],

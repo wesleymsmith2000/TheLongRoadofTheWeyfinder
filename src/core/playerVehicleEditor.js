@@ -1,6 +1,7 @@
 import { instantiateConstruct, validateConstructDefinition } from './constructDefinition.js';
 import { createConnection, OPPOSITE } from './connections.js';
 import { equipmentLimit, PLAYER_EQUIPMENT_TYPES } from './playerAccount.js';
+import { normalizeGunLoadouts, setGunLoadoutSlot } from './weaponLoadout.js';
 
 export const VEHICLE_EDITOR_GRID_RADIUS = 4;
 
@@ -33,6 +34,7 @@ export function vehicleToConstructDefinition(vehicle, baseDefinition) {
     ...baseDefinition,
     cells: vehicle.cells.map((cell) => ({ id: cell.id, type: cell.type, gridX: cell.gridX, gridY: cell.gridY })),
     connections: vehicle.connections.map((edge) => ({ a: edge.a, b: edge.b, aSide: edge.aSide, bSide: edge.bSide, type: edge.type })),
+    gunLoadouts: normalizeGunLoadouts(baseDefinition),
     modules: baseDefinition.modules ?? [],
   };
 }
@@ -45,6 +47,7 @@ export function addEditableVehicleCell(definition, account, type, gridX, gridY) 
   if (used >= equipmentLimit(account, type)) return { changed: false, reason: `No ${type} equipment remaining.` };
   const next = cloneDefinition(definition);
   next.cells.push({ id: uniqueCellId(next, type, gridX, gridY), type, gridX, gridY });
+  next.gunLoadouts = normalizeGunLoadouts(next);
   return { changed: true, definition: next };
 }
 
@@ -55,8 +58,11 @@ export function removeEditableVehicleCell(definition, cellId) {
   const next = cloneDefinition(definition);
   next.cells = next.cells.filter((candidate) => candidate.id !== cellId);
   next.connections = (next.connections ?? []).filter((edge) => edge.a !== cellId && edge.b !== cellId);
+  next.gunLoadouts = normalizeGunLoadouts(next);
   return { changed: true, definition: next };
 }
+
+export { normalizeGunLoadouts, setGunLoadoutSlot };
 
 export function connectEditableVehicleCells(definition, aId, bId) {
   if (aId === bId) return { changed: false, reason: 'Choose two different cells.' };

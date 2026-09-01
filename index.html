@@ -969,6 +969,26 @@
         color: #f7c06a;
       }
 
+      .weapon-loadout-panel {
+        display: grid;
+        gap: 7px;
+        padding: 8px;
+        border: 1px solid rgb(244 238 228 / 0.16);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.52);
+      }
+
+      .weapon-loadout-panel label {
+        display: grid;
+        gap: 3px;
+        font-size: 11px;
+        color: #d7ceb8;
+      }
+
+      .weapon-loadout-panel select {
+        min-height: 30px;
+      }
+
       .vehicle-editor-canvas {
         width: 100%;
         max-width: 360px;
@@ -1203,6 +1223,29 @@
               <button id="vehicleEraseButton" type="button" aria-pressed="false">Erase</button>
               <button id="vehicleConnectButton" type="button" aria-pressed="false">Connect</button>
               <button id="vehicleResetButton" type="button">Reset</button>
+            </div>
+            <div class="weapon-loadout-panel" aria-label="Selected gun loadout">
+              <strong>Gun Loadout</strong>
+              <label>
+                Primary 1
+                <select class="gun-loadout-select" data-slot-kind="primary" data-slot-index="0"></select>
+              </label>
+              <label>
+                Primary 2
+                <select class="gun-loadout-select" data-slot-kind="primary" data-slot-index="1"></select>
+              </label>
+              <label>
+                Secondary 1
+                <select class="gun-loadout-select" data-slot-kind="secondary" data-slot-index="0"></select>
+              </label>
+              <label>
+                Secondary 2
+                <select class="gun-loadout-select" data-slot-kind="secondary" data-slot-index="1"></select>
+              </label>
+              <label>
+                Secondary 3
+                <select class="gun-loadout-select" data-slot-kind="secondary" data-slot-index="2"></select>
+              </label>
             </div>
             <div id="vehicleEditorStatus" class="vehicle-editor-status"></div>
           </div>

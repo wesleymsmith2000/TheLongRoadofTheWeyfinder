@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "mini_beam",
+  "displayName": "Mini Beam",
+  "author": "Weyfinder prototype",
+  "provenance": "Prototype primary beam weapon contract.",
+  "canonStatus": "CANON",
+  "tags": ["primary", "beam", "prototype"],
+  "ammo": 0,
+  "heat": 10,
+  "cooldown": 0.62,
+  "projectile": {
+    "team": "player",
+    "weapon": "mini_beam",
+    "behavior": "beam",
+    "projectileSpeed": 0,
+    "radius": 0.8,
+    "damage": 0.9,
+    "impulse": 35,
+    "lifetime": 0.12,
+    "length": 128,
+    "frames": 5,
+    "pierce": 0,
+    "widthUpgradesAllowed": false,
+    "targetHint": "aimReticle"
+  }
+}

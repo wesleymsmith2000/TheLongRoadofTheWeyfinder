@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "mortar",
+  "displayName": "Mortar",
+  "author": "Weyfinder prototype",
+  "provenance": "Prototype primary arcing explosive weapon contract.",
+  "canonStatus": "CANON",
+  "tags": ["primary", "arc", "blast", "anti-air", "prototype"],
+  "ammo": 0,
+  "heat": 20,
+  "cooldown": 1.4,
+  "projectile": {
+    "team": "player",
+    "weapon": "mortar",
+    "behavior": "arc",
+    "projectileSpeed": 96,
+    "radius": 4,
+    "damage": 0,
+    "impulse": 160,
+    "lifetime": 3.2,
+    "verticalVelocity": 145,
+    "gravity": 96,
+    "maxArcHeight": 120,
+    "shadowRadius": 4.5,
+    "targetHint": "aimReticle",
+    "detonateAtTarget": true,
+    "blastDamage": 90,
+    "blastRadiusCells": 25.5,
+    "blastKnockback": 140,
+    "zCollision": true
+  }
+}
