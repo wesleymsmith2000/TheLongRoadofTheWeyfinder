@@ -7,20 +7,24 @@ import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
+import staMissileDefinition from '../../content/weapons/sta_missile.json' with { type: 'json' };
+import orbOfBladesDefinition from '../../content/weapons/orb_of_blades.json' with { type: 'json' };
 
-export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam'];
+export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'];
 
 export const SECONDARY_DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
   rocket: runtimeWeaponDefinition(rocketDefinition),
   cannon: runtimeWeaponDefinition(cannonDefinition),
   beam: runtimeWeaponDefinition(beamDefinition),
+  sta_missile: runtimeWeaponDefinition(staMissileDefinition),
+  orb_of_blades: runtimeWeaponDefinition(orbOfBladesDefinition),
 };
 
 export function createSecondaryState() {
   return {
     selected: 'rocket',
-    ammo: { rocket: 12, cannon: 18, beam: 40 },
+    ammo: { rocket: 12, cannon: 18, beam: 40, sta_missile: 8, orb_of_blades: 6 },
     ammoBonus: {},
     heat: 0,
     maxHeat: 100,
@@ -89,6 +93,7 @@ export function fireSecondary(game) {
       destructible: def.destructible,
       shape: def.shape,
       contrail: def.contrail,
+      emitsProjectiles: def.emitsProjectiles,
       lifetime: def.behavior === 'beam' ? def.frames / 60 : def.lifetime,
     }),
   );
@@ -158,6 +163,8 @@ function upgradedSecondaryDefinition(game, weapon) {
       targetHint: 'aimReticle',
     };
   }
+  if (weapon === 'sta_missile') return { ...base, targetHint: 'aimReticle', detonateAtTarget: true };
+  if (weapon === 'orb_of_blades') return { ...base, targetHint: 'aimReticle' };
   return base;
 }
 

@@ -74,6 +74,7 @@ export function runtimeWeaponDefinition(definition) {
     destructible: Boolean(projectile.destructible),
     shape: projectile.shape ?? null,
     contrail: projectile.contrail ?? null,
+    emitsProjectiles: projectile.emitsProjectiles ?? null,
   };
 }
 

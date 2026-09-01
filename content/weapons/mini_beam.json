@@ -8,7 +8,7 @@
   "tags": ["primary", "beam", "prototype"],
   "ammo": 0,
   "heat": 10,
-  "cooldown": 0.62,
+  "cooldown": 2.48,
   "projectile": {
     "team": "player",
     "weapon": "mini_beam",
@@ -18,7 +18,7 @@
     "damage": 0.9,
     "impulse": 35,
     "lifetime": 0.12,
-    "length": 128,
+    "length": 64,
     "frames": 5,
     "pierce": 0,
     "widthUpgradesAllowed": false,

@@ -356,3 +356,19 @@ test('AI aimed beam fires through the visible reticle even before turret turn ca
   const cross = Math.cos(beam.angle) * dy - Math.sin(beam.angle) * dx;
   assert.equal(Math.abs(cross) < 0.001, true);
 });
+
+test('new secondary weapons are live runtime choices', () => {
+  const staGame = createGame();
+  staGame.secondary.selected = 'sta_missile';
+  assert.equal(fireSecondary(staGame), true);
+  assert.equal(staGame.playerProjectiles[0].weapon, 'sta_missile');
+  assert.equal(staGame.playerProjectiles[0].behavior, 'arc');
+  assert.equal(staGame.secondary.ammo.sta_missile, 7);
+
+  const orbGame = createGame();
+  orbGame.secondary.selected = 'orb_of_blades';
+  assert.equal(fireSecondary(orbGame), true);
+  assert.equal(orbGame.playerProjectiles[0].emitsProjectiles.kind, 'sequentialRadial');
+  for (let index = 0; index < 5; index += 1) stepGame(orbGame, { secondarySelect: 'orb_of_blades', gunnerEnabled: false }, 1 / 60);
+  assert.equal(orbGame.playerProjectiles.some((projectile) => projectile.weapon === 'orb_flechette'), true);
+});

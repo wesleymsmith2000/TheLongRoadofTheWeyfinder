@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
 import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
+import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 test('standard turret bullets use boosted damage', () => {
   const game = createGame();
@@ -64,4 +65,58 @@ test('primary gun loadouts can fire mini beam slots', () => {
   const beam = game.playerProjectiles.find((projectile) => projectile.weapon === 'mini_beam');
   assert.equal(beam.behavior, 'beam');
   assert.equal(beam.sourceCellId, 'gun');
+});
+
+test('mini beam uses its own shorter slower firing profile and gunfire sound', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+
+  const beam = game.playerProjectiles.find((projectile) => projectile.weapon === 'mini_beam');
+  assert.equal(beam.length, 64);
+  assert.equal(beam.frames, 5);
+  assert.equal(beam.radius, 0.8);
+  assert.equal(game.primaryHeat.heat.toFixed(1), '10.0');
+  assert.equal(game.playerFireTimer.toFixed(2), ((2.48 / Math.sqrt(2)) / 0.9).toFixed(2));
+  const events = consumeSoundEvents(game).map((event) => event.id);
+  assert.equal(events.includes(SOUND_EVENTS.PLAYER_MAIN_GUN), true);
+  assert.equal(events.includes(SOUND_EVENTS.PLAYER_BEAM), false);
+});
+
+test('mini beam upgrades affect active beam combat attributes', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.upgrades.miniBeamDamage = 2;
+  game.upgrades.miniBeamLength = 1;
+  game.upgrades.miniBeamPierce = 3;
+  game.upgrades.miniBeamFireRate = 2;
+  game.upgrades.miniBeamHeatEfficiency = 1;
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+
+  const beam = game.playerProjectiles.find((projectile) => projectile.weapon === 'mini_beam');
+  assert.equal(beam.damage.toFixed(3), (0.9 * 1.05 ** 2).toFixed(3));
+  assert.equal(beam.length.toFixed(2), (64 * 1.12).toFixed(2));
+  assert.equal(beam.pierce, 3);
+  assert.equal(game.primaryHeat.heat.toFixed(1), '9.5');
+  assert.equal(game.playerFireTimer < (2.48 / Math.sqrt(2)) / 0.9, true);
+});
+
+test('advanced primary weapon loadouts fire from runtime weapon definitions', () => {
+  const mortarDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
+  const mortarGame = createGame(1147, { vehicleDefinition: mortarDefinition });
+  mortarGame.autofire = true;
+  stepGame(mortarGame, {}, 1 / 60);
+  const mortar = mortarGame.playerProjectiles.find((projectile) => projectile.weapon === 'mortar');
+  assert.equal(mortar.behavior, 'arc');
+  assert.equal(mortar.blastRadius > 0, true);
+
+  const flechetteDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'tracking_flechette').definition;
+  const flechetteGame = createGame(1147, { vehicleDefinition: flechetteDefinition });
+  flechetteGame.autofire = true;
+  stepGame(flechetteGame, {}, 1 / 60);
+  const flechette = flechetteGame.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
+  assert.equal(flechette.behavior, 'homing');
+  assert.equal(flechette.pierce, 2);
 });

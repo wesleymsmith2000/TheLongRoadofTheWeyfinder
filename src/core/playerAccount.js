@@ -17,13 +17,28 @@ export function createPrototypePlayerAccountData() {
     },
     achievements: { unlocked: [] },
     weaponUnlocks: {
-      primary: ['main.basic', 'mini_beam'],
-      secondary: ['rocket', 'cannon', 'beam'],
+      primary: ['main.basic', 'tracking_flechette', 'mortar', 'mini_beam', 'tractor_beam', 'repulsor_beam'],
+      secondary: ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'],
     },
     moduleUnlocks: [],
     modules: {},
     savedVehicle: null,
   };
+}
+
+export function normalizePrototypePlayerAccountData(account = null) {
+  const defaults = createPrototypePlayerAccountData();
+  if (!account) return defaults;
+  const next = { ...defaults, ...account };
+  next.equipment = mergeRecord(defaults.equipment, account.equipment);
+  next.achievements = { unlocked: [...new Set([...(defaults.achievements.unlocked ?? []), ...(account.achievements?.unlocked ?? [])])] };
+  next.weaponUnlocks = {
+    primary: mergeList(defaults.weaponUnlocks.primary, account.weaponUnlocks?.primary),
+    secondary: mergeList(defaults.weaponUnlocks.secondary, account.weaponUnlocks?.secondary),
+  };
+  next.moduleUnlocks = mergeList(defaults.moduleUnlocks, account.moduleUnlocks);
+  next.modules = mergeRecord(defaults.modules, account.modules);
+  return next;
 }
 
 export function validatePlayerAccountData(account) {
@@ -75,4 +90,12 @@ export function preparePlayerAccountForSave(account, savedVehicle) {
   const next = structuredClone(account);
   next.savedVehicle = savedVehicle;
   return next;
+}
+
+function mergeList(defaults = [], saved = []) {
+  return [...new Set([...(Array.isArray(defaults) ? defaults : []), ...(Array.isArray(saved) ? saved : [])])];
+}
+
+function mergeRecord(defaults = {}, saved = {}) {
+  return { ...(defaults ?? {}), ...(isPlainObject(saved) ? saved : {}) };
 }

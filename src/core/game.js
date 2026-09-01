@@ -14,6 +14,7 @@ import {
   worldToRoadOffset,
 } from './camera.js';
 import { CELL_SIZE } from './voxelMask.js';
+import { recalculateCell as recalculateEnemyCell } from './cell.js';
 import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
 import {
@@ -53,7 +54,11 @@ import { createCombatEventStats, recordEnemyDefeat } from './combatEvents.js';
 import { getEnemyArchetype } from './enemyArchetypeDefinition.js';
 import { normalizeGunLoadouts } from './weaponLoadout.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
+import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
+import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
+import tractorBeamDefinition from '../../content/weapons/tractor_beam.json' with { type: 'json' };
+import repulsorBeamDefinition from '../../content/weapons/repulsor_beam.json' with { type: 'json' };
 
 export const LEVEL_TARGET_DURATION = 180;
 export const TARGETING_MODES = ['manual', 'guided', 'mixed'];
@@ -61,8 +66,13 @@ const SPAWN_WARNING_LEAD = 2.4;
 const BOSS_LASER_CHARGE_TIME = 3;
 const BOSS_LASER_LOCK_TIME = 1;
 const PRIMARY_WEAPON_DEFINITIONS = {
+  tracking_flechette: runtimeWeaponDefinition(trackingFlechetteDefinition),
+  mortar: runtimeWeaponDefinition(mortarDefinition),
   mini_beam: runtimeWeaponDefinition(miniBeamDefinition),
+  tractor_beam: runtimeWeaponDefinition(tractorBeamDefinition),
+  repulsor_beam: runtimeWeaponDefinition(repulsorBeamDefinition),
 };
+const ENEMY_UPGRADE_TYPES = ['damage', 'attackRate', 'armor', 'movementSpeed'];
 
 export function createGame(seed = 1147, options = {}) {
   const vehicle = createStartingVehicle(options.vehicleDefinition);
@@ -93,6 +103,7 @@ export function createGame(seed = 1147, options = {}) {
     smokeParticles: [],
     soundEvents: [],
     autofire: true,
+    primaryHeat: { heat: 0, maxHeat: 100 },
     playerFireTimer: 0,
     playerGunIndex: 0,
     levelComplete: false,
@@ -152,6 +163,7 @@ export function stepGame(game, input, dt) {
   handleEnemyRamShields(game);
 
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
+  stepPlayerProjectileEmitters(game, dt);
   syncBeamProjectiles(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   syncEnemyBeamProjectiles(game);
@@ -267,6 +279,7 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
       enemy.vx = velocity.x * 17.5;
       enemy.vy = velocity.y * 17.5;
     }
+    applyEnemyLevelUpgrades(enemy, level);
     enemies.push(enemy);
   }
   if (isBoss) {
@@ -274,9 +287,46 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
     const boss = createBossEnemy(bossWorld.x, bossWorld.y);
     boss.vx = roadDirectionToWorld(0, 1, road).x * 18;
     boss.vy = roadDirectionToWorld(0, 1, road).y * 18;
+    applyEnemyLevelUpgrades(boss, level);
     enemies.push(boss);
   }
   return enemies;
+}
+
+function enemyLevelUpgradeCounts(level) {
+  const counts = Object.fromEntries(ENEMY_UPGRADE_TYPES.map((type) => [type, 0]));
+  const rng = new Rng(level * 1009 + 77);
+  for (let round = 2; round <= level; round += 1) {
+    const picks = new Set();
+    while (picks.size < 2) picks.add(ENEMY_UPGRADE_TYPES[Math.floor(rng.range(0, ENEMY_UPGRADE_TYPES.length))]);
+    for (const pick of picks) counts[pick] += 1;
+  }
+  return counts;
+}
+
+function applyEnemyLevelUpgrades(enemy, level) {
+  const counts = enemyLevelUpgradeCounts(level);
+  enemy.levelUpgrades = counts;
+  enemy.combatScale = {
+    damage: 1.05 ** counts.damage,
+    attackRate: 1.05 ** counts.attackRate,
+    armor: 1.05 ** counts.armor,
+    movementSpeed: 1.05 ** counts.movementSpeed,
+  };
+  if (counts.armor > 0) scaleEnemyArmor(enemy, enemy.combatScale.armor);
+  enemy.vx *= enemy.combatScale.movementSpeed;
+  enemy.vy *= enemy.combatScale.movementSpeed;
+}
+
+function scaleEnemyArmor(enemy, scale) {
+  for (const cell of enemy.cells) {
+    for (const voxel of cell.mask.flat()) {
+      if (voxel.hp <= 0 || voxel.maxHp <= 0) continue;
+      voxel.maxHp *= scale;
+      voxel.hp *= scale;
+    }
+    recalculateEnemyCell(cell);
+  }
 }
 
 function zoneArchetypeForMusic(trackName, kind, index) {
@@ -558,6 +608,8 @@ function configureBoostFromUpgrades(game) {
 }
 
 function stepPlayerGun(game, dt) {
+  game.primaryHeat ??= { heat: 0, maxHeat: 100 };
+  game.primaryHeat.heat = Math.max(0, game.primaryHeat.heat - primaryHeatSinkRate(game) * dt);
   game.playerFireTimer -= dt;
   if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
   const mounts = primaryFiringMounts(game);
@@ -569,9 +621,12 @@ function stepPlayerGun(game, dt) {
   game.playerGunIndex = (game.playerGunIndex + 1) % mounts.length;
   const muzzle = mount.muzzle;
   const angle = game.vehicle.turretHeading + (mount.weaponId === 'main.basic' ? game.rng.range(-spread, spread) : 0);
-  if (mount.weaponId === 'mini_beam') {
-    firePrimaryBeam(game, muzzle, PRIMARY_WEAPON_DEFINITIONS.mini_beam);
-    game.playerFireTimer = playerGunFireInterval(game, mounts.length);
+  if (mount.weaponId !== 'main.basic') {
+    const def = upgradedPrimaryWeaponDefinition(game, mount.weaponId);
+    if (!def || game.primaryHeat.heat + def.heat > game.primaryHeat.maxHeat) return;
+    firePrimaryWeapon(game, muzzle, def);
+    game.primaryHeat.heat += def.heat;
+    game.playerFireTimer = primaryWeaponFireInterval(game, def, mounts.length) * primaryHeatCooldownScale(game.primaryHeat);
     return;
   }
   game.playerProjectiles.push(
@@ -587,6 +642,49 @@ function stepPlayerGun(game, dt) {
   );
   emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
   game.playerFireTimer = playerGunFireInterval(game, mounts.length);
+}
+
+function firePrimaryWeapon(game, muzzle, def) {
+  if (def.behavior === 'beam') {
+    firePrimaryBeam(game, muzzle, def);
+    return;
+  }
+  const targetHint = def.targetHint === 'aimReticle' && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
+  const angle = targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
+  const detonateDistance = def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null;
+  game.playerProjectiles.push(
+    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * def.projectileSpeed + game.vehicle.vx, Math.sin(angle) * def.projectileSpeed + game.vehicle.vy, {
+      team: 'player',
+      weapon: def.id,
+      behavior: def.behavior,
+      angle,
+      sourceCellId: muzzle.cellId,
+      startX: muzzle.x,
+      startY: muzzle.y,
+      targetHint,
+      detonateDistance,
+      detonateAtTarget: def.detonateAtTarget,
+      radius: def.radius,
+      damage: def.damage,
+      impulse: def.impulse,
+      lifetime: def.lifetime,
+      turnRate: def.behavior === 'homing' ? def.turnRate : 0,
+      acceleration: def.behavior === 'homing' ? def.acceleration : 0,
+      maxSpeed: def.behavior === 'homing' ? def.maxSpeed : Infinity,
+      verticalVelocity: def.verticalVelocity ?? 0,
+      gravity: def.gravity ?? 0,
+      maxArcHeight: def.maxArcHeight ?? 1,
+      shadowRadius: def.shadowRadius ?? def.radius,
+      blastDamage: def.blastDamage ?? 0,
+      blastRadius: def.blastRadius ?? 0,
+      blastKnockback: def.blastKnockback ?? 0,
+      pierce: def.pierce ?? 0,
+      pierceDamageScale: def.pierceDamageScale,
+      pierceDamageFalloff: def.pierceDamageFalloff,
+      emitsProjectiles: def.emitsProjectiles,
+    }),
+  );
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
 }
 
 function firePrimaryBeam(game, muzzle, def) {
@@ -610,7 +708,23 @@ function firePrimaryBeam(game, muzzle, def) {
       maxLifetime: Math.max(1, def.frames) / 60,
     }),
   );
-  emitSoundEvent(game, SOUND_EVENTS.PLAYER_BEAM);
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
+}
+
+function upgradedPrimaryWeaponDefinition(game, weaponId) {
+  const base = PRIMARY_WEAPON_DEFINITIONS[weaponId];
+  if (!base) return null;
+  if (weaponId === 'mini_beam') {
+    return {
+      ...base,
+      cooldown: base.cooldown / upgradeMultiplier(game, 'miniBeamFireRate'),
+      heat: Math.max(1, base.heat * upgradeReduction(game, 'miniBeamHeatEfficiency')),
+      damage: base.damage * upgradeMultiplier(game, 'miniBeamDamage'),
+      length: base.length * upgradeMultiplier(game, 'miniBeamLength', 0.12),
+      pierce: upgradeLevel(game, 'miniBeamPierce'),
+    };
+  }
+  return base;
 }
 
 function primaryFiringMounts(game) {
@@ -628,6 +742,18 @@ function playerGunFireInterval(game, activeMounts = primaryFiringMounts(game).le
   return 0.22 / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeMounts + 1)));
 }
 
+function primaryWeaponFireInterval(game, def, activeMounts) {
+  return def.cooldown / Math.sqrt(Math.max(1, activeMounts + 1));
+}
+
+function primaryHeatSinkRate(game) {
+  return 22 * upgradeMultiplier(game, 'miniBeamHeatSink', 0.1);
+}
+
+function primaryHeatCooldownScale(primaryHeat) {
+  return 1 / Math.max(0.08, 1 - primaryHeat.heat / primaryHeat.maxHeat);
+}
+
 function stepEnemies(game, dt) {
   for (const enemy of game.enemies) stepEnemy(game, enemy, dt);
 }
@@ -635,6 +761,7 @@ function stepEnemies(game, dt) {
 function stepEnemy(game, enemy, dt) {
   if (enemy.destroyed) return;
   steerEnemyBackToLaneCenter(enemy, game.road, dt);
+  stepArchetypeEnemy(game, enemy, dt);
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
   stepEnemyPatterns(game, enemy, dt);
@@ -643,6 +770,86 @@ function stepEnemy(game, enemy, dt) {
   enemy.y += enemy.vy * dt;
   enemy.vx *= Math.pow(0.78, dt);
   enemy.vy *= Math.pow(0.78, dt);
+}
+
+function stepArchetypeEnemy(game, enemy, dt) {
+  if (enemy.archetypeId === 'ghost_phaser.ghost_forrest') stepGhostPhaser(game, enemy, dt);
+  if (enemy.archetypeId === 'hopping_stream_mob.digitized_stream') stepHopperFrog(game, enemy, dt);
+  if (enemy.archetypeId === 'heavy_mortar_boat.pirates_road') stepMortarBoat(game, enemy, dt);
+  if (enemy.archetypeId === 'starlight_walker.prototype0' || enemy.archetypeId === 'twilight_walker.prototype0') stepWalkerEnemy(game, enemy, dt);
+  if (enemy.archetypeId === 'scrap_buzzard.shadowed_desert') stepScrapBuzzard(game, enemy, dt);
+  if (enemy.archetypeId === 'inchworm_carrier.freedoms_pass') stepInchwormCarrier(game, enemy, dt);
+}
+
+function stepGhostPhaser(game, enemy, dt) {
+  enemy.phaseTimer = (enemy.phaseTimer ?? 2.5) - dt;
+  if (enemy.phaseTimer <= 0) {
+    enemy.phasedOut = !enemy.phasedOut;
+    enemy.phaseTimer = enemy.phasedOut ? game.rng.range(2.4, 4.6) : game.rng.range(1.1, 1.8);
+    if (enemy.phasedOut) {
+      const offset = { x: game.rng.range(-game.road.halfWidth * 0.55, game.road.halfWidth * 0.55), y: game.rng.range(-game.road.halfHeight * 0.35, game.road.halfHeight * 0.25) };
+      const world = roadOffsetToWorld(offset, game.road);
+      enemy.x = world.x;
+      enemy.y = world.y;
+    }
+  }
+  enemy.renderAlpha = enemy.phasedOut ? 0.24 : 0.88;
+}
+
+function stepHopperFrog(game, enemy, dt) {
+  enemy.hopTimer = (enemy.hopTimer ?? game.rng.range(0.5, 1.2)) - dt;
+  enemy.elevation ??= { z: 0, arcCollision: true, canBeHitByGroundFire: true };
+  enemy.elevation.z = Math.max(0, Math.sin(Math.max(0, enemy.hopTimer) * Math.PI * 2) * 18);
+  if (enemy.hopTimer > 0) return;
+  const direction = directionFromTo(enemy, game.vehicle);
+  enemy.vx += direction.x * 95 * enemyMovementUpgradeScale(enemy);
+  enemy.vy += direction.y * 95 * enemyMovementUpgradeScale(enemy);
+  enemy.hopTimer = game.rng.range(0.65, 1.25);
+  fireShortEnemyBeam(game, enemy, '#f26cff', 0.65);
+}
+
+function stepMortarBoat(game, enemy, dt) {
+  enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.2, 2.4)) - dt * enemyAttackRateUpgradeScale(enemy);
+  if (enemy.artilleryTimer > 0) return;
+  enemy.artilleryTimer = game.rng.range(4.8, 7.2);
+  fireEnemyMortarLine(game, enemy, 7);
+}
+
+function stepWalkerEnemy(game, enemy, dt) {
+  enemy.elevation ??= { z: enemy.archetypeId === 'twilight_walker.prototype0' ? 64 : 52, canBeHitByGroundFire: false, arcCollision: true };
+  enemy.walkPhase = (enemy.walkPhase ?? 0) + dt * 4.4 * enemyMovementUpgradeScale(enemy);
+  enemy.vx += Math.sin(enemy.walkPhase) * 6 * dt;
+}
+
+function stepScrapBuzzard(game, enemy, dt) {
+  enemy.elevation ??= { z: 110, canBeHitByGroundFire: false, arcCollision: true };
+  enemy.renderAlpha = 0.92;
+  enemy.buzzardTimer = (enemy.buzzardTimer ?? game.rng.range(0.8, 1.8)) - dt * enemyAttackRateUpgradeScale(enemy);
+  if (enemy.buzzardTimer <= 0) {
+    enemy.buzzardTimer = game.rng.range(1.4, 2.2);
+    fireEnemyArcShell(game, enemy, { x: enemy.x - enemy.vx * 0.55, y: enemy.y - enemy.vy * 0.55 }, '#d6cfb9');
+  }
+  const offset = worldToRoadOffset(enemy, game.road);
+  if (Math.abs(offset.x) > game.road.halfWidth * 0.62) enemy.vx *= -0.75;
+}
+
+function stepInchwormCarrier(game, enemy, dt) {
+  enemy.wormPhase = (enemy.wormPhase ?? 0) + dt * 2.8;
+  enemy.vx += Math.sin(enemy.wormPhase) * 12 * dt * enemyMovementUpgradeScale(enemy);
+  enemy.spawnTimer = (enemy.spawnTimer ?? game.rng.range(2.2, 4.4)) - dt;
+  if (enemy.spawnTimer > 0) return;
+  enemy.spawnTimer = game.rng.range(5.5, 8.5);
+  const moth = createEnemy(enemy.x + game.rng.range(-CELL_SIZE, CELL_SIZE), enemy.y + CELL_SIZE * 1.4);
+  moth.archetypeId = 'moth_bomber.freedoms_pass';
+  moth.displayName = 'Freedoms Pass Moth Bomber';
+  moth.palette = { core: '#f4eee4', armor: '#b9d990', gun: '#ff7a1a' };
+  moth.elevation = { z: 35, canBeHitByGroundFire: true, arcCollision: true };
+  moth.radius *= 0.7;
+  const direction = directionFromTo(moth, game.vehicle);
+  moth.vx = direction.x * 170 * enemyMovementUpgradeScale(enemy);
+  moth.vy = direction.y * 170 * enemyMovementUpgradeScale(enemy);
+  applyEnemyLevelUpgrades(moth, game.level);
+  game.enemies.push(moth);
 }
 
 function updateEnemyVisualHeading(enemy, dt) {
@@ -660,8 +867,8 @@ function stepEnhancedEnemy(game, enemy, dt) {
   charge.timer -= dt;
   enemy.shieldActive = charge.state === 'charging';
   if (charge.state === 'charging') {
-    enemy.vx += charge.x * 82.5 * engineScale * dt;
-    enemy.vy += charge.y * 82.5 * engineScale * dt;
+    enemy.vx += charge.x * 82.5 * engineScale * enemyMovementUpgradeScale(enemy) * dt;
+    enemy.vy += charge.y * 82.5 * engineScale * enemyMovementUpgradeScale(enemy) * dt;
     const offset = worldToRoadOffset(enemy, game.road);
     if (Math.abs(offset.x) > game.road.halfWidth * 0.45 || Math.abs(offset.y) > game.road.halfHeight * 0.42) charge.timer = Math.min(charge.timer, 0);
   }
@@ -715,7 +922,7 @@ function steerBossBackToViewArea(game, boss, dt) {
   const dx = targetWorld.x - boss.x;
   const dy = targetWorld.y - boss.y;
   const worldDistance = Math.hypot(dx, dy) || 1;
-  const desiredSpeed = clamp(worldDistance * 3.1, 40, 310);
+  const desiredSpeed = clamp(worldDistance * 3.1, 40, 310) * enemyMovementUpgradeScale(boss);
   const desiredVx = (dx / worldDistance) * desiredSpeed;
   const desiredVy = (dy / worldDistance) * desiredSpeed;
   const steer = clamp(8.5 * dt, 0, 1);
@@ -760,7 +967,7 @@ function stepBossLaser(game, boss, arm, dt) {
       weapon: 'boss-laser',
       behavior: 'beam',
       radius: 1.5,
-      damage: 7.5,
+      damage: 7.5 * enemyDamageUpgradeScale(boss),
       impulse: 80,
       lifetime: 15 / 60,
       length: 380,
@@ -799,11 +1006,11 @@ function fireBossArmAttack(game, boss, arm) {
 function fireBossStandardShot(game, source, arm) {
   const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, Math.cos(angle) * 112, Math.sin(angle) * 112, {
+    createProjectile(source.x, source.y, Math.cos(angle) * 112 * enemyMovementUpgradeScale(source.enemy ?? {}), Math.sin(angle) * 112 * enemyMovementUpgradeScale(source.enemy ?? {}), {
       team: 'enemy',
       weapon: 'boss-tentacle',
       radius: 2.2,
-      damage: 10,
+      damage: 10 * enemyDamageUpgradeScale(source.enemy ?? {}),
       impulse: 75,
       lifetime: 4,
       angle,
@@ -819,17 +1026,17 @@ function fireBossDelayedShot(game, source, arm) {
       team: 'enemy',
       weapon: 'boss-drifter',
       radius: 1.1,
-      damage: 9,
+      damage: 9 * enemyDamageUpgradeScale(source.enemy ?? {}),
       impulse: 62.5,
       lifetime: 6.5,
       angle,
       delayBeforeAcceleration: game.rng.range(1.4, 2.6),
       stopBeforeAcceleration: true,
-      acceleration: 225,
+      acceleration: 225 * enemyMovementUpgradeScale(source.enemy ?? {}),
       accelerationDuration: 3,
       accelerationTarget: game.vehicle,
       accelerationJitter: game.rng.range(-0.04, 0.04),
-      maxSpeed: 412.5,
+      maxSpeed: 412.5 * enemyMovementUpgradeScale(source.enemy ?? {}),
     }),
   );
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
@@ -842,7 +1049,7 @@ function fireBossProtectiveShot(game, source, arm) {
       team: 'enemy',
       weapon: 'boss-shield-shot',
       radius: 3.2,
-      damage: 7,
+      damage: 7 * enemyDamageUpgradeScale(source.enemy ?? {}),
       impulse: 52.5,
       lifetime: 4.8,
       angle,
@@ -860,9 +1067,10 @@ function bossArmSource(boss, arm) {
   return {
     x: boss.x + liveGun.gridX * CELL_SIZE,
     y: boss.y + liveGun.gridY * CELL_SIZE,
-    cellId: liveGun.id,
-    localX: liveGun.gridX * CELL_SIZE,
-    localY: liveGun.gridY * CELL_SIZE,
+      cellId: liveGun.id,
+      localX: liveGun.gridX * CELL_SIZE,
+      localY: liveGun.gridY * CELL_SIZE,
+      enemy: boss,
   };
 }
 
@@ -888,7 +1096,7 @@ function detonateBrokenBossArm(game, boss, arm) {
           team: 'enemy',
           weapon: 'boss-arm-shrapnel',
           radius: 1.4,
-          damage: 5,
+        damage: 5 * enemyDamageUpgradeScale(boss),
           impulse: 35,
           lifetime: game.rng.range(0.3, 0.55),
         }),
@@ -913,22 +1121,88 @@ function fireBossCenterPulse(game, boss) {
         team: 'enemy',
         weapon: 'boss-missile',
         radius: 3,
-        damage: 9,
+        damage: 9 * enemyDamageUpgradeScale(boss),
         impulse: 57.5,
         lifetime: 7,
         angle,
         delayBeforeAcceleration: 3,
         stopBeforeAcceleration: true,
-        acceleration: 202.5,
+        acceleration: 202.5 * enemyMovementUpgradeScale(boss),
         accelerationDuration: 10,
         accelerationTarget: game.vehicle,
         accelerationJitter: 0,
-        maxSpeed: 840,
+        maxSpeed: 840 * enemyMovementUpgradeScale(boss),
         vanishOffscreen: true,
       }),
     );
   }
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function fireShortEnemyBeam(game, enemy, color = '#83f7ff', damageScale = 1) {
+  const source = { x: enemy.x, y: enemy.y };
+  const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'enemy-short-beam',
+      behavior: 'beam',
+      radius: 0.75,
+      damage: 2.5 * damageScale * enemyDamageUpgradeScale(enemy),
+      impulse: 35,
+      lifetime: 6 / 60,
+      length: CELL_SIZE * 7.5,
+      frames: 6,
+      angle,
+      color,
+    }),
+  );
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BEAM);
+}
+
+function fireEnemyMortarLine(game, enemy, count = 7) {
+  const target = {
+    x: game.vehicle.x + game.vehicle.vx * 0.35,
+    y: game.vehicle.y + game.vehicle.vy * 0.35,
+  };
+  for (let index = 0; index < count; index += 1) {
+    const t = count <= 1 ? 1 : (index + 1) / count;
+    const point = {
+      x: enemy.x + (target.x - enemy.x) * t + game.rng.range(-CELL_SIZE * 0.35, CELL_SIZE * 0.35),
+      y: enemy.y + (target.y - enemy.y) * t + game.rng.range(-CELL_SIZE * 0.35, CELL_SIZE * 0.35),
+    };
+    fireEnemyArcShell(game, enemy, point, '#ffb25f', index * 0.03);
+  }
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', delay = 0) {
+  const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+  const speed = 78 * enemyMovementUpgradeScale(enemy);
+  const shell = createProjectile(enemy.x, enemy.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+    team: 'enemy',
+    weapon: 'enemy-mortar',
+    behavior: 'arc',
+    radius: 3.2,
+    color,
+    damage: 8 * enemyDamageUpgradeScale(enemy),
+    impulse: 80,
+    lifetime: 3.8 + delay,
+    verticalVelocity: 118,
+    gravity: 92,
+    maxArcHeight: 110,
+    shadowRadius: 4,
+    blastOnExpire: {
+      radius: CELL_SIZE * 2.55,
+      damage: 4.5 * enemyDamageUpgradeScale(enemy),
+      impulse: 34,
+    },
+  });
+  if (delay > 0) {
+    shell.lifetime += delay;
+    shell.maxLifetime += delay;
+  }
+  game.enemyProjectiles.push(shell);
 }
 
 function stepEnemyPatterns(game, enemy, dt) {
@@ -937,7 +1211,7 @@ function stepEnemyPatterns(game, enemy, dt) {
   for (const patternState of enemy.patterns ?? []) {
     patternState.timer -= dt * fireScale;
     if (patternState.timer > 0) continue;
-    const projectiles = firePattern(patternState, enemy, game.vehicle, game.rng);
+    const projectiles = firePattern(patternState, enemy, game.vehicle, game.rng).map((projectile) => scaleEnemyProjectile(enemy, projectile));
     game.enemyProjectiles.push(...projectiles);
     if (projectiles.length > 0) {
       enemy.lastFiredAt = game.time;
@@ -961,7 +1235,7 @@ function fireBossNoduleShots(game, boss, arm, dt) {
         team: 'enemy',
         weapon: 'boss-nodule',
         radius: 2.2,
-        damage: 8,
+        damage: 8 * enemyDamageUpgradeScale(boss),
         impulse: 55,
         lifetime: 3.2,
         angle,
@@ -974,17 +1248,17 @@ function fireBossNoduleShots(game, boss, arm, dt) {
 function enemyFireTimerScale(enemy) {
   const gun = enemyGunEfficiency(enemy);
   if (gun <= 0.05) return 0;
-  return clamp(0.18 + gun * 0.82, 0, 1);
+  return clamp(0.18 + gun * 0.82, 0, 1) * enemyAttackRateUpgradeScale(enemy);
 }
 
 function enemyMobilityScale(enemy) {
   const engine = enemyEngineEfficiency(enemy);
-  return clamp(0.25 + engine * 0.75, 0.25, 1);
+  return clamp(0.25 + engine * 0.75, 0.25, 1) * enemyMovementUpgradeScale(enemy);
 }
 
 function enemyCoreTimerScale(enemy) {
   const core = enemyCoreEfficiency(enemy);
-  return clamp(0.3 + core * 0.7, 0.3, 1);
+  return clamp(0.3 + core * 0.7, 0.3, 1) * enemyAttackRateUpgradeScale(enemy);
 }
 
 function bossArmGunTimerScale(boss, arm) {
@@ -992,7 +1266,36 @@ function bossArmGunTimerScale(boss, arm) {
   if (cells.length === 0) return 0;
   const integrity = cells.reduce((sum, cell) => sum + Math.min(cell.state.deviceIntegrity, cell.state.wiringIntegrity, cell.state.structureIntegrity), 0) / cells.length;
   if (integrity <= 0.05) return 0;
-  return clamp(0.18 + integrity * 0.82, 0, 1);
+  return clamp(0.18 + integrity * 0.82, 0, 1) * enemyAttackRateUpgradeScale(boss);
+}
+
+function scaleEnemyProjectile(enemy, projectile) {
+  projectile.damage *= enemyDamageUpgradeScale(enemy);
+  projectile.impulse *= enemyDamageUpgradeScale(enemy);
+  projectile.vx *= enemyMovementUpgradeScale(enemy);
+  projectile.vy *= enemyMovementUpgradeScale(enemy);
+  projectile.maxSpeed *= enemyMovementUpgradeScale(enemy);
+  projectile.acceleration *= enemyMovementUpgradeScale(enemy);
+  if (projectile.blastOnExpire) {
+    projectile.blastOnExpire = {
+      ...projectile.blastOnExpire,
+      damage: projectile.blastOnExpire.damage * enemyDamageUpgradeScale(enemy),
+      impulse: (projectile.blastOnExpire.impulse ?? 0) * enemyDamageUpgradeScale(enemy),
+    };
+  }
+  return projectile;
+}
+
+function enemyDamageUpgradeScale(enemy) {
+  return enemy.combatScale?.damage ?? 1;
+}
+
+function enemyAttackRateUpgradeScale(enemy) {
+  return enemy.combatScale?.attackRate ?? 1;
+}
+
+function enemyMovementUpgradeScale(enemy) {
+  return enemy.combatScale?.movementSpeed ?? 1;
 }
 
 function nextPatternTimer(patternState) {
@@ -1109,6 +1412,7 @@ function handleCollisions(game) {
       continue;
     }
     for (const enemy of activeEnemies(game)) {
+      if (!enemyCanBeHitByProjectile(enemy, projectile)) continue;
       if (distanceSquared(projectile, enemy) >= (enemy.radius + projectile.radius) ** 2) continue;
       if (enemyShieldBlocks(enemy, projectile)) {
         projectile.lifetime = 0;
@@ -1134,6 +1438,12 @@ function handleCollisions(game) {
   game.playerProjectiles = game.playerProjectiles.filter((projectile) => !projectile.detonated);
 }
 
+function enemyCanBeHitByProjectile(enemy, projectile) {
+  if (enemy.phasedOut && projectile.behavior !== 'arc') return false;
+  if (enemy.elevation?.canBeHitByGroundFire === false && projectile.behavior !== 'arc') return false;
+  return true;
+}
+
 function detonatePlayerProjectile(game, projectile, enemy) {
   if (projectile.detonated) return;
   projectile.detonated = true;
@@ -1143,6 +1453,72 @@ function detonatePlayerProjectile(game, projectile, enemy) {
   projectile.vy = 0;
   if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile, enemy);
   if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile, enemy);
+  if (projectile.weapon !== 'cannon' && projectile.weapon !== 'rocket' && (projectile.blastRadius ?? 0) > 0) spawnGenericPlayerBlast(game, projectile);
+}
+
+function spawnGenericPlayerBlast(game, projectile) {
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_EXPLOSION);
+  game.playerProjectiles.push(
+    createProjectile(projectile.x, projectile.y, 0, 0, {
+      team: 'player',
+      weapon: `${projectile.weapon}-blast`,
+      behavior: 'blast',
+      radius: 1,
+      maxRadius: projectile.blastRadius,
+      damage: 0,
+      impulse: 0,
+      lifetime: 0.22,
+    }),
+  );
+
+  for (const blastTarget of activeEnemies(game)) {
+    const distance = Math.hypot(blastTarget.x - projectile.x, blastTarget.y - projectile.y);
+    if (distance > projectile.blastRadius + blastTarget.radius) continue;
+    const hit = applyEnemyBlastDamage(blastTarget, projectile, {
+      maxVoxelDistance: Math.max(1, projectile.blastRadius / (CELL_SIZE / 6)),
+      closeVoxelDistance: 5,
+      closePenetration: 3,
+      farPenetration: 1,
+      damage: projectile.blastDamage || projectile.damage,
+    });
+    if (hit.hit) {
+      game.score.damageDone += Math.round((projectile.blastDamage || projectile.damage) * 0.22 + hit.removed * 3);
+      if (hit.destroyedNow) explodeEnemy(game, blastTarget);
+    }
+    knockEnemyFromPoint(blastTarget, projectile, projectile.blastRadius + CELL_SIZE, projectile.blastKnockback ?? projectile.impulse ?? 0);
+  }
+}
+
+function stepPlayerProjectileEmitters(game, dt) {
+  const spawned = [];
+  for (const projectile of game.playerProjectiles) {
+    const emitter = projectile.emitsProjectiles;
+    if (!emitter || projectile.lifetime <= 0) continue;
+    projectile.emitTimer -= dt;
+    while (projectile.emitTimer <= 0 && projectile.emitIndex < (emitter.count ?? 0)) {
+      spawned.push(createEmittedPlayerProjectile(game, projectile, emitter));
+      projectile.emitIndex += 1;
+      projectile.emitTimer += emitter.interval ?? 0.1;
+    }
+  }
+  if (spawned.length > 0) game.playerProjectiles.push(...spawned);
+}
+
+function createEmittedPlayerProjectile(game, source, emitter) {
+  const angle = source.angle + ((Math.PI * 2 * source.emitIndex) / Math.max(1, emitter.count ?? 1));
+  const speed = emitter.projectileSpeed ?? 180;
+  return createProjectile(source.x, source.y, Math.cos(angle) * speed + source.vx * 0.25, Math.sin(angle) * speed + source.vy * 0.25, {
+    team: 'player',
+    weapon: emitter.weapon ?? 'emitted-projectile',
+    radius: emitter.radius ?? 1,
+    damage: emitter.damage ?? source.damage,
+    impulse: source.impulse * 0.35,
+    lifetime: 0.9,
+    angle,
+    pierce: emitter.pierce ?? 0,
+    pierceDamageScale: 0.85,
+    pierceDamageFalloff: 0.72,
+  });
 }
 
 function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
@@ -1312,7 +1688,7 @@ function hitEnemiesWithBeam(game, projectile) {
     if (shieldTrace.projectile.absorbHp <= 0) shieldTrace.projectile.lifetime = 0;
     return;
   }
-  const trace = traceEnemyVoxelBeam(activeEnemies(game), projectile, projectile.angle, projectile.length, halfWidth, projectile.pierce ?? 0);
+  const trace = traceEnemyVoxelBeam(activeEnemies(game).filter((enemy) => enemyCanBeHitByProjectile(enemy, projectile)), projectile, projectile.angle, projectile.length, halfWidth, projectile.pierce ?? 0);
   projectile.renderEndX = trace.x;
   projectile.renderEndY = trace.y;
   if (trace.hits.length === 0) return;

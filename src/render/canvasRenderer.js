@@ -296,6 +296,9 @@ function drawComMarker(ctx, com) {
 function drawEnemy(ctx, enemy, time) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
+  ctx.globalAlpha *= enemy.renderAlpha ?? 1;
+  if ((enemy.elevation?.z ?? 0) > 0) drawEnemyElevationShadow(ctx, enemy);
+  ctx.translate(0, -(enemy.elevation?.z ?? 0));
   if (enemy.kind === 'boss') {
     drawBossLaserTelegraphs(ctx, enemy, time);
     drawBossTentacleWiggle(ctx, enemy, time);
@@ -317,6 +320,18 @@ function drawEnemy(ctx, enemy, time) {
     ctx.lineWidth = 2;
     drawBossOutline(ctx, enemy, time);
   }
+  ctx.restore();
+}
+
+function drawEnemyElevationShadow(ctx, enemy) {
+  const z = enemy.elevation?.z ?? 0;
+  const alpha = Math.max(0.08, 0.24 - z / 900);
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.fillStyle = '#050506';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(CELL_SIZE * 1.1, enemy.radius * 0.65), Math.max(CELL_SIZE * 0.35, enemy.radius * 0.22), 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 

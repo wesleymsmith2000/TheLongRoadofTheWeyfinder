@@ -46,3 +46,11 @@ test('zone soundtrack names route standard spawns to zone archetypes', () => {
   assert.equal(createLevelEnemies(road, 1, ['ShadowedDesert_Journey'])[0].archetypeId, 'scrap_buzzard.shadowed_desert');
   assert.equal(createLevelEnemies(road, 1, ['FreedomsPass_Journey'])[0].archetypeId, 'inchworm_carrier.freedoms_pass');
 });
+
+test('enemy round upgrades scale two deterministic enemy traits per level', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const enemy = createLevelEnemies(road, 6, ['PiratesRoad_1'])[0];
+  const upgradedTraits = Object.values(enemy.levelUpgrades).reduce((sum, value) => sum + value, 0);
+  assert.equal(upgradedTraits, 10);
+  assert.equal(Object.values(enemy.combatScale).some((scale) => scale > 1), true);
+});

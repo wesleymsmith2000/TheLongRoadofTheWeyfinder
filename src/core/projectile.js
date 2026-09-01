@@ -58,6 +58,9 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     sourceEnemy: options.sourceEnemy ?? null,
     sourceCellId: options.sourceCellId ?? null,
     sourceOffset: options.sourceOffset ?? null,
+    emitsProjectiles: options.emitsProjectiles ? structuredClone(options.emitsProjectiles) : null,
+    emitTimer: options.emitsProjectiles?.interval ?? 0,
+    emitIndex: 0,
   };
   if (options.destructible && options.shape?.kind === 'cylinderCone') {
     projectile.shape = options.shape;

@@ -15,7 +15,7 @@ import {
 import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
-import { createPrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
+import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
 import { applySaveStateToGame, createSaveState, validateSaveState } from './core/saveState.js';
 import {
   createLocalContentBundleFromFiles,
@@ -518,7 +518,7 @@ async function importSelectedSave() {
       saveStatus.textContent = 'Save import canceled.';
       return;
     }
-    playerAccount = save.payload.playerAccount ? { ...createPrototypePlayerAccountData(), ...save.payload.playerAccount } : playerAccount;
+    playerAccount = save.payload.playerAccount ? normalizePrototypePlayerAccountData(save.payload.playerAccount) : playerAccount;
     playerVehicleDefinition = save.payload.vehicleDefinition ?? playerAccount.savedVehicle;
     savePlayerAccount();
     game = createGame(save.payload.seed ?? 1147, {
@@ -571,7 +571,7 @@ function playSoundEvents(game) {
 function loadPlayerAccount() {
   try {
     const saved = JSON.parse(localStorage.getItem(PLAYER_ACCOUNT_STORAGE_KEY));
-    return saved ? { ...createPrototypePlayerAccountData(), ...saved } : createPrototypePlayerAccountData();
+    return normalizePrototypePlayerAccountData(saved);
   } catch {
     return createPrototypePlayerAccountData();
   }
