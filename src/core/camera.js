@@ -116,6 +116,5 @@ export function roadOffsetToWorld(offset, road) {
 export function screenToWorld(screen, camera, viewport) {
   const dx = screen.x - viewport.width / 2;
   const dy = screen.y - viewport.height * 0.58;
-  const worldOffset = rotatePoint(dx, dy, camera.heading);
-  return { x: camera.x + worldOffset.x, y: camera.y + worldOffset.y };
+  return { x: camera.x + dx, y: camera.y + dy };
 }

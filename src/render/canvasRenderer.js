@@ -113,8 +113,8 @@ export class CanvasRenderer {
     drawScrapPickups(ctx, game.scrapPickups);
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, this.imageAssets);
     drawSmokeParticles(ctx, game.smokeParticles);
-    drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets, game.camera);
-    drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets, game.camera);
+    drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
+    drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
     drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets);
     drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
@@ -187,7 +187,6 @@ function drawScrapPickups(ctx, pickups) {
 
 function applyCameraTransform(ctx, camera, w, h) {
   ctx.translate(w / 2, h * 0.58);
-  ctx.rotate(-camera.heading);
   ctx.translate(-camera.x, -camera.y);
 }
 
@@ -571,7 +570,7 @@ function drawEnemyExplosion(ctx, enemy, time) {
   ctx.restore();
 }
 
-function drawProjectiles(ctx, projectiles, color, imageAssets, camera) {
+function drawProjectiles(ctx, projectiles, color, imageAssets) {
   for (const projectile of projectiles) {
     if (projectile.behavior === 'beam') {
       drawBeam(ctx, projectile);
@@ -582,7 +581,7 @@ function drawProjectiles(ctx, projectiles, color, imageAssets, camera) {
       continue;
     }
     if (projectile.behavior === 'arc') {
-      drawArcProjectile(ctx, projectile, color, imageAssets, camera);
+      drawArcProjectile(ctx, projectile, color, imageAssets);
       continue;
     }
     if (drawProjectileSprite(ctx, projectile, imageAssets)) continue;
@@ -644,21 +643,28 @@ function drawOrbFlechette(ctx, projectile) {
   ctx.restore();
 }
 
-function drawArcProjectile(ctx, projectile, color, imageAssets, camera) {
+function drawArcProjectile(ctx, projectile, color, imageAssets) {
   const heightRatio = Math.max(0, Math.min(1, projectile.z / Math.max(1, projectile.maxArcHeight ?? 1)));
-  const lift = cameraAlignedLift(projectile.z, camera?.heading ?? 0);
-  const visualX = projectile.x + lift.x;
-  const visualY = projectile.y + lift.y;
+  const visualX = projectile.x;
+  const visualY = projectile.y - projectile.z;
   const scale = 1 + heightRatio * 0.55;
+  const marker = projectile.detonateAtTarget && projectile.targetHint ? projectile.targetHint : projectile;
   ctx.save();
-  if (!drawSpriteDescriptor(ctx, imageAssets, projectile.landingMarkerSprite, projectile.x, projectile.y, 0)) {
-    ctx.globalAlpha = 0.18 + (1 - heightRatio) * 0.26;
-    ctx.fillStyle = '#050506';
-    ctx.beginPath();
-    ctx.ellipse(projectile.x, projectile.y, projectile.shadowRadius * (1 - heightRatio * 0.45), projectile.shadowRadius * 0.45, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  ctx.globalAlpha = 0.18 + (1 - heightRatio) * 0.26;
+  ctx.fillStyle = '#050506';
+  ctx.beginPath();
+  ctx.ellipse(projectile.x, projectile.y, projectile.shadowRadius * (1 - heightRatio * 0.45), projectile.shadowRadius * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.globalAlpha = 1;
+  if (!drawSpriteDescriptor(ctx, imageAssets, projectile.landingMarkerSprite, marker.x, marker.y, 0)) {
+    ctx.globalAlpha = 0.42;
+    ctx.strokeStyle = projectile.color ?? color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(marker.x, marker.y, Math.max(projectile.shadowRadius * 1.8, 8), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   if (drawProjectileSprite(ctx, projectile, imageAssets, { x: visualX, y: visualY, scale })) {
     ctx.restore();
     return;
@@ -671,13 +677,6 @@ function drawArcProjectile(ctx, projectile, color, imageAssets, camera) {
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
-}
-
-function cameraAlignedLift(height, cameraHeading) {
-  return {
-    x: Math.sin(cameraHeading) * height,
-    y: -Math.cos(cameraHeading) * height,
-  };
 }
 
 function drawProjectileSprite(ctx, projectile, imageAssets, options = {}) {

@@ -7,6 +7,7 @@ import {
   containVehicleInRoadFrame,
   createRoadCamera,
   createRoadFrame,
+  screenToWorld,
   stepRoadCamera,
   stepRoadFrame,
   worldToRoadOffset,
@@ -51,6 +52,12 @@ test('road camera rotates toward road heading', () => {
   stepRoadCamera(camera, road, vehicle, 0.1);
   assert.equal(camera.heading > 0, true);
   assert.equal(camera.heading < road.heading, true);
+});
+
+test('screen aiming uses a fixed view plane even when road camera heading changes', () => {
+  const camera = { x: 100, y: 200, heading: Math.PI / 2 };
+  const world = screenToWorld({ x: 430, y: 280 }, camera, { width: 800, height: 500 });
+  assert.deepEqual(world, { x: 130, y: 190 });
 });
 
 test('vehicle is contained inside the road play lane', () => {
