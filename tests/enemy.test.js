@@ -365,6 +365,50 @@ test('damaged enemy guns inhibit firing', () => {
   assert.equal(game.enemyProjectiles.length, 0);
 });
 
+test('disarmed ghost phasers phase in, charge, and self detonate', () => {
+  const game = createGame();
+  const enemy = createEnemy(game.vehicle.x + CELL_SIZE * 6, game.vehicle.y);
+  enemy.archetypeId = 'ghost_phaser.ghost_forrest';
+  enemy.phasedOut = true;
+  enemy.phaseTimer = 10;
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+  for (const gun of enemy.cells.filter((cell) => cell.type === 'gun')) destroyDeviceVoxels(gun);
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(enemy.phasedOut, false);
+  assert.equal(enemy.phantomOverload.timer < 3, true);
+  assert.equal(enemy.renderAlpha > 0.6, true);
+  assert.equal(enemy.vx < 0, true);
+  assert.equal(game.enemyProjectiles.length, 0);
+
+  for (let index = 0; index < 190 && !enemy.destroyed; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
+
+  assert.equal(enemy.destroyed, true);
+  assert.equal(enemy.explosionStart != null, true);
+});
+
+test('overloaded ghost phasers explode immediately on player contact', () => {
+  const game = createGame();
+  const enemy = createEnemy(game.vehicle.x, game.vehicle.y);
+  enemy.archetypeId = 'ghost_phaser.ghost_forrest';
+  enemy.phasedOut = true;
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+  for (const gun of enemy.cells.filter((cell) => cell.type === 'gun')) destroyDeviceVoxels(gun);
+  const beforeHp = vehicleHitPoints(game.vehicle);
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(enemy.destroyed, true);
+  assert.equal(enemy.explosionStart, game.time);
+  assert.equal(vehicleHitPoints(game.vehicle) < beforeHp, true);
+});
+
 test('damaged enhanced enemy engines inhibit charge acceleration', () => {
   const healthyGame = createGame();
   const damagedGame = createGame();
@@ -391,4 +435,8 @@ function destroyDeviceVoxels(cell) {
     }
   }
   recalculateCell(cell);
+}
+
+function vehicleHitPoints(vehicle) {
+  return vehicle.cells.reduce((sum, cell) => sum + cell.mask.flat().reduce((cellSum, voxel) => cellSum + Math.max(0, voxel.hp), 0), 0);
 }

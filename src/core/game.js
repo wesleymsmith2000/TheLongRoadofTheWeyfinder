@@ -78,6 +78,11 @@ const PRIMARY_WEAPON_DEFINITIONS = {
 const ENEMY_UPGRADE_TYPES = ['damage', 'attackRate', 'armor', 'movementSpeed'];
 const HOPPER_FROG_VISUAL_SCALE = 1.5;
 const HOPPER_FROG_HOP_IMPULSE = 71.25;
+const PHANTOM_OVERLOAD_DURATION = 3;
+const PHANTOM_OVERLOAD_SPEED = 195;
+const PHANTOM_OVERLOAD_DAMAGE = 22;
+const PHANTOM_OVERLOAD_RADIUS = CELL_SIZE * 3.2;
+const PHANTOM_OVERLOAD_IMPULSE = 140;
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
@@ -940,6 +945,7 @@ function stepEnemy(game, enemy, dt) {
   stepArchetypeEnemy(game, enemy, dt);
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
+  if (enemy.destroyed) return;
   stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
   enemy.x += enemy.vx * dt;
@@ -977,6 +983,15 @@ function applyRoadTurnDizziness(game, turnAngle = 0) {
 }
 
 function stepGhostPhaser(game, enemy, dt) {
+  if (enemy.phantomOverload) {
+    stepPhantomOverload(game, enemy, dt);
+    return;
+  }
+  if (enemyFireTimerScale(enemy) <= 0) {
+    startPhantomOverload(enemy);
+    stepPhantomOverload(game, enemy, dt);
+    return;
+  }
   enemy.phaseTimer = (enemy.phaseTimer ?? 2.5) - dt;
   if (enemy.phaseTimer <= 0) {
     enemy.phasedOut = !enemy.phasedOut;
@@ -989,6 +1004,37 @@ function stepGhostPhaser(game, enemy, dt) {
     }
   }
   enemy.renderAlpha = enemy.phasedOut ? 0.24 : 0.88;
+}
+
+function startPhantomOverload(enemy) {
+  enemy.phantomOverload = {
+    timer: PHANTOM_OVERLOAD_DURATION,
+    duration: PHANTOM_OVERLOAD_DURATION,
+  };
+  enemy.phasedOut = false;
+  enemy.phaseTimer = Infinity;
+  enemy.renderAlpha = 1;
+}
+
+function stepPhantomOverload(game, enemy, dt) {
+  const overload = enemy.phantomOverload;
+  overload.timer -= dt;
+  enemy.phasedOut = false;
+  enemy.phaseTimer = Infinity;
+  const progress = 1 - clamp(overload.timer / Math.max(0.001, overload.duration), 0, 1);
+  const flash = Math.sin(game.time * (9 + progress * 24)) * 0.5 + 0.5;
+  enemy.renderAlpha = 0.62 + flash * 0.38;
+
+  const direction = directionFromTo(enemy, game.vehicle);
+  const desiredSpeed = PHANTOM_OVERLOAD_SPEED * enemyMovementUpgradeScale(enemy);
+  const steer = clamp((4.8 + progress * 5.4) * dt, 0, 1);
+  enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
+  enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
+
+  const contactRange = enemy.radius + CELL_SIZE * 2.4;
+  if (overload.timer <= 0 || distanceSquared(enemy, game.vehicle) <= contactRange * contactRange) {
+    detonatePhantomOverload(game, enemy);
+  }
 }
 
 function stepHopperFrog(game, enemy, dt) {
@@ -1440,6 +1486,7 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', delay = 0) {
 }
 
 function stepEnemyPatterns(game, enemy, dt) {
+  if (enemy.phantomOverload) return;
   const fireScale = enemyFireTimerScale(enemy);
   if (fireScale <= 0) return;
   for (const patternState of enemy.patterns ?? []) {
@@ -2375,6 +2422,16 @@ function explodeEnemy(game, enemy) {
     if (other === enemy || other.destroyed) continue;
     knockEnemyFromPoint(other, enemy, radius, impulse);
   }
+}
+
+function detonatePhantomOverload(game, enemy) {
+  if (enemy.destroyed) return;
+  const direction = directionFromTo(enemy, game.vehicle);
+  if (distanceSquared(enemy, game.vehicle) <= (PHANTOM_OVERLOAD_RADIUS + CELL_SIZE * 3.8) ** 2) {
+    applyVehicleDamage(game.vehicle, game.vehicle, PHANTOM_OVERLOAD_RADIUS, PHANTOM_OVERLOAD_DAMAGE, PHANTOM_OVERLOAD_IMPULSE, direction);
+  }
+  enemy.destroyed = true;
+  explodeEnemy(game, enemy);
 }
 
 function knockEnemyFromPoint(enemy, point, radius, impulse) {
