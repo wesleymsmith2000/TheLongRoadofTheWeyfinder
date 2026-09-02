@@ -17,6 +17,14 @@ import mortarLine7 from '../../content/examples/prototype0-zone-enemy-set/patter
 import buzzardTrailingMortar from '../../content/examples/prototype0-zone-enemy-set/patterns/example.buzzard_trailing_mortar.json' with { type: 'json' };
 import inchwormRepulsorEye from '../../content/examples/prototype0-zone-enemy-set/patterns/example.inchworm_repulsor_eye.json' with { type: 'json' };
 import inchwormEyeMiniBeam from '../../content/examples/prototype0-zone-enemy-set/patterns/example.inchworm_eye_mini_beam.json' with { type: 'json' };
+import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
+import ghostPhaserConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json' with { type: 'json' };
+import tractorFrogConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
+import heavyMortarBoatConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
+import spiderWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
+import scrapBuzzardConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
+import inchwormCarrierConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_carrier_sculpted.json' with { type: 'json' };
+import mothBomberConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.moth_bomber_sculpted.json' with { type: 'json' };
 import zoneEnemyArchetypes from '../../content/examples/prototype0-zone-enemy-set/enemies/example.zone_enemy_archetypes.json' with { type: 'json' };
 import {
   installLocalContentBundle,
@@ -103,8 +111,24 @@ const PATTERN_DEFINITIONS = [
   inchwormRepulsorEye,
   inchwormEyeMiniBeam,
 ];
+const CONSTRUCT_DEFINITIONS = [
+  basicTurretDefinition,
+  ghostPhaserConstruct,
+  tractorFrogConstruct,
+  heavyMortarBoatConstruct,
+  spiderWalkerConstruct,
+  scrapBuzzardConstruct,
+  inchwormCarrierConstruct,
+  mothBomberConstruct,
+];
+const CONSTRUCT_BY_ID = new Map(CONSTRUCT_DEFINITIONS.map((definition) => [definition.assetId, definition]));
 const CONSTRUCT_OPTIONS = [
-  ...new Set(['basic_turret', 'runtime.pirate_ship.prototype0', 'runtime.pirate_ram_ship.prototype0', ...TEMPLATE_ARCHETYPES.map((enemy) => enemy.construct).filter(Boolean)]),
+  ...new Set([
+    ...CONSTRUCT_DEFINITIONS.map((definition) => definition.assetId),
+    'runtime.pirate_ship.prototype0',
+    'runtime.pirate_ram_ship.prototype0',
+    ...TEMPLATE_ARCHETYPES.map((enemy) => enemy.construct).filter(Boolean),
+  ]),
 ];
 let pack = clone(CANON_ENEMY_ARCHETYPE_PACK);
 let archetype = clone(CANON_ENEMY_ARCHETYPE_PACK.archetypes.find((candidate) => candidate.id === 'ghost_fabric.prototype0') ?? CANON_ENEMY_ARCHETYPE_PACK.archetypes[0]);
@@ -158,7 +182,8 @@ function syncToFields() {
   fields.enemyNameInput.value = archetype.displayName ?? '';
   fields.runtimeFactorySelect.value = archetype.runtimeFactory ?? ENEMY_RUNTIME_FACTORIES[0];
   fields.baseArchetypeInput.value = archetype.baseArchetype ?? '';
-  fields.constructSelect.value = CONSTRUCT_OPTIONS.includes(archetype.construct) ? archetype.construct : CONSTRUCT_OPTIONS[0];
+  ensureSelectOption(fields.constructSelect, archetype.construct);
+  fields.constructSelect.value = archetype.construct ?? CONSTRUCT_OPTIONS[0];
   fields.canonStatusSelect.value = archetype.canonStatus ?? 'EXPERIMENTAL';
   fields.tagsInput.value = (archetype.tags ?? []).join(', ');
   syncPatterns();
@@ -484,6 +509,7 @@ function installCurrentPack() {
 
 function currentPackBundle() {
   const packId = safePackId(`local.${pack.assetId || archetype.id || 'enemy_archetype_pack'}`);
+  const selectedConstruct = CONSTRUCT_BY_ID.get(archetype.construct);
   const manifest = {
     schemaVersion: CONTENT_SCHEMA_VERSION,
     packId,
@@ -495,11 +521,15 @@ function currentPackBundle() {
     dependencies: [],
     assets: {
       enemyArchetypes: [`enemies/${pack.assetId || 'enemy_archetypes'}.json`],
+      ...(selectedConstruct ? { constructs: [`constructs/${selectedConstruct.assetId}.json`] } : {}),
     },
   };
   return {
     manifests: [manifest],
-    assets: [{ kind: 'enemyArchetype', definition: pack, sourcePack: packId }],
+    assets: [
+      ...(selectedConstruct ? [{ kind: 'construct', definition: selectedConstruct, sourcePack: packId }] : []),
+      { kind: 'enemyArchetype', definition: pack, sourcePack: packId },
+    ],
     files: [],
     errors: [],
     warnings: [],
@@ -534,6 +564,12 @@ function safePackId(value) {
     .trim()
     .replace(/[^a-zA-Z0-9_.-]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'local.enemy_pack';
+}
+
+function ensureSelectOption(select, value) {
+  if (!value) return;
+  if ([...select.options].some((option) => option.value === value)) return;
+  select.append(new Option(value, value));
 }
 
 function animate(now) {
@@ -610,7 +646,9 @@ function drawBodyPreview(time) {
   const movement = archetype.movementProfiles?.[0] ?? {};
   const offset = movement.kind === 'weave' ? Math.sin(time * (movement.frequency ?? 1) * Math.PI * 2) * (movement.amplitude ?? 20) * 0.28 : 0;
   context.translate(offset, 0);
-  if (archetype.silhouette?.kind === 'pirateShip' || archetype.construct?.includes('pirate')) drawPiratePreview(time);
+  const construct = CONSTRUCT_BY_ID.get(archetype.construct);
+  if (construct) drawConstructCells(construct.cells, time);
+  else if (archetype.silhouette?.kind === 'pirateShip' || archetype.construct?.includes('pirate')) drawPiratePreview(time);
   else drawConstructCells(basicCells(), time);
   if (archetype.aggregate?.kind === 'limbArray') drawAggregateParts(time);
 }
@@ -670,12 +708,18 @@ function drawAggregateParts(time, fallbackCount = 6, radius = 70) {
 }
 
 function drawConstructCells(cells, time) {
-  for (const [gridX, gridY, type] of cells) drawCell(gridX * 26, gridY * 26, type, time, gridX * 3 + gridY);
+  for (const cell of cells) {
+    const gridX = Array.isArray(cell) ? cell[0] : cell.gridX;
+    const gridY = Array.isArray(cell) ? cell[1] : cell.gridY;
+    const type = Array.isArray(cell) ? cell[2] : cell.type;
+    const role = Array.isArray(cell) ? cell[3] : cell.role;
+    drawCell(gridX * 26, gridY * 26, type, time, gridX * 3 + gridY, role);
+  }
 }
 
-function drawCell(x, y, type, time, seed = 0) {
+function drawCell(x, y, type, time, seed = 0, role = null) {
   const animation = (archetype.cellAnimations ?? [])[0];
-  const animated = animation && animation.kind !== 'none' && selectorMatches(animation.selector, type);
+  const animated = animation && animation.kind !== 'none' && selectorMatches(animation.selector, type, role);
   const wave = animated ? Math.sin(time * (animation.frequency ?? 1) * Math.PI * 2 + seed * (animation.phaseOffset ?? 0.4)) : 0;
   const swirl = animated && animation.kind === 'swirl' ? Math.cos(time * (animation.frequency ?? 1.2) * Math.PI * 2 + seed) : 0;
   const dx = animated ? wave * (animation.amplitude ?? 8) : 0;
@@ -684,7 +728,7 @@ function drawCell(x, y, type, time, seed = 0) {
   const palette = archetype.palette ?? {};
   context.save();
   context.globalAlpha = opacity;
-  context.fillStyle = palette[type] ?? (type === 'core' ? '#e4d66b' : type === 'gun' ? '#d46e4f' : '#8fa6ad');
+  context.fillStyle = palette[role] ?? palette[type] ?? (type === 'core' ? '#e4d66b' : type === 'gun' ? '#d46e4f' : '#8fa6ad');
   context.strokeStyle = 'rgb(255 255 255 / 0.22)';
   context.lineWidth = 1;
   context.fillRect(x + dx - 11, y + dy - 11, 22, 22);
@@ -692,11 +736,12 @@ function drawCell(x, y, type, time, seed = 0) {
   context.restore();
 }
 
-function selectorMatches(selector, type) {
+function selectorMatches(selector, type, role = null) {
   if (!selector) return false;
   if (selector === 'all') return true;
   if (selector === '*') return true;
   if (selector.startsWith('type:')) return selector.slice(5) === type;
+  if (selector.startsWith('role:')) return selector.slice(5) === role;
   return false;
 }
 

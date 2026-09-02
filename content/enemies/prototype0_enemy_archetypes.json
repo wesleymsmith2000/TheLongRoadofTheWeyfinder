@@ -166,7 +166,7 @@
       "palette": { "core": "#d7fbff", "armor": "#8fa6ff", "gun": "#f3f0b8", "phase": "#bff5ff" },
       "presentation": {
         "variant": "ghostWraith",
-        "sprite": { "assetId": "sprite.enemy.ghost_phaser", "path": "assets/images/enemies/ghost_phaser.svg", "nativeSize": [128, 128], "displaySize": [96, 96], "anchor": [0.5, 0.54], "opacity": 0.72 }
+        "sprite": { "assetId": "sprite.enemy.ghost_phaser", "path": "assets/images/enemies/ghost_phaser.svg", "nativeSize": [128, 128], "displaySize": [192, 192], "anchor": [0.5, 0.54], "opacity": 0.72 }
       },
       "movementProfiles": [
         { "id": "phase-cycle", "kind": "phase", "target": "player", "duration": 4.2, "minZ": 0, "maxZ": 18 }
@@ -212,7 +212,7 @@
       "palette": { "core": "#72fff3", "armor": "#334fff", "gun": "#ffec7a", "accent": "#f26cff" },
       "presentation": {
         "variant": "tractorFrog",
-        "sprite": { "assetId": "sprite.enemy.tractor_frog", "path": "assets/images/enemies/tractor_frog.svg", "nativeSize": [128, 128], "displaySize": [90, 90], "anchor": [0.5, 0.56], "opacity": 0.88 }
+        "sprite": { "assetId": "sprite.enemy.tractor_frog", "path": "assets/images/enemies/tractor_frog.svg", "nativeSize": [128, 128], "displaySize": [180, 180], "anchor": [0.5, 0.56], "opacity": 0.88 }
       },
       "movementProfiles": [
         { "id": "hop-to-point", "kind": "hop", "target": "nearestNonFrogConstruct", "speed": 61.5, "hopHeight": 52, "duration": 0.65, "frequency": 0.55 }
@@ -252,7 +252,7 @@
       "palette": { "core": "#f6d260", "armor": "#20242a", "gun": "#ff7a1a", "trim": "#a33a22" },
       "presentation": {
         "variant": "heavyMortarBoat",
-        "sprite": { "assetId": "sprite.enemy.heavy_mortar_boat", "path": "assets/images/enemies/heavy_mortar_boat.svg", "nativeSize": [128, 160], "displaySize": [92, 116], "anchor": [0.5, 0.56], "opacity": 0.9 }
+        "sprite": { "assetId": "sprite.enemy.heavy_mortar_boat", "path": "assets/images/enemies/heavy_mortar_boat.svg", "nativeSize": [128, 160], "displaySize": [184, 232], "anchor": [0.5, 0.56], "opacity": 0.9 }
       },
       "movementProfiles": [{ "id": "circle-shelling", "kind": "circleArtillery", "target": "player", "speed": 34, "frequency": 0.18 }],
       "artillery": {
@@ -280,7 +280,7 @@
       "palette": { "core": "#fff0a8", "armor": "#26315f", "gun": "#ff8f52", "leg": "#a7c8ff" },
       "presentation": {
         "variant": "spiderWalker",
-        "sprite": { "assetId": "sprite.enemy.spider_walker", "path": "assets/images/enemies/spider_walker.svg", "nativeSize": [128, 128], "displaySize": [98, 98], "anchor": [0.5, 0.56], "opacity": 0.82 }
+        "sprite": { "assetId": "sprite.enemy.spider_walker", "path": "assets/images/enemies/spider_walker.svg", "nativeSize": [128, 128], "displaySize": [196, 196], "anchor": [0.5, 0.56], "opacity": 0.82 }
       },
       "movementProfiles": [{ "id": "legged-body", "kind": "walkerLegs", "target": "roadCenter", "speed": 30, "z": 52 }],
       "aggregate": {
@@ -307,7 +307,7 @@
       "palette": { "core": "#f7c06a", "armor": "#4b355f", "gun": "#ff7a1a", "leg": "#83f7ff" },
       "presentation": {
         "variant": "spiderWalker",
-        "sprite": { "assetId": "sprite.enemy.spider_walker", "path": "assets/images/enemies/spider_walker.svg", "nativeSize": [128, 128], "displaySize": [104, 104], "anchor": [0.5, 0.56], "opacity": 0.82 }
+        "sprite": { "assetId": "sprite.enemy.spider_walker", "path": "assets/images/enemies/spider_walker.svg", "nativeSize": [128, 128], "displaySize": [208, 208], "anchor": [0.5, 0.56], "opacity": 0.82 }
       },
       "movementProfiles": [{ "id": "heavy-leg-cycle", "kind": "walkerLegs", "target": "player", "speed": 24, "z": 64 }],
       "aggregate": { "kind": "limbArray", "parts": [{ "id": "body", "role": "elevatedBody", "count": 1 }, { "id": "legs", "role": "supportLeg", "count": 4 }] },
@@ -328,7 +328,7 @@
       "palette": { "core": "#ffe1a8", "armor": "#6f6b62", "gun": "#c95b37", "wing": "#d6cfb9" },
       "presentation": {
         "variant": "scrapBuzzard",
-        "sprite": { "assetId": "sprite.enemy.scrap_buzzard", "path": "assets/images/enemies/scrap_buzzard.svg", "nativeSize": [160, 112], "displaySize": [112, 78], "anchor": [0.5, 0.55], "opacity": 0.86 }
+        "sprite": { "assetId": "sprite.enemy.scrap_buzzard", "path": "assets/images/enemies/scrap_buzzard.svg", "nativeSize": [160, 112], "displaySize": [224, 156], "anchor": [0.5, 0.55], "opacity": 0.86 }
       },
       "movementProfiles": [
         { "id": "strafe-run", "kind": "flyStrafe", "target": "nearestNonBuzzardConstruct", "speed": 150, "minZ": 80, "maxZ": 150 },
@@ -366,7 +366,7 @@
       "palette": { "core": "#d7ff9b", "armor": "#516c40", "gun": "#ffb55e", "moth": "#f4eee4" },
       "presentation": {
         "variant": "inchwormCarrier",
-        "sprite": { "assetId": "sprite.enemy.inchworm_carrier", "path": "assets/images/enemies/inchworm_carrier.svg", "nativeSize": [184, 96], "displaySize": [132, 70], "anchor": [0.52, 0.56], "opacity": 0.88 }
+        "sprite": { "assetId": "sprite.enemy.inchworm_carrier", "path": "assets/images/enemies/inchworm_carrier.svg", "nativeSize": [184, 96], "displaySize": [264, 140], "anchor": [0.52, 0.56], "opacity": 0.88 }
       },
       "movementProfiles": [
         { "id": "inchworm-crawl", "kind": "weave", "target": "roadCenter", "speed": 30, "amplitude": 18, "frequency": 0.7 },
@@ -408,7 +408,7 @@
       "palette": { "core": "#f4eee4", "armor": "#b9d990", "gun": "#ff7a1a" },
       "presentation": {
         "variant": "mothBomber",
-        "sprite": { "assetId": "sprite.enemy.moth_bomber", "path": "assets/images/enemies/moth_bomber.svg", "nativeSize": [96, 96], "displaySize": [54, 54], "anchor": [0.5, 0.52], "opacity": 0.84 }
+        "sprite": { "assetId": "sprite.enemy.moth_bomber", "path": "assets/images/enemies/moth_bomber.svg", "nativeSize": [96, 96], "displaySize": [108, 108], "anchor": [0.5, 0.52], "opacity": 0.84 }
       },
       "movementProfiles": [{ "id": "fast-suicide-flight", "kind": "flyStrafe", "target": "player", "speed": 210, "minZ": 20, "maxZ": 70 }],
       "detonation": { "trigger": "contactPlayer", "damage": 18, "radiusCells": 2.5 },

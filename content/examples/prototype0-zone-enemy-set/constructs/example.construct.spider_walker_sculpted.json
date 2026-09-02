@@ -1,0 +1,505 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.construct.spider_walker_sculpted",
+  "displayName": "Sculpted Eight Leg Walker Construct",
+  "author": "Weyfinder editor thread",
+  "provenance": "Sculpted enlarged enemy construct example authored for the v1.0.4 4x4-voxel cell pass.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "example",
+    "enemy",
+    "sculpted",
+    "walker",
+    "spider",
+    "starlight-road",
+    "twilight-crossroads"
+  ],
+  "cells": [
+    {
+      "id": "supportLeg_xn4_yn3",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "supportLeg"
+    },
+    {
+      "id": "elevatedBody_x0_yn3",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -3,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "supportLeg_x4_yn3",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "supportLeg"
+    },
+    {
+      "id": "hull_xn3_yn2",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -2,
+      "role": "hull"
+    },
+    {
+      "id": "elevatedBody_xn1_yn2",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -2,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x0_yn2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x1_yn2",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -2,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "hull_x3_yn2",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -2,
+      "role": "hull"
+    },
+    {
+      "id": "supportLeg_xn2_yn1",
+      "type": "wheel",
+      "gridX": -2,
+      "gridY": -1,
+      "role": "supportLeg"
+    },
+    {
+      "id": "elevatedBody_xn1_yn1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -1,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x0_yn1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x1_yn1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -1,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x2_yn1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -1,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "supportLeg_xn4_y0",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 0,
+      "role": "supportLeg"
+    },
+    {
+      "id": "hull_xn3_y0",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 0,
+      "role": "hull"
+    },
+    {
+      "id": "elevatedBody_xn2_y0",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 0,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_xn1_y0",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "core_x0_y0",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "role": "core"
+    },
+    {
+      "id": "elevatedBody_x1_y0",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x2_y0",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 0,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "hull_x3_y0",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 0,
+      "role": "hull"
+    },
+    {
+      "id": "supportLeg_x4_y0",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 0,
+      "role": "supportLeg"
+    },
+    {
+      "id": "supportLeg_xn2_y1",
+      "type": "wheel",
+      "gridX": -2,
+      "gridY": 1,
+      "role": "supportLeg"
+    },
+    {
+      "id": "elevatedBody_xn1_y1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 1,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x0_y1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 1,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x1_y1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 1,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "elevatedBody_x2_y1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 1,
+      "role": "elevatedBody"
+    },
+    {
+      "id": "hull_xn3_y2",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 2,
+      "role": "hull"
+    },
+    {
+      "id": "hull_xn1_y2",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 2,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x0_y2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 2,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x1_y2",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 2,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x3_y2",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 2,
+      "role": "hull"
+    },
+    {
+      "id": "supportLeg_xn4_y3",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "supportLeg"
+    },
+    {
+      "id": "hull_x0_y3",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": 3,
+      "role": "hull"
+    },
+    {
+      "id": "supportLeg_x4_y3",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "supportLeg"
+    }
+  ],
+  "connections": [
+    {
+      "a": "core_x0_y0",
+      "b": "elevatedBody_x0_yn1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn1",
+      "b": "elevatedBody_x1_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_yn1",
+      "b": "elevatedBody_x2_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "core_x0_y0",
+      "b": "elevatedBody_xn1_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "core_x0_y0",
+      "b": "elevatedBody_x1_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_y0",
+      "b": "elevatedBody_x2_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_y0",
+      "b": "hull_x3_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x3_y0",
+      "b": "supportLeg_x4_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y0",
+      "b": "elevatedBody_xn1_y1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y1",
+      "b": "elevatedBody_x0_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y1",
+      "b": "elevatedBody_x1_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_y1",
+      "b": "elevatedBody_x2_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y1",
+      "b": "hull_xn1_y2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "hull_xn1_y2",
+      "b": "hull_x0_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y2",
+      "b": "hull_x1_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y2",
+      "b": "hull_x0_y3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn1",
+      "b": "elevatedBody_x0_yn2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2",
+      "b": "elevatedBody_x1_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn1",
+      "b": "elevatedBody_xn1_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y0",
+      "b": "elevatedBody_xn2_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y1",
+      "b": "supportLeg_xn2_y1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2",
+      "b": "elevatedBody_x0_yn3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2",
+      "b": "elevatedBody_xn1_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_yn1",
+      "b": "supportLeg_xn2_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_y0",
+      "b": "hull_xn3_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_xn3_y0",
+      "b": "supportLeg_xn4_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn2_yn1",
+      "b": "supportLeg_xn4_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_yn1",
+      "b": "supportLeg_x4_yn3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn2_yn1",
+      "b": "hull_xn3_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_yn1",
+      "b": "hull_x3_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn2_y1",
+      "b": "hull_xn3_y2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_y1",
+      "b": "hull_x3_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_xn3_y2",
+      "b": "supportLeg_xn4_y3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x3_y2",
+      "b": "supportLeg_x4_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    }
+  ],
+  "modules": []
+}

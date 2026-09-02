@@ -1,0 +1,601 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.construct.inchworm_carrier_sculpted",
+  "displayName": "Sculpted Inchworm Carrier Construct",
+  "author": "Weyfinder editor thread",
+  "provenance": "Sculpted enlarged enemy construct example authored for the v1.0.4 4x4-voxel cell pass.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "example",
+    "enemy",
+    "sculpted",
+    "freedoms-pass",
+    "inchworm"
+  ],
+  "cells": [
+    {
+      "id": "eyeGun_xn7_yn2",
+      "type": "gun",
+      "gridX": -7,
+      "gridY": -2,
+      "role": "eyeGun"
+    },
+    {
+      "id": "eyeGun_xn6_yn2",
+      "type": "gun",
+      "gridX": -6,
+      "gridY": -2,
+      "role": "eyeGun"
+    },
+    {
+      "id": "bodySegment_xn4_yn2",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -2,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_xn3_yn2",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -2,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_xn1_yn2",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -2,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x0_yn2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x2_yn2",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -2,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x3_yn2",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -2,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x5_yn2",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -2,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x6_yn2",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -2,
+      "role": "bodySegment"
+    },
+    {
+      "id": "head_xn7_yn1",
+      "type": "armor",
+      "gridX": -7,
+      "gridY": -1,
+      "role": "head"
+    },
+    {
+      "id": "head_xn6_yn1",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -1,
+      "role": "head"
+    },
+    {
+      "id": "core_xn5_yn1",
+      "type": "core",
+      "gridX": -5,
+      "gridY": -1,
+      "role": "core"
+    },
+    {
+      "id": "bodySegment_xn4_yn1",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_xn3_yn1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_xn2_yn1",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_xn1_yn1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x0_yn1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x1_yn1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x2_yn1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x3_yn1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x4_yn1",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x5_yn1",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x6_yn1",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "head_xn7_y0",
+      "type": "armor",
+      "gridX": -7,
+      "gridY": 0,
+      "role": "head"
+    },
+    {
+      "id": "head_xn6_y0",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 0,
+      "role": "head"
+    },
+    {
+      "id": "head_xn5_y0",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 0,
+      "role": "head"
+    },
+    {
+      "id": "bodySegment_xn4_y0",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_xn3_y0",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_xn2_y0",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_xn1_y0",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x0_y0",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x1_y0",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x2_y0",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x3_y0",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x4_y0",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x5_y0",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x6_y0",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 0,
+      "role": "bodySegment"
+    },
+    {
+      "id": "head_xn6_y1",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 1,
+      "role": "head"
+    },
+    {
+      "id": "bodySegment_xn3_y1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x0_y1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 1,
+      "role": "bodySegment"
+    },
+    {
+      "id": "bodySegment_x3_y1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 1,
+      "role": "bodySegment"
+    }
+  ],
+  "connections": [
+    {
+      "a": "core_xn5_yn1",
+      "b": "head_xn6_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "core_xn5_yn1",
+      "b": "bodySegment_xn4_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn4_yn1",
+      "b": "bodySegment_xn3_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn3_yn1",
+      "b": "bodySegment_xn2_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn2_yn1",
+      "b": "bodySegment_xn1_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn1_yn1",
+      "b": "bodySegment_x0_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x0_yn1",
+      "b": "bodySegment_x1_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x1_yn1",
+      "b": "bodySegment_x2_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x2_yn1",
+      "b": "bodySegment_x3_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x3_yn1",
+      "b": "bodySegment_x4_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x4_yn1",
+      "b": "bodySegment_x5_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x5_yn1",
+      "b": "bodySegment_x6_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "head_xn6_yn1",
+      "b": "head_xn6_y0",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "head_xn6_y0",
+      "b": "head_xn5_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "head_xn5_y0",
+      "b": "bodySegment_xn4_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn4_y0",
+      "b": "bodySegment_xn3_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn3_y0",
+      "b": "bodySegment_xn2_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn2_y0",
+      "b": "bodySegment_xn1_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn1_y0",
+      "b": "bodySegment_x0_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x0_y0",
+      "b": "bodySegment_x1_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x1_y0",
+      "b": "bodySegment_x2_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x2_y0",
+      "b": "bodySegment_x3_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x3_y0",
+      "b": "bodySegment_x4_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x4_y0",
+      "b": "bodySegment_x5_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x5_y0",
+      "b": "bodySegment_x6_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "head_xn6_y0",
+      "b": "head_xn6_y1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn3_y0",
+      "b": "bodySegment_xn3_y1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x0_y0",
+      "b": "bodySegment_x0_y1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x3_y0",
+      "b": "bodySegment_x3_y1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "head_xn6_yn1",
+      "b": "eyeGun_xn6_yn2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn4_yn1",
+      "b": "bodySegment_xn4_yn2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn4_yn2",
+      "b": "bodySegment_xn3_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn1_yn1",
+      "b": "bodySegment_xn1_yn2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_xn1_yn2",
+      "b": "bodySegment_x0_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x2_yn1",
+      "b": "bodySegment_x2_yn2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x2_yn2",
+      "b": "bodySegment_x3_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x5_yn1",
+      "b": "bodySegment_x5_yn2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "bodySegment_x5_yn2",
+      "b": "bodySegment_x6_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "head_xn6_yn1",
+      "b": "head_xn7_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "head_xn6_y0",
+      "b": "head_xn7_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "eyeGun_xn6_yn2",
+      "b": "eyeGun_xn7_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    }
+  ],
+  "modules": []
+}

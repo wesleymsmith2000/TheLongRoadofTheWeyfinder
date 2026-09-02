@@ -67,6 +67,14 @@ It mirrors the current Prototype 0 level, enemy archetypes, construct, weapons, 
 
 This folder is the intended central editable copy of the bundled Prototype 0 content. Keep it aligned with `content/packs/canon.prototype0.json` whenever canon enemies, weapons, sprites, terrain, or level assets change.
 
+There is also a zone enemy example set at:
+
+```text
+content/examples/prototype0-zone-enemy-set/
+```
+
+It contains advanced enemy archetypes, firing patterns, sprite descriptors, and sculpted construct JSONs for the new GhostForrest, DigitizedStream, PiratesRoad, StarlightRoad, TwilightCrossroads, ShadowedDesert, and FreedomsPass enemies. Those construct examples are authored as larger editable module layouts for the `4x4` voxel cell line: keep one clear core, use explicit graph connections, and add cells/modules for silhouette rather than relying on runtime-only visual scaling.
+
 ## Supported Asset Kinds
 
 The current registry can validate and store:

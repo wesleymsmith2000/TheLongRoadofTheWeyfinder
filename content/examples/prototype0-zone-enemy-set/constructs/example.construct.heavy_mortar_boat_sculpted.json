@@ -1,0 +1,476 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.construct.heavy_mortar_boat_sculpted",
+  "displayName": "Sculpted Heavy Mortar Boat Construct",
+  "author": "Weyfinder editor thread",
+  "provenance": "Sculpted enlarged enemy construct example authored for the v1.0.4 4x4-voxel cell pass.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "example",
+    "enemy",
+    "sculpted",
+    "pirates-road",
+    "boat",
+    "mortar"
+  ],
+  "cells": [
+    {
+      "id": "mortar_x0_yn6",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -6,
+      "role": "mortar"
+    },
+    {
+      "id": "mortar_xn1_yn5",
+      "type": "gun",
+      "gridX": -1,
+      "gridY": -5,
+      "role": "mortar"
+    },
+    {
+      "id": "mortar_x0_yn5",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -5,
+      "role": "mortar"
+    },
+    {
+      "id": "mortar_x1_yn5",
+      "type": "gun",
+      "gridX": 1,
+      "gridY": -5,
+      "role": "mortar"
+    },
+    {
+      "id": "hull_xn1_yn4",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -4,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x0_yn4",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -4,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x1_yn4",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -4,
+      "role": "hull"
+    },
+    {
+      "id": "hull_xn2_yn3",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -3,
+      "role": "hull"
+    },
+    {
+      "id": "hull_xn1_yn3",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -3,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x0_yn3",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -3,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x1_yn3",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -3,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x2_yn3",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -3,
+      "role": "hull"
+    },
+    {
+      "id": "broadsideGun_xn3_yn2",
+      "type": "gun",
+      "gridX": -3,
+      "gridY": -2,
+      "role": "broadsideGun"
+    },
+    {
+      "id": "hull_xn2_yn2",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -2,
+      "role": "hull"
+    },
+    {
+      "id": "hull_xn1_yn2",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -2,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x0_yn2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "role": "hull"
+    },
+    {
+      "id": "core_x1_yn2",
+      "type": "core",
+      "gridX": 1,
+      "gridY": -2,
+      "role": "core"
+    },
+    {
+      "id": "hull_x2_yn2",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -2,
+      "role": "hull"
+    },
+    {
+      "id": "broadsideGun_x3_yn2",
+      "type": "gun",
+      "gridX": 3,
+      "gridY": -2,
+      "role": "broadsideGun"
+    },
+    {
+      "id": "hull_xn2_yn1",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -1,
+      "role": "hull"
+    },
+    {
+      "id": "hull_xn1_yn1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -1,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x0_yn1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x1_yn1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -1,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x2_yn1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -1,
+      "role": "hull"
+    },
+    {
+      "id": "hull_xn1_y0",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x0_y0",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 0,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x1_y0",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "role": "hull"
+    },
+    {
+      "id": "hull_xn1_y1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 1,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x0_y1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 1,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x1_y1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 1,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x0_y2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 2,
+      "role": "hull"
+    },
+    {
+      "id": "hull_xn1_y3",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": 3,
+      "role": "hull"
+    },
+    {
+      "id": "hull_x1_y3",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": 3,
+      "role": "hull"
+    }
+  ],
+  "connections": [
+    {
+      "a": "core_x1_yn2",
+      "b": "hull_x1_yn3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x1_yn3",
+      "b": "hull_x2_yn3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "core_x1_yn2",
+      "b": "hull_x0_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "core_x1_yn2",
+      "b": "hull_x2_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x2_yn2",
+      "b": "broadsideGun_x3_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_yn2",
+      "b": "hull_x0_yn1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_yn1",
+      "b": "hull_x1_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x1_yn1",
+      "b": "hull_x2_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_yn1",
+      "b": "hull_x0_y0",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y0",
+      "b": "hull_x1_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y0",
+      "b": "hull_x0_y1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y1",
+      "b": "hull_x1_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y1",
+      "b": "hull_x0_y2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x1_yn3",
+      "b": "hull_x1_yn4",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x1_yn3",
+      "b": "hull_x0_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_yn2",
+      "b": "hull_xn1_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_yn1",
+      "b": "hull_xn1_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y0",
+      "b": "hull_xn1_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y1",
+      "b": "hull_xn1_y1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x1_yn4",
+      "b": "mortar_x1_yn5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x1_yn4",
+      "b": "hull_x0_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_yn3",
+      "b": "hull_xn1_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_xn1_yn2",
+      "b": "hull_xn2_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_xn1_yn1",
+      "b": "hull_xn2_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "mortar_x1_yn5",
+      "b": "mortar_x0_yn5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_yn4",
+      "b": "hull_xn1_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_xn1_yn3",
+      "b": "hull_xn2_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_xn2_yn2",
+      "b": "broadsideGun_xn3_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "mortar_x0_yn5",
+      "b": "mortar_x0_yn6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "mortar_x0_yn5",
+      "b": "mortar_xn1_yn5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y2",
+      "b": "hull_xn1_y3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "hull_x0_y2",
+      "b": "hull_x1_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    }
+  ],
+  "modules": []
+}

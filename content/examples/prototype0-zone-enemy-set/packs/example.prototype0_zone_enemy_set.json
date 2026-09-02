@@ -11,6 +11,15 @@
     { "kind": "pack", "packId": "canon.prototype0", "required": true }
   ],
   "assets": {
+    "constructs": [
+      "../constructs/example.construct.ghost_phaser_sculpted.json",
+      "../constructs/example.construct.tractor_frog_sculpted.json",
+      "../constructs/example.construct.heavy_mortar_boat_sculpted.json",
+      "../constructs/example.construct.spider_walker_sculpted.json",
+      "../constructs/example.construct.scrap_buzzard_sculpted.json",
+      "../constructs/example.construct.inchworm_carrier_sculpted.json",
+      "../constructs/example.construct.moth_bomber_sculpted.json"
+    ],
     "patterns": [
       "../patterns/example.ghost_phase_homing_radial.json",
       "../patterns/example.frog_tractor_beam.json",

@@ -53,7 +53,7 @@ const cellColors = {
   gun: '#ff8f70',
   wheel: '#9ca8ff',
 };
-const gridRadius = 4;
+const gridRadius = 8;
 const gridCount = gridRadius * 2 + 1;
 const gridPad = 44;
 const gridSize = canvas.width - gridPad * 2;
