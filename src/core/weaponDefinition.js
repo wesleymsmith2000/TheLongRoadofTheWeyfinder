@@ -75,6 +75,7 @@ export function runtimeWeaponDefinition(definition) {
     shape: projectile.shape ?? null,
     contrail: projectile.contrail ?? null,
     emitsProjectiles: projectile.emitsProjectiles ?? null,
+    detonationBurst: projectile.detonationBurst ? structuredClone(projectile.detonationBurst) : null,
     forceMode: projectile.forceMode ?? null,
     affects: projectile.affects ?? null,
     sprite: cloneSpriteDescriptor(projectile.sprite),
@@ -119,6 +120,7 @@ function validateProjectile(projectile, errors, warnings) {
   if (projectile.emitsProjectiles?.sprite != null) {
     validateSpriteDescriptor(projectile.emitsProjectiles.sprite, 'projectile.emitsProjectiles.sprite', errors);
   }
+  validateDetonationBurst(projectile.detonationBurst, errors);
 }
 
 export function validateSpriteDescriptor(sprite, label, errors) {
@@ -207,4 +209,37 @@ function validateContrail(contrail, errors) {
     }
   }
   if (contrail.colors != null && !isStringArray(contrail.colors)) errors.push('projectile.contrail.colors must be an array of strings when provided.');
+}
+
+function validateDetonationBurst(burst, errors) {
+  if (burst == null) return;
+  if (!isPlainObject(burst)) {
+    errors.push('projectile.detonationBurst must be an object when provided.');
+    return;
+  }
+  if (burst.groups != null) {
+    if (!Array.isArray(burst.groups)) {
+      errors.push('projectile.detonationBurst.groups must be an array when provided.');
+      return;
+    }
+    burst.groups.forEach((group, index) => validateBurstPayload(group, `projectile.detonationBurst.groups[${index}]`, errors));
+    return;
+  }
+  validateBurstPayload(burst, 'projectile.detonationBurst', errors);
+}
+
+function validateBurstPayload(payload, label, errors) {
+  if (!isPlainObject(payload)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  if (payload.weapon != null && !isNonEmptyString(payload.weapon)) errors.push(`${label}.weapon must be a non-empty string when provided.`);
+  validateNumber(payload.count ?? 0, `${label}.count`, errors, { min: 0, integer: true });
+  validateNumber(payload.projectileSpeed ?? payload.speed ?? 0, `${label}.projectileSpeed`, errors, { min: 0 });
+  validateNumber(payload.radius ?? 0, `${label}.radius`, errors, { min: 0 });
+  validateNumber(payload.damage ?? 0, `${label}.damage`, errors, { min: 0 });
+  validateNumber(payload.impulse ?? 0, `${label}.impulse`, errors, { min: 0 });
+  validateNumber(payload.lifetime ?? 0.9, `${label}.lifetime`, errors, { min: 0 });
+  validateNumber(payload.pierce ?? 0, `${label}.pierce`, errors, { min: 0 });
+  validateSpriteDescriptor(payload.sprite, `${label}.sprite`, errors);
 }

@@ -6,7 +6,7 @@
   "provenance": "Prototype secondary surface-to-air missile contract.",
   "canonStatus": "CANON",
   "tags": ["secondary", "arc", "missile", "anti-air", "prototype"],
-  "ammo": 8,
+  "ammo": 16,
   "heat": 26,
   "cooldown": 1.15,
   "projectile": {

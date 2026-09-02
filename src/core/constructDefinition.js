@@ -88,6 +88,7 @@ export function instantiateConstruct(definition) {
     schemaVersion: definition.schemaVersion,
     canonStatus: definition.canonStatus ?? 'EXPERIMENTAL',
     tags: [...(definition.tags ?? [])],
+    presentation: definition.presentation ? structuredClone(definition.presentation) : null,
     cells,
     connections,
   };

@@ -54,6 +54,16 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'beamWidth', label: 'Beam Width', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
   { id: 'beamFireTime', label: 'Beam Fire Time', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
   { id: 'beamFireRate', label: 'Beam Fire Rate', system: 'Particle Beam', requires: { module: 'gun', secondary: 'beam' } },
+  { id: 'staMissileAmmo', label: 'STA Missile Ammo Capacity', system: 'STA Missile', requires: { module: 'gun', secondary: 'sta_missile' } },
+  { id: 'staMissileImpactDamage', label: 'STA Missile Impact Damage', system: 'STA Missile', requires: { module: 'gun', secondary: 'sta_missile' } },
+  { id: 'staMissileBlastDamage', label: 'STA Missile Blast Damage', system: 'STA Missile', requires: { module: 'gun', secondary: 'sta_missile' } },
+  { id: 'staMissileBlastRadius', label: 'STA Missile Blast Radius', system: 'STA Missile', requires: { module: 'gun', secondary: 'sta_missile' } },
+  { id: 'orbOfBladesAmmo', label: 'Orb Of Blades Ammo Capacity', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
+  { id: 'mortarImpactDamage', label: 'Mortar Impact Damage', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
+  { id: 'mortarBlastDamage', label: 'Mortar Blast Damage', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
+  { id: 'mortarBlastRadius', label: 'Mortar Blast Radius', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
+  { id: 'repulsorKnockback', label: 'Repulsor Knockback', system: 'Repulsor Beam', requires: { module: 'gun', primary: 'repulsor_beam' } },
+  { id: 'repulsorFireRate', label: 'Repulsor Fire Rate', system: 'Repulsor Beam', requires: { module: 'gun', primary: 'repulsor_beam' } },
   { id: 'armorToughness', label: 'Armor Toughness', system: 'Armor', requires: { module: 'armor' } },
   { id: 'engineAcceleration', label: 'Engine Acceleration', system: 'Mobility', requires: { module: 'engine' } },
   { id: 'engineMaxVelocity', label: 'Engine Max Velocity', system: 'Mobility', requires: { module: 'engine' } },
@@ -137,7 +147,7 @@ function moduleInstalledAndUnlocked(game, account, moduleType) {
 
 function weaponInstalledAndUnlocked(account, vehicleDefinition, slotKind, weaponId) {
   if (!weaponUnlocked(account, slotKind, weaponId)) return false;
-  if (!vehicleDefinition?.cells) return ['main.basic', 'rocket', 'cannon', 'beam'].includes(weaponId);
+  if (!vehicleDefinition?.cells) return ['main.basic', 'mortar', 'rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'].includes(weaponId);
   return normalizeGunLoadouts(vehicleDefinition).some((loadout) => loadout[slotKind].includes(weaponId));
 }
 
@@ -216,6 +226,8 @@ function applyUpgradeSideEffects(game, id) {
   if (id === 'cannonAmmo') growAmmoReserve(game, 'cannon');
   if (id === 'rocketAmmo') growAmmoReserve(game, 'rocket');
   if (id === 'beamAmmo') growAmmoReserve(game, 'beam');
+  if (id === 'staMissileAmmo') growAmmoReserve(game, 'sta_missile');
+  if (id === 'orbOfBladesAmmo') growAmmoReserve(game, 'orb_of_blades');
   if (id === 'armorToughness') thickenArmorVoxels(game);
 }
 

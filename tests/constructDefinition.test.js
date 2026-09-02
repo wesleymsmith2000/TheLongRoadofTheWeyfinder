@@ -53,3 +53,21 @@ test('construct validation warns instead of forbidding disconnected legal design
   assert.equal(report.valid, true);
   assert.equal(report.warnings.some((warning) => warning.includes('no explicit connections')), true);
 });
+
+test('construct presentation metadata is preserved without replacing cells', () => {
+  const construct = instantiateConstruct({
+    ...startingVehicleDefinition,
+    presentation: {
+      sprite: {
+        assetId: 'sprite.construct.test_vehicle',
+        path: 'assets/images/constructs/test_vehicle.png',
+        displaySize: [96, 96],
+        anchor: [0.5, 0.5],
+        alignToHeading: true,
+      },
+    },
+  });
+  assert.equal(construct.presentation.sprite.assetId, 'sprite.construct.test_vehicle');
+  assert.equal(construct.cells.length, startingVehicleDefinition.cells.length);
+  assert.equal(construct.connections.length, startingVehicleDefinition.connections.length);
+});

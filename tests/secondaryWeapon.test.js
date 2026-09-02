@@ -364,16 +364,72 @@ test('new secondary weapons are live runtime choices', () => {
   assert.equal(fireSecondary(staGame), true);
   assert.equal(staGame.playerProjectiles[0].weapon, 'sta_missile');
   assert.equal(staGame.playerProjectiles[0].behavior, 'arc');
-  assert.equal(staGame.secondary.ammo.sta_missile, 7);
+  assert.equal(staGame.secondary.ammo.sta_missile, 15);
 
   const orbGame = createGame();
   orbGame.secondary.selected = 'orb_of_blades';
+  orbGame.aimReticle = { x: orbGame.vehicle.x + 120, y: orbGame.vehicle.y, active: true, source: 'pointer' };
   assert.equal(fireSecondary(orbGame), true);
   assert.equal(orbGame.playerProjectiles[0].emitsProjectiles.kind, 'sequentialRadial');
+  assert.equal(orbGame.playerProjectiles[0].emitsProjectiles.continuous, true);
+  assert.equal(orbGame.playerProjectiles[0].detonateAtTarget, true);
+  assert.equal(orbGame.secondary.ammo.orb_of_blades, 11);
   for (let index = 0; index < 5; index += 1) stepGame(orbGame, { secondarySelect: 'orb_of_blades', gunnerEnabled: false }, 1 / 60);
   const blade = orbGame.playerProjectiles.find((projectile) => projectile.weapon === 'orb_flechette');
   assert.equal(Boolean(blade), true);
   assert.equal(blade.radius, 3.33);
+});
+
+test('STA missile arcs land on the selected aim reticle', () => {
+  const game = createGame();
+  game.secondary.selected = 'sta_missile';
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: 99, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: false, type: 'standard' }];
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  game.aimReticle = { x: muzzle.x + 84, y: muzzle.y - 42, active: true, source: 'pointer' };
+  assert.equal(fireSecondary(game), true);
+  const fuseTarget = game.playerProjectiles[0].targetHint;
+  let blast = null;
+  for (let index = 0; index < 240 && !blast; index += 1) {
+    stepGame(game, { secondarySelect: 'sta_missile', gunnerEnabled: false }, 1 / 60);
+    blast = game.playerProjectiles.find((projectile) => projectile.weapon === 'sta_missile-blast');
+  }
+  assert.equal(Boolean(blast), true);
+  assert.equal(Math.hypot(blast.x - fuseTarget.x, blast.y - fuseTarget.y) < 0.001, true);
+});
+
+test('STA missile upgrades scale impact and blast stats', () => {
+  const game = createGame();
+  game.secondary.selected = 'sta_missile';
+  game.upgrades.staMissileImpactDamage = 1;
+  game.upgrades.staMissileBlastDamage = 2;
+  game.upgrades.staMissileBlastRadius = 1;
+  fireSecondary(game);
+  const missile = game.playerProjectiles[0];
+  assert.equal(missile.damage.toFixed(2), (24 * 1.05).toFixed(2));
+  assert.equal(missile.blastDamage.toFixed(2), (28 * 1.05 ** 2).toFixed(2));
+  assert.equal(missile.blastRadius.toFixed(3), (4.5 * CELL_SIZE * 1.05).toFixed(3));
+});
+
+test('orb of blades emits continuously until reticle impact and bursts bullets plus flechettes', () => {
+  const game = createGame();
+  game.secondary.selected = 'orb_of_blades';
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: 99, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: false, type: 'standard' }];
+  const muzzle = gunMuzzleWorld(game.vehicle);
+  game.aimReticle = { x: muzzle.x + 260, y: muzzle.y, active: true, source: 'pointer' };
+  assert.equal(fireSecondary(game), true);
+  assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy).toFixed(1), '90.0');
+  for (let index = 0; index < 80; index += 1) stepGame(game, { secondarySelect: 'orb_of_blades', gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.playerProjectiles.filter((projectile) => projectile.weapon === 'orb_flechette').length > 10, true);
+
+  let bullets = [];
+  for (let index = 0; index < 160 && bullets.length === 0; index += 1) {
+    stepGame(game, { secondarySelect: 'orb_of_blades', gunnerEnabled: false }, 1 / 60);
+    bullets = game.playerProjectiles.filter((projectile) => projectile.weapon === 'orb_bullet');
+  }
+  assert.equal(game.playerProjectiles.filter((projectile) => projectile.weapon === 'orb_bullet').length, 16);
+  assert.equal(game.playerProjectiles.filter((projectile) => projectile.weapon === 'orb_flechette').length >= 12, true);
 });
 
 test('tractor beam is a secondary utility beam with unlimited reserve', () => {
@@ -401,9 +457,21 @@ test('repulsor primary only fires when close threats are present and aims at the
   assert.equal(Boolean(beam), true);
   assert.equal(beam.forceMode, 'push');
   assert.equal(beam.alpha, 0.5);
+  assert.equal(beam.impulse, 21.25);
+  assert.equal(game.playerFireTimer > 0.5, true);
   const expectedAngle = Math.atan2(game.enemies[0].y - beam.y, game.enemies[0].x - beam.x);
   const angleDelta = Math.atan2(Math.sin(expectedAngle - beam.angle), Math.cos(expectedAngle - beam.angle));
   assert.equal(Math.abs(angleDelta) < 0.001, true);
+
+  const upgradedGame = createGame(1147, { vehicleDefinition: definition });
+  upgradedGame.upgrades.repulsorKnockback = 2;
+  upgradedGame.upgrades.repulsorFireRate = 2;
+  upgradedGame.enemies = [createEnemy(upgradedGame.vehicle.x + CELL_SIZE * 4, upgradedGame.vehicle.y)];
+  upgradedGame.enemySpawnQueue = [];
+  stepGame(upgradedGame, { gunnerEnabled: false }, 1 / 60);
+  const upgradedBeam = upgradedGame.playerProjectiles.find((projectile) => projectile.weapon === 'repulsor_beam');
+  assert.equal(upgradedBeam.impulse.toFixed(3), (85 * 0.25 * 1.05 ** 2).toFixed(3));
+  assert.equal(upgradedGame.playerFireTimer < game.playerFireTimer, true);
 
   const quietGame = createGame(1147, { vehicleDefinition: definition });
   quietGame.enemies = [];

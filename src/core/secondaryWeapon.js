@@ -26,7 +26,14 @@ export const SECONDARY_DEFINITIONS = {
 export function createSecondaryState() {
   return {
     selected: 'rocket',
-    ammo: { rocket: 12, cannon: 18, beam: 40, tractor_beam: Infinity, sta_missile: 8, orb_of_blades: 6 },
+    ammo: {
+      rocket: secondaryAmmoCapacity('rocket'),
+      cannon: secondaryAmmoCapacity('cannon'),
+      beam: secondaryAmmoCapacity('beam'),
+      tractor_beam: Infinity,
+      sta_missile: secondaryAmmoCapacity('sta_missile'),
+      orb_of_blades: secondaryAmmoCapacity('orb_of_blades'),
+    },
     ammoBonus: {},
     heat: 0,
     maxHeat: 100,
@@ -62,13 +69,14 @@ export function fireSecondary(game) {
         ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x)
         : game.vehicle.turretHeading;
   const useVehicleVelocityOnly = Boolean(def.usesVehicleVelocityOnly);
+  const launch = projectileLaunch(game, muzzle, def, targetHint, angle, useVehicleVelocityOnly);
   const detonateDistance = def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null;
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, projectileVelocityX(game, angle, def, useVehicleVelocityOnly), projectileVelocityY(game, angle, def, useVehicleVelocityOnly), {
+    createProjectile(muzzle.x, muzzle.y, launch.vx, launch.vy, {
       team: 'player',
       weapon: secondary.selected,
       behavior: def.behavior,
-      angle,
+      angle: launch.angle,
       startX: muzzle.x,
       startY: muzzle.y,
       length: def.length ?? 0,
@@ -80,7 +88,7 @@ export function fireSecondary(game) {
       maxArcHeight: def.maxArcHeight ?? 1,
       shadowRadius: def.shadowRadius ?? def.radius,
       targetHint,
-      detonateDistance,
+      detonateDistance: launch.detonateDistance ?? detonateDistance,
       radius: def.radius,
       damage: def.damage,
       impulse: def.impulse,
@@ -96,6 +104,7 @@ export function fireSecondary(game) {
       shape: def.shape,
       contrail: def.contrail,
       emitsProjectiles: def.emitsProjectiles,
+      detonationBurst: def.detonationBurst,
       forceMode: def.forceMode,
       affects: def.affects,
       sprite: def.sprite,
@@ -171,9 +180,45 @@ function upgradedSecondaryDefinition(game, weapon) {
     };
   }
   if (weapon === 'tractor_beam') return { ...base, targetHint: 'aimReticle' };
-  if (weapon === 'sta_missile') return { ...base, targetHint: 'aimReticle', detonateAtTarget: true };
-  if (weapon === 'orb_of_blades') return { ...base, targetHint: 'aimReticle' };
+  if (weapon === 'sta_missile') {
+    return {
+      ...base,
+      targetHint: 'aimReticle',
+      detonateAtTarget: true,
+      damage: base.damage * multiplier(game, 'staMissileImpactDamage'),
+      blastDamage: base.blastDamage * multiplier(game, 'staMissileBlastDamage'),
+      blastRadius: base.blastRadius * multiplier(game, 'staMissileBlastRadius'),
+    };
+  }
+  if (weapon === 'orb_of_blades') return { ...base, targetHint: 'aimReticle', detonateAtTarget: true };
   return base;
+}
+
+function projectileLaunch(game, muzzle, def, targetHint, angle, useVehicleVelocityOnly) {
+  if (def.behavior === 'arc' && def.detonateAtTarget && targetHint) {
+    const flightTime = arcFlightTime(def);
+    if (flightTime > 0) {
+      return {
+        vx: (targetHint.x - muzzle.x) / flightTime,
+        vy: (targetHint.y - muzzle.y) / flightTime,
+        angle: Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x),
+        detonateDistance: null,
+      };
+    }
+  }
+  return {
+    vx: projectileVelocityX(game, angle, def, useVehicleVelocityOnly),
+    vy: projectileVelocityY(game, angle, def, useVehicleVelocityOnly),
+    angle,
+    detonateDistance: null,
+  };
+}
+
+function arcFlightTime(def) {
+  const gravity = def.gravity ?? 0;
+  const verticalVelocity = def.verticalVelocity ?? 0;
+  if (gravity <= 0 || verticalVelocity <= 0) return 0;
+  return (2 * verticalVelocity) / gravity;
 }
 
 function projectileVelocityX(game, angle, def, useVehicleVelocityOnly) {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
+import { createEnemy } from '../src/core/enemy.js';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
 import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
@@ -122,4 +123,38 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   assert.equal(flechette.radius, 1.65);
   assert.equal(flechette.maxSpeed, 322.5);
   assert.equal(flechette.pierce, 2);
+});
+
+test('mortar primary arcs land on the selected aim reticle', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: 99, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: false, type: 'standard' }];
+  const target = { x: game.vehicle.x + 72, y: game.vehicle.y - 96 };
+  stepGame(game, { aimWorld: target, manualAimActive: true, gunnerEnabled: false }, 1 / 60);
+  game.autofire = false;
+  const mortar = game.playerProjectiles.find((projectile) => projectile.weapon === 'mortar');
+  const fuseTarget = mortar.targetHint;
+  let blast = null;
+  for (let index = 0; index < 220 && !blast; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+    blast = game.playerProjectiles.find((projectile) => projectile.weapon === 'mortar-blast');
+  }
+  assert.equal(Boolean(blast), true);
+  assert.equal(Math.hypot(blast.x - fuseTarget.x, blast.y - fuseTarget.y) < 0.001, true);
+});
+
+test('mortar upgrades scale impact and blast stats', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.upgrades.mortarImpactDamage = 1;
+  game.upgrades.mortarBlastDamage = 2;
+  game.upgrades.mortarBlastRadius = 1;
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+  const mortar = game.playerProjectiles.find((projectile) => projectile.weapon === 'mortar');
+  assert.equal(mortar.damage.toFixed(2), (24 * 1.05).toFixed(2));
+  assert.equal(mortar.blastDamage.toFixed(2), (90 * 1.05 ** 2).toFixed(2));
+  assert.equal(mortar.blastRadius.toFixed(3), (19.125 * CELL_SIZE * 1.05).toFixed(3));
 });

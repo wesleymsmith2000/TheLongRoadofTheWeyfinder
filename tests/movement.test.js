@@ -50,3 +50,15 @@ test('low-traction terrain reduces vehicle acceleration response', () => {
   stepVehicle(slippery, { x: 0, y: -1 }, 1 / 10, 0, {}, { traction: 0.42, rollingResistance: 0.02 });
   assert.equal(Math.abs(slippery.vy) < Math.abs(normal.vy), true);
 });
+
+test('vehicle heading turns toward its travel direction', () => {
+  const vehicle = createStartingVehicle();
+  vehicle.heading = 0;
+  vehicle.vx = 0;
+  vehicle.vy = 140;
+  const before = Math.abs(Math.atan2(Math.sin(Math.PI / 2 - vehicle.heading), Math.cos(Math.PI / 2 - vehicle.heading)));
+  stepVehicle(vehicle, {}, 0.25, 0);
+  const after = Math.abs(Math.atan2(Math.sin(Math.PI / 2 - vehicle.heading), Math.cos(Math.PI / 2 - vehicle.heading)));
+  assert.equal(after < before, true);
+  assert.equal(vehicle.heading > 0, true);
+});

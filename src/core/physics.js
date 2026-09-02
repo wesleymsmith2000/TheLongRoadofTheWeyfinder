@@ -26,7 +26,8 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   vehicle.vy += accel.y * dt;
   applyWheelGrounding(vehicle, accel, wheelPower, wheelInertiaCompensation * terrain.traction, dt);
   const roadAlignment = angleDelta(vehicle.heading, roadHeading) * 1.4;
-  vehicle.angularVelocity += (inputTurn * 3.6 * terrain.traction + inputY * pull * 0.45 * terrain.traction + roadAlignment) * dt;
+  const travelAlignment = travelDirectionAlignment(vehicle, terrain.traction);
+  vehicle.angularVelocity += (inputTurn * 3.6 * terrain.traction + inputY * pull * 0.45 * terrain.traction + roadAlignment + travelAlignment) * dt;
 
   if (input.brake) {
     const brakeGrip = clamp(terrain.traction, 0.18, 1);
@@ -85,6 +86,14 @@ function applyWheelGrounding(vehicle, accel, wheelPower, inertiaCompensation, dt
   const braking = Math.pow(0.04 / (Math.max(1, Math.sqrt(Math.max(1, wheelPower))) * inertiaCompensation), dt);
   vehicle.vx *= braking;
   vehicle.vy *= braking;
+}
+
+function travelDirectionAlignment(vehicle, traction) {
+  const speed = Math.hypot(vehicle.vx, vehicle.vy);
+  if (speed < 18) return 0;
+  const travelHeading = Math.atan2(vehicle.vy, vehicle.vx);
+  const speedScale = clamp((speed - 18) / 140, 0, 1);
+  return angleDelta(vehicle.heading, travelHeading) * 1.65 * speedScale * clamp(traction, 0.18, 1.2);
 }
 
 function clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty, engineMaxVelocity) {

@@ -202,6 +202,8 @@ A minimal construct:
 
 Grid adjacency is not structural truth. Structural connectivity is defined by explicit connection edges.
 
+Constructs may also include optional `presentation.sprite` metadata for renderer overlays and editor previews. Runtime damage, connectivity, hit checks, and repair continue to use `cells` and `connections`; sprites are presentation only and should always fall back to voxel rendering.
+
 ## Current Player Vehicle Contract
 
 The default player vehicle is now a construct asset:
@@ -364,6 +366,7 @@ Optional projectile presentation/simulation fields:
 - `shape`: currently supports `{ "kind": "cylinderCone" }` for rockets, with body/cone dimensions and voxel grid counts.
 - `contrail`: optional short-lived visual particle settings. This is render-facing metadata carried by the projectile definition, not editor UI state.
 - `emitsProjectiles`: optional moving-emitter payload, currently used by `orb_of_blades`.
+- `detonationBurst`: optional instant radial projectile payload emitted when a player projectile detonates at its target or on impact. It may be a single payload or `{ "groups": [...] }` for concurrent mixed bursts.
 
 Sprite descriptors are render-facing JSON and should not change simulation results. A minimal descriptor:
 

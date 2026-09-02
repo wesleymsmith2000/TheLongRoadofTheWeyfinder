@@ -63,6 +63,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     sourceCellId: options.sourceCellId ?? null,
     sourceOffset: options.sourceOffset ?? null,
     emitsProjectiles: options.emitsProjectiles ? structuredClone(options.emitsProjectiles) : null,
+    detonationBurst: options.detonationBurst ? structuredClone(options.detonationBurst) : null,
     emitTimer: options.emitsProjectiles?.interval ?? 0,
     emitIndex: 0,
     forceMode: options.forceMode ?? null,
@@ -104,6 +105,10 @@ function stepArcProjectile(projectile, dt) {
   if (projectile.z > 0) return;
   projectile.z = 0;
   projectile.vz = 0;
+  if (projectile.detonateAtTarget && projectile.targetHint) {
+    projectile.x = projectile.targetHint.x;
+    projectile.y = projectile.targetHint.y;
+  }
   projectile.arcLanded = true;
   projectile.readyToExplode = true;
 }

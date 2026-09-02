@@ -17,6 +17,7 @@ export function createVehicleFromConstructDefinition(definition) {
     turretHeading: -Math.PI / 2,
     manualAimGrace: 0,
     assetId: construct.assetId,
+    presentation: construct.presentation,
     cells: construct.cells,
     connections: construct.connections,
     detachedPieces: [],

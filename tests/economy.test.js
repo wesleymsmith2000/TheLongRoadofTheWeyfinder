@@ -180,6 +180,24 @@ test('beam ammo capacity upgrades expand the beam reserve', () => {
   assert.equal(game.secondary.ammo.beam, 42);
 });
 
+test('new secondary ammo capacity upgrades expand their reserves', () => {
+  const staDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 0, 'sta_missile').definition;
+  const staGame = createGame(1147, { vehicleDefinition: staDefinition });
+  staGame.account = createPrototypePlayerAccountData();
+  staGame.scrap = upgradeCost(staGame, 'staMissileAmmo');
+  assert.equal(buyUpgradeWithScrap(staGame, 'staMissileAmmo'), true);
+  assert.equal(ammoCapacityWithUpgrades(staGame, 'sta_missile'), 17);
+  assert.equal(staGame.secondary.ammo.sta_missile, 17);
+
+  const orbDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 0, 'orb_of_blades').definition;
+  const orbGame = createGame(1147, { vehicleDefinition: orbDefinition });
+  orbGame.account = createPrototypePlayerAccountData();
+  orbGame.scrap = upgradeCost(orbGame, 'orbOfBladesAmmo');
+  assert.equal(buyUpgradeWithScrap(orbGame, 'orbOfBladesAmmo'), true);
+  assert.equal(ammoCapacityWithUpgrades(orbGame, 'orb_of_blades'), 13);
+  assert.equal(orbGame.secondary.ammo.orb_of_blades, 13);
+});
+
 test('armor toughness upgrade thickens armor voxels', () => {
   const game = createGame();
   const armor = game.vehicle.cells.find((cell) => cell.id === 'armor-left');
@@ -210,4 +228,19 @@ test('repair screen upgrade list only includes unlocked installed systems', () =
   const withoutBeam = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 2, null).definition;
   const filtered = availableUpgradeDefinitions(game, account, withoutBeam).map((upgrade) => upgrade.id);
   assert.equal(filtered.includes('beamDamage'), false);
+
+  const withSta = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 0, 'sta_missile').definition;
+  const staUpgrades = availableUpgradeDefinitions(game, account, withSta).map((upgrade) => upgrade.id);
+  assert.equal(staUpgrades.includes('staMissileAmmo'), true);
+  assert.equal(staUpgrades.includes('staMissileBlastRadius'), true);
+
+  const withMortar = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
+  const mortarUpgrades = availableUpgradeDefinitions(game, account, withMortar).map((upgrade) => upgrade.id);
+  assert.equal(mortarUpgrades.includes('mortarImpactDamage'), true);
+  assert.equal(mortarUpgrades.includes('mortarBlastDamage'), true);
+
+  const withRepulsor = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'repulsor_beam').definition;
+  const repulsorUpgrades = availableUpgradeDefinitions(game, account, withRepulsor).map((upgrade) => upgrade.id);
+  assert.equal(repulsorUpgrades.includes('repulsorKnockback'), true);
+  assert.equal(repulsorUpgrades.includes('repulsorFireRate'), true);
 });

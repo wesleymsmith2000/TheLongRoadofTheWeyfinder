@@ -665,18 +665,18 @@ function firePrimaryWeapon(game, muzzle, def) {
   }
   const targetHint = def.targetHint === 'aimReticle' && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
   const angle = targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
-  const detonateDistance = def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null;
+  const launch = primaryProjectileLaunch(game, muzzle, def, targetHint, angle);
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * def.projectileSpeed + game.vehicle.vx, Math.sin(angle) * def.projectileSpeed + game.vehicle.vy, {
+    createProjectile(muzzle.x, muzzle.y, launch.vx, launch.vy, {
       team: 'player',
       weapon: def.id,
       behavior: def.behavior,
-      angle,
+      angle: launch.angle,
       sourceCellId: muzzle.cellId,
       startX: muzzle.x,
       startY: muzzle.y,
       targetHint,
-      detonateDistance,
+      detonateDistance: launch.detonateDistance,
       detonateAtTarget: def.detonateAtTarget,
       radius: def.radius,
       damage: def.damage,
@@ -696,6 +696,7 @@ function firePrimaryWeapon(game, muzzle, def) {
       pierceDamageScale: def.pierceDamageScale,
       pierceDamageFalloff: def.pierceDamageFalloff,
       emitsProjectiles: def.emitsProjectiles,
+      detonationBurst: def.detonationBurst,
       forceMode: def.forceMode,
       affects: def.affects,
       sprite: def.sprite,
@@ -704,6 +705,33 @@ function firePrimaryWeapon(game, muzzle, def) {
     }),
   );
   emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
+}
+
+function primaryProjectileLaunch(game, muzzle, def, targetHint, angle) {
+  if (def.behavior === 'arc' && def.detonateAtTarget && targetHint) {
+    const flightTime = arcFlightTime(def);
+    if (flightTime > 0) {
+      return {
+        vx: (targetHint.x - muzzle.x) / flightTime,
+        vy: (targetHint.y - muzzle.y) / flightTime,
+        angle: Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x),
+        detonateDistance: null,
+      };
+    }
+  }
+  return {
+    vx: Math.cos(angle) * def.projectileSpeed + game.vehicle.vx,
+    vy: Math.sin(angle) * def.projectileSpeed + game.vehicle.vy,
+    angle,
+    detonateDistance: def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null,
+  };
+}
+
+function arcFlightTime(def) {
+  const gravity = def.gravity ?? 0;
+  const verticalVelocity = def.verticalVelocity ?? 0;
+  if (gravity <= 0 || verticalVelocity <= 0) return 0;
+  return (2 * verticalVelocity) / gravity;
 }
 
 function firePrimaryBeam(game, muzzle, def) {
@@ -753,10 +781,19 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
     return {
       ...base,
       radius: base.radius * 3,
+      impulse: base.impulse * 0.25 * upgradeMultiplier(game, 'repulsorKnockback'),
       color: '#5cff9a',
       alpha: 0.5,
       targetHint: null,
-      cooldown: 0.18,
+      cooldown: 0.72 / upgradeMultiplier(game, 'repulsorFireRate'),
+    };
+  }
+  if (weaponId === 'mortar') {
+    return {
+      ...base,
+      damage: base.damage * upgradeMultiplier(game, 'mortarImpactDamage'),
+      blastDamage: base.blastDamage * upgradeMultiplier(game, 'mortarBlastDamage'),
+      blastRadius: base.blastRadius * upgradeMultiplier(game, 'mortarBlastRadius'),
     };
   }
   return base;
@@ -1525,9 +1562,41 @@ function detonatePlayerProjectile(game, projectile, enemy) {
   projectile.readyToExplode = false;
   projectile.vx = 0;
   projectile.vy = 0;
+  if (projectile.detonationBurst) spawnPlayerDetonationBurst(game, projectile);
   if (projectile.weapon === 'cannon') spawnCannonImpact(game, projectile, enemy);
   if (projectile.weapon === 'rocket') spawnRocketImpact(game, projectile, enemy);
   if (projectile.weapon !== 'cannon' && projectile.weapon !== 'rocket' && (projectile.blastRadius ?? 0) > 0) spawnGenericPlayerBlast(game, projectile);
+}
+
+function spawnPlayerDetonationBurst(game, projectile) {
+  const burst = projectile.detonationBurst;
+  const groups = Array.isArray(burst.groups) ? burst.groups : [burst];
+  for (const group of groups) {
+    const count = Math.max(0, Math.floor(group.count ?? 0));
+    if (count <= 0) continue;
+    const angleOffset = group.angleOffset ?? 0;
+    const jitter = group.angleJitter ?? 0;
+    for (let index = 0; index < count; index += 1) {
+      const angle = projectile.angle + angleOffset + (Math.PI * 2 * index) / count + (jitter > 0 ? game.rng.range(-jitter, jitter) : 0);
+      const speed = group.projectileSpeed ?? group.speed ?? 180;
+      game.playerProjectiles.push(
+        createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+          team: 'player',
+          weapon: group.weapon ?? 'detonation-burst',
+          radius: group.radius ?? 1,
+          damage: group.damage ?? projectile.damage,
+          color: group.color,
+          impulse: group.impulse ?? projectile.impulse * 0.35,
+          lifetime: group.lifetime ?? 0.9,
+          angle,
+          pierce: group.pierce ?? 0,
+          pierceDamageScale: group.pierceDamageScale ?? 0.85,
+          pierceDamageFalloff: group.pierceDamageFalloff ?? 0.72,
+          sprite: group.sprite,
+        }),
+      );
+    }
+  }
 }
 
 function spawnGenericPlayerBlast(game, projectile) {
@@ -1569,25 +1638,31 @@ function stepPlayerProjectileEmitters(game, dt) {
     const emitter = projectile.emitsProjectiles;
     if (!emitter || projectile.lifetime <= 0) continue;
     projectile.emitTimer -= dt;
-    while (projectile.emitTimer <= 0 && projectile.emitIndex < (emitter.count ?? 0)) {
+    const interval = Math.max(0.001, emitter.interval ?? 0.1);
+    const continuous = emitter.continuous === true;
+    let guard = 0;
+    while (projectile.emitTimer <= 0 && (continuous || projectile.emitIndex < (emitter.count ?? 0)) && guard < 16) {
       spawned.push(createEmittedPlayerProjectile(game, projectile, emitter));
       projectile.emitIndex += 1;
-      projectile.emitTimer += emitter.interval ?? 0.1;
+      projectile.emitTimer += interval;
+      guard += 1;
     }
   }
   if (spawned.length > 0) game.playerProjectiles.push(...spawned);
 }
 
 function createEmittedPlayerProjectile(game, source, emitter) {
-  const angle = source.angle + ((Math.PI * 2 * source.emitIndex) / Math.max(1, emitter.count ?? 1));
+  const spokeCount = Math.max(1, emitter.count ?? 1);
+  const angle = source.angle + ((Math.PI * 2 * (source.emitIndex % spokeCount)) / spokeCount);
   const speed = emitter.projectileSpeed ?? 180;
   return createProjectile(source.x, source.y, Math.cos(angle) * speed + source.vx * 0.25, Math.sin(angle) * speed + source.vy * 0.25, {
     team: 'player',
     weapon: emitter.weapon ?? 'emitted-projectile',
     radius: emitter.radius ?? 1,
     damage: emitter.damage ?? source.damage,
-    impulse: source.impulse * 0.35,
-    lifetime: 0.9,
+    color: emitter.color,
+    impulse: emitter.impulse ?? source.impulse * 0.35,
+    lifetime: emitter.lifetime ?? 0.9,
     angle,
     pierce: emitter.pierce ?? 0,
     pierceDamageScale: 0.85,

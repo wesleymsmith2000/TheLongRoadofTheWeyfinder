@@ -2,6 +2,14 @@ import { CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
 import { TerrainRenderer } from './terrainRenderer.js';
+import trackingFlechetteUrl from '../../assets/images/weapons/tracking_flechette.png';
+import orbFlechetteUrl from '../../assets/images/weapons/orb_flechette.png';
+import orbBladeShardUrl from '../../assets/images/weapons/orb_blade_shard.png';
+import orbOfBladesCoreUrl from '../../assets/images/weapons/orb_of_blades_core.png';
+import mortarPlayerShellUrl from '../../assets/images/weapons/mortar_player_shell.png';
+import mortarEnemyShellUrl from '../../assets/images/weapons/mortar_enemy_shell.png';
+import mortarPlayerMarkerUrl from '../../assets/images/weapons/mortar_player_marker.png';
+import mortarEnemyMarkerUrl from '../../assets/images/weapons/mortar_enemy_marker.png';
 
 const COLORS = {
   core: '#e4d66b',
@@ -29,11 +37,56 @@ const ROLE_SHADE = {
   [Roles.DEVICE]: 64,
 };
 
+const CANON_IMAGE_URLS = new Map([
+  ['sprite.weapon.tracking_flechette', trackingFlechetteUrl],
+  ['sprite.weapon.orb_flechette', orbFlechetteUrl],
+  ['sprite.weapon.orb_blade_shard', orbBladeShardUrl],
+  ['sprite.weapon.orb_of_blades_core', orbOfBladesCoreUrl],
+  ['sprite.weapon.mortar_player_shell', mortarPlayerShellUrl],
+  ['sprite.weapon.mortar_enemy_shell', mortarEnemyShellUrl],
+  ['sprite.weapon.mortar_player_marker', mortarPlayerMarkerUrl],
+  ['sprite.weapon.mortar_enemy_marker', mortarEnemyMarkerUrl],
+]);
+
+export function createImageAssetLibrary(imageFactory = null) {
+  const images = new Map();
+  return {
+    get(descriptor) {
+      const source = resolveSpriteSource(descriptor);
+      if (!source) return null;
+      if (!images.has(source)) {
+        const ImageCtor = imageFactory ?? globalThis.Image;
+        if (!ImageCtor) return null;
+        const image = new ImageCtor();
+        image.src = source;
+        images.set(source, image);
+      }
+      return images.get(source);
+    },
+  };
+}
+
+export function resolveSpriteSource(descriptor) {
+  if (!descriptor) return null;
+  const mapped = CANON_IMAGE_URLS.get(descriptor.assetId);
+  if (mapped) return mapped;
+  const source = descriptor.path ?? descriptor.uri;
+  if (!source) return null;
+  if (/^(?:[a-z]+:)?\/\//i.test(source) || source.startsWith('data:')) return source;
+  return `${baseUrl()}${source.replace(/^\/+/, '')}`;
+}
+
+function baseUrl() {
+  const base = import.meta.env?.BASE_URL ?? '/';
+  return base.endsWith('/') ? base : `${base}/`;
+}
+
 export class CanvasRenderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.terrainRenderer = new TerrainRenderer(createTerrainAtlasLibrary());
+    this.imageAssets = createImageAssetLibrary();
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -58,11 +111,11 @@ export class CanvasRenderer {
     drawRoadLane(ctx, game.road);
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
-    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time);
+    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, this.imageAssets);
     drawSmokeParticles(ctx, game.smokeParticles);
-    drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f');
-    drawProjectiles(ctx, game.playerProjectiles, '#9be5ff');
-    drawVehicle(ctx, game.vehicle, game.boost, game.time);
+    drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets, game.camera);
+    drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets, game.camera);
+    drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets);
     drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
@@ -173,11 +226,12 @@ function drawRoadLane(ctx, road) {
   ctx.restore();
 }
 
-function drawVehicle(ctx, vehicle, boost, time) {
+function drawVehicle(ctx, vehicle, boost, time, imageAssets) {
   ctx.save();
   ctx.translate(vehicle.x, vehicle.y);
   ctx.rotate(vehicle.heading);
   drawBoostShield(ctx, boost, time);
+  drawConstructPresentation(ctx, vehicle, imageAssets);
   drawVehicleEdges(ctx, vehicle);
   const attached = vehicle.cells.filter((cell) => cell.attached && !cell.state.destroyed);
   for (const cell of attached) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, 1);
@@ -296,7 +350,7 @@ function drawComMarker(ctx, com) {
   ctx.stroke();
 }
 
-function drawEnemy(ctx, enemy, time) {
+function drawEnemy(ctx, enemy, time, imageAssets) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
@@ -308,6 +362,7 @@ function drawEnemy(ctx, enemy, time) {
   } else {
     ctx.rotate(enemyRenderRotation(enemy, time));
   }
+  drawConstructPresentation(ctx, enemy, imageAssets);
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
   for (const cell of enemy.cells) {
     if (!cell.state.destroyed) {
@@ -324,6 +379,12 @@ function drawEnemy(ctx, enemy, time) {
     drawBossOutline(ctx, enemy, time);
   }
   ctx.restore();
+}
+
+function drawConstructPresentation(ctx, construct, imageAssets) {
+  const sprite = construct.presentation?.sprite;
+  if (!sprite) return false;
+  return drawSpriteDescriptor(ctx, imageAssets, sprite, 0, 0, 0);
 }
 
 function drawEnemyElevationShadow(ctx, enemy) {
@@ -510,7 +571,7 @@ function drawEnemyExplosion(ctx, enemy, time) {
   ctx.restore();
 }
 
-function drawProjectiles(ctx, projectiles, color) {
+function drawProjectiles(ctx, projectiles, color, imageAssets, camera) {
   for (const projectile of projectiles) {
     if (projectile.behavior === 'beam') {
       drawBeam(ctx, projectile);
@@ -521,9 +582,10 @@ function drawProjectiles(ctx, projectiles, color) {
       continue;
     }
     if (projectile.behavior === 'arc') {
-      drawArcProjectile(ctx, projectile, color);
+      drawArcProjectile(ctx, projectile, color, imageAssets, camera);
       continue;
     }
+    if (drawProjectileSprite(ctx, projectile, imageAssets)) continue;
     if (projectile.weapon === 'boss-missile') {
       drawBossMissile(ctx, projectile);
       continue;
@@ -582,25 +644,68 @@ function drawOrbFlechette(ctx, projectile) {
   ctx.restore();
 }
 
-function drawArcProjectile(ctx, projectile, color) {
+function drawArcProjectile(ctx, projectile, color, imageAssets, camera) {
   const heightRatio = Math.max(0, Math.min(1, projectile.z / Math.max(1, projectile.maxArcHeight ?? 1)));
-  const visualY = projectile.y - projectile.z;
+  const lift = cameraAlignedLift(projectile.z, camera?.heading ?? 0);
+  const visualX = projectile.x + lift.x;
+  const visualY = projectile.y + lift.y;
   const scale = 1 + heightRatio * 0.55;
   ctx.save();
-  ctx.globalAlpha = 0.18 + (1 - heightRatio) * 0.26;
-  ctx.fillStyle = '#050506';
-  ctx.beginPath();
-  ctx.ellipse(projectile.x, projectile.y, projectile.shadowRadius * (1 - heightRatio * 0.45), projectile.shadowRadius * 0.45, 0, 0, Math.PI * 2);
-  ctx.fill();
+  if (!drawSpriteDescriptor(ctx, imageAssets, projectile.landingMarkerSprite, projectile.x, projectile.y, 0)) {
+    ctx.globalAlpha = 0.18 + (1 - heightRatio) * 0.26;
+    ctx.fillStyle = '#050506';
+    ctx.beginPath();
+    ctx.ellipse(projectile.x, projectile.y, projectile.shadowRadius * (1 - heightRatio * 0.45), projectile.shadowRadius * 0.45, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.globalAlpha = 1;
+  if (drawProjectileSprite(ctx, projectile, imageAssets, { x: visualX, y: visualY, scale })) {
+    ctx.restore();
+    return;
+  }
   ctx.fillStyle = projectile.color ?? color;
   ctx.beginPath();
-  ctx.arc(projectile.x, visualY, projectile.radius * scale, 0, Math.PI * 2);
+  ctx.arc(visualX, visualY, projectile.radius * scale, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = '#f4fffb';
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
+}
+
+function cameraAlignedLift(height, cameraHeading) {
+  return {
+    x: Math.sin(cameraHeading) * height,
+    y: -Math.cos(cameraHeading) * height,
+  };
+}
+
+function drawProjectileSprite(ctx, projectile, imageAssets, options = {}) {
+  const sprite = options.sprite ?? projectile.sprite;
+  const x = options.x ?? projectile.x;
+  const y = options.y ?? projectile.y;
+  const angle = sprite?.alignToVelocity ? projectile.angle : 0;
+  return drawSpriteDescriptor(ctx, imageAssets, sprite, x, y, angle, options.scale ?? 1);
+}
+
+function drawSpriteDescriptor(ctx, imageAssets, sprite, x, y, angle = 0, scale = 1) {
+  if (!sprite) return false;
+  const image = imageAssets?.get(sprite);
+  if (!imageReady(image)) return false;
+  const size = sprite.displaySize ?? sprite.nativeSize ?? [16, 16];
+  const anchor = sprite.anchor ?? [0.5, 0.5];
+  const width = size[0] * scale;
+  const height = size[1] * scale;
+  ctx.save();
+  ctx.translate(x, y);
+  if (angle) ctx.rotate(angle);
+  ctx.drawImage(image, -anchor[0] * width, -anchor[1] * height, width, height);
+  ctx.restore();
+  return true;
+}
+
+function imageReady(image) {
+  return Boolean(image?.complete && image.naturalWidth > 0);
 }
 
 function drawBossMissile(ctx, projectile) {

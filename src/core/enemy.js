@@ -19,6 +19,7 @@ export function createEnemy(x, y, definition = basicTurretDefinition, patternDef
     y,
     vx: 0,
     vy: 0,
+    presentation: construct.presentation,
     radius: constructRadius(construct.cells),
     patterns: patternDefinitions.map((pattern) => createPatternState(pattern)),
     cells: construct.cells,
