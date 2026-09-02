@@ -100,18 +100,18 @@
       "role": "elevatedBody"
     },
     {
-      "id": "elevatedBody_x2_yn1",
-      "type": "armor",
+      "id": "supportLeg_x2_yn1",
+      "type": "wheel",
       "gridX": 2,
       "gridY": -1,
-      "role": "elevatedBody"
+      "role": "supportLeg"
     },
     {
-      "id": "supportLeg_xn4_y0",
-      "type": "wheel",
+      "id": "hull_xn4_y0",
+      "type": "armor",
       "gridX": -4,
       "gridY": 0,
-      "role": "supportLeg"
+      "role": "hull"
     },
     {
       "id": "hull_xn3_y0",
@@ -163,11 +163,11 @@
       "role": "hull"
     },
     {
-      "id": "supportLeg_x4_y0",
-      "type": "wheel",
+      "id": "hull_x4_y0",
+      "type": "armor",
       "gridX": 4,
       "gridY": 0,
-      "role": "supportLeg"
+      "role": "hull"
     },
     {
       "id": "supportLeg_xn2_y1",
@@ -198,11 +198,11 @@
       "role": "elevatedBody"
     },
     {
-      "id": "elevatedBody_x2_y1",
-      "type": "armor",
+      "id": "supportLeg_x2_y1",
+      "type": "wheel",
       "gridX": 2,
       "gridY": 1,
-      "role": "elevatedBody"
+      "role": "supportLeg"
     },
     {
       "id": "hull_xn3_y2",
@@ -278,7 +278,7 @@
     },
     {
       "a": "elevatedBody_x1_yn1",
-      "b": "elevatedBody_x2_yn1",
+      "b": "supportLeg_x2_yn1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
@@ -313,7 +313,7 @@
     },
     {
       "a": "hull_x3_y0",
-      "b": "supportLeg_x4_y0",
+      "b": "hull_x4_y0",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
@@ -341,7 +341,7 @@
     },
     {
       "a": "elevatedBody_x1_y1",
-      "b": "elevatedBody_x2_y1",
+      "b": "supportLeg_x2_y1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
@@ -439,7 +439,7 @@
     },
     {
       "a": "hull_xn3_y0",
-      "b": "supportLeg_xn4_y0",
+      "b": "hull_xn4_y0",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
@@ -452,7 +452,7 @@
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x2_yn1",
+      "a": "supportLeg_x2_yn1",
       "b": "supportLeg_x4_yn3",
       "aSide": "right",
       "bSide": "left",
@@ -466,7 +466,7 @@
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x2_yn1",
+      "a": "supportLeg_x2_yn1",
       "b": "hull_x3_yn2",
       "aSide": "right",
       "bSide": "left",
@@ -480,7 +480,7 @@
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x2_y1",
+      "a": "supportLeg_x2_y1",
       "b": "hull_x3_y2",
       "aSide": "right",
       "bSide": "left",

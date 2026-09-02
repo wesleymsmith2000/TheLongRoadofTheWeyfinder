@@ -15,12 +15,17 @@ import {
   weaponStackMultiplier,
 } from '../core/weaponLoadout.js';
 import { secondaryAmmoCapacity } from '../core/secondaryWeapon.js';
-import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
+import { loadLocalContentLibrary } from '../core/localContentLibrary.js';
+import { BUILTIN_CONSTRUCT_DEFINITIONS } from './constructCatalog.js';
 import { bindBuildVersion } from './versionBadge.js';
 
 const canvas = document.querySelector('#constructCanvas');
 const context = canvas.getContext('2d');
+const constructSelect = document.querySelector('#constructSelect');
+const loadConstructButton = document.querySelector('#loadConstructButton');
+const refreshConstructsButton = document.querySelector('#refreshConstructsButton');
 const assetIdInput = document.querySelector('#assetIdInput');
+const displayNameInput = document.querySelector('#displayNameInput');
 const schemaInput = document.querySelector('#schemaInput');
 const canonStatusSelect = document.querySelector('#canonStatusSelect');
 const tagsInput = document.querySelector('#tagsInput');
@@ -61,7 +66,8 @@ const cellSize = gridSize / gridCount;
 
 let tool = 'paint';
 let selectedCellId = null;
-let definition = cloneDefinition(basicTurretDefinition);
+let constructCatalog = [];
+let definition = cloneDefinition(BUILTIN_CONSTRUCT_DEFINITIONS[0]);
 
 for (const status of CANON_STATUSES) {
   canonStatusSelect.append(new Option(status, status));
@@ -70,16 +76,24 @@ for (const type of CELL_TYPES) {
   cellTypeSelect.append(new Option(type, type));
 }
 populateLoadoutSelects();
+refreshConstructCatalog();
 
 canvas.addEventListener('click', handleCanvasClick);
+constructSelect.addEventListener('change', () => loadSelectedConstruct());
+loadConstructButton.addEventListener('click', loadSelectedConstruct);
+refreshConstructsButton.addEventListener('click', () => {
+  refreshConstructCatalog();
+  render();
+});
 assetIdInput.addEventListener('input', syncFieldsToDefinition);
+displayNameInput.addEventListener('input', syncFieldsToDefinition);
 schemaInput.addEventListener('input', syncFieldsToDefinition);
 canonStatusSelect.addEventListener('change', syncFieldsToDefinition);
 tagsInput.addEventListener('input', syncFieldsToDefinition);
 paintButton.addEventListener('click', () => setTool('paint'));
 eraseButton.addEventListener('click', () => setTool('erase'));
 connectButton.addEventListener('click', () => setTool('connect'));
-resetButton.addEventListener('click', () => loadDefinition(basicTurretDefinition));
+resetButton.addEventListener('click', () => loadDefinition(BUILTIN_CONSTRUCT_DEFINITIONS[0]));
 downloadButton.addEventListener('click', downloadJson);
 copyJsonButton.addEventListener('click', copyJson);
 applyJsonButton.addEventListener('click', applyJsonFromOutput);
@@ -93,6 +107,57 @@ for (const select of loadoutSelects) {
 
 loadDefinition(definition);
 
+function refreshConstructCatalog() {
+  constructCatalog = [
+    ...BUILTIN_CONSTRUCT_DEFINITIONS.map((definition) => ({
+      key: `built-in:${definition.assetId}`,
+      group: definition.assetId?.startsWith('example.construct.') ? 'Zone Enemy Examples' : 'Bundled Constructs',
+      label: labelForConstruct(definition),
+      definition,
+    })),
+    ...localConstructEntries(),
+  ];
+  populateConstructSelect();
+}
+
+function populateConstructSelect() {
+  const previous = constructSelect.value;
+  const groups = new Map();
+  for (const entry of constructCatalog) {
+    if (!groups.has(entry.group)) groups.set(entry.group, []);
+    groups.get(entry.group).push(entry);
+  }
+  constructSelect.replaceChildren();
+  for (const [label, entries] of groups) {
+    const group = document.createElement('optgroup');
+    group.label = label;
+    for (const entry of entries) group.append(new Option(entry.label, entry.key));
+    constructSelect.append(group);
+  }
+  const current = constructCatalog.find((entry) => entry.definition.assetId === definition.assetId);
+  constructSelect.value = constructCatalog.some((entry) => entry.key === previous) ? previous : current?.key ?? constructCatalog[0]?.key ?? '';
+}
+
+function localConstructEntries() {
+  const library = loadLocalContentLibrary();
+  return Object.values(library.packs ?? {}).flatMap((pack) =>
+    (pack.assets ?? [])
+      .filter((asset) => asset.kind === 'construct' && asset.definition?.assetId)
+      .map((asset) => ({
+        key: `local:${pack.manifest?.packId ?? 'pack'}:${asset.definition.assetId}`,
+        group: `Local: ${pack.manifest?.displayName ?? pack.manifest?.packId ?? 'Pack'}`,
+        label: labelForConstruct(asset.definition),
+        definition: asset.definition,
+      })),
+  );
+}
+
+function loadSelectedConstruct() {
+  const entry = constructCatalog.find((candidate) => candidate.key === constructSelect.value);
+  if (!entry) return;
+  loadDefinition(entry.definition);
+}
+
 function loadDefinition(nextDefinition) {
   definition = cloneDefinition(nextDefinition);
   definition.schemaVersion ??= CONSTRUCT_SCHEMA_VERSION;
@@ -104,11 +169,13 @@ function loadDefinition(nextDefinition) {
   definition.gunLoadouts = normalizeGunLoadouts(definition);
   selectedCellId = null;
   syncDefinitionToFields();
+  populateConstructSelect();
   render();
 }
 
 function syncDefinitionToFields() {
   assetIdInput.value = definition.assetId ?? '';
+  displayNameInput.value = definition.displayName ?? '';
   schemaInput.value = definition.schemaVersion ?? CONSTRUCT_SCHEMA_VERSION;
   canonStatusSelect.value = definition.canonStatus ?? 'EXPERIMENTAL';
   tagsInput.value = (definition.tags ?? []).join(', ');
@@ -116,6 +183,7 @@ function syncDefinitionToFields() {
 
 function syncFieldsToDefinition() {
   definition.assetId = assetIdInput.value.trim();
+  definition.displayName = displayNameInput.value.trim();
   definition.schemaVersion = schemaInput.value.trim();
   definition.canonStatus = canonStatusSelect.value;
   definition.tags = tagsInput.value
@@ -191,6 +259,7 @@ function render() {
 
 function syncFieldsToDefinitionSilently() {
   definition.assetId = assetIdInput.value.trim();
+  definition.displayName = displayNameInput.value.trim();
   definition.schemaVersion = schemaInput.value.trim();
   definition.canonStatus = canonStatusSelect.value;
   definition.tags = tagsInput.value
@@ -320,13 +389,15 @@ function renderJson() {
 function renderStatus() {
   const report = validateConstructDefinition(normalizedDefinition());
   const moduleSummary = constructModuleSummary(definition);
+  const selectedEntry = constructCatalog.find((entry) => entry.key === constructSelect.value);
   const lines = [
     `<span><strong>${report.valid ? 'Valid construct asset' : 'Construct needs changes'}</strong></span>`,
+    selectedEntry ? `<span>Loaded from ${escapeHtml(selectedEntry.group)}: ${escapeHtml(selectedEntry.label)}</span>` : null,
     `<span>${definition.cells.length} cells, ${(definition.connections ?? []).length} explicit connections</span>`,
     `<span>${moduleSummary.guns} firing points, main-gun rate x${moduleSummary.gunRateMultiplier}</span>`,
     `<span>${moduleSummary.engines} engines, acceleration/top speed x${moduleSummary.engineMultiplier}</span>`,
     `<span>${moduleSummary.wheels} wheels, braking/control x${moduleSummary.wheelMultiplier}${moduleSummary.wheelAsymmetry ? ', asymmetric pull likely' : ''}</span>`,
-  ];
+  ].filter(Boolean);
   const selectedLoadout = normalizeGunLoadouts(definition).find((loadout) => loadout.cellId === selectedCellId);
   if (selectedLoadout) lines.push(`<span>Selected gun loadout: ${escapeHtml(loadoutLabel(selectedLoadout))}</span>`);
   for (const weaponId of installedPrimaryWeaponIds(definition)) {
@@ -373,6 +444,7 @@ function normalizedDefinition() {
   return {
     schemaVersion: definition.schemaVersion ?? CONSTRUCT_SCHEMA_VERSION,
     assetId: definition.assetId ?? '',
+    displayName: definition.displayName,
     author: definition.author,
     provenance: definition.provenance,
     canonStatus: definition.canonStatus ?? 'EXPERIMENTAL',
@@ -445,6 +517,12 @@ function labelForWeapon(id) {
     .replaceAll('_', ' ')
     .replaceAll('.', ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function labelForConstruct(construct) {
+  const name = construct.displayName ?? construct.assetId ?? 'Untitled Construct';
+  const count = Array.isArray(construct.cells) ? construct.cells.length : 0;
+  return `${name} (${construct.assetId ?? 'new'}, ${count} cells)`;
 }
 
 function applyJsonFromOutput() {

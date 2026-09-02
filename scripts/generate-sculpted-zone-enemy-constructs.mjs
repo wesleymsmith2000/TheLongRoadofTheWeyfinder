@@ -75,9 +75,9 @@ const SHAPES = [
     rows: [
       'w...a...w',
       '.a.aaa.a.',
-      '..waaaa..',
-      'waaacaaaw',
-      '..waaaa..',
+      '..waaaw..',
+      'aaaacaaaa',
+      '..waaaw..',
       '.a.aaa.a.',
       'w...g...w',
     ],

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Creator Guide - The Long Road of the Weyfinder</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #111616;
+        color: #f4eee4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(180deg, rgb(17 22 22 / 0.98), rgb(22 25 26 / 0.96)),
+          radial-gradient(circle at 70% 10%, rgb(111 224 191 / 0.1), transparent 26rem);
+      }
+
+      button {
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid rgb(244 238 228 / 0.22);
+        border-radius: 8px;
+        background: rgb(8 11 11 / 0.58);
+        color: #f4eee4;
+        font: inherit;
+        font-weight: 760;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: rgb(111 224 191 / 0.58);
+      }
+
+      .shell {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgb(244 238 228 / 0.12);
+        background: rgb(8 11 11 / 0.58);
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      .title p {
+        margin: 3px 0 0;
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .build-version {
+        display: inline-grid;
+        place-items: center;
+        min-height: 36px;
+        padding: 0 10px;
+        border: 1px solid rgb(244 238 228 / 0.16);
+        border-radius: 8px;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .content {
+        display: grid;
+        gap: 14px;
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 14px;
+      }
+
+      .section {
+        border: 1px solid rgb(244 238 228 / 0.14);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.72);
+        overflow: hidden;
+      }
+
+      .section h2 {
+        margin: 0;
+        padding: 12px;
+        border-bottom: 1px solid rgb(244 238 228 / 0.12);
+        font-size: 13px;
+        letter-spacing: 0;
+      }
+
+      .body {
+        display: grid;
+        gap: 11px;
+        padding: 12px;
+        color: #d7ceb8;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .step {
+        display: grid;
+        align-content: start;
+        gap: 7px;
+        padding: 10px;
+        border: 1px solid rgb(244 238 228 / 0.1);
+        border-radius: 8px;
+        background: rgb(8 11 11 / 0.34);
+      }
+
+      .step strong,
+      .body strong {
+        color: #f4eee4;
+      }
+
+      code {
+        color: #f7c06a;
+        font-family: "Cascadia Code", Consolas, monospace;
+        font-size: 0.94em;
+      }
+
+      ul,
+      ol {
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+
+      li + li {
+        margin-top: 5px;
+      }
+
+      @media (max-width: 860px) {
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .steps {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="title">
+          <h1>Creator Guide</h1>
+          <p>Practical workflow notes for building constructs, enemies, weapons, patterns, and levels.</p>
+        </div>
+        <div class="actions">
+          <span class="build-version" data-build-version></span>
+          <a href="../"><button type="button">Game</button></a>
+          <a href="./creator-suite.html"><button type="button">Suite</button></a>
+          <a href="./construct-workshop.html"><button type="button">Constructs</button></a>
+          <a href="./enemy-editor.html"><button type="button">Enemies</button></a>
+          <a href="./weapon-pattern-lab.html"><button type="button">Weapons</button></a>
+          <a href="./level-editor.html"><button type="button">Levels</button></a>
+        </div>
+      </header>
+      <section class="content">
+        <section class="section">
+          <h2>Fast Start</h2>
+          <div class="body">
+            <div class="steps">
+              <div class="step">
+                <strong>1. Install examples</strong>
+                <span>Open the Suite and click <code>Install Example</code> and <code>Install Zone Enemies</code>.</span>
+              </div>
+              <div class="step">
+                <strong>2. Edit a construct</strong>
+                <span>Open <code>Mob / Construct</code>, choose a model in <code>Load Construct</code>, then paint, erase, or connect cells.</span>
+              </div>
+              <div class="step">
+                <strong>3. Build an enemy</strong>
+                <span>Open <code>Enemies</code>, choose a template, assign a construct and patterns, then tune movement and animation.</span>
+              </div>
+              <div class="step">
+                <strong>4. Export the pack</strong>
+                <span>Use <code>Download JSON</code> for one asset, or import/export full module folders through the Suite.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Construct Workshop</h2>
+          <div class="body">
+            <ul>
+              <li><code>Load Construct</code> lists bundled constructs, sculpted zone enemy examples, and constructs installed from browser-local packs.</li>
+              <li><code>Paint</code> places or changes cells using the selected cell type. A construct should usually have one clear <code>core</code>.</li>
+              <li><code>Erase</code> removes a cell and any connections attached to it.</li>
+              <li><code>Connect</code> links two adjacent cells. Runtime connectivity follows explicit graph edges, so disconnected cells will not behave like attached structure.</li>
+              <li>Gun loadout controls apply to the selected <code>gun</code> cell and let one construct carry multiple weapon choices.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Enemy Editor</h2>
+          <div class="body">
+            <ul>
+              <li><code>Canon Template</code> loads a starting enemy descriptor, including the new zone enemy examples.</li>
+              <li><code>Construct</code> chooses the body model. Known constructs draw in the preview; runtime-only ids remain valid text references.</li>
+              <li><code>Patterns</code> are firing behaviors. Use the Weapon + Pattern Lab to tune projectile shape, timing, spread, arcs, and status effects.</li>
+              <li><code>Movement</code>, <code>Aggregate</code>, and <code>Cell Animation</code> are editor descriptors for richer enemies such as walkers, phased enemies, carriers, and bosses.</li>
+              <li>Selectors such as <code>type:armor</code>, <code>role:supportLeg</code>, or <code>all</code> choose which cells an animation affects.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Local Modules</h2>
+          <div class="body">
+            <ul>
+              <li>Imported packs are stored in the current browser under this site origin, so the local editor and GitHub Pages editor keep separate browser-local libraries.</li>
+              <li>A complete pack manifest should reference dependent JSON assets together. For example, an enemy archetype pack should include the construct and pattern files it needs.</li>
+              <li>The current game validates and stores local content now; some gameplay runners still need adapters before every editor-authored descriptor becomes live combat behavior.</li>
+            </ul>
+          </div>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/src/editor/creatorGuide.js"></script>
+  </body>
+</html>

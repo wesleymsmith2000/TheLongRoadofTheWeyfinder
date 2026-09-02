@@ -275,6 +275,7 @@
           <span class="build-version" data-build-version></span>
           <a href="../"><button type="button">Game</button></a>
           <a href="./creator-suite.html"><button type="button">Suite</button></a>
+          <a href="./creator-guide.html"><button type="button">Guide</button></a>
           <a href="./enemy-editor.html"><button type="button">Enemies</button></a>
           <button id="resetButton" type="button">Reset</button>
           <button id="downloadButton" type="button">Download JSON</button>
@@ -285,8 +286,20 @@
           <h2>Asset</h2>
           <div class="form">
             <label>
+              Load Construct
+              <select id="constructSelect"></select>
+            </label>
+            <div class="tool-row">
+              <button id="loadConstructButton" type="button">Load Selected</button>
+              <button id="refreshConstructsButton" type="button">Refresh Local</button>
+            </div>
+            <label>
               Asset ID
               <input id="assetIdInput" autocomplete="off" />
+            </label>
+            <label>
+              Display Name
+              <input id="displayNameInput" autocomplete="off" />
             </label>
             <div class="split">
               <label>

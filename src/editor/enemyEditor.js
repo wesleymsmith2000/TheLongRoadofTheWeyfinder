@@ -17,20 +17,13 @@ import mortarLine7 from '../../content/examples/prototype0-zone-enemy-set/patter
 import buzzardTrailingMortar from '../../content/examples/prototype0-zone-enemy-set/patterns/example.buzzard_trailing_mortar.json' with { type: 'json' };
 import inchwormRepulsorEye from '../../content/examples/prototype0-zone-enemy-set/patterns/example.inchworm_repulsor_eye.json' with { type: 'json' };
 import inchwormEyeMiniBeam from '../../content/examples/prototype0-zone-enemy-set/patterns/example.inchworm_eye_mini_beam.json' with { type: 'json' };
-import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
-import ghostPhaserConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json' with { type: 'json' };
-import tractorFrogConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
-import heavyMortarBoatConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
-import spiderWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
-import scrapBuzzardConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
-import inchwormCarrierConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_carrier_sculpted.json' with { type: 'json' };
-import mothBomberConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.moth_bomber_sculpted.json' with { type: 'json' };
 import zoneEnemyArchetypes from '../../content/examples/prototype0-zone-enemy-set/enemies/example.zone_enemy_archetypes.json' with { type: 'json' };
 import {
   installLocalContentBundle,
   installLocalContentFiles,
   listLocalContentPacks,
 } from '../core/localContentLibrary.js';
+import { BUILTIN_CONSTRUCT_BY_ID, BUILTIN_CONSTRUCT_DEFINITIONS } from './constructCatalog.js';
 import { bindBuildVersion } from './versionBadge.js';
 
 const canvas = document.querySelector('#enemyCanvas');
@@ -111,20 +104,9 @@ const PATTERN_DEFINITIONS = [
   inchwormRepulsorEye,
   inchwormEyeMiniBeam,
 ];
-const CONSTRUCT_DEFINITIONS = [
-  basicTurretDefinition,
-  ghostPhaserConstruct,
-  tractorFrogConstruct,
-  heavyMortarBoatConstruct,
-  spiderWalkerConstruct,
-  scrapBuzzardConstruct,
-  inchwormCarrierConstruct,
-  mothBomberConstruct,
-];
-const CONSTRUCT_BY_ID = new Map(CONSTRUCT_DEFINITIONS.map((definition) => [definition.assetId, definition]));
 const CONSTRUCT_OPTIONS = [
   ...new Set([
-    ...CONSTRUCT_DEFINITIONS.map((definition) => definition.assetId),
+    ...BUILTIN_CONSTRUCT_DEFINITIONS.map((definition) => definition.assetId),
     'runtime.pirate_ship.prototype0',
     'runtime.pirate_ram_ship.prototype0',
     ...TEMPLATE_ARCHETYPES.map((enemy) => enemy.construct).filter(Boolean),
@@ -509,7 +491,7 @@ function installCurrentPack() {
 
 function currentPackBundle() {
   const packId = safePackId(`local.${pack.assetId || archetype.id || 'enemy_archetype_pack'}`);
-  const selectedConstruct = CONSTRUCT_BY_ID.get(archetype.construct);
+  const selectedConstruct = BUILTIN_CONSTRUCT_BY_ID.get(archetype.construct);
   const manifest = {
     schemaVersion: CONTENT_SCHEMA_VERSION,
     packId,
@@ -646,7 +628,7 @@ function drawBodyPreview(time) {
   const movement = archetype.movementProfiles?.[0] ?? {};
   const offset = movement.kind === 'weave' ? Math.sin(time * (movement.frequency ?? 1) * Math.PI * 2) * (movement.amplitude ?? 20) * 0.28 : 0;
   context.translate(offset, 0);
-  const construct = CONSTRUCT_BY_ID.get(archetype.construct);
+  const construct = BUILTIN_CONSTRUCT_BY_ID.get(archetype.construct);
   if (construct) drawConstructCells(construct.cells, time);
   else if (archetype.silhouette?.kind === 'pirateShip' || archetype.construct?.includes('pirate')) drawPiratePreview(time);
   else drawConstructCells(basicCells(), time);
