@@ -368,6 +368,9 @@ Optional projectile presentation/simulation fields:
 - `contrail`: optional short-lived visual particle settings. This is render-facing metadata carried by the projectile definition, not editor UI state.
 - `emitsProjectiles`: optional moving-emitter payload, currently used by `orb_of_blades`.
 - `detonationBurst`: optional instant radial projectile payload emitted when a player projectile detonates at its target or on impact. It may be a single payload or `{ "groups": [...] }` for concurrent mixed bursts.
+- `launchAngleMode`: optional player-weapon launch mode. `orthogonal` starts the projectile perpendicular to the aim direction.
+- `launchAngleSpreadRadians`: random launch-angle spread applied to `launchAngleMode`.
+- `launchWhenFacingTarget`: if true on a delayed-acceleration projectile, it turns toward its selected target before locking the acceleration vector.
 
 Sprite descriptors are render-facing JSON and should not change simulation results. A minimal descriptor:
 
@@ -396,6 +399,7 @@ Pattern projectiles may also use these delayed-acceleration fields:
 - `acceleration`: thrust applied after the delay.
 - `accelerationDuration`: duration of the acceleration phase.
 - `accelerationSpreadRadians`: random aim offset applied once when the vector is selected.
+- `launchWhenFacingTarget`: if true, turn toward the target before accelerating on the locked vector.
 - `explodeAfterAcceleration`: if true, the projectile emits `blastOnExpire` after the acceleration window.
 - `blastOnExpire`: small blast payload with `radius`, `damage`, and optional `impulse`.
 

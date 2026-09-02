@@ -59,6 +59,13 @@ export function runtimeWeaponDefinition(definition) {
     turnRate: projectile.turnRate ?? 0,
     acceleration: projectile.acceleration ?? 0,
     maxSpeed: projectile.maxSpeed ?? projectile.projectileSpeed ?? projectile.speed ?? Infinity,
+    delayBeforeAcceleration: projectile.delayBeforeAcceleration ?? projectile.lockBeforeLaunchSeconds ?? 0,
+    stopBeforeAcceleration: Boolean(projectile.stopBeforeAcceleration),
+    accelerationDuration: projectile.accelerationDuration ?? Infinity,
+    accelerationSpreadRadians: projectile.accelerationSpreadRadians ?? 0,
+    launchWhenFacingTarget: Boolean(projectile.launchWhenFacingTarget),
+    launchAngleMode: projectile.launchAngleMode ?? null,
+    launchAngleSpreadRadians: projectile.launchAngleSpreadRadians ?? 0,
     usesVehicleVelocityOnly: Boolean(projectile.usesVehicleVelocityOnly),
     targetHint: projectile.targetHint ?? null,
     detonateAtTarget: Boolean(projectile.detonateAtTarget),
@@ -107,6 +114,14 @@ function validateProjectile(projectile, errors, warnings) {
   if (projectile.damagePiercesUntilSpent != null && typeof projectile.damagePiercesUntilSpent !== 'boolean') {
     errors.push('projectile.damagePiercesUntilSpent must be a boolean when provided.');
   }
+  if (projectile.delayBeforeAcceleration != null) validateNumber(projectile.delayBeforeAcceleration, 'projectile.delayBeforeAcceleration', errors, { min: 0 });
+  if (projectile.lockBeforeLaunchSeconds != null) validateNumber(projectile.lockBeforeLaunchSeconds, 'projectile.lockBeforeLaunchSeconds', errors, { min: 0 });
+  if (projectile.stopBeforeAcceleration != null && typeof projectile.stopBeforeAcceleration !== 'boolean') errors.push('projectile.stopBeforeAcceleration must be a boolean when provided.');
+  if (projectile.accelerationDuration != null) validateNumber(projectile.accelerationDuration, 'projectile.accelerationDuration', errors, { min: 0 });
+  if (projectile.accelerationSpreadRadians != null) validateNumber(projectile.accelerationSpreadRadians, 'projectile.accelerationSpreadRadians', errors, { min: 0 });
+  if (projectile.launchWhenFacingTarget != null && typeof projectile.launchWhenFacingTarget !== 'boolean') errors.push('projectile.launchWhenFacingTarget must be a boolean when provided.');
+  if (projectile.launchAngleMode != null && !['orthogonal'].includes(projectile.launchAngleMode)) errors.push('projectile.launchAngleMode must be orthogonal when provided.');
+  if (projectile.launchAngleSpreadRadians != null) validateNumber(projectile.launchAngleSpreadRadians, 'projectile.launchAngleSpreadRadians', errors, { min: 0 });
   if (projectile.verticalVelocity != null) validateNumber(projectile.verticalVelocity, 'projectile.verticalVelocity', errors, { min: 0 });
   if (projectile.vz != null) validateNumber(projectile.vz, 'projectile.vz', errors, { min: 0 });
   if (projectile.gravity != null) validateNumber(projectile.gravity, 'projectile.gravity', errors, { min: 0 });

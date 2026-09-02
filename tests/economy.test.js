@@ -236,6 +236,14 @@ test('repair screen upgrade list only includes unlocked installed systems', () =
   assert.equal(miniBeamUpgrades.includes('miniBeamDamage'), true);
   assert.equal(miniBeamUpgrades.includes('miniBeamHeatSink'), true);
 
+  const withTrackingFlechette = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'tracking_flechette').definition;
+  const flechetteUpgrades = availableUpgradeDefinitions(game, account, withTrackingFlechette).map((upgrade) => upgrade.id);
+  assert.equal(flechetteUpgrades.includes('trackingFlechetteFireRate'), true);
+  assert.equal(flechetteUpgrades.includes('trackingFlechettePierce'), true);
+  assert.equal(flechetteUpgrades.includes('trackingFlechetteAcceleration'), true);
+  assert.equal(flechetteUpgrades.includes('trackingFlechetteImpactDamage'), true);
+  assert.equal(flechetteUpgrades.includes('trackingFlechetteTurningRate'), true);
+
   const withoutBeam = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 2, null).definition;
   const filtered = availableUpgradeDefinitions(game, account, withoutBeam).map((upgrade) => upgrade.id);
   assert.equal(filtered.includes('beamDamage'), false);

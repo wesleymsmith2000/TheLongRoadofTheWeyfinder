@@ -57,6 +57,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     accelerationJitter: options.accelerationJitter ?? 0,
     delayedAcceleration: (options.delayBeforeAcceleration ?? 0) > 0 || Boolean(options.accelerationTarget) || Boolean(options.explodeAfterAcceleration),
     stopBeforeAcceleration: Boolean(options.stopBeforeAcceleration),
+    launchWhenFacingTarget: Boolean(options.launchWhenFacingTarget),
     explodeAfterAcceleration: Boolean(options.explodeAfterAcceleration),
     blastOnExpire: options.blastOnExpire ?? null,
     readyToExplode: false,
@@ -133,7 +134,20 @@ function stepDelayedAcceleration(projectile, targets, dt) {
   if (!projectile.accelerationLocked) {
     const target = projectile.accelerationTarget ?? nearestTarget(projectile, targets);
     const baseAngle = target ? Math.atan2(target.y - projectile.y, target.x - projectile.x) : projectile.angle;
-    projectile.accelerationAngle = baseAngle + (projectile.accelerationJitter ?? 0);
+    if (projectile.launchWhenFacingTarget) {
+      if (projectile.stopBeforeAcceleration) {
+        projectile.vx = 0;
+        projectile.vy = 0;
+      }
+      const delta = Math.atan2(Math.sin(baseAngle - projectile.angle), Math.cos(baseAngle - projectile.angle));
+      const maxTurn = Math.max(0, (projectile.turnRate ?? 0) * dt);
+      if (maxTurn > 0 && Math.abs(delta) > maxTurn) {
+        projectile.angle += Math.sign(delta) * maxTurn;
+        return;
+      }
+      projectile.angle = baseAngle;
+    }
+    projectile.accelerationAngle = projectile.angle + (projectile.accelerationJitter ?? 0);
     projectile.accelerationLocked = true;
     if (projectile.stopBeforeAcceleration) {
       projectile.vx = 0;

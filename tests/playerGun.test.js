@@ -117,12 +117,36 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   const flechetteDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'tracking_flechette').definition;
   const flechetteGame = createGame(1147, { vehicleDefinition: flechetteDefinition });
   flechetteGame.autofire = true;
+  const aimAngle = flechetteGame.vehicle.turretHeading;
   stepGame(flechetteGame, {}, 1 / 60);
   const flechette = flechetteGame.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
   assert.equal(flechette.behavior, 'homing');
   assert.equal(flechette.radius, 1.65);
   assert.equal(flechette.maxSpeed, 322.5);
+  assert.equal(flechette.acceleration, 105);
   assert.equal(flechette.pierce, 2);
+  assert.equal(flechette.stopBeforeAcceleration, true);
+  assert.equal(flechette.launchWhenFacingTarget, true);
+  assert.equal(flechette.delayBeforeAcceleration > 0.32, true);
+  assert.equal(Math.abs(Math.abs(angleDelta(aimAngle, flechette.angle)) - Math.PI / 2) <= Math.PI / 6, true);
+});
+
+test('tracking flechette upgrades scale primary weapon stats', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'tracking_flechette').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.upgrades.trackingFlechetteFireRate = 2;
+  game.upgrades.trackingFlechettePierce = 2;
+  game.upgrades.trackingFlechetteAcceleration = 1;
+  game.upgrades.trackingFlechetteImpactDamage = 1;
+  game.upgrades.trackingFlechetteTurningRate = 1;
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+  const flechette = game.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
+  assert.equal(flechette.damage.toFixed(2), (12 * 1.05).toFixed(2));
+  assert.equal(flechette.pierce, 4);
+  assert.equal(flechette.acceleration.toFixed(2), (105 * 1.05).toFixed(2));
+  assert.equal(flechette.turnRate.toFixed(2), (7.5 * 1.05).toFixed(2));
+  assert.equal(game.playerFireTimer < 0.38 / Math.sqrt(2), true);
 });
 
 test('mortar primary arcs land on the selected aim reticle', () => {
@@ -144,6 +168,10 @@ test('mortar primary arcs land on the selected aim reticle', () => {
   assert.equal(Boolean(blast), true);
   assert.equal(Math.hypot(blast.x - fuseTarget.x, blast.y - fuseTarget.y) < 0.001, true);
 });
+
+function angleDelta(a, b) {
+  return Math.atan2(Math.sin(b - a), Math.cos(b - a));
+}
 
 test('mortar upgrades scale impact and blast stats', () => {
   const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;

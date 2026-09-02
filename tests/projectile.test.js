@@ -36,6 +36,28 @@ test('delayed acceleration aims at the live target position when it launches', (
   assert.equal(Math.abs(projectile.vy) < 0.001, true);
 });
 
+test('delayed acceleration can turn to face target before launch', () => {
+  const projectile = createProjectile(0, 0, 80, 0, {
+    angle: 0,
+    delayBeforeAcceleration: 0.01,
+    stopBeforeAcceleration: true,
+    launchWhenFacingTarget: true,
+    turnRate: Math.PI,
+    acceleration: 100,
+    accelerationDuration: 1,
+    accelerationTarget: { x: 0, y: 100 },
+    accelerationJitter: 0,
+  });
+  stepProjectiles([projectile], 0.02);
+  assert.equal(projectile.accelerationLocked, false);
+  assert.equal(Math.abs(projectile.vx) < 0.001, true);
+  assert.equal(projectile.angle > 0, true);
+  stepProjectiles([projectile], 0.5);
+  assert.equal(projectile.accelerationLocked, true);
+  assert.equal(projectile.vy > 0, true);
+  assert.equal(Math.abs(projectile.vx) < 0.001, true);
+});
+
 test('arc projectile lands after vertical motion resolves', () => {
   const projectile = createProjectile(0, 0, 10, 0, {
     behavior: 'arc',

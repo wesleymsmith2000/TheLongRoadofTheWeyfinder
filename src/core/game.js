@@ -721,6 +721,11 @@ function firePrimaryWeapon(game, muzzle, def) {
       turnRate: def.behavior === 'homing' ? def.turnRate : 0,
       acceleration: def.behavior === 'homing' ? def.acceleration : 0,
       maxSpeed: def.behavior === 'homing' ? def.maxSpeed : Infinity,
+      delayBeforeAcceleration: def.delayBeforeAcceleration ?? 0,
+      stopBeforeAcceleration: def.stopBeforeAcceleration,
+      accelerationDuration: def.accelerationDuration ?? Infinity,
+      accelerationJitter: game.rng.range(-(def.accelerationSpreadRadians ?? 0), def.accelerationSpreadRadians ?? 0),
+      launchWhenFacingTarget: def.launchWhenFacingTarget,
       verticalVelocity: def.verticalVelocity ?? 0,
       gravity: def.gravity ?? 0,
       maxArcHeight: def.maxArcHeight ?? 1,
@@ -756,12 +761,18 @@ function primaryProjectileLaunch(game, muzzle, def, targetHint, angle) {
       };
     }
   }
+  const launchAngle = def.launchAngleMode === 'orthogonal' ? orthogonalLaunchAngle(game, angle, def.launchAngleSpreadRadians ?? 0) : angle;
   return {
-    vx: Math.cos(angle) * def.projectileSpeed + game.vehicle.vx,
-    vy: Math.sin(angle) * def.projectileSpeed + game.vehicle.vy,
-    angle,
+    vx: Math.cos(launchAngle) * def.projectileSpeed + game.vehicle.vx,
+    vy: Math.sin(launchAngle) * def.projectileSpeed + game.vehicle.vy,
+    angle: launchAngle,
     detonateDistance: def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null,
   };
+}
+
+function orthogonalLaunchAngle(game, aimAngle, spreadRadians) {
+  const side = game.rng.next() < 0.5 ? -1 : 1;
+  return aimAngle + side * (Math.PI / 2) + game.rng.range(-spreadRadians, spreadRadians);
 }
 
 function arcFlightTime(def) {
@@ -831,6 +842,16 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
       damage: base.damage * upgradeMultiplier(game, 'mortarImpactDamage'),
       blastDamage: base.blastDamage * upgradeMultiplier(game, 'mortarBlastDamage'),
       blastRadius: base.blastRadius * upgradeMultiplier(game, 'mortarBlastRadius'),
+    };
+  }
+  if (weaponId === 'tracking_flechette') {
+    return {
+      ...base,
+      cooldown: base.cooldown / upgradeMultiplier(game, 'trackingFlechetteFireRate'),
+      damage: base.damage * upgradeMultiplier(game, 'trackingFlechetteImpactDamage'),
+      pierce: base.pierce + upgradeLevel(game, 'trackingFlechettePierce'),
+      acceleration: base.acceleration * upgradeMultiplier(game, 'trackingFlechetteAcceleration'),
+      turnRate: base.turnRate * upgradeMultiplier(game, 'trackingFlechetteTurningRate'),
     };
   }
   return base;
