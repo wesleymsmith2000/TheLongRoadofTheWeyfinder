@@ -418,6 +418,7 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   enemy.displayName = archetype.displayName;
   enemy.zone = archetype.zone;
   if (archetype.palette) enemy.palette = { ...archetype.palette };
+  if (archetype.presentation) enemy.presentation = structuredClone(archetype.presentation);
   if (archetype.elevation) enemy.elevation = structuredClone(archetype.elevation);
   if (archetype.phase) enemy.phase = structuredClone(archetype.phase);
   if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.enemy.inchworm_carrier",
+  "kind": "image",
+  "displayName": "Inchworm Carrier Sprite",
+  "path": "assets/images/enemies/inchworm_carrier.svg",
+  "nativeSize": [184, 96],
+  "tags": ["enemy", "inchworm", "caterpillar", "freedoms-pass"]
+}

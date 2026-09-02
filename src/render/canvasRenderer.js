@@ -10,6 +10,13 @@ import mortarPlayerShellUrl from '../../assets/images/weapons/mortar_player_shel
 import mortarEnemyShellUrl from '../../assets/images/weapons/mortar_enemy_shell.png';
 import mortarPlayerMarkerUrl from '../../assets/images/weapons/mortar_player_marker.png';
 import mortarEnemyMarkerUrl from '../../assets/images/weapons/mortar_enemy_marker.png';
+import ghostPhaserUrl from '../../assets/images/enemies/ghost_phaser.svg';
+import spiderWalkerUrl from '../../assets/images/enemies/spider_walker.svg';
+import heavyMortarBoatUrl from '../../assets/images/enemies/heavy_mortar_boat.svg';
+import tractorFrogUrl from '../../assets/images/enemies/tractor_frog.svg';
+import scrapBuzzardUrl from '../../assets/images/enemies/scrap_buzzard.svg';
+import inchwormCarrierUrl from '../../assets/images/enemies/inchworm_carrier.svg';
+import mothBomberUrl from '../../assets/images/enemies/moth_bomber.svg';
 
 const COLORS = {
   core: '#e4d66b',
@@ -46,6 +53,13 @@ const CANON_IMAGE_URLS = new Map([
   ['sprite.weapon.mortar_enemy_shell', mortarEnemyShellUrl],
   ['sprite.weapon.mortar_player_marker', mortarPlayerMarkerUrl],
   ['sprite.weapon.mortar_enemy_marker', mortarEnemyMarkerUrl],
+  ['sprite.enemy.ghost_phaser', ghostPhaserUrl],
+  ['sprite.enemy.spider_walker', spiderWalkerUrl],
+  ['sprite.enemy.heavy_mortar_boat', heavyMortarBoatUrl],
+  ['sprite.enemy.tractor_frog', tractorFrogUrl],
+  ['sprite.enemy.scrap_buzzard', scrapBuzzardUrl],
+  ['sprite.enemy.inchworm_carrier', inchwormCarrierUrl],
+  ['sprite.enemy.moth_bomber', mothBomberUrl],
 ]);
 
 export function createImageAssetLibrary(imageFactory = null) {
@@ -363,7 +377,7 @@ function drawEnemy(ctx, enemy, time, imageAssets) {
   }
   const visualScale = enemy.visualScale ?? 1;
   if (visualScale !== 1) ctx.scale(visualScale, visualScale);
-  drawConstructPresentation(ctx, enemy, imageAssets);
+  drawEnemyPresentationUnderlay(ctx, enemy, time, imageAssets);
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
   for (const cell of enemy.cells) {
     if (!cell.state.destroyed) {
@@ -371,6 +385,7 @@ function drawEnemy(ctx, enemy, time, imageAssets) {
       drawCell(ctx, cell, position.x, position.y, enemy.destroyed ? 0.35 : 1, palette);
     }
   }
+  drawEnemyPresentationOverlay(ctx, enemy, palette, time);
   drawPirateShipFlair(ctx, enemy, palette, time);
   drawDizzySwirl(ctx, enemy, time);
   if (enemy.destroyed) {
@@ -387,6 +402,145 @@ function drawConstructPresentation(ctx, construct, imageAssets) {
   const sprite = construct.presentation?.sprite;
   if (!sprite) return false;
   return drawSpriteDescriptor(ctx, imageAssets, sprite, 0, 0, 0);
+}
+
+function drawEnemyPresentationUnderlay(ctx, enemy, time, imageAssets) {
+  const presentation = enemy.presentation;
+  if (!presentation) return;
+  if (presentation.variant === 'spiderWalker') drawWalkerLegStride(ctx, enemy, time, enemy.palette ?? COLORS);
+  if (presentation.variant === 'scrapBuzzard') drawBuzzardWingBeat(ctx, enemy, time, enemy.palette ?? COLORS);
+  if (presentation.variant === 'inchwormCarrier') drawInchwormSegmentWave(ctx, enemy, time, enemy.palette ?? COLORS);
+  drawConstructPresentation(ctx, enemy, imageAssets);
+}
+
+function drawEnemyPresentationOverlay(ctx, enemy, palette, time) {
+  const variant = enemy.presentation?.variant;
+  if (!variant || enemy.destroyed) return;
+  if (variant === 'ghostWraith') drawPulsingEyeGuns(ctx, [-CELL_SIZE * 0.42, CELL_SIZE * 0.42], -CELL_SIZE * 0.55, time, '#ff233a', 1.35);
+  if (variant === 'tractorFrog') {
+    drawFrogHopSquash(ctx, enemy, time, palette);
+    drawPulsingEyeGuns(ctx, [-CELL_SIZE * 0.58, CELL_SIZE * 0.58], -CELL_SIZE * 0.68, time, '#ff2638', 1.15);
+  }
+  if (variant === 'heavyMortarBoat') drawMortarBoatDeckGun(ctx, time, palette);
+  if (variant === 'mothBomber') drawMothFlicker(ctx, time, palette);
+}
+
+function drawPulsingEyeGuns(ctx, xs, y, time, color, scale = 1) {
+  const pulse = Math.sin(time * 9) * 0.5 + 0.5;
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8 + pulse * 10;
+  for (const x of xs) {
+    ctx.fillStyle = '#35050a';
+    ctx.beginPath();
+    ctx.arc(x, y, CELL_SIZE * 0.17 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, CELL_SIZE * (0.08 + pulse * 0.045) * scale, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawWalkerLegStride(ctx, enemy, time, palette) {
+  const speed = Math.hypot(enemy.vx ?? 0, enemy.vy ?? 0);
+  const stride = time * (3.8 + speed * 0.025);
+  const legColor = palette.leg ?? '#a7c8ff';
+  ctx.save();
+  ctx.strokeStyle = legColor;
+  ctx.lineWidth = 4.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (let side = -1; side <= 1; side += 2) {
+    for (let index = 0; index < 4; index += 1) {
+      const y = (-1.15 + index * 0.76) * CELL_SIZE;
+      const phase = stride + index * Math.PI + (side < 0 ? 0 : Math.PI * 0.72);
+      const lift = Math.sin(phase) * CELL_SIZE * 0.16;
+      const reach = CELL_SIZE * (1.15 + Math.cos(phase) * 0.22);
+      const hip = { x: side * CELL_SIZE * 0.55, y };
+      const knee = { x: side * reach, y: y + lift };
+      const foot = { x: side * CELL_SIZE * (1.75 + Math.cos(phase + 0.8) * 0.16), y: y + CELL_SIZE * 0.36 - lift };
+      ctx.beginPath();
+      ctx.moveTo(hip.x, hip.y);
+      ctx.lineTo(knee.x, knee.y);
+      ctx.lineTo(foot.x, foot.y);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawFrogHopSquash(ctx, enemy, time, palette) {
+  const hop = Math.max(0, Math.sin((enemy.hopTimer ?? time) * Math.PI * 2));
+  ctx.save();
+  ctx.globalAlpha *= 0.28 + hop * 0.2;
+  ctx.strokeStyle = palette.accent ?? '#f26cff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(0, CELL_SIZE * 0.92, CELL_SIZE * (1.15 + hop * 0.4), CELL_SIZE * 0.28, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMortarBoatDeckGun(ctx, time, palette) {
+  const recoil = Math.max(0, Math.sin(time * 11)) * CELL_SIZE * 0.08;
+  ctx.save();
+  ctx.translate(0, -CELL_SIZE * 0.55 + recoil);
+  ctx.fillStyle = '#101318';
+  ctx.strokeStyle = palette.gun ?? '#ff7a1a';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(-CELL_SIZE * 0.3, -CELL_SIZE * 1.25, CELL_SIZE * 0.6, CELL_SIZE * 1.55, CELL_SIZE * 0.12);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(0, -CELL_SIZE * 1.28, CELL_SIZE * 0.38, CELL_SIZE * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBuzzardWingBeat(ctx, enemy, time, palette) {
+  const speed = Math.hypot(enemy.vx ?? 0, enemy.vy ?? 0);
+  const flap = Math.sin(time * (5 + speed * 0.01));
+  ctx.save();
+  ctx.strokeStyle = palette.wing ?? '#d6cfb9';
+  ctx.globalAlpha *= 0.5;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-CELL_SIZE * 0.4, -CELL_SIZE * 0.1);
+  ctx.quadraticCurveTo(-CELL_SIZE * 1.9, -CELL_SIZE * (0.75 + flap * 0.22), -CELL_SIZE * 2.8, -CELL_SIZE * (0.1 - flap * 0.2));
+  ctx.moveTo(CELL_SIZE * 0.4, -CELL_SIZE * 0.1);
+  ctx.quadraticCurveTo(CELL_SIZE * 1.9, -CELL_SIZE * (0.75 - flap * 0.22), CELL_SIZE * 2.8, -CELL_SIZE * (0.1 + flap * 0.2));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawInchwormSegmentWave(ctx, enemy, time, palette) {
+  ctx.save();
+  ctx.globalAlpha *= 0.36;
+  ctx.fillStyle = palette.core ?? '#d7ff9b';
+  for (let index = 0; index < 6; index += 1) {
+    const x = (index - 2.75) * CELL_SIZE * 0.56;
+    const y = Math.sin(time * 4.2 + index * 0.8) * CELL_SIZE * 0.16;
+    ctx.beginPath();
+    ctx.ellipse(x, y, CELL_SIZE * 0.32, CELL_SIZE * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawMothFlicker(ctx, time, palette) {
+  const flicker = Math.sin(time * 22) * 0.5 + 0.5;
+  ctx.save();
+  ctx.globalAlpha *= 0.38 + flicker * 0.24;
+  ctx.strokeStyle = palette.gun ?? '#ff7a1a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, CELL_SIZE * (0.55 + flicker * 0.18), 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawEnemyElevationShadow(ctx, enemy) {
@@ -788,6 +942,7 @@ function drawSpriteDescriptor(ctx, imageAssets, sprite, x, y, angle = 0, scale =
   const width = size[0] * scale;
   const height = size[1] * scale;
   ctx.save();
+  ctx.globalAlpha *= sprite.opacity ?? 1;
   ctx.translate(x, y);
   if (angle) ctx.rotate(angle);
   ctx.drawImage(image, -anchor[0] * width, -anchor[1] * height, width, height);

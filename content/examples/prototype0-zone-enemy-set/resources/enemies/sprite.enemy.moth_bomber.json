@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.enemy.moth_bomber",
+  "kind": "image",
+  "displayName": "Moth Bomber Sprite",
+  "path": "assets/images/enemies/moth_bomber.svg",
+  "nativeSize": [96, 96],
+  "tags": ["enemy", "moth", "bomber", "freedoms-pass"]
+}

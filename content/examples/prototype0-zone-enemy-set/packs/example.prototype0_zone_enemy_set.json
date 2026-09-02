@@ -21,6 +21,15 @@
       "../patterns/example.inchworm_eye_mini_beam.json"
     ],
     "enemyArchetypes": ["../enemies/example.zone_enemy_archetypes.json"],
-    "behaviors": ["../behaviors/example.zone_enemy_behavior_contracts.json"]
+    "behaviors": ["../behaviors/example.zone_enemy_behavior_contracts.json"],
+    "images": [
+      "../resources/enemies/sprite.enemy.ghost_phaser.json",
+      "../resources/enemies/sprite.enemy.spider_walker.json",
+      "../resources/enemies/sprite.enemy.heavy_mortar_boat.json",
+      "../resources/enemies/sprite.enemy.tractor_frog.json",
+      "../resources/enemies/sprite.enemy.scrap_buzzard.json",
+      "../resources/enemies/sprite.enemy.inchworm_carrier.json",
+      "../resources/enemies/sprite.enemy.moth_bomber.json"
+    ]
   }
 }

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.enemy.heavy_mortar_boat",
+  "kind": "image",
+  "displayName": "Heavy Mortar Boat Sprite",
+  "path": "assets/images/enemies/heavy_mortar_boat.svg",
+  "nativeSize": [128, 160],
+  "tags": ["enemy", "boat", "mortar", "pirates-road"]
+}

@@ -38,10 +38,13 @@ test('game tracks current music when starting the next level', () => {
 
 test('zone soundtrack names route standard spawns to zone archetypes', () => {
   const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
-  assert.equal(createLevelEnemies(road, 1, ['GhostForrestPathway_1'])[0].archetypeId, 'ghost_phaser.ghost_forrest');
+  const ghost = createLevelEnemies(road, 1, ['GhostForrestPathway_1'])[0];
+  assert.equal(ghost.archetypeId, 'ghost_phaser.ghost_forrest');
+  assert.equal(ghost.presentation.sprite.assetId, 'sprite.enemy.ghost_phaser');
   const frog = createLevelEnemies(road, 1, ['DigitizedStream_1'])[0];
   assert.equal(frog.archetypeId, 'hopping_stream_mob.digitized_stream');
   assert.equal(frog.visualScale, 1.5);
+  assert.equal(frog.presentation.variant, 'tractorFrog');
   assert.equal(createLevelEnemies(road, 1, ['PiratesRoad_1'])[0].archetypeId, 'heavy_mortar_boat.pirates_road');
   assert.equal(createLevelEnemies(road, 2, ['PiratesRoad_1'])[1].archetypeId, 'mortar_skiff.prototype0');
   assert.equal(createLevelEnemies(road, 1, ['StarlightRoad_1'])[0].archetypeId, 'starlight_walker.prototype0');

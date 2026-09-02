@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sprite.enemy.ghost_phaser",
+  "kind": "image",
+  "displayName": "Ghost Phaser Sprite",
+  "path": "assets/images/enemies/ghost_phaser.svg",
+  "nativeSize": [128, 128],
+  "tags": ["enemy", "ghost", "phaser", "ghost-forrest"]
+}
