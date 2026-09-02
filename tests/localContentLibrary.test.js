@@ -172,7 +172,7 @@ test('example prototype module set imports as a local content pack', () => {
 
   assert.deepEqual(bundle.errors, []);
   assert.equal(bundle.manifests[0].packId, 'example.prototype0_module_set');
-  assert.equal(bundle.assets.length, 11);
+  assert.equal(bundle.assets.length, 17);
 
   const storage = memoryStorage();
   const installed = installLocalContentBundle(bundle, { storage, installedAt: '2026-08-31T00:00:00.000Z' });
@@ -182,6 +182,10 @@ test('example prototype module set imports as a local content pack', () => {
   assert.equal(hydrated.ok, true);
   assert.equal(hydrated.registry.assets.get('level').has('example.prototype0_road_trial'), true);
   assert.equal(hydrated.registry.assets.get('statusEffect').has('example.acid_splash'), true);
+  assert.equal(hydrated.registry.assets.get('weapon').has('example.tracking_flechette'), true);
+  assert.equal(hydrated.registry.assets.get('weapon').has('example.sta_missile'), true);
+  assert.equal(hydrated.registry.assets.get('weapon').has('example.orb_of_blades'), true);
+  assert.equal(hydrated.registry.assets.get('image').has('sprite.weapon.tracking_flechette'), true);
 
   const runPackage = instantiateLocalLevel('example.prototype0_road_trial', { storage, seed: 19 });
   assert.equal(runPackage.definition.assetId, 'example.prototype0_road_trial');

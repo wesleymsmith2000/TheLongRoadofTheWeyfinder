@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.orb_of_blades",
+  "displayName": "Example Orb Of Blades",
+  "author": "Example creator",
+  "provenance": "Example module-set copy derived from bundled Prototype 0 content asset orb_of_blades.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "secondary",
+    "orb",
+    "flechette",
+    "radial",
+    "projectile-absorption",
+    "example",
+    "module-set"
+  ],
+  "ammo": 12,
+  "heat": 34,
+  "cooldown": 1.44,
+  "projectile": {
+    "team": "player",
+    "weapon": "orb_of_blades",
+    "behavior": "ballistic",
+    "projectileSpeed": 90,
+    "radius": 5,
+    "damage": 2,
+    "impulse": 90,
+    "lifetime": 3.5,
+    "sprite": {
+      "assetId": "sprite.weapon.orb_of_blades_core",
+      "path": "assets/images/weapons/orb_of_blades_core.png",
+      "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+      "nativeSize": [57, 54],
+      "displaySize": [13.5, 12.75],
+      "anchor": [0.5, 0.5],
+      "alignToVelocity": false
+    },
+    "targetHint": "aimReticle",
+    "detonateAtTarget": true,
+    "emitsProjectiles": {
+      "kind": "sequentialRadial",
+      "weapon": "orb_flechette",
+      "count": 10,
+      "interval": 0.056,
+      "continuous": true,
+      "damage": 18,
+      "projectileSpeed": 320,
+      "radius": 5.8,
+      "pierce": 4,
+      "damagePiercesUntilSpent": true,
+      "absorbsEnemyProjectiles": true,
+      "sprite": {
+        "assetId": "sprite.weapon.orb_blade_shard",
+        "path": "assets/images/weapons/orb_blade_shard.png",
+        "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+        "nativeSize": [33, 37],
+        "displaySize": [10.5, 12],
+        "anchor": [0.5, 0.5],
+        "alignToVelocity": true
+      }
+    },
+    "detonationBurst": {
+      "kind": "radialPulse",
+      "groups": [
+        {
+          "weapon": "orb_flechette",
+          "count": 12,
+          "damage": 18,
+          "projectileSpeed": 340,
+          "radius": 5.8,
+          "pierce": 4,
+          "damagePiercesUntilSpent": true,
+          "absorbsEnemyProjectiles": true,
+          "lifetime": 0.9,
+          "sprite": {
+            "assetId": "sprite.weapon.orb_blade_shard",
+            "path": "assets/images/weapons/orb_blade_shard.png",
+            "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+            "nativeSize": [33, 37],
+            "displaySize": [10.5, 12],
+            "anchor": [0.5, 0.5],
+            "alignToVelocity": true
+          }
+        },
+        {
+          "weapon": "orb_bullet",
+          "count": 16,
+          "damage": 7,
+          "projectileSpeed": 250,
+          "radius": 1.6,
+          "impulse": 18,
+          "lifetime": 0.62,
+          "color": "#9be5ff"
+        }
+      ]
+    }
+  }
+}

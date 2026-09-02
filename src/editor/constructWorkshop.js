@@ -14,6 +14,7 @@ import {
   setGunLoadoutSlot,
   weaponStackMultiplier,
 } from '../core/weaponLoadout.js';
+import { secondaryAmmoCapacity } from '../core/secondaryWeapon.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
 
 const canvas = document.querySelector('#constructCanvas');
@@ -325,8 +326,14 @@ function renderStatus() {
   ];
   const selectedLoadout = normalizeGunLoadouts(definition).find((loadout) => loadout.cellId === selectedCellId);
   if (selectedLoadout) lines.push(`<span>Selected gun loadout: ${escapeHtml(loadoutLabel(selectedLoadout))}</span>`);
-  for (const weaponId of installedWeaponIds(definition)) {
+  for (const weaponId of installedPrimaryWeaponIds(definition)) {
     lines.push(`<span>${escapeHtml(labelForWeapon(weaponId))} stack x${multiplierText(weaponStackMultiplier(definition, weaponId))}</span>`);
+  }
+  for (const weaponId of installedSecondaryWeaponIds(definition)) {
+    const copies = secondaryWeaponCopyCount(definition, weaponId);
+    lines.push(
+      `<span>${escapeHtml(labelForWeapon(weaponId))} stack x${multiplierText(weaponStackMultiplier(definition, weaponId))}, ammo cap ${escapeHtml(formatAmmoCapacity(secondaryAmmoCapacity(weaponId, definition)))} from ${copies} mounted</span>`,
+    );
   }
   lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
   lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));
@@ -396,14 +403,32 @@ function syncLoadoutControls() {
   }
 }
 
-function installedWeaponIds(construct) {
+function installedPrimaryWeaponIds(construct) {
   return [
     ...new Set(
       normalizeGunLoadouts(construct)
-        .flatMap((loadout) => [...loadout.primary, ...loadout.secondary])
+        .flatMap((loadout) => loadout.primary)
         .filter(Boolean),
     ),
   ];
+}
+
+function installedSecondaryWeaponIds(construct) {
+  return [
+    ...new Set(
+      normalizeGunLoadouts(construct)
+        .flatMap((loadout) => loadout.secondary)
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function secondaryWeaponCopyCount(construct, weaponId) {
+  return normalizeGunLoadouts(construct).reduce((sum, loadout) => sum + loadout.secondary.filter((id) => id === weaponId).length, 0);
+}
+
+function formatAmmoCapacity(value) {
+  return Number.isFinite(value) ? String(value) : 'unlimited';
 }
 
 function loadoutLabel(loadout) {

@@ -299,6 +299,20 @@
               <label>Max Speed <input id="weaponMaxSpeedInput" type="number" min="0" step="1" /></label>
             </div>
             <div class="wide-split">
+              <label>Coast Delay <input id="weaponDelayBeforeAccelerationInput" type="number" min="0" step="0.05" /></label>
+              <label>Accel Time <input id="weaponAccelerationDurationInput" type="number" min="0" step="0.05" /></label>
+              <label>Accel Spread <input id="weaponAccelerationSpreadInput" type="number" min="0" step="0.01" /></label>
+            </div>
+            <div class="wide-split">
+              <label>Launch Mode <select id="weaponLaunchAngleModeSelect"><option value="">direct</option><option value="orthogonal">orthogonal</option></select></label>
+              <label>Launch Spread <input id="weaponLaunchAngleSpreadInput" type="number" min="0" step="0.01" /></label>
+              <label>Live Reticle Arc <input id="weaponTracksReticleInArcInput" type="checkbox" /></label>
+            </div>
+            <div class="split">
+              <label>Stop Before Accel <input id="weaponStopBeforeAccelerationInput" type="checkbox" /></label>
+              <label>Face Target Before Launch <input id="weaponLaunchWhenFacingTargetInput" type="checkbox" /></label>
+            </div>
+            <div class="wide-split">
               <label>Pierce <input id="weaponPierceInput" type="number" min="0" step="1" /></label>
               <label>Pierce Scale <input id="weaponPierceDamageScaleInput" type="number" min="0" step="0.01" /></label>
               <label>Pierce Falloff <input id="weaponPierceDamageFalloffInput" type="number" min="0" max="1" step="0.01" /></label>
@@ -330,6 +344,14 @@
             <label>
               Emits Projectiles JSON
               <textarea id="weaponEmitsProjectilesInput" class="compact" spellcheck="false"></textarea>
+            </label>
+            <label>
+              Detonation Burst JSON
+              <textarea id="weaponDetonationBurstInput" class="compact" spellcheck="false"></textarea>
+            </label>
+            <label>
+              Contrail JSON
+              <textarea id="weaponContrailInput" class="compact" spellcheck="false"></textarea>
             </label>
           </div>
           <div id="patternFields" class="form" hidden>

@@ -10,6 +10,9 @@ import tractorBeamDefinition from '../content/weapons/tractor_beam.json' with { 
 import repulsorBeamDefinition from '../content/weapons/repulsor_beam.json' with { type: 'json' };
 import staMissileDefinition from '../content/weapons/sta_missile.json' with { type: 'json' };
 import orbOfBladesDefinition from '../content/weapons/orb_of_blades.json' with { type: 'json' };
+import exampleTrackingFlechetteDefinition from '../content/examples/prototype0-module-set/weapons/example.tracking_flechette.json' with { type: 'json' };
+import exampleStaMissileDefinition from '../content/examples/prototype0-module-set/weapons/example.sta_missile.json' with { type: 'json' };
+import exampleOrbOfBladesDefinition from '../content/examples/prototype0-module-set/weapons/example.orb_of_blades.json' with { type: 'json' };
 import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 import mortarLinePatternDefinition from '../content/examples/prototype0-zone-enemy-set/patterns/example.mortar_line_7.json' with { type: 'json' };
@@ -66,6 +69,19 @@ test('weapon validation rejects unavailable projectile behavior', () => {
   });
   assert.equal(report.valid, false);
   assert.equal(report.errors.some((error) => error.includes('projectile.behavior')), true);
+});
+
+test('example module set weapons cover current upgrade projectile fields', () => {
+  for (const definition of [exampleTrackingFlechetteDefinition, exampleStaMissileDefinition, exampleOrbOfBladesDefinition]) {
+    const report = validateWeaponDefinition(definition);
+    assert.equal(report.valid, true);
+  }
+  assert.equal(exampleTrackingFlechetteDefinition.projectile.launchAngleMode, 'orthogonal');
+  assert.equal(exampleTrackingFlechetteDefinition.projectile.launchWhenFacingTarget, true);
+  assert.equal(exampleStaMissileDefinition.projectile.tracksReticleInArc, true);
+  assert.equal(exampleStaMissileDefinition.projectile.contrail.particleRadiusScale, 1.5);
+  assert.equal(exampleOrbOfBladesDefinition.projectile.emitsProjectiles.absorbsEnemyProjectiles, true);
+  assert.equal(exampleOrbOfBladesDefinition.projectile.detonationBurst.groups[0].absorbsEnemyProjectiles, true);
 });
 
 test('weapon validation rejects invalid destructible projectile shape data', () => {

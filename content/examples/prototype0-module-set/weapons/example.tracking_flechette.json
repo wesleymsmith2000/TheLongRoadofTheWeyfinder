@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.tracking_flechette",
+  "displayName": "Example Tracking Flechette",
+  "author": "Example creator",
+  "provenance": "Example module-set copy derived from bundled Prototype 0 content asset tracking_flechette.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "primary",
+    "flechette",
+    "tracking",
+    "orthogonal-launch",
+    "example",
+    "module-set"
+  ],
+  "ammo": 0,
+  "heat": 5,
+  "cooldown": 0.38,
+  "projectile": {
+    "team": "player",
+    "weapon": "tracking_flechette",
+    "behavior": "homing",
+    "projectileSpeed": 161.25,
+    "radius": 1.65,
+    "damage": 12,
+    "impulse": 80,
+    "lifetime": 3.9,
+    "turnRate": 7.5,
+    "acceleration": 105,
+    "maxSpeed": 322.5,
+    "sprite": {
+      "assetId": "sprite.weapon.tracking_flechette",
+      "path": "assets/images/weapons/tracking_flechette.png",
+      "sourceSheet": "assets/stylesheets/weapons__Flechettes__sprite_stylesheet.png",
+      "nativeSize": [66, 25],
+      "displaySize": [11, 4],
+      "anchor": [0.5, 0.5],
+      "alignToVelocity": true
+    },
+    "pierce": 2,
+    "pierceDamageScale": 0.85,
+    "pierceDamageFalloff": 0.7,
+    "delayBeforeAcceleration": 0.35,
+    "stopBeforeAcceleration": true,
+    "launchAngleMode": "orthogonal",
+    "launchAngleSpreadRadians": 0.5235987755982988,
+    "lockBeforeLaunchSeconds": 0.35,
+    "launchWhenFacingTarget": true
+  }
+}

@@ -1,4 +1,5 @@
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION } from '../core/contentSchema.js';
+import { UPGRADE_DEFINITIONS } from '../core/economy.js';
 import { PATTERN_EMITTER_KINDS, validatePatternDefinition } from '../core/patternDefinition.js';
 import { STATUS_EFFECT_DEFINITIONS, STATUS_EFFECT_TYPES, validateStatusEffectDefinition } from '../core/statusEffects.js';
 import { PROJECTILE_BEHAVIORS, validateWeaponDefinition } from '../core/weaponDefinition.js';
@@ -81,6 +82,14 @@ const fields = Object.fromEntries(
     'weaponTurnRateInput',
     'weaponAccelerationInput',
     'weaponMaxSpeedInput',
+    'weaponDelayBeforeAccelerationInput',
+    'weaponStopBeforeAccelerationInput',
+    'weaponAccelerationDurationInput',
+    'weaponAccelerationSpreadInput',
+    'weaponLaunchAngleModeSelect',
+    'weaponLaunchAngleSpreadInput',
+    'weaponLaunchWhenFacingTargetInput',
+    'weaponTracksReticleInArcInput',
     'weaponPierceInput',
     'weaponPierceDamageScaleInput',
     'weaponPierceDamageFalloffInput',
@@ -97,6 +106,8 @@ const fields = Object.fromEntries(
     'weaponSpriteInput',
     'weaponLandingMarkerSpriteInput',
     'weaponEmitsProjectilesInput',
+    'weaponDetonationBurstInput',
+    'weaponContrailInput',
     'patternKindSelect',
     'patternTargetSelect',
     'patternBehaviorSelect',
@@ -209,6 +220,14 @@ function syncWeaponToFields() {
   fields.weaponTurnRateInput.value = projectile.turnRate ?? 0;
   fields.weaponAccelerationInput.value = projectile.acceleration ?? 0;
   fields.weaponMaxSpeedInput.value = projectile.maxSpeed ?? 0;
+  fields.weaponDelayBeforeAccelerationInput.value = projectile.delayBeforeAcceleration ?? projectile.lockBeforeLaunchSeconds ?? 0;
+  fields.weaponStopBeforeAccelerationInput.checked = Boolean(projectile.stopBeforeAcceleration);
+  fields.weaponAccelerationDurationInput.value = Number.isFinite(projectile.accelerationDuration) ? projectile.accelerationDuration : 0;
+  fields.weaponAccelerationSpreadInput.value = projectile.accelerationSpreadRadians ?? 0;
+  fields.weaponLaunchAngleModeSelect.value = projectile.launchAngleMode ?? '';
+  fields.weaponLaunchAngleSpreadInput.value = projectile.launchAngleSpreadRadians ?? 0;
+  fields.weaponLaunchWhenFacingTargetInput.checked = Boolean(projectile.launchWhenFacingTarget);
+  fields.weaponTracksReticleInArcInput.checked = Boolean(projectile.tracksReticleInArc);
   fields.weaponPierceInput.value = projectile.pierce ?? 0;
   fields.weaponPierceDamageScaleInput.value = projectile.pierceDamageScale ?? 0.7;
   fields.weaponPierceDamageFalloffInput.value = projectile.pierceDamageFalloff ?? 0.68;
@@ -225,6 +244,8 @@ function syncWeaponToFields() {
   fields.weaponSpriteInput.value = projectile.sprite ? JSON.stringify(projectile.sprite, null, 2) : '';
   fields.weaponLandingMarkerSpriteInput.value = projectile.landingMarkerSprite ? JSON.stringify(projectile.landingMarkerSprite, null, 2) : '';
   fields.weaponEmitsProjectilesInput.value = projectile.emitsProjectiles ? JSON.stringify(projectile.emitsProjectiles, null, 2) : '';
+  fields.weaponDetonationBurstInput.value = projectile.detonationBurst ? JSON.stringify(projectile.detonationBurst, null, 2) : '';
+  fields.weaponContrailInput.value = projectile.contrail ? JSON.stringify(projectile.contrail, null, 2) : '';
 }
 
 function syncPatternToFields() {
@@ -318,6 +339,14 @@ function weaponFromFields() {
   assignOptionalNumber(projectile, 'turnRate', fields.weaponTurnRateInput, asset.projectile?.turnRate);
   assignOptionalNumber(projectile, 'acceleration', fields.weaponAccelerationInput, asset.projectile?.acceleration);
   assignOptionalNumber(projectile, 'maxSpeed', fields.weaponMaxSpeedInput, asset.projectile?.maxSpeed);
+  assignOptionalNumber(projectile, 'delayBeforeAcceleration', fields.weaponDelayBeforeAccelerationInput, asset.projectile?.delayBeforeAcceleration ?? asset.projectile?.lockBeforeLaunchSeconds);
+  assignOptionalBoolean(projectile, 'stopBeforeAcceleration', fields.weaponStopBeforeAccelerationInput, asset.projectile?.stopBeforeAcceleration);
+  assignOptionalNumber(projectile, 'accelerationDuration', fields.weaponAccelerationDurationInput, asset.projectile?.accelerationDuration);
+  assignOptionalNumber(projectile, 'accelerationSpreadRadians', fields.weaponAccelerationSpreadInput, asset.projectile?.accelerationSpreadRadians);
+  assignOptionalString(projectile, 'launchAngleMode', fields.weaponLaunchAngleModeSelect, asset.projectile?.launchAngleMode);
+  assignOptionalNumber(projectile, 'launchAngleSpreadRadians', fields.weaponLaunchAngleSpreadInput, asset.projectile?.launchAngleSpreadRadians);
+  assignOptionalBoolean(projectile, 'launchWhenFacingTarget', fields.weaponLaunchWhenFacingTargetInput, asset.projectile?.launchWhenFacingTarget);
+  assignOptionalBoolean(projectile, 'tracksReticleInArc', fields.weaponTracksReticleInArcInput, asset.projectile?.tracksReticleInArc);
   assignOptionalNumber(projectile, 'pierce', fields.weaponPierceInput, asset.projectile?.pierce);
   assignOptionalNumber(projectile, 'pierceDamageScale', fields.weaponPierceDamageScaleInput, asset.projectile?.pierceDamageScale, 0.7);
   assignOptionalNumber(projectile, 'pierceDamageFalloff', fields.weaponPierceDamageFalloffInput, asset.projectile?.pierceDamageFalloff, 0.68);
@@ -330,6 +359,8 @@ function weaponFromFields() {
   assignOptionalObject(projectile, 'sprite', fields.weaponSpriteInput, asset.projectile?.sprite);
   assignOptionalObject(projectile, 'landingMarkerSprite', fields.weaponLandingMarkerSpriteInput, asset.projectile?.landingMarkerSprite);
   assignOptionalObject(projectile, 'emitsProjectiles', fields.weaponEmitsProjectilesInput, asset.projectile?.emitsProjectiles);
+  assignOptionalObject(projectile, 'detonationBurst', fields.weaponDetonationBurstInput, asset.projectile?.detonationBurst);
+  assignOptionalObject(projectile, 'contrail', fields.weaponContrailInput, asset.projectile?.contrail);
   assignArcFields(projectile, {
     behavior: fields.weaponBehaviorSelect.value,
     previousProjectile: asset.projectile,
@@ -451,6 +482,10 @@ function assignOptionalBoolean(target, key, input, previousValue) {
 
 function assignOptionalString(target, key, input, previousValue, defaultValue = '') {
   const value = input.value.trim();
+  if (!value) {
+    delete target[key];
+    return;
+  }
   if (value !== defaultValue || previousValue != null) target[key] = value;
 }
 
@@ -512,6 +547,7 @@ function drawWeaponPreview() {
   context.strokeStyle = projectile.behavior === 'beam' ? '#83f7ff' : '#ffb25f';
   context.lineWidth = projectile.behavior === 'beam' ? Math.max(2, (projectile.radius ?? 1) * 5) : 3;
   if (projectile.behavior === 'arc') drawArcProjectilePath(origin, origin.x + length, origin.y, projectile);
+  else if (projectile.behavior === 'homing' && projectile.launchAngleMode === 'orthogonal') drawOrthogonalFlechettePreview(origin, length, projectile);
   else {
     context.beginPath();
     context.moveTo(origin.x, origin.y);
@@ -524,6 +560,7 @@ function drawWeaponPreview() {
   context.fill();
   drawProjectileBlastPreview(origin.x + length, origin.y, projectile);
   if (projectile.behavior === 'homing') drawArc(origin.x + length * 0.45, origin.y - 54, 70, 0.4, 2.6, '#6fe0bf');
+  if (projectile.emitsProjectiles) drawEmitterPreview(origin.x + length * 0.58, origin.y, projectile);
 }
 
 function drawPatternPreview() {
@@ -589,6 +626,70 @@ function drawProjectileBlastPreview(x, y, projectile, scale = 1) {
   context.restore();
 }
 
+function drawOrthogonalFlechettePreview(origin, length, projectile) {
+  const direction = projectile.launchAngleSpreadRadians ? -1 : 1;
+  const driftY = origin.y + direction * 58;
+  const lockX = origin.x + Math.min(155, length * 0.36);
+  const endX = origin.x + length;
+  context.save();
+  context.strokeStyle = 'rgb(244 238 228 / 0.34)';
+  context.setLineDash([8, 8]);
+  context.beginPath();
+  context.moveTo(origin.x, origin.y);
+  context.lineTo(endX, origin.y);
+  context.stroke();
+  context.setLineDash([]);
+  context.strokeStyle = '#9be5ff';
+  context.lineWidth = 3;
+  context.beginPath();
+  context.moveTo(origin.x, origin.y);
+  context.quadraticCurveTo(origin.x + 38, driftY, lockX, driftY);
+  context.stroke();
+  context.strokeStyle = '#6fe0bf';
+  context.beginPath();
+  context.moveTo(lockX, driftY);
+  context.lineTo(endX, origin.y);
+  context.stroke();
+  context.fillStyle = '#f4eee4';
+  context.beginPath();
+  context.ellipse(lockX, driftY, Math.max(5, (projectile.sprite?.displaySize?.[0] ?? projectile.radius ?? 4) * 0.5), Math.max(2, (projectile.sprite?.displaySize?.[1] ?? projectile.radius ?? 2) * 0.5), -0.28, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+function drawEmitterPreview(x, y, projectile) {
+  const emitter = projectile.emitsProjectiles ?? {};
+  const count = Math.max(3, Math.min(18, emitter.count ?? 8));
+  const radius = 58;
+  context.save();
+  context.strokeStyle = emitter.absorbsEnemyProjectiles ? 'rgb(111 224 191 / 0.42)' : 'rgb(155 229 255 / 0.35)';
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(x, y, radius, 0, Math.PI * 2);
+  context.stroke();
+  context.fillStyle = '#d7eef1';
+  for (let index = 0; index < count; index += 1) {
+    const angle = (Math.PI * 2 * index) / count;
+    context.save();
+    context.translate(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+    context.rotate(angle);
+    context.fillRect(-6, -2, 12, 4);
+    context.restore();
+  }
+  if (emitter.absorbsEnemyProjectiles) {
+    context.fillStyle = '#ff8f70';
+    context.beginPath();
+    context.arc(x + radius * 0.38, y - radius * 0.54, 4, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = '#6fe0bf';
+    context.beginPath();
+    context.moveTo(x + radius * 0.23, y - radius * 0.68);
+    context.lineTo(x + radius * 0.52, y - radius * 0.4);
+    context.stroke();
+  }
+  context.restore();
+}
+
 function drawBlastTunnelPreview(x, y, scale) {
   const size = 10 * scale;
   for (let index = 0; index < 5; index += 1) {
@@ -607,6 +708,7 @@ function drawArcProjectilePath(origin, endX, endY, projectile) {
   context.moveTo(origin.x, origin.y);
   context.quadraticCurveTo(midX, midY, endX, endY);
   context.stroke();
+  if (projectile.tracksReticleInArc) drawReticleCorrectionPreview(origin, endX, endY, height);
   context.save();
   context.strokeStyle = 'rgb(244 238 228 / 0.3)';
   context.fillStyle = 'rgb(0 0 0 / 0.32)';
@@ -615,6 +717,40 @@ function drawArcProjectilePath(origin, endX, endY, projectile) {
   context.fill();
   context.stroke();
   context.restore();
+}
+
+function drawReticleCorrectionPreview(origin, endX, endY, height) {
+  const liveTarget = { x: endX + 72, y: endY - 42 };
+  const midX = (origin.x + liveTarget.x) / 2;
+  const midY = (origin.y + liveTarget.y) / 2 - height * 0.86;
+  context.save();
+  context.strokeStyle = '#9be5ff';
+  context.setLineDash([10, 8]);
+  context.beginPath();
+  context.moveTo(origin.x, origin.y);
+  context.quadraticCurveTo(midX, midY, liveTarget.x, liveTarget.y);
+  context.stroke();
+  context.setLineDash([]);
+  context.strokeStyle = '#6fe0bf';
+  context.lineWidth = 2;
+  drawReticle(liveTarget.x, liveTarget.y, 13);
+  context.restore();
+}
+
+function drawReticle(x, y, radius) {
+  context.beginPath();
+  context.arc(x, y, radius, 0, Math.PI * 2);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(x - radius - 5, y);
+  context.lineTo(x - radius + 4, y);
+  context.moveTo(x + radius - 4, y);
+  context.lineTo(x + radius + 5, y);
+  context.moveTo(x, y - radius - 5);
+  context.lineTo(x, y - radius + 4);
+  context.moveTo(x, y + radius - 4);
+  context.lineTo(x, y + radius + 5);
+  context.stroke();
 }
 
 function drawStatusEffectPreview() {
@@ -672,7 +808,7 @@ function renderStatus() {
 }
 
 function weaponSummary(definition) {
-  return `${definition.projectile?.behavior ?? 'unknown'} projectile, ${definition.projectile?.damage ?? 0} damage, ${definition.ammo ?? 0} ammo${pierceSummary(definition.projectile)}${blastSummary(definition.projectile)}`;
+  return `${definition.projectile?.behavior ?? 'unknown'} projectile, ${definition.projectile?.damage ?? 0} damage, ${definition.ammo ?? 0} ammo${pierceSummary(definition.projectile)}${blastSummary(definition.projectile)}${mechanicSummary(definition.projectile)}${upgradeSummary(definition)}`;
 }
 
 function patternSummary(definition) {
@@ -732,6 +868,31 @@ function pierceSummary(projectile = {}) {
   const pierce = projectile.pierce ?? 0;
   if (pierce <= 0) return '';
   return `, pierces ${roundMetric(pierce)} voxel hits`;
+}
+
+function mechanicSummary(projectile = {}) {
+  const notes = [];
+  if (projectile.launchAngleMode === 'orthogonal') notes.push('orthogonal delayed launch');
+  if (projectile.tracksReticleInArc) notes.push('tracks live reticle in arc');
+  if (projectile.emitsProjectiles?.absorbsEnemyProjectiles || detonationGroups(projectile).some((group) => group.absorbsEnemyProjectiles)) notes.push('blades absorb enemy shots');
+  if (projectile.contrail) notes.push('contrail');
+  return notes.length ? `, ${notes.join(', ')}` : '';
+}
+
+function upgradeSummary(definition = {}) {
+  const ids = upgradeIdsForWeapon(definition);
+  return ids.length ? `; upgrades ${ids.join(', ')}` : '';
+}
+
+function upgradeIdsForWeapon(definition = {}) {
+  const ids = new Set([definition.assetId, definition.projectile?.weapon].filter(Boolean));
+  return UPGRADE_DEFINITIONS.filter((upgrade) => ids.has(upgrade.requires?.primary) || ids.has(upgrade.requires?.secondary)).map((upgrade) => upgrade.id);
+}
+
+function detonationGroups(projectile = {}) {
+  const burst = projectile.detonationBurst;
+  if (!burst) return [];
+  return Array.isArray(burst.groups) ? burst.groups : [burst];
 }
 
 function roundMetric(value) {

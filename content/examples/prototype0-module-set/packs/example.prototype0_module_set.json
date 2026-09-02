@@ -20,7 +20,10 @@
     "weapons": [
       "../weapons/example.rocket.json",
       "../weapons/example.cannon.json",
-      "../weapons/example.beam.json"
+      "../weapons/example.beam.json",
+      "../weapons/example.tracking_flechette.json",
+      "../weapons/example.sta_missile.json",
+      "../weapons/example.orb_of_blades.json"
     ],
     "patterns": [
       "../patterns/example.enemy_aimed_shot.json",
@@ -40,6 +43,11 @@
     ],
     "sounds": [
       "../resources/example.voiceover_intro.json"
+    ],
+    "images": [
+      "../resources/weapons/sprite.weapon.tracking_flechette.json",
+      "../resources/weapons/sprite.weapon.orb_of_blades_core.json",
+      "../resources/weapons/sprite.weapon.orb_blade_shard.json"
     ]
   }
 }
