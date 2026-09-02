@@ -83,6 +83,8 @@ const PHANTOM_OVERLOAD_SPEED = 195;
 const PHANTOM_OVERLOAD_DAMAGE = 22;
 const PHANTOM_OVERLOAD_RADIUS = CELL_SIZE * 3.2;
 const PHANTOM_OVERLOAD_IMPULSE = 140;
+const ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS = 1.55;
+const ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS = 0.22;
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
@@ -1441,21 +1443,31 @@ function fireEnemyMortarLine(game, enemy, count = 7) {
     x: game.vehicle.x + game.vehicle.vx * 0.35,
     y: game.vehicle.y + game.vehicle.vy * 0.35,
   };
+  const points = [];
   for (let index = 0; index < count; index += 1) {
     const t = count <= 1 ? 1 : (index + 1) / count;
-    const point = {
+    points.push({
       x: enemy.x + (target.x - enemy.x) * t + game.rng.range(-CELL_SIZE * 0.35, CELL_SIZE * 0.35),
       y: enemy.y + (target.y - enemy.y) * t + game.rng.range(-CELL_SIZE * 0.35, CELL_SIZE * 0.35),
-    };
-    fireEnemyArcShell(game, enemy, point, '#ffb25f', index * 0.03);
+    });
   }
+  points
+    .sort((a, b) => distanceSquared(enemy, a) - distanceSquared(enemy, b))
+    .forEach((point, index) => {
+      const flightTime = ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS + index * ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS;
+      fireEnemyArcShell(game, enemy, point, '#ffb25f', { flightTime });
+    });
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
-function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', delay = 0) {
-  const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-  const speed = 78 * enemyMovementUpgradeScale(enemy);
-  const shell = createProjectile(enemy.x, enemy.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {}) {
+  const gravity = options.gravity ?? 92;
+  const flightTime = Math.max(0.001, options.flightTime ?? (2 * (options.verticalVelocity ?? 118)) / gravity);
+  const horizontalScale = enemyMovementUpgradeScale(enemy);
+  const vx = ((target.x - enemy.x) / flightTime) * horizontalScale;
+  const vy = ((target.y - enemy.y) / flightTime) * horizontalScale;
+  const verticalVelocity = options.verticalVelocity ?? (gravity * flightTime) / 2;
+  const shell = createProjectile(enemy.x, enemy.y, vx, vy, {
     team: 'enemy',
     weapon: 'enemy-mortar',
     behavior: 'arc',
@@ -1465,23 +1477,20 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', delay = 0) {
     landingMarkerSprite: MORTAR_ENEMY_MARKER_SPRITE,
     damage: 8 * enemyDamageUpgradeScale(enemy),
     impulse: 80,
-    lifetime: 3.8 + delay,
-    verticalVelocity: 118,
-    gravity: 92,
+    lifetime: flightTime + 0.35,
+    verticalVelocity,
+    gravity,
     maxArcHeight: 110,
     shadowRadius: 4,
     targetHint: { x: target.x, y: target.y },
     detonateAtTarget: true,
+    arcFlightTime: flightTime,
     blastOnExpire: {
       radius: CELL_SIZE * 2.55,
       damage: 4.5 * enemyDamageUpgradeScale(enemy),
       impulse: 34,
     },
   });
-  if (delay > 0) {
-    shell.lifetime += delay;
-    shell.maxLifetime += delay;
-  }
   game.enemyProjectiles.push(shell);
 }
 

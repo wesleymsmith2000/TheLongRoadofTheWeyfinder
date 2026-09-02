@@ -172,6 +172,27 @@ test('mortar skiff roams, fires inaccurate arcing mortars, and gets dizzy on roa
   assert.equal(Math.abs(skiff.vx) < 120, true);
 });
 
+test('heavy mortar boats fire one shell per warning marker with nearest impacts first', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boat = createEnemy(game.vehicle.x + 210, game.vehicle.y - 120);
+  boat.archetypeId = 'heavy_mortar_boat.pirates_road';
+  boat.patterns = [];
+  boat.artilleryTimer = 0;
+  game.enemies = [boat];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const shells = game.enemyProjectiles.filter((projectile) => projectile.weapon === 'enemy-mortar');
+  assert.equal(shells.length, 7);
+  for (let index = 1; index < shells.length; index += 1) {
+    assert.equal(pointDistanceSquared(boat, shells[index - 1].targetHint) <= pointDistanceSquared(boat, shells[index].targetHint), true);
+    assert.equal(shells[index - 1].arcFlightTime < shells[index].arcFlightTime, true);
+  }
+});
+
 test('digitized stream hopper is enlarged and uses the slower hop impulse', () => {
   const game = createGame();
   const frog = createLevelEnemies(game.road, 1, ['DigitizedStream_1'])[0];
@@ -439,4 +460,8 @@ function destroyDeviceVoxels(cell) {
 
 function vehicleHitPoints(vehicle) {
   return vehicle.cells.reduce((sum, cell) => sum + cell.mask.flat().reduce((cellSum, voxel) => cellSum + Math.max(0, voxel.hp), 0), 0);
+}
+
+function pointDistanceSquared(a, b) {
+  return (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 }
