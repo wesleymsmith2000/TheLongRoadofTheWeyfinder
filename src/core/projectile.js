@@ -25,6 +25,10 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     vz: options.vz ?? options.verticalVelocity ?? 0,
     gravity: options.gravity ?? 0,
     maxArcHeight: Math.max(1, options.maxArcHeight ?? options.arcHeight ?? options.altitude ?? 1),
+    arcAge: options.arcAge ?? 0,
+    arcFlightTime:
+      options.arcFlightTime ??
+      estimateArcFlightTime(options.z ?? options.altitude ?? 0, options.vz ?? options.verticalVelocity ?? 0, options.gravity ?? 0),
     shadowRadius: options.shadowRadius ?? options.radius ?? 4,
     arcLanded: false,
     frames: options.frames ?? 0,
@@ -43,6 +47,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     pierce: options.pierce ?? 0,
     pierceDamageScale: options.pierceDamageScale ?? 0.7,
     pierceDamageFalloff: options.pierceDamageFalloff ?? 0.68,
+    damagePiercesUntilSpent: Boolean(options.damagePiercesUntilSpent),
     delayBeforeAcceleration: options.delayBeforeAcceleration ?? 0,
     accelerationDuration: options.accelerationDuration ?? Infinity,
     accelerationElapsed: 0,
@@ -99,6 +104,7 @@ export function stepProjectiles(projectiles, dt, targets = []) {
 
 function stepArcProjectile(projectile, dt) {
   if (projectile.arcLanded) return;
+  projectile.arcAge = (projectile.arcAge ?? 0) + dt;
   projectile.z += projectile.vz * dt - 0.5 * projectile.gravity * dt * dt;
   projectile.vz -= projectile.gravity * dt;
   projectile.maxArcHeight = Math.max(projectile.maxArcHeight, projectile.z, 1);
@@ -111,6 +117,12 @@ function stepArcProjectile(projectile, dt) {
   }
   projectile.arcLanded = true;
   projectile.readyToExplode = true;
+}
+
+function estimateArcFlightTime(z, vz, gravity) {
+  if (gravity <= 0) return 1;
+  const discriminant = vz * vz + 2 * gravity * Math.max(0, z);
+  return Math.max(0.001, (vz + Math.sqrt(discriminant)) / gravity);
 }
 
 function stepDelayedAcceleration(projectile, targets, dt) {

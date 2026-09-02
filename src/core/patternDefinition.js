@@ -62,7 +62,7 @@ function fireAimed(emitter, source, target, rng) {
   const projectiles = [];
   for (let index = 0; index < count; index += 1) {
     const offset = count === 1 ? rng?.range(-spread, spread) ?? 0 : spreadOffset(index, count, spread);
-    projectiles.push(createPatternProjectile(source, emitter, baseAngle + offset));
+    projectiles.push(createPatternProjectile(source, emitter, baseAngle + offset, target, rng));
   }
   return projectiles;
 }
@@ -91,6 +91,7 @@ function fireSequentialRadial(emitter, state, source, target, rng) {
 function createPatternProjectile(source, emitter, angle, target = null, rng = null) {
   const projectile = emitter.projectile;
   const speed = emitter.speed ?? projectile.projectileSpeed ?? projectile.speed ?? 0;
+  const targetHint = projectile.detonateAtTarget && target && typeof projectile.targetHint === 'string' ? { x: target.x, y: target.y } : projectile.targetHint ?? null;
   return createProjectile(source.x, source.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
     team: projectile.team ?? 'enemy',
     weapon: projectile.weapon ?? 'bullet',
@@ -105,7 +106,7 @@ function createPatternProjectile(source, emitter, angle, target = null, rng = nu
     gravity: projectile.gravity ?? 0,
     maxArcHeight: projectile.maxArcHeight ?? projectile.arcHeight ?? 1,
     shadowRadius: projectile.shadowRadius ?? projectile.radius,
-    targetHint: projectile.targetHint ?? null,
+    targetHint,
     detonateAtTarget: projectile.detonateAtTarget,
     delayBeforeAcceleration: projectile.delayBeforeAcceleration ?? 0,
     stopBeforeAcceleration: projectile.stopBeforeAcceleration,
@@ -119,6 +120,7 @@ function createPatternProjectile(source, emitter, angle, target = null, rng = nu
     pierce: projectile.pierce ?? 0,
     pierceDamageScale: projectile.pierceDamageScale ?? 0.7,
     pierceDamageFalloff: projectile.pierceDamageFalloff ?? 0.68,
+    damagePiercesUntilSpent: projectile.damagePiercesUntilSpent,
     vanishOffscreen: projectile.vanishOffscreen,
     absorbsPlayerProjectiles: projectile.absorbsPlayerProjectiles,
     absorbHp: projectile.absorbHp,

@@ -26,6 +26,7 @@ import {
   createEnemy,
   createEnhancedEnemy,
   createEnhancedPirateShipEnemy,
+  createMortarSkiffEnemy,
   createPirateShipEnemy,
   enemyCoreEfficiency,
   enemyEngineEfficiency,
@@ -74,6 +75,32 @@ const PRIMARY_WEAPON_DEFINITIONS = {
   repulsor_beam: runtimeWeaponDefinition(repulsorBeamDefinition),
 };
 const ENEMY_UPGRADE_TYPES = ['damage', 'attackRate', 'armor', 'movementSpeed'];
+const RUNTIME_ENEMY_ARCHETYPES = {
+  'mortar_skiff.prototype0': {
+    id: 'mortar_skiff.prototype0',
+    displayName: 'Dizzy Mortar Skiff',
+    zone: 'PiratesRoad',
+    runtimeFactory: 'createMortarSkiffEnemy',
+  },
+};
+const MORTAR_ENEMY_SHELL_SPRITE = {
+  assetId: 'sprite.weapon.mortar_enemy_shell',
+  path: 'assets/images/weapons/mortar_enemy_shell.png',
+  sourceSheet: 'assets/stylesheets/weapons__mortar__sprite_stylesheet.png',
+  nativeSize: [44, 61],
+  displaySize: [7.5, 10.5],
+  anchor: [0.5, 0.6],
+  alignToVelocity: false,
+};
+const MORTAR_ENEMY_MARKER_SPRITE = {
+  assetId: 'sprite.weapon.mortar_enemy_marker',
+  path: 'assets/images/weapons/mortar_enemy_marker.png',
+  sourceSheet: 'assets/stylesheets/weapons__mortar__sprite_stylesheet.png',
+  nativeSize: [126, 53],
+  displaySize: [58, 24],
+  anchor: [0.5, 0.5],
+  alignToVelocity: false,
+};
 
 export function createGame(seed = 1147, options = {}) {
   const vehicle = createStartingVehicle(options.vehicleDefinition);
@@ -157,6 +184,7 @@ export function stepGame(game, input, dt) {
 
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
+  applyRoadTurnDizziness(game, roadDelta.turnAngle);
   stepEnemySpawner(game, dt);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   stepVehicle(game.vehicle, input, dt, game.road.heading, game.upgrades, game.terrainSample);
@@ -347,7 +375,7 @@ function zoneArchetypeForMusic(trackName, kind, index) {
     GhostForrest: ['ghost_phaser.ghost_forrest'],
     GhostForrestPathway: ['ghost_phaser.ghost_forrest'],
     DigitizedStream: ['hopping_stream_mob.digitized_stream'],
-    PiratesRoad: ['heavy_mortar_boat.pirates_road'],
+    PiratesRoad: ['heavy_mortar_boat.pirates_road', 'mortar_skiff.prototype0'],
     StarlightRoad: ['starlight_walker.prototype0'],
     TwilightCrossroads: ['twilight_walker.prototype0'],
     ShadowedDesert: ['scrap_buzzard.shadowed_desert'],
@@ -355,7 +383,8 @@ function zoneArchetypeForMusic(trackName, kind, index) {
     FreedomsPass: ['inchworm_carrier.freedoms_pass'],
   }[zone];
   if (!ids?.length) return null;
-  return getEnemyArchetype(ids[index % ids.length]);
+  const id = ids[index % ids.length];
+  return getEnemyArchetype(id) ?? RUNTIME_ENEMY_ARCHETYPES[id] ?? null;
 }
 
 function zoneNameFromTrack(trackName = '') {
@@ -365,6 +394,7 @@ function zoneNameFromTrack(trackName = '') {
 
 function createEnemyForArchetype(archetype, x, y, kind) {
   const factory = archetype.runtimeFactory;
+  if (factory === 'createMortarSkiffEnemy') return createMortarSkiffEnemy(x, y);
   if (factory === 'createPirateShipEnemy') return createPirateShipEnemy(x, y, { kind });
   if (factory === 'createEnhancedPirateShipEnemy') return createEnhancedPirateShipEnemy(x, y);
   if (factory === 'createEnhancedEnemy') return createEnhancedEnemy(x, y);
@@ -695,6 +725,7 @@ function firePrimaryWeapon(game, muzzle, def) {
       pierce: def.pierce ?? 0,
       pierceDamageScale: def.pierceDamageScale,
       pierceDamageFalloff: def.pierceDamageFalloff,
+      damagePiercesUntilSpent: def.damagePiercesUntilSpent,
       emitsProjectiles: def.emitsProjectiles,
       detonationBurst: def.detonationBurst,
       forceMode: def.forceMode,
@@ -871,6 +902,10 @@ function stepEnemies(game, dt) {
 
 function stepEnemy(game, enemy, dt) {
   if (enemy.destroyed) return;
+  if ((enemy.dizzyTimer ?? 0) > 0) {
+    stepDizzyEnemy(enemy, dt);
+    return;
+  }
   steerEnemyBackToLaneCenter(enemy, game.road, dt);
   stepArchetypeEnemy(game, enemy, dt);
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
@@ -887,9 +922,28 @@ function stepArchetypeEnemy(game, enemy, dt) {
   if (enemy.archetypeId === 'ghost_phaser.ghost_forrest') stepGhostPhaser(game, enemy, dt);
   if (enemy.archetypeId === 'hopping_stream_mob.digitized_stream') stepHopperFrog(game, enemy, dt);
   if (enemy.archetypeId === 'heavy_mortar_boat.pirates_road') stepMortarBoat(game, enemy, dt);
+  if (enemy.archetypeId === 'mortar_skiff.prototype0') stepMortarSkiff(game, enemy, dt);
   if (enemy.archetypeId === 'starlight_walker.prototype0' || enemy.archetypeId === 'twilight_walker.prototype0') stepWalkerEnemy(game, enemy, dt);
   if (enemy.archetypeId === 'scrap_buzzard.shadowed_desert') stepScrapBuzzard(game, enemy, dt);
   if (enemy.archetypeId === 'inchworm_carrier.freedoms_pass') stepInchwormCarrier(game, enemy, dt);
+}
+
+function stepDizzyEnemy(enemy, dt) {
+  enemy.dizzyTimer = Math.max(0, (enemy.dizzyTimer ?? 0) - dt);
+  enemy.vx *= Math.pow(0.03, dt);
+  enemy.vy *= Math.pow(0.03, dt);
+  enemy.x += enemy.vx * dt;
+  enemy.y += enemy.vy * dt;
+}
+
+function applyRoadTurnDizziness(game, turnAngle = 0) {
+  if (Math.abs(turnAngle) <= 0.0001) return;
+  for (const enemy of activeEnemies(game)) {
+    if (enemy.archetypeId !== 'mortar_skiff.prototype0') continue;
+    enemy.dizzyTimer = game.rng.range(2.4, 3.6);
+    enemy.dizzyPhase = game.rng.range(0, Math.PI * 2);
+    enemy.artilleryTimer = Math.max(enemy.artilleryTimer ?? 0, enemy.dizzyTimer);
+  }
 }
 
 function stepGhostPhaser(game, enemy, dt) {
@@ -924,6 +978,41 @@ function stepMortarBoat(game, enemy, dt) {
   if (enemy.artilleryTimer > 0) return;
   enemy.artilleryTimer = game.rng.range(4.8, 7.2);
   fireEnemyMortarLine(game, enemy, 7);
+}
+
+function stepMortarSkiff(game, enemy, dt) {
+  enemy.roamTimer = (enemy.roamTimer ?? 0) - dt;
+  if (!enemy.roamTarget || enemy.roamTimer <= 0 || distanceSquared(enemy, enemy.roamTarget) < CELL_SIZE * 1.6) {
+    const targetOffset = {
+      x: game.rng.range(-game.road.halfWidth * 0.62, game.road.halfWidth * 0.62),
+      y: game.rng.range(-game.road.halfHeight * 0.42, game.road.halfHeight * 0.42),
+    };
+    enemy.roamTarget = roadOffsetToWorld(targetOffset, game.road);
+    enemy.roamTimer = game.rng.range(2.2, 4.2);
+  }
+  const direction = directionFromTo(enemy, enemy.roamTarget);
+  const desiredSpeed = 44 * enemyMovementUpgradeScale(enemy);
+  const steer = clamp(3.4 * dt, 0, 1);
+  enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
+  enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
+
+  enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.4, 2.6)) - dt * enemyAttackRateUpgradeScale(enemy);
+  if (enemy.artilleryTimer > 0) return;
+  enemy.artilleryTimer = game.rng.range(2.8, 4.4);
+  const target = inaccuratePlayerMortarTarget(game, CELL_SIZE * 7.5);
+  fireEnemyArcShell(game, enemy, target, '#ff5a54');
+  enemy.lastFiredAt = game.time;
+  enemy.attackHeading = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function inaccuratePlayerMortarTarget(game, radius) {
+  const angle = game.rng.range(0, Math.PI * 2);
+  const distance = radius * Math.sqrt(game.rng.next());
+  return {
+    x: game.vehicle.x + game.vehicle.vx * 0.42 + Math.cos(angle) * distance,
+    y: game.vehicle.y + game.vehicle.vy * 0.42 + Math.sin(angle) * distance,
+  };
 }
 
 function stepWalkerEnemy(game, enemy, dt) {
@@ -1296,6 +1385,8 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', delay = 0) {
     behavior: 'arc',
     radius: 3.2,
     color,
+    sprite: MORTAR_ENEMY_SHELL_SPRITE,
+    landingMarkerSprite: MORTAR_ENEMY_MARKER_SPRITE,
     damage: 8 * enemyDamageUpgradeScale(enemy),
     impulse: 80,
     lifetime: 3.8 + delay,
@@ -1303,6 +1394,8 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', delay = 0) {
     gravity: 92,
     maxArcHeight: 110,
     shadowRadius: 4,
+    targetHint: { x: target.x, y: target.y },
+    detonateAtTarget: true,
     blastOnExpire: {
       radius: CELL_SIZE * 2.55,
       damage: 4.5 * enemyDamageUpgradeScale(enemy),
@@ -1522,9 +1615,13 @@ function handleCollisions(game) {
       detonatePlayerProjectile(game, projectile);
       continue;
     }
+    if (projectile.damagePiercesUntilSpent) {
+      hitEnemiesWithDamageBudgetProjectile(game, projectile);
+      continue;
+    }
     for (const enemy of activeEnemies(game)) {
       if (!enemyCanBeHitByProjectile(enemy, projectile)) continue;
-      if (distanceSquared(projectile, enemy) >= (enemy.radius + projectile.radius) ** 2) continue;
+      if (!projectileIntersectsPoint(projectile, enemy, enemy.radius + projectile.radius)) continue;
       if (enemyShieldBlocks(enemy, projectile)) {
         projectile.lifetime = 0;
         break;
@@ -1552,6 +1649,27 @@ function handleCollisions(game) {
 function enemyCanBeHitByProjectile(enemy, projectile) {
   if (enemy.phasedOut && projectile.behavior !== 'arc') return false;
   if (enemy.elevation?.canBeHitByGroundFire === false && projectile.behavior !== 'arc') return false;
+  return true;
+}
+
+function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
+  const travel = Math.hypot(projectile.x - projectile.previousX, projectile.y - projectile.previousY);
+  const pierce = applyEnemyProjectilePierceDamage(
+    activeEnemies(game).filter((enemy) => enemyCanBeHitByProjectile(enemy, projectile)),
+    projectile,
+    {
+      start: { x: projectile.previousX, y: projectile.previousY },
+      maxLength: Math.max(CELL_SIZE / 6, travel + (projectile.radius ?? 0) * 2),
+      maxHits: 48,
+      halfWidth: Math.max(projectile.radius ?? 0, CELL_SIZE / 6),
+      damageScale: 1,
+    },
+  );
+  if (!pierce.hit) return false;
+  game.score.damageDone += Math.round((pierce.damage ?? projectile.damage) + pierce.removed * 3);
+  for (const piercedEnemy of pierce.destroyedEnemies) explodeEnemy(game, piercedEnemy);
+  projectile.damage = pierce.remainingDamage ?? 0;
+  if (projectile.damage <= 0.05) projectile.lifetime = 0;
   return true;
 }
 
@@ -1592,6 +1710,7 @@ function spawnPlayerDetonationBurst(game, projectile) {
           pierce: group.pierce ?? 0,
           pierceDamageScale: group.pierceDamageScale ?? 0.85,
           pierceDamageFalloff: group.pierceDamageFalloff ?? 0.72,
+          damagePiercesUntilSpent: group.damagePiercesUntilSpent,
           sprite: group.sprite,
         }),
       );
@@ -1667,6 +1786,7 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     pierce: emitter.pierce ?? 0,
     pierceDamageScale: 0.85,
     pierceDamageFalloff: 0.72,
+    damagePiercesUntilSpent: emitter.damagePiercesUntilSpent,
     sprite: emitter.sprite,
   });
 }
@@ -1785,6 +1905,17 @@ function hitDestructiblePlayerProjectile(game, enemyProjectile) {
     return true;
   }
   return false;
+}
+
+function projectileIntersectsPoint(projectile, target, radius) {
+  const dx = projectile.x - projectile.previousX;
+  const dy = projectile.y - projectile.previousY;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0.001) return distanceSquared(projectile, target) <= radius * radius;
+  const along = ((target.x - projectile.previousX) * dx + (target.y - projectile.previousY) * dy) / lengthSquared;
+  const t = clamp(along, 0, 1);
+  const closest = { x: projectile.previousX + dx * t, y: projectile.previousY + dy * t };
+  return distanceSquared(closest, target) <= radius * radius;
 }
 
 function projectileReachedDetonationTarget(projectile) {

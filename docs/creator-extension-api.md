@@ -355,6 +355,7 @@ Pierce fields:
 - `pierce`: follow-through voxel hits after the first impact.
 - `pierceDamageScale`: fraction of impact damage available to the first pierced voxel.
 - `pierceDamageFalloff`: remaining pierce damage multiplier after each voxel.
+- `damagePiercesUntilSpent`: if true, the projectile uses its visible radius as a swept hit box and continues through hit voxels until its damage budget is depleted.
 
 Particle beams are width-aware at the voxel layer. Runtime sampling follows the animated beam width, damages the first damageable voxel on each sampled lane, and continues through additional voxels only according to `pierce`. Wide low-pierce beams strip surface area; narrow high-pierce beams drill deeper.
 

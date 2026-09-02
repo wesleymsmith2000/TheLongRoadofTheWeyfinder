@@ -23,7 +23,7 @@
       "path": "assets/images/weapons/orb_of_blades_core.png",
       "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
       "nativeSize": [57, 54],
-      "displaySize": [18, 17],
+      "displaySize": [13.5, 12.75],
       "anchor": [0.5, 0.5],
       "alignToVelocity": false
     },
@@ -37,14 +37,15 @@
       "continuous": true,
       "damage": 18,
       "projectileSpeed": 320,
-      "radius": 3.33,
+      "radius": 5.8,
       "pierce": 4,
+      "damagePiercesUntilSpent": true,
       "sprite": {
         "assetId": "sprite.weapon.orb_blade_shard",
         "path": "assets/images/weapons/orb_blade_shard.png",
         "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
         "nativeSize": [33, 37],
-        "displaySize": [14, 16],
+        "displaySize": [10.5, 12],
         "anchor": [0.5, 0.5],
         "alignToVelocity": true
       }
@@ -57,15 +58,16 @@
           "count": 12,
           "damage": 18,
           "projectileSpeed": 340,
-          "radius": 3.33,
+          "radius": 5.8,
           "pierce": 4,
+          "damagePiercesUntilSpent": true,
           "lifetime": 0.9,
           "sprite": {
             "assetId": "sprite.weapon.orb_blade_shard",
             "path": "assets/images/weapons/orb_blade_shard.png",
             "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
             "nativeSize": [33, 37],
-            "displaySize": [14, 16],
+            "displaySize": [10.5, 12],
             "anchor": [0.5, 0.5],
             "alignToVelocity": true
           }

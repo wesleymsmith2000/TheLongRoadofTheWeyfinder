@@ -127,6 +127,52 @@ export function createEnhancedPirateShipEnemy(x, y) {
   return enemy;
 }
 
+export function createMortarSkiffEnemy(x, y) {
+  const cells = [];
+  const connections = [];
+  const addCell = (id, type, gridX, gridY, carve = null) => {
+    const cell = createCell(id, type, gridX, gridY);
+    if (carve) carveVoxelMask(cell, carve);
+    cells.push(cell);
+    return cell;
+  };
+
+  addCell('stern', 'armor', 0, -1, sternCarve);
+  addCell('port-hull', 'armor', -1, 0, sternCarve);
+  addCell('core', 'core', 0, 0);
+  addCell('mortar-gun', 'gun', 1, 0, sideGunCarve);
+  addCell('bow', 'armor', 0, 1, bowPointCarve);
+
+  connect(connections, 'core', 'stern', 'top');
+  connect(connections, 'core', 'port-hull', 'left');
+  connect(connections, 'core', 'mortar-gun', 'right');
+  connect(connections, 'core', 'bow', 'bottom');
+
+  return {
+    assetId: 'enemy.mortar_skiff.prototype0',
+    archetypeId: 'mortar_skiff.prototype0',
+    displayName: 'Dizzy Mortar Skiff',
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    radius: constructRadius(cells),
+    patterns: [],
+    cells,
+    connections,
+    damageTaken: 0,
+    destroyed: false,
+    explosionStart: null,
+    kind: 'standard',
+    silhouette: 'pirateShip',
+    mortarSkiff: true,
+    visualHeading: Math.PI / 2,
+    artilleryTimer: 1.8,
+    roamTimer: 0,
+    dizzyTimer: 0,
+  };
+}
+
 export function createBossEnemy(x, y, rng) {
   const cells = [];
   const connections = [];
@@ -317,7 +363,7 @@ export function applyEnemyVoxelDamage(enemy, hit, damage) {
   recalculateCell(hit.cell);
   enemy.damageTaken += damage + removed * 3;
   updateEnemyDestroyed(enemy);
-  return { hit: true, cell: hit.cell, removed, destroyedNow: !wasDestroyed && enemy.destroyed };
+  return { hit: true, cell: hit.cell, removed, damage, destroyedNow: !wasDestroyed && enemy.destroyed };
 }
 
 export function applyEnemyProjectilePierceDamage(enemies, projectile, options = {}) {
@@ -325,16 +371,19 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
   if (pierce <= 0 || projectile.damage <= 0) return { hit: false, removed: 0, destroyedNow: false, destroyedEnemies: [] };
   const angle = projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
   const unit = CELL_SIZE / VOXELS;
-  const start = {
+  const start = options.start ?? {
     x: projectile.x + Math.cos(angle) * unit,
     y: projectile.y + Math.sin(angle) * unit,
   };
   const maxLength = options.maxLength ?? unit * (pierce + 2) * 2.4;
-  let power = projectile.damage * (projectile.pierceDamageScale ?? 0.7);
+  const maxHits = options.maxHits ?? pierce;
+  const halfWidth = options.halfWidth ?? Math.max(0, projectile.radius ?? 0);
+  let power = projectile.damage * (options.damageScale ?? projectile.pierceDamageScale ?? 0.7);
   const falloff = projectile.pierceDamageFalloff ?? 0.68;
-  const hits = traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce);
+  const hits = traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, maxHits, halfWidth);
   let hit = false;
   let removed = 0;
+  let damage = 0;
   let destroyedNow = false;
   const destroyedEnemies = [];
   for (const voxelHit of hits) {
@@ -343,13 +392,14 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
     if (!result.hit) continue;
     hit = true;
     removed += result.removed;
+    damage += result.damage ?? power;
     if (result.destroyedNow) {
       destroyedNow = true;
       destroyedEnemies.push(voxelHit.enemy);
     }
     power = Math.max(0, power - voxelHit.maxHpBeforeDamage) * falloff;
   }
-  return { hit, removed, destroyedNow, destroyedEnemies };
+  return { hit, removed, damage, remainingDamage: power, destroyedNow, destroyedEnemies };
 }
 
 export function applyEnemyBlastDamage(enemy, origin, options = {}) {
@@ -541,27 +591,35 @@ export function traceEnemyVoxelBeam(enemies, start, angle, maxLength, halfWidth 
   };
 }
 
-function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0) {
+function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0, halfWidth = 0) {
   const step = CELL_SIZE / VOXELS / 2;
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
-  const hits = [];
+  const nx = -dy;
+  const ny = dx;
+  const hitsByVoxel = new Map();
   const pierced = new Set();
   const maxHits = Math.max(1, Math.floor(pierce) + 1);
+  const laneCount = halfWidth <= step ? 1 : Math.min(9, Math.max(3, Math.ceil((halfWidth * 2) / step) + 1));
+  const laneSpacing = laneCount === 1 ? 0 : (halfWidth * 2) / (laneCount - 1);
   for (let distance = 0; distance <= maxLength; distance += step) {
-    const point = {
-      x: start.x + dx * distance,
-      y: start.y + dy * distance,
-    };
-    const hit = findEnemyVoxelAt(enemies, point);
-    if (!hit) continue;
-    const key = enemyVoxelKey(hit);
-    if (pierced.has(key)) continue;
-    pierced.add(key);
-    hits.push({ ...hit, maxHpBeforeDamage: hit.voxel.hp, x: point.x, y: point.y, distance });
-    if (hits.length >= maxHits) break;
+    for (let lane = 0; lane < laneCount; lane += 1) {
+      const offset = laneCount === 1 ? 0 : -halfWidth + lane * laneSpacing;
+      const point = {
+        x: start.x + dx * distance + nx * offset,
+        y: start.y + dy * distance + ny * offset,
+      };
+      const hit = findEnemyVoxelAt(enemies, point);
+      if (!hit) continue;
+      const key = enemyVoxelKey(hit);
+      if (pierced.has(key)) continue;
+      pierced.add(key);
+      hitsByVoxel.set(key, { ...hit, maxHpBeforeDamage: hit.voxel.hp, x: point.x, y: point.y, distance });
+      if (hitsByVoxel.size >= maxHits) break;
+    }
+    if (hitsByVoxel.size >= maxHits) break;
   }
-  return hits;
+  return [...hitsByVoxel.values()].sort((a, b) => a.distance - b.distance);
 }
 
 function enemyVoxelKey(hit) {

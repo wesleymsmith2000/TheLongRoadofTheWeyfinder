@@ -9,24 +9,24 @@ export function createRoadFrame(vehicle) {
     halfWidth: 120,
     halfHeight: 92,
     turnSeed: 1147,
-    turnTimer: 14,
+    turnTimer: 28,
     lastTurnAngle: 0,
   };
 }
 
 export function stepRoadFrame(road, dt) {
-  stepRoadTurns(road, dt);
+  const turnAngle = stepRoadTurns(road, dt);
   const direction = roadForward(road);
   const dx = direction.x * road.speed * dt;
   const dy = direction.y * road.speed * dt;
   road.x += dx;
   road.y += dy;
-  return { dx, dy };
+  return { dx, dy, turnAngle };
 }
 
 function stepRoadTurns(road, dt) {
-  road.turnTimer = (road.turnTimer ?? 14) - dt;
-  if (road.turnTimer > 0) return;
+  road.turnTimer = (road.turnTimer ?? 28) - dt;
+  if (road.turnTimer > 0) return 0;
   const roll = nextRoadTurnRoll(road);
   const steps = 1 + Math.floor(roll.value * 4);
   const direction = roll.sign < 0.5 ? -1 : 1;
@@ -34,7 +34,8 @@ function stepRoadTurns(road, dt) {
   road.heading += angle;
   road.lastTurnAngle = angle;
   const delayRoll = nextRoadTurnRoll(road).value;
-  road.turnTimer = 12 + delayRoll * 12;
+  road.turnTimer = 24 + delayRoll * 24;
+  return angle;
 }
 
 function nextRoadTurnRoll(road) {

@@ -8,6 +8,7 @@ import {
   createEnemy,
   createEnhancedEnemy,
   createEnhancedPirateShipEnemy,
+  createMortarSkiffEnemy,
   createPirateShipEnemy,
   harvestEnemyScrap,
   traceEnemyVoxelRay,
@@ -119,6 +120,56 @@ test('projectile pierce carries damage into voxels behind the first struck modul
   assert.equal(impact.hit, true);
   assert.equal(pierce.hit, true);
   assert.equal(after < before, true);
+});
+
+test('wide damage-budget blades sweep through enemies and keep remaining damage', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [createEnemy(0, 0)];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [
+    createProjectile(-CELL_SIZE * 1.2, CELL_SIZE * 0.42, 2800, 0, {
+      team: 'player',
+      weapon: 'orb_flechette',
+      damage: 1000,
+      radius: 5.8,
+      pierce: 4,
+      pierceDamageFalloff: 1,
+      damagePiercesUntilSpent: true,
+      lifetime: 1,
+    }),
+  ];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'orb_flechette');
+  assert.equal(Boolean(blade), true);
+  assert.equal(blade.damage < 1000, true);
+  assert.equal(blade.lifetime > 0, true);
+  assert.equal(game.score.damageDone > 0, true);
+});
+
+test('mortar skiff roams, fires inaccurate arcing mortars, and gets dizzy on road turns', () => {
+  const game = createGame();
+  game.autofire = false;
+  const skiff = createMortarSkiffEnemy(game.vehicle.x + 120, game.vehicle.y - 80);
+  skiff.artilleryTimer = 0;
+  game.enemies = [skiff];
+  game.enemySpawnQueue = [];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const shell = game.enemyProjectiles.find((projectile) => projectile.weapon === 'enemy-mortar');
+  assert.equal(Boolean(shell), true);
+  assert.equal(shell.behavior, 'arc');
+  assert.equal(shell.detonateAtTarget, true);
+  assert.equal(Boolean(shell.targetHint?.x), true);
+  assert.equal(Boolean(shell.landingMarkerSprite), true);
+
+  game.enemyProjectiles = [];
+  skiff.artilleryTimer = 0;
+  skiff.vx = 120;
+  game.road.turnTimer = 0.001;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(skiff.dizzyTimer > 2, true);
+  assert.equal(game.enemyProjectiles.length, 0);
+  assert.equal(Math.abs(skiff.vx) < 120, true);
 });
 
 test('destroyed enemy remaining voxels become collectible scrap', () => {

@@ -2,7 +2,7 @@ import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairVehicleDam
 import { secondaryAmmoCapacity } from './secondaryWeapon.js';
 import { recalculateCell } from './cell.js';
 import { Roles } from './voxelMask.js';
-import { normalizeGunLoadouts, weaponUnlocked } from './weaponLoadout.js';
+import { normalizeGunLoadouts } from './weaponLoadout.js';
 
 export const SHOP_COSTS = {
   repair: 2,
@@ -120,10 +120,10 @@ export function upgradeAvailable(game, id, account = game.account, vehicleDefini
   const upgrade = UPGRADE_DEFINITIONS.find((candidate) => candidate.id === id);
   if (!upgrade) return false;
   const requires = upgrade.requires ?? {};
-  if (requires.module && !moduleInstalledAndUnlocked(game, account, requires.module)) return false;
+  if (requires.module && !moduleInstalled(game, requires.module)) return false;
   if (requires.moduleUnlock && !account?.moduleUnlocks?.includes(requires.moduleUnlock)) return false;
-  if (requires.primary && !weaponInstalledAndUnlocked(account, vehicleDefinition, 'primary', requires.primary)) return false;
-  if (requires.secondary && !weaponInstalledAndUnlocked(account, vehicleDefinition, 'secondary', requires.secondary)) return false;
+  if (requires.primary && !weaponInstalled(vehicleDefinition, 'primary', requires.primary)) return false;
+  if (requires.secondary && !weaponInstalled(vehicleDefinition, 'secondary', requires.secondary)) return false;
   return true;
 }
 
@@ -138,16 +138,26 @@ export function buyUpgradeWithScrap(game, id, account = game.account, vehicleDef
   return true;
 }
 
-function moduleInstalledAndUnlocked(game, account, moduleType) {
-  const installed = game.vehicle?.cells?.some((cell) => cell.type === moduleType);
-  if (!installed) return false;
-  const entry = account?.equipment?.[moduleType];
-  return entry == null || entry.unlocked !== false;
+function moduleInstalled(game, moduleType) {
+  return game.vehicle?.cells?.some((cell) => cell.type === moduleType);
 }
 
-function weaponInstalledAndUnlocked(account, vehicleDefinition, slotKind, weaponId) {
-  if (!weaponUnlocked(account, slotKind, weaponId)) return false;
-  if (!vehicleDefinition?.cells) return ['main.basic', 'mortar', 'rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'].includes(weaponId);
+function weaponInstalled(vehicleDefinition, slotKind, weaponId) {
+  if (!vehicleDefinition?.cells) {
+    return [
+      'main.basic',
+      'mini_beam',
+      'mortar',
+      'repulsor_beam',
+      'tractor_beam',
+      'rocket',
+      'cannon',
+      'beam',
+      'tracking_flechette',
+      'sta_missile',
+      'orb_of_blades',
+    ].includes(weaponId);
+  }
   return normalizeGunLoadouts(vehicleDefinition).some((loadout) => loadout[slotKind].includes(weaponId));
 }
 

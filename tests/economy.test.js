@@ -198,6 +198,17 @@ test('new secondary ammo capacity upgrades expand their reserves', () => {
   assert.equal(orbGame.secondary.ammo.orb_of_blades, 13);
 });
 
+test('upgrade purchases allow installed weapons even before unlock state is checked', () => {
+  const definition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 0, 'sta_missile').definition;
+  const game = createGame(1147, { vehicleDefinition: definition });
+  const lockedAccount = createPrototypePlayerAccountData();
+  lockedAccount.weaponUnlocks.secondary = ['rocket'];
+  game.scrap = upgradeCost(game, 'staMissileBlastRadius');
+  assert.equal(availableUpgradeDefinitions(game, lockedAccount, definition).some((upgrade) => upgrade.id === 'staMissileBlastRadius'), true);
+  assert.equal(buyUpgradeWithScrap(game, 'staMissileBlastRadius', lockedAccount, definition), true);
+  assert.equal(game.upgrades.staMissileBlastRadius, 1);
+});
+
 test('armor toughness upgrade thickens armor voxels', () => {
   const game = createGame();
   const armor = game.vehicle.cells.find((cell) => cell.id === 'armor-left');

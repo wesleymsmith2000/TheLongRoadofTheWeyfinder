@@ -41,6 +41,7 @@ test('zone soundtrack names route standard spawns to zone archetypes', () => {
   assert.equal(createLevelEnemies(road, 1, ['GhostForrestPathway_1'])[0].archetypeId, 'ghost_phaser.ghost_forrest');
   assert.equal(createLevelEnemies(road, 1, ['DigitizedStream_1'])[0].archetypeId, 'hopping_stream_mob.digitized_stream');
   assert.equal(createLevelEnemies(road, 1, ['PiratesRoad_1'])[0].archetypeId, 'heavy_mortar_boat.pirates_road');
+  assert.equal(createLevelEnemies(road, 2, ['PiratesRoad_1'])[1].archetypeId, 'mortar_skiff.prototype0');
   assert.equal(createLevelEnemies(road, 1, ['StarlightRoad_1'])[0].archetypeId, 'starlight_walker.prototype0');
   assert.equal(createLevelEnemies(road, 1, ['TwilightCrossroads'])[0].archetypeId, 'twilight_walker.prototype0');
   assert.equal(createLevelEnemies(road, 1, ['ShadowedDesert_Journey'])[0].archetypeId, 'scrap_buzzard.shadowed_desert');

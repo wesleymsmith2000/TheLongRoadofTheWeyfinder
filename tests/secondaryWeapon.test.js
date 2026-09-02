@@ -377,7 +377,8 @@ test('new secondary weapons are live runtime choices', () => {
   for (let index = 0; index < 5; index += 1) stepGame(orbGame, { secondarySelect: 'orb_of_blades', gunnerEnabled: false }, 1 / 60);
   const blade = orbGame.playerProjectiles.find((projectile) => projectile.weapon === 'orb_flechette');
   assert.equal(Boolean(blade), true);
-  assert.equal(blade.radius, 3.33);
+  assert.equal(blade.radius, 5.8);
+  assert.equal(blade.damagePiercesUntilSpent, true);
 });
 
 test('STA missile arcs land on the selected aim reticle', () => {

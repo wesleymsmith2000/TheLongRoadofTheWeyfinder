@@ -27,7 +27,7 @@
       "path": "assets/images/weapons/mortar_player_shell.png",
       "sourceSheet": "assets/stylesheets/weapons__mortar__sprite_stylesheet.png",
       "nativeSize": [44, 49],
-      "displaySize": [16, 18],
+      "displaySize": [8, 9],
       "anchor": [0.5, 0.58],
       "alignToVelocity": false
     },

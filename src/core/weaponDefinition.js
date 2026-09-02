@@ -70,6 +70,7 @@ export function runtimeWeaponDefinition(definition) {
     pierce: projectile.pierce ?? 0,
     pierceDamageScale: projectile.pierceDamageScale ?? 0.7,
     pierceDamageFalloff: projectile.pierceDamageFalloff ?? 0.68,
+    damagePiercesUntilSpent: Boolean(projectile.damagePiercesUntilSpent),
     frames: projectile.frames ?? 0,
     destructible: Boolean(projectile.destructible),
     shape: projectile.shape ?? null,
@@ -103,6 +104,9 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.pierce ?? 0, 'projectile.pierce', errors, { min: 0 });
   validateNumber(projectile.pierceDamageScale ?? 0.7, 'projectile.pierceDamageScale', errors, { min: 0 });
   validateNumber(projectile.pierceDamageFalloff ?? 0.68, 'projectile.pierceDamageFalloff', errors, { min: 0, max: 1 });
+  if (projectile.damagePiercesUntilSpent != null && typeof projectile.damagePiercesUntilSpent !== 'boolean') {
+    errors.push('projectile.damagePiercesUntilSpent must be a boolean when provided.');
+  }
   if (projectile.verticalVelocity != null) validateNumber(projectile.verticalVelocity, 'projectile.verticalVelocity', errors, { min: 0 });
   if (projectile.vz != null) validateNumber(projectile.vz, 'projectile.vz', errors, { min: 0 });
   if (projectile.gravity != null) validateNumber(projectile.gravity, 'projectile.gravity', errors, { min: 0 });

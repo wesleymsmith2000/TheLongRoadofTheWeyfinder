@@ -370,6 +370,7 @@ function drawEnemy(ctx, enemy, time, imageAssets) {
     }
   }
   drawPirateShipFlair(ctx, enemy, palette, time);
+  drawDizzySwirl(ctx, enemy, time);
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
   } else if (enemy.kind === 'boss') {
@@ -431,6 +432,51 @@ function drawPirateShipFlair(ctx, enemy, palette, time) {
   ctx.fillStyle = 'rgb(0 0 0 / 0.22)';
   ctx.fillRect(-CELL_SIZE * 1.45, -CELL_SIZE * 0.25, CELL_SIZE * 2.9, CELL_SIZE * 0.5);
   if (enemy.ramBulkhead) drawRamBulkhead(ctx, palette, time);
+  ctx.restore();
+}
+
+function drawDizzySwirl(ctx, enemy, time) {
+  if ((enemy.dizzyTimer ?? 0) <= 0 || enemy.destroyed) return;
+  const pulse = Math.sin(time * 8) * 0.5 + 0.5;
+  ctx.save();
+  ctx.translate(0, -enemy.radius * 0.74);
+  ctx.strokeStyle = `rgb(255 241 168 / ${0.55 + pulse * 0.3})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let index = 0; index < 28; index += 1) {
+    const t = index / 27;
+    const angle = time * 5.2 + (enemy.dizzyPhase ?? 0) + t * Math.PI * 2.5;
+    const radius = CELL_SIZE * (0.18 + t * 0.78);
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius * 0.38;
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  for (let index = 0; index < 3; index += 1) {
+    const angle = time * 4.2 + (enemy.dizzyPhase ?? 0) + (index * Math.PI * 2) / 3;
+    const x = Math.cos(angle) * CELL_SIZE * 0.9;
+    const y = Math.sin(angle) * CELL_SIZE * 0.34;
+    drawStar(ctx, x, y, CELL_SIZE * (0.16 + pulse * 0.05), '#fff1a8');
+  }
+  ctx.restore();
+}
+
+function drawStar(ctx, x, y, radius, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let index = 0; index < 10; index += 1) {
+    const pointRadius = index % 2 === 0 ? radius : radius * 0.42;
+    const angle = -Math.PI / 2 + (index * Math.PI * 2) / 10;
+    const px = Math.cos(angle) * pointRadius;
+    const py = Math.sin(angle) * pointRadius;
+    if (index === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 }
 
@@ -656,15 +702,7 @@ function drawArcProjectile(ctx, projectile, color, imageAssets) {
   ctx.ellipse(projectile.x, projectile.y, projectile.shadowRadius * (1 - heightRatio * 0.45), projectile.shadowRadius * 0.45, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
-  if (!drawSpriteDescriptor(ctx, imageAssets, projectile.landingMarkerSprite, marker.x, marker.y, 0)) {
-    ctx.globalAlpha = 0.42;
-    ctx.strokeStyle = projectile.color ?? color;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(marker.x, marker.y, Math.max(projectile.shadowRadius * 1.8, 8), 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
+  drawArcLandingMarker(ctx, projectile, marker, color, imageAssets);
   if (drawProjectileSprite(ctx, projectile, imageAssets, { x: visualX, y: visualY, scale })) {
     ctx.restore();
     return;
@@ -677,6 +715,58 @@ function drawArcProjectile(ctx, projectile, color, imageAssets) {
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
+}
+
+function drawArcLandingMarker(ctx, projectile, marker, color, imageAssets) {
+  const progress = arcLandingProgress(projectile);
+  const markerScale = 0.5 + easeOutCubic(progress) * 0.5;
+  const markerAlpha = 0.5 + progress * 0.5;
+  const enemyMarker = projectile.team === 'enemy';
+  ctx.save();
+  ctx.globalAlpha *= markerAlpha;
+  if (!drawSpriteDescriptor(ctx, imageAssets, projectile.landingMarkerSprite, marker.x, marker.y, 0, markerScale)) {
+    ctx.strokeStyle = enemyMarker ? '#ff5a54' : projectile.color ?? color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(marker.x, marker.y, Math.max(projectile.shadowRadius * 1.8, 8) * markerScale, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  drawArcMarkerCenter(ctx, projectile, marker, progress);
+  ctx.restore();
+}
+
+function drawArcMarkerCenter(ctx, projectile, marker, progress) {
+  const enemyMarker = projectile.team === 'enemy';
+  ctx.save();
+  ctx.translate(marker.x, marker.y);
+  if (!enemyMarker) {
+    ctx.fillStyle = '#e8fbff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  const rate = 3 + progress * progress * 18;
+  const pulse = Math.sin((projectile.arcAge ?? 0) * rate * Math.PI * 2) * 0.5 + 0.5;
+  ctx.globalAlpha *= 0.58 + pulse * 0.42;
+  ctx.strokeStyle = '#ffebe3';
+  ctx.fillStyle = '#ffebe3';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 2.2 + pulse * 1.3;
+  ctx.beginPath();
+  ctx.moveTo(0, -8 - pulse * 2);
+  ctx.lineTo(0, -2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 4, 2.2 + pulse * 0.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function arcLandingProgress(projectile) {
+  if (projectile.arcLanded) return 1;
+  return Math.max(0, Math.min(1, (projectile.arcAge ?? 0) / Math.max(0.001, projectile.arcFlightTime ?? projectile.maxLifetime ?? 1)));
 }
 
 function drawProjectileSprite(ctx, projectile, imageAssets, options = {}) {

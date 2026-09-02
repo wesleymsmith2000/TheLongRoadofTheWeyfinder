@@ -41,7 +41,7 @@ test('road frame makes infrequent deterministic discrete turns', () => {
   assert.equal(Number.isInteger(Math.round(turnSteps)), true);
   assert.equal(Math.abs(road.lastTurnAngle) >= Math.PI / 8, true);
   assert.equal(Math.abs(road.lastTurnAngle) <= Math.PI / 2, true);
-  assert.equal(road.turnTimer >= 12, true);
+  assert.equal(road.turnTimer >= 24, true);
 });
 
 test('road camera rotates toward road heading', () => {
