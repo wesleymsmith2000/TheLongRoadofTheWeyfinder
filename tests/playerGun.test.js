@@ -122,9 +122,12 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   const flechette = flechetteGame.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
   assert.equal(flechette.behavior, 'homing');
   assert.equal(flechette.radius, 1.65);
+  assert.equal(Math.hypot(flechette.vx, flechette.vy).toFixed(2), '161.25');
+  assert.equal(flechette.lifetime > 3.8, true);
   assert.equal(flechette.maxSpeed, 322.5);
   assert.equal(flechette.acceleration, 105);
   assert.equal(flechette.pierce, 2);
+  assert.deepEqual(flechette.sprite.displaySize, [11, 4]);
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);
   assert.equal(flechette.delayBeforeAcceleration > 0.32, true);

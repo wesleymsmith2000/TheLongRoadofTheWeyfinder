@@ -40,6 +40,7 @@
       "radius": 5.8,
       "pierce": 4,
       "damagePiercesUntilSpent": true,
+      "absorbsEnemyProjectiles": true,
       "sprite": {
         "assetId": "sprite.weapon.orb_blade_shard",
         "path": "assets/images/weapons/orb_blade_shard.png",
@@ -61,6 +62,7 @@
           "radius": 5.8,
           "pierce": 4,
           "damagePiercesUntilSpent": true,
+          "absorbsEnemyProjectiles": true,
           "lifetime": 0.9,
           "sprite": {
             "assetId": "sprite.weapon.orb_blade_shard",

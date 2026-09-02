@@ -4,6 +4,7 @@ import { gunMuzzleWorld } from './vehicle.js';
 import { CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
+import { normalizeGunLoadouts } from './weaponLoadout.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
@@ -23,16 +24,16 @@ export const SECONDARY_DEFINITIONS = {
   orb_of_blades: runtimeWeaponDefinition(orbOfBladesDefinition),
 };
 
-export function createSecondaryState() {
+export function createSecondaryState(vehicleDefinition = null) {
   return {
     selected: 'rocket',
     ammo: {
-      rocket: secondaryAmmoCapacity('rocket'),
-      cannon: secondaryAmmoCapacity('cannon'),
-      beam: secondaryAmmoCapacity('beam'),
+      rocket: secondaryAmmoCapacity('rocket', vehicleDefinition),
+      cannon: secondaryAmmoCapacity('cannon', vehicleDefinition),
+      beam: secondaryAmmoCapacity('beam', vehicleDefinition),
       tractor_beam: Infinity,
-      sta_missile: secondaryAmmoCapacity('sta_missile'),
-      orb_of_blades: secondaryAmmoCapacity('orb_of_blades'),
+      sta_missile: secondaryAmmoCapacity('sta_missile', vehicleDefinition),
+      orb_of_blades: secondaryAmmoCapacity('orb_of_blades', vehicleDefinition),
     },
     ammoBonus: {},
     heat: 0,
@@ -102,6 +103,7 @@ export function fireSecondary(game) {
       pierceDamageFalloff: def.pierceDamageFalloff,
       damagePiercesUntilSpent: def.damagePiercesUntilSpent,
       detonateAtTarget: def.detonateAtTarget,
+      tracksReticleInArc: def.tracksReticleInArc,
       frames: def.behavior === 'beam' ? def.frames : 0,
       destructible: def.destructible,
       shape: def.shape,
@@ -123,8 +125,19 @@ export function fireSecondary(game) {
   return true;
 }
 
-export function secondaryAmmoCapacity(weapon) {
-  return SECONDARY_DEFINITIONS[weapon]?.ammo ?? 0;
+export function secondaryAmmoCapacity(weapon, vehicleDefinition = null, ammoBonus = 0) {
+  const base = SECONDARY_DEFINITIONS[weapon]?.ammo ?? 0;
+  if (!Number.isFinite(base) || base <= 0) return base;
+  return Math.ceil((base + ammoBonus) * secondaryAmmoCopyMultiplier(vehicleDefinition, weapon));
+}
+
+export function secondaryAmmoCopyMultiplier(vehicleDefinition, weapon) {
+  if (!vehicleDefinition?.cells) return 1;
+  const copies = normalizeGunLoadouts(vehicleDefinition).reduce(
+    (sum, loadout) => sum + loadout.secondary.filter((weaponId) => weaponId === weapon).length,
+    0,
+  );
+  return Math.sqrt(copies + 1);
 }
 
 function cycleSecondary(secondary, direction) {
@@ -193,8 +206,45 @@ function upgradedSecondaryDefinition(game, weapon) {
       blastRadius: base.blastRadius * multiplier(game, 'staMissileBlastRadius'),
     };
   }
-  if (weapon === 'orb_of_blades') return { ...base, targetHint: 'aimReticle', detonateAtTarget: true };
+  if (weapon === 'orb_of_blades') {
+    const bladeDamageScale = multiplier(game, 'orbOfBladesBladeDamage');
+    const bladeImpulseScale = multiplier(game, 'orbOfBladesBladeKnockback');
+    const emitter = base.emitsProjectiles
+      ? {
+          ...base.emitsProjectiles,
+          interval: (base.emitsProjectiles.interval ?? 0.1) / multiplier(game, 'orbOfBladesEmissionRate'),
+          count: Math.max(1, Math.round((base.emitsProjectiles.count ?? 1) + level(game, 'orbOfBladesBladesPerCycle'))),
+          damage: (base.emitsProjectiles.damage ?? base.damage) * bladeDamageScale,
+          impulse: (base.emitsProjectiles.impulse ?? base.impulse * 0.35) * bladeImpulseScale,
+        }
+      : null;
+    const burst = scaleOrbDetonationBurst(base.detonationBurst, bladeDamageScale, bladeImpulseScale, level(game, 'orbOfBladesBladesPerCycle'), base.impulse * 0.35);
+    return {
+      ...base,
+      targetHint: 'aimReticle',
+      detonateAtTarget: true,
+      emitsProjectiles: emitter,
+      detonationBurst: burst,
+    };
+  }
   return base;
+}
+
+function scaleOrbDetonationBurst(burst, bladeDamageScale, bladeImpulseScale, extraBlades, defaultBladeImpulse) {
+  if (!burst) return null;
+  const groups = Array.isArray(burst.groups) ? burst.groups : [burst];
+  return {
+    ...burst,
+    groups: groups.map((group) => {
+      if (group.weapon !== 'orb_flechette') return { ...group };
+      return {
+        ...group,
+        count: Math.max(1, Math.round((group.count ?? 1) + extraBlades)),
+        damage: (group.damage ?? 0) * bladeDamageScale,
+        impulse: (group.impulse ?? defaultBladeImpulse) * bladeImpulseScale,
+      };
+    }),
+  };
 }
 
 function projectileLaunch(game, muzzle, def, targetHint, angle, useVehicleVelocityOnly) {

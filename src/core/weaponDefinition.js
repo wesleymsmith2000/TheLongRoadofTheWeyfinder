@@ -66,6 +66,7 @@ export function runtimeWeaponDefinition(definition) {
     launchWhenFacingTarget: Boolean(projectile.launchWhenFacingTarget),
     launchAngleMode: projectile.launchAngleMode ?? null,
     launchAngleSpreadRadians: projectile.launchAngleSpreadRadians ?? 0,
+    tracksReticleInArc: Boolean(projectile.tracksReticleInArc),
     usesVehicleVelocityOnly: Boolean(projectile.usesVehicleVelocityOnly),
     targetHint: projectile.targetHint ?? null,
     detonateAtTarget: Boolean(projectile.detonateAtTarget),
@@ -122,6 +123,7 @@ function validateProjectile(projectile, errors, warnings) {
   if (projectile.launchWhenFacingTarget != null && typeof projectile.launchWhenFacingTarget !== 'boolean') errors.push('projectile.launchWhenFacingTarget must be a boolean when provided.');
   if (projectile.launchAngleMode != null && !['orthogonal'].includes(projectile.launchAngleMode)) errors.push('projectile.launchAngleMode must be orthogonal when provided.');
   if (projectile.launchAngleSpreadRadians != null) validateNumber(projectile.launchAngleSpreadRadians, 'projectile.launchAngleSpreadRadians', errors, { min: 0 });
+  if (projectile.tracksReticleInArc != null && typeof projectile.tracksReticleInArc !== 'boolean') errors.push('projectile.tracksReticleInArc must be a boolean when provided.');
   if (projectile.verticalVelocity != null) validateNumber(projectile.verticalVelocity, 'projectile.verticalVelocity', errors, { min: 0 });
   if (projectile.vz != null) validateNumber(projectile.vz, 'projectile.vz', errors, { min: 0 });
   if (projectile.gravity != null) validateNumber(projectile.gravity, 'projectile.gravity', errors, { min: 0 });
@@ -138,6 +140,9 @@ function validateProjectile(projectile, errors, warnings) {
   validateSpriteDescriptor(projectile.landingMarkerSprite, 'projectile.landingMarkerSprite', errors);
   if (projectile.emitsProjectiles?.sprite != null) {
     validateSpriteDescriptor(projectile.emitsProjectiles.sprite, 'projectile.emitsProjectiles.sprite', errors);
+  }
+  if (projectile.emitsProjectiles?.absorbsEnemyProjectiles != null && typeof projectile.emitsProjectiles.absorbsEnemyProjectiles !== 'boolean') {
+    errors.push('projectile.emitsProjectiles.absorbsEnemyProjectiles must be a boolean when provided.');
   }
   validateDetonationBurst(projectile.detonationBurst, errors);
 }
@@ -219,6 +224,7 @@ function validateContrail(contrail, errors) {
   }
   validateNumber(contrail.emissionMeanPerSevenFrames ?? 0, 'projectile.contrail.emissionMeanPerSevenFrames', errors, { min: 0 });
   validateNumber(contrail.maxParticlesPerStep ?? 0, 'projectile.contrail.maxParticlesPerStep', errors, { min: 0, integer: true });
+  validateNumber(contrail.particleRadiusScale ?? 1, 'projectile.contrail.particleRadiusScale', errors, { min: 0 });
   if (contrail.particleLifetimeFrames != null) {
     if (!Array.isArray(contrail.particleLifetimeFrames) || contrail.particleLifetimeFrames.length !== 2) {
       errors.push('projectile.contrail.particleLifetimeFrames must be a two-number array when provided.');
@@ -260,5 +266,7 @@ function validateBurstPayload(payload, label, errors) {
   validateNumber(payload.impulse ?? 0, `${label}.impulse`, errors, { min: 0 });
   validateNumber(payload.lifetime ?? 0.9, `${label}.lifetime`, errors, { min: 0 });
   validateNumber(payload.pierce ?? 0, `${label}.pierce`, errors, { min: 0 });
+  if (payload.damagePiercesUntilSpent != null && typeof payload.damagePiercesUntilSpent !== 'boolean') errors.push(`${label}.damagePiercesUntilSpent must be a boolean when provided.`);
+  if (payload.absorbsEnemyProjectiles != null && typeof payload.absorbsEnemyProjectiles !== 'boolean') errors.push(`${label}.absorbsEnemyProjectiles must be a boolean when provided.`);
   validateSpriteDescriptor(payload.sprite, `${label}.sprite`, errors);
 }

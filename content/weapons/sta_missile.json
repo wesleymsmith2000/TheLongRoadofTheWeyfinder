@@ -27,6 +27,22 @@
     "blastDamage": 28,
     "blastRadiusCells": 4.5,
     "blastKnockback": 90,
+    "sprite": {
+      "assetId": "sprite.weapon.tracking_flechette",
+      "path": "assets/images/weapons/tracking_flechette.png",
+      "sourceSheet": "assets/stylesheets/weapons__Flechettes__sprite_stylesheet.png",
+      "nativeSize": [66, 25],
+      "displaySize": [22, 8],
+      "anchor": [0.5, 0.5],
+      "alignToVelocity": true
+    },
+    "contrail": {
+      "emissionMeanPerSevenFrames": 2,
+      "maxParticlesPerStep": 5,
+      "particleLifetimeFrames": [4, 5],
+      "particleRadiusScale": 1.5,
+      "colors": ["#b9e8ff", "#6f9fb7", "#8c969f", "#d4dde5"]
+    },
     "tracksReticleInArc": true,
     "zCollision": true
   }

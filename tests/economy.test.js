@@ -122,7 +122,7 @@ test('ammo refill uses half of a standard ammo load cost', () => {
   game.scrap = ammoRefillCost('rocket');
   const refilled = refillAmmoWithScrap(game, 'rocket');
   assert.equal(refilled, true);
-  assert.equal(game.secondary.ammo.rocket, 12);
+  assert.equal(game.secondary.ammo.rocket, 17);
   assert.equal(game.scrap, 0);
 });
 
@@ -136,7 +136,7 @@ test('level-complete shop actions are accepted before next level starts', () => 
   game.secondary.ammo.cannon = 0;
   game.scrap = ammoRefillCost('cannon');
   stepGame(game, { shopRefillAmmoPressed: true, shopAmmoWeapon: 'cannon' }, 1 / 60);
-  assert.equal(game.secondary.ammo.cannon, 18);
+  assert.equal(game.secondary.ammo.cannon, 26);
   assert.equal(game.levelComplete, true);
 });
 
@@ -167,8 +167,8 @@ test('ammo capacity upgrades expand the matching reserve', () => {
   game.scrap = upgradeCost(game, 'rocketAmmo');
   const bought = buyUpgradeWithScrap(game, 'rocketAmmo');
   assert.equal(bought, true);
-  assert.equal(ammoCapacityWithUpgrades(game, 'rocket'), 13);
-  assert.equal(game.secondary.ammo.rocket, 13);
+  assert.equal(ammoCapacityWithUpgrades(game, 'rocket'), 19);
+  assert.equal(game.secondary.ammo.rocket, 19);
 });
 
 test('beam ammo capacity upgrades expand the beam reserve', () => {
@@ -176,8 +176,16 @@ test('beam ammo capacity upgrades expand the beam reserve', () => {
   game.scrap = upgradeCost(game, 'beamAmmo');
   const bought = buyUpgradeWithScrap(game, 'beamAmmo');
   assert.equal(bought, true);
-  assert.equal(ammoCapacityWithUpgrades(game, 'beam'), 42);
-  assert.equal(game.secondary.ammo.beam, 42);
+  assert.equal(ammoCapacityWithUpgrades(game, 'beam'), 60);
+  assert.equal(game.secondary.ammo.beam, 60);
+});
+
+test('secondary ammo capacity scales with installed weapon copies', () => {
+  const twoRocketSlots = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 1, 'rocket').definition;
+  const threeRocketSlots = setGunLoadoutSlot(twoRocketSlots, 'gun', 'secondary', 2, 'rocket').definition;
+  const game = createGame(1147, { vehicleDefinition: threeRocketSlots });
+  assert.equal(ammoCapacityWithUpgrades(game, 'rocket'), 24);
+  assert.equal(game.secondary.ammo.rocket, 24);
 });
 
 test('new secondary ammo capacity upgrades expand their reserves', () => {
@@ -186,16 +194,16 @@ test('new secondary ammo capacity upgrades expand their reserves', () => {
   staGame.account = createPrototypePlayerAccountData();
   staGame.scrap = upgradeCost(staGame, 'staMissileAmmo');
   assert.equal(buyUpgradeWithScrap(staGame, 'staMissileAmmo'), true);
-  assert.equal(ammoCapacityWithUpgrades(staGame, 'sta_missile'), 17);
-  assert.equal(staGame.secondary.ammo.sta_missile, 17);
+  assert.equal(ammoCapacityWithUpgrades(staGame, 'sta_missile'), 25);
+  assert.equal(staGame.secondary.ammo.sta_missile, 25);
 
   const orbDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 0, 'orb_of_blades').definition;
   const orbGame = createGame(1147, { vehicleDefinition: orbDefinition });
   orbGame.account = createPrototypePlayerAccountData();
   orbGame.scrap = upgradeCost(orbGame, 'orbOfBladesAmmo');
   assert.equal(buyUpgradeWithScrap(orbGame, 'orbOfBladesAmmo'), true);
-  assert.equal(ammoCapacityWithUpgrades(orbGame, 'orb_of_blades'), 13);
-  assert.equal(orbGame.secondary.ammo.orb_of_blades, 13);
+  assert.equal(ammoCapacityWithUpgrades(orbGame, 'orb_of_blades'), 19);
+  assert.equal(orbGame.secondary.ammo.orb_of_blades, 19);
 });
 
 test('upgrade purchases allow installed weapons even before unlock state is checked', () => {
@@ -252,6 +260,13 @@ test('repair screen upgrade list only includes unlocked installed systems', () =
   const staUpgrades = availableUpgradeDefinitions(game, account, withSta).map((upgrade) => upgrade.id);
   assert.equal(staUpgrades.includes('staMissileAmmo'), true);
   assert.equal(staUpgrades.includes('staMissileBlastRadius'), true);
+
+  const withOrb = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 0, 'orb_of_blades').definition;
+  const orbUpgrades = availableUpgradeDefinitions(game, account, withOrb).map((upgrade) => upgrade.id);
+  assert.equal(orbUpgrades.includes('orbOfBladesEmissionRate'), true);
+  assert.equal(orbUpgrades.includes('orbOfBladesBladeDamage'), true);
+  assert.equal(orbUpgrades.includes('orbOfBladesBladesPerCycle'), true);
+  assert.equal(orbUpgrades.includes('orbOfBladesBladeKnockback'), true);
 
   const withMortar = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
   const mortarUpgrades = availableUpgradeDefinitions(game, account, withMortar).map((upgrade) => upgrade.id);

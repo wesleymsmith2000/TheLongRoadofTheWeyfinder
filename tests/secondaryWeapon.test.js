@@ -14,7 +14,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles.length, 1);
   assert.equal(game.playerProjectiles[0].damage, 54);
-  assert.equal(game.secondary.ammo.rocket, 11);
+  assert.equal(game.secondary.ammo.rocket, 16);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH), true);
 });
 
@@ -288,7 +288,7 @@ test('beam upgrades reduce width growth and base damage while ammo upgrades expa
   assert.equal(game.playerProjectiles[0].damage, 1.875);
   assert.equal(game.playerProjectiles[0].radius, 1.4);
   assert.equal(game.playerProjectiles[0].length > 256, true);
-  assert.equal(game.secondary.ammo.beam, 39);
+  assert.equal(game.secondary.ammo.beam, 56);
 });
 
 test('beam stays locked to the moving turret while firing', () => {
@@ -364,6 +364,9 @@ test('new secondary weapons are live runtime choices', () => {
   assert.equal(fireSecondary(staGame), true);
   assert.equal(staGame.playerProjectiles[0].weapon, 'sta_missile');
   assert.equal(staGame.playerProjectiles[0].behavior, 'arc');
+  assert.equal(staGame.playerProjectiles[0].tracksReticleInArc, true);
+  assert.deepEqual(staGame.playerProjectiles[0].sprite.displaySize, [22, 8]);
+  assert.equal(staGame.playerProjectiles[0].contrail.particleRadiusScale, 1.5);
   assert.equal(staGame.secondary.ammo.sta_missile, 15);
 
   const orbGame = createGame();
@@ -379,9 +382,10 @@ test('new secondary weapons are live runtime choices', () => {
   assert.equal(Boolean(blade), true);
   assert.equal(blade.radius, 5.8);
   assert.equal(blade.damagePiercesUntilSpent, true);
+  assert.equal(blade.absorbsEnemyProjectiles, true);
 });
 
-test('STA missile arcs land on the selected aim reticle', () => {
+test('STA missile arcs track the live aim reticle while flying', () => {
   const game = createGame();
   game.secondary.selected = 'sta_missile';
   game.enemies = [];
@@ -389,14 +393,28 @@ test('STA missile arcs land on the selected aim reticle', () => {
   const muzzle = gunMuzzleWorld(game.vehicle);
   game.aimReticle = { x: muzzle.x + 84, y: muzzle.y - 42, active: true, source: 'pointer' };
   assert.equal(fireSecondary(game), true);
-  const fuseTarget = game.playerProjectiles[0].targetHint;
+  const movedTarget = { x: muzzle.x - 96, y: muzzle.y + 76 };
   let blast = null;
   for (let index = 0; index < 240 && !blast; index += 1) {
-    stepGame(game, { secondarySelect: 'sta_missile', gunnerEnabled: false }, 1 / 60);
+    stepGame(game, { secondarySelect: 'sta_missile', aimWorld: movedTarget, gunnerEnabled: false }, 1 / 60);
     blast = game.playerProjectiles.find((projectile) => projectile.weapon === 'sta_missile-blast');
   }
   assert.equal(Boolean(blast), true);
-  assert.equal(Math.hypot(blast.x - fuseTarget.x, blast.y - fuseTarget.y) < 0.001, true);
+  assert.equal(Math.hypot(blast.x - movedTarget.x, blast.y - movedTarget.y) < 0.001, true);
+});
+
+test('STA missile contrail uses larger blue-grey smoke particles', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.secondary.selected = 'sta_missile';
+  game.aimReticle = { x: game.vehicle.x + 120, y: game.vehicle.y, active: true, source: 'pointer' };
+  assert.equal(fireSecondary(game), true);
+  const missile = game.playerProjectiles[0];
+  missile.contrail = { ...missile.contrail, emissionMeanPerSevenFrames: 14 };
+  stepGame(game, { aimWorld: game.aimReticle, gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.smokeParticles.length > 0, true);
+  assert.equal(game.smokeParticles.every((particle) => particle.radius >= 1.05), true);
+  assert.equal(game.smokeParticles.every((particle) => missile.contrail.colors.includes(particle.color)), true);
 });
 
 test('STA missile upgrades scale impact and blast stats', () => {
@@ -431,6 +449,54 @@ test('orb of blades emits continuously until reticle impact and bursts bullets p
   }
   assert.equal(game.playerProjectiles.filter((projectile) => projectile.weapon === 'orb_bullet').length, 16);
   assert.equal(game.playerProjectiles.filter((projectile) => projectile.weapon === 'orb_flechette').length >= 12, true);
+});
+
+test('orb of blades upgrades scale blade emission and combat stats', () => {
+  const game = createGame();
+  game.secondary.selected = 'orb_of_blades';
+  game.upgrades.orbOfBladesEmissionRate = 1;
+  game.upgrades.orbOfBladesBladeDamage = 2;
+  game.upgrades.orbOfBladesBladesPerCycle = 2;
+  game.upgrades.orbOfBladesBladeKnockback = 1;
+  game.aimReticle = { x: game.vehicle.x + 180, y: game.vehicle.y, active: true, source: 'pointer' };
+  assert.equal(fireSecondary(game), true);
+  const orb = game.playerProjectiles[0];
+  assert.equal(orb.emitsProjectiles.count, 12);
+  assert.equal(orb.emitsProjectiles.interval.toFixed(4), (0.056 / 1.05).toFixed(4));
+  assert.equal(orb.emitsProjectiles.damage.toFixed(2), (18 * 1.05 ** 2).toFixed(2));
+  assert.equal(Math.abs(orb.emitsProjectiles.impulse - 31.5 * 1.05) < 0.001, true);
+  assert.equal(orb.detonationBurst.groups[0].count, 14);
+});
+
+test('orb blade damage pool absorbs enemy projectiles before continuing', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [
+    {
+      x: 500,
+      y: 0,
+      previousX: 484,
+      previousY: 0,
+      vx: 160,
+      vy: 0,
+      radius: 5.8,
+      damage: 18,
+      lifetime: 1,
+      team: 'player',
+      weapon: 'orb_flechette',
+      behavior: 'ballistic',
+      absorbsEnemyProjectiles: true,
+      damagePiercesUntilSpent: true,
+    },
+  ];
+  game.enemyProjectiles = [{ x: 501.4, y: 0, vx: 0, vy: 0, radius: 2, damage: 7, lifetime: 1, team: 'enemy', weapon: 'enemy-bullet' }];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'orb_flechette');
+  assert.equal(game.enemyProjectiles.every((projectile) => projectile.lifetime <= 0), true);
+  assert.equal(blade.damage, 11);
+  assert.equal(blade.lifetime > 0, true);
 });
 
 test('tractor beam is a secondary utility beam with unlimited reserve', () => {

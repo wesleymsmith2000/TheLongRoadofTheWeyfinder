@@ -64,6 +64,10 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'staMissileBlastDamage', label: 'STA Missile Blast Damage', system: 'STA Missile', requires: { module: 'gun', secondary: 'sta_missile' } },
   { id: 'staMissileBlastRadius', label: 'STA Missile Blast Radius', system: 'STA Missile', requires: { module: 'gun', secondary: 'sta_missile' } },
   { id: 'orbOfBladesAmmo', label: 'Orb Of Blades Ammo Capacity', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
+  { id: 'orbOfBladesEmissionRate', label: 'Orb Of Blades Emission Rate', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
+  { id: 'orbOfBladesBladeDamage', label: 'Orb Of Blades Blade Damage', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
+  { id: 'orbOfBladesBladesPerCycle', label: 'Orb Of Blades Blades Per Cycle', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
+  { id: 'orbOfBladesBladeKnockback', label: 'Orb Of Blades Blade Knockback', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
   { id: 'mortarImpactDamage', label: 'Mortar Impact Damage', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
   { id: 'mortarBlastDamage', label: 'Mortar Blast Damage', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
   { id: 'mortarBlastRadius', label: 'Mortar Blast Radius', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
@@ -247,14 +251,16 @@ function applyUpgradeSideEffects(game, id) {
 }
 
 function growAmmoReserve(game, weapon) {
+  const oldCapacity = ammoCapacityWithUpgrades(game, weapon);
   const added = Math.max(1, Math.ceil(secondaryAmmoCapacity(weapon) * 0.05));
   game.secondary.ammoBonus ??= {};
   game.secondary.ammoBonus[weapon] = (game.secondary.ammoBonus[weapon] ?? 0) + added;
-  game.secondary.ammo[weapon] = Math.min(ammoCapacityWithUpgrades(game, weapon), (game.secondary.ammo[weapon] ?? 0) + added);
+  const newCapacity = ammoCapacityWithUpgrades(game, weapon);
+  game.secondary.ammo[weapon] = Math.min(newCapacity, (game.secondary.ammo[weapon] ?? oldCapacity) + (newCapacity - oldCapacity));
 }
 
 export function ammoCapacityWithUpgrades(game, weapon) {
-  return secondaryAmmoCapacity(weapon) + (game.secondary?.ammoBonus?.[weapon] ?? 0);
+  return secondaryAmmoCapacity(weapon, game.vehicleDefinition, game.secondary?.ammoBonus?.[weapon] ?? 0);
 }
 
 function thickenArmorVoxels(game) {

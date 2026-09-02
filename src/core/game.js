@@ -62,6 +62,7 @@ import trackingFlechetteDefinition from '../../content/weapons/tracking_flechett
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
 import repulsorBeamDefinition from '../../content/weapons/repulsor_beam.json' with { type: 'json' };
+import startingVehicleDefinition from '../../content/constructs/starting_vehicle.json' with { type: 'json' };
 
 export const LEVEL_TARGET_DURATION = 180;
 export const TARGETING_MODES = ['manual', 'guided', 'mixed'];
@@ -105,7 +106,8 @@ const MORTAR_ENEMY_MARKER_SPRITE = {
 };
 
 export function createGame(seed = 1147, options = {}) {
-  const vehicle = createStartingVehicle(options.vehicleDefinition);
+  const vehicleDefinition = options.vehicleDefinition ?? startingVehicleDefinition;
+  const vehicle = createStartingVehicle(vehicleDefinition);
   const road = createRoadFrame(vehicle);
   const terrainGenerator = createTerrainGenerator({ seed: options.terrainSeed ?? seed, route: options.terrainRoute });
   const terrain = createTerrainState(terrainGenerator);
@@ -120,7 +122,7 @@ export function createGame(seed = 1147, options = {}) {
     rng,
     levelMusic,
     currentMusic: musicForLevel(startLevel, levelMusic),
-    vehicleDefinition: options.vehicleDefinition,
+    vehicleDefinition,
     vehicle,
     road,
     camera: createRoadCamera(road),
@@ -130,7 +132,7 @@ export function createGame(seed = 1147, options = {}) {
     enemySpawnQueue,
     incomingMarkers: [],
     boost: createBoostState(),
-    secondary: createSecondaryState(),
+    secondary: createSecondaryState(vehicleDefinition),
     upgrades: createUpgradeState(),
     scrap: 0,
     scrapPickups: [],
@@ -201,6 +203,7 @@ export function stepGame(game, input, dt) {
   stepSecondaryWeapon(game, input, dt);
   handleEnemyRamShields(game);
 
+  trackReticleArcProjectiles(game);
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   stepPlayerProjectileEmitters(game, dt);
   syncBeamProjectiles(game);
@@ -1632,6 +1635,8 @@ function handleCollisions(game) {
       projectile.lifetime = 0;
       continue;
     }
+    playerProjectileAbsorbsEnemyProjectile(game, projectile);
+    if (projectile.lifetime <= 0) continue;
     if (projectileReachedDetonationTarget(projectile)) {
       projectile.lifetime = 0;
       detonatePlayerProjectile(game, projectile);
@@ -1738,6 +1743,7 @@ function spawnPlayerDetonationBurst(game, projectile) {
           pierceDamageScale: group.pierceDamageScale ?? 0.85,
           pierceDamageFalloff: group.pierceDamageFalloff ?? 0.72,
           damagePiercesUntilSpent: group.damagePiercesUntilSpent,
+          absorbsEnemyProjectiles: group.absorbsEnemyProjectiles,
           sprite: group.sprite,
         }),
       );
@@ -1814,8 +1820,30 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     pierceDamageScale: 0.85,
     pierceDamageFalloff: 0.72,
     damagePiercesUntilSpent: emitter.damagePiercesUntilSpent,
+    absorbsEnemyProjectiles: emitter.absorbsEnemyProjectiles,
     sprite: emitter.sprite,
   });
+}
+
+function trackReticleArcProjectiles(game) {
+  if (!game.aimReticle) return;
+  for (const projectile of game.playerProjectiles) {
+    if (!projectile.tracksReticleInArc || projectile.behavior !== 'arc' || projectile.arcLanded || projectile.lifetime <= 0) continue;
+    projectile.targetHint = { x: game.aimReticle.x, y: game.aimReticle.y };
+    const flightTime = remainingArcFlightTime(projectile);
+    projectile.vx = (projectile.targetHint.x - projectile.x) / flightTime;
+    projectile.vy = (projectile.targetHint.y - projectile.y) / flightTime;
+    projectile.angle = Math.atan2(projectile.vy, projectile.vx);
+  }
+}
+
+function remainingArcFlightTime(projectile) {
+  const gravity = projectile.gravity ?? 0;
+  if (gravity <= 0) return Math.max(0.001, projectile.lifetime ?? 1);
+  const z = Math.max(0, projectile.z ?? 0);
+  const vz = projectile.vz ?? 0;
+  const discriminant = vz * vz + 2 * gravity * z;
+  return Math.max(0.001, (vz + Math.sqrt(discriminant)) / gravity);
 }
 
 function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
@@ -1828,6 +1856,22 @@ function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
     return true;
   }
   return false;
+}
+
+function playerProjectileAbsorbsEnemyProjectile(game, playerProjectile) {
+  if (!playerProjectile.absorbsEnemyProjectiles || playerProjectile.lifetime <= 0 || playerProjectile.damage <= 0) return false;
+  let absorbed = false;
+  for (const enemyProjectile of game.enemyProjectiles) {
+    if (enemyProjectile.lifetime <= 0 || enemyProjectile.behavior === 'beam' || enemyProjectile.behavior === 'blast') continue;
+    if (enemyProjectile.behavior === 'arc' && !enemyProjectile.arcLanded) continue;
+    const hitRange = enemyProjectile.radius + playerProjectile.radius;
+    if (!projectileIntersectsPoint(playerProjectile, enemyProjectile, hitRange)) continue;
+    enemyProjectile.lifetime = 0;
+    playerProjectile.damage = Math.max(0, playerProjectile.damage - (enemyProjectile.damage ?? 0));
+    if (playerProjectile.damage <= 0.05) playerProjectile.lifetime = 0;
+    absorbed = true;
+  }
+  return absorbed;
 }
 
 function traceAbsorbingEnemyProjectileRay(projectiles, origin, angle, length, beamHalfWidth = 0) {
@@ -2190,7 +2234,7 @@ function spawnRocketImpact(game, projectile, enemy) {
 function stepRocketContrails(game, dt) {
   const frameCount = Math.max(0, dt * 60);
   for (const projectile of game.playerProjectiles) {
-    if (projectile.weapon !== 'rocket' || projectile.lifetime <= 0 || !projectile.contrail) continue;
+    if (projectile.lifetime <= 0 || !projectile.contrail) continue;
     const meanPerSevenFrames = projectile.contrail.emissionMeanPerSevenFrames ?? 2;
     const mean = (meanPerSevenFrames / 7) * frameCount;
     const count = Math.min(projectile.contrail.maxParticlesPerStep ?? 5, samplePoisson(game.rng, mean));
@@ -2266,13 +2310,15 @@ function spawnRocketSmokeParticle(game, projectile) {
   const sideOffset = game.rng.range(-projectile.radius, projectile.radius);
   const cos = Math.cos(projectile.angle);
   const sin = Math.sin(projectile.angle);
-  const lifetimeFrames = game.rng.chance(0.5) ? 4 : 5;
+  const lifetimeRange = projectile.contrail.particleLifetimeFrames;
+  const lifetimeFrames = Array.isArray(lifetimeRange) ? game.rng.range(lifetimeRange[0], lifetimeRange[1]) : game.rng.chance(0.5) ? 4 : 5;
+  const radiusScale = projectile.contrail.particleRadiusScale ?? 1;
   game.smokeParticles.push({
     x: projectile.x - cos * backOffset - sin * sideOffset,
     y: projectile.y - sin * backOffset + cos * sideOffset,
     vx: Math.cos(angle) * speed + projectile.vx * 0.05,
     vy: Math.sin(angle) * speed + projectile.vy * 0.05,
-    radius: game.rng.range(0.7, 1.6),
+    radius: game.rng.range(0.7, 1.6) * radiusScale,
     color: colors[Math.floor(game.rng.range(0, colors.length))] ?? colors[0],
     lifetime: lifetimeFrames / 60,
     maxLifetime: lifetimeFrames / 60,

@@ -42,11 +42,21 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
     assert.deepEqual(runtime.landingMarkerSprite, definition.projectile.landingMarkerSprite ?? null);
   }
   const flechette = runtimeWeaponDefinition(trackingFlechetteDefinition);
+  assert.equal(flechette.projectileSpeed, 161.25);
   assert.equal(flechette.acceleration, 105);
+  assert.equal(flechette.lifetime, 3.9);
+  assert.deepEqual(flechette.sprite.displaySize, [11, 4]);
   assert.equal(flechette.delayBeforeAcceleration, 0.35);
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);
   assert.equal(flechette.launchAngleMode, 'orthogonal');
+  const sta = runtimeWeaponDefinition(staMissileDefinition);
+  assert.equal(sta.tracksReticleInArc, true);
+  assert.deepEqual(sta.sprite.displaySize, [22, 8]);
+  assert.equal(sta.contrail.particleRadiusScale, 1.5);
+  const orb = runtimeWeaponDefinition(orbOfBladesDefinition);
+  assert.equal(orb.emitsProjectiles.absorbsEnemyProjectiles, true);
+  assert.equal(orb.detonationBurst.groups[0].absorbsEnemyProjectiles, true);
 });
 
 test('weapon validation rejects unavailable projectile behavior', () => {
