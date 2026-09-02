@@ -1,4 +1,5 @@
 import { LEVEL_TARGET_DURATION, TARGETING_MODES, createGame, stepGame } from './core/game.js';
+import { BUILD_VERSION } from './core/buildVersion.js';
 import { configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
@@ -138,6 +139,7 @@ const SOUND_URLS = {
 
 const canvas = document.querySelector('#game');
 const virtualCursor = document.querySelector('#virtualCursor');
+const buildVersionTag = document.querySelector('#buildVersionTag');
 const gameOver = document.querySelector('#gameOver');
 const launchScreen = document.querySelector('#launchScreen');
 const launchButton = document.querySelector('#launchButton');
@@ -264,6 +266,7 @@ document.documentElement.style.setProperty('--level-fail-art', `url("${levelFail
 document.documentElement.style.setProperty('--pause-art', `url("${pauseArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
+if (buildVersionTag) buildVersionTag.textContent = BUILD_VERSION;
 exposeLocalContentModuleApi();
 populateUpgradeSelect();
 refreshRepairTargets();

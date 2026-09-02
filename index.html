@@ -115,6 +115,21 @@
         background: linear-gradient(90deg, #6fe0bf, #83f7ff);
       }
 
+      .build-version-tag {
+        position: fixed;
+        right: 16px;
+        top: 14px;
+        z-index: 19;
+        padding: 4px 7px;
+        border: 1px solid rgb(244 238 228 / 0.26);
+        border-radius: 4px;
+        background: rgb(20 23 24 / 0.74);
+        color: #d7ceb8;
+        font: 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+        text-shadow: 0 1px 2px #000;
+        pointer-events: none;
+      }
+
       .title {
         margin: 0 0 6px;
         font-size: 18px;
@@ -1030,6 +1045,11 @@
           min-width: 62px;
         }
 
+        .build-version-tag {
+          right: 10px;
+          top: 52px;
+        }
+
         .hud-toggle {
           right: 98px;
           top: 10px;
@@ -1205,6 +1225,7 @@
   <body>
     <canvas id="game" aria-label="Vehicle roguelite prototype"></canvas>
     <div id="virtualCursor" class="virtual-cursor" hidden></div>
+    <div id="buildVersionTag" class="build-version-tag" aria-label="Build version"></div>
     <div class="hud">
       <h1 class="title">The Long Road of the Weyfinder</h1>
       <p class="sub">Drive the machine. Lose the machine. Keep the Core moving.</p>
