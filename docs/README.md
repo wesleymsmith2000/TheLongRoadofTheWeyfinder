@@ -27,6 +27,7 @@ Start here:
 - [Editor Weapon Upgrade Examples Handoff](./editor-weapon-upgrade-examples-handoff.md)
 - [Editor Runtime Change Handoff](./editor-runtime-change-handoff.md)
 - [Enemy Module Scaling And Canon Module Handoff](./enemy-module-scaling-canon-module-handoff.md)
+- [Player Module Voxel And Build Grid Handoff](./player-module-voxel-and-build-grid-handoff.md)
 - [Procedural Terrain Content](./procedural-terrain-content.md)
 - [Procedural Terrain Architecture Handoff](../CODEX_HANDOFF_PROCEDURAL_TERRAIN_V0_1.md)
 - [Procedural Terrain Rendering / Art Handoff](./RENDERING_HANDOFF_PROCEDURAL_TERRAIN_V0_1.md)

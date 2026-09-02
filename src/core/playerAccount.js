@@ -3,6 +3,12 @@ import { CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isPlainObject } from
 
 export const PLAYER_ACCOUNT_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const PLAYER_EQUIPMENT_TYPES = CELL_TYPES.filter((type) => type !== 'core');
+export const PLAYER_EQUIPMENT_BASE_QUANTITIES = {
+  armor: 28,
+  gun: 6,
+  wheel: 8,
+  engine: 6,
+};
 
 export function createPrototypePlayerAccountData() {
   return {
@@ -10,10 +16,10 @@ export function createPrototypePlayerAccountData() {
     accountId: 'local.prototype0',
     displayName: 'Local Pilot',
     equipment: {
-      armor: { unlocked: true, quantity: 14 },
-      gun: { unlocked: true, quantity: 3 },
-      wheel: { unlocked: true, quantity: 4 },
-      engine: { unlocked: true, quantity: 3 },
+      armor: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.armor },
+      gun: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.gun },
+      wheel: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.wheel },
+      engine: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.engine },
     },
     achievements: { unlocked: [] },
     weaponUnlocks: {
@@ -31,6 +37,11 @@ export function normalizePrototypePlayerAccountData(account = null) {
   if (!account) return defaults;
   const next = { ...defaults, ...account };
   next.equipment = mergeRecord(defaults.equipment, account.equipment);
+  for (const [type, floor] of Object.entries(PLAYER_EQUIPMENT_BASE_QUANTITIES)) {
+    next.equipment[type] ??= { unlocked: true, quantity: floor };
+    next.equipment[type].unlocked = next.equipment[type].unlocked || defaults.equipment[type]?.unlocked === true;
+    next.equipment[type].quantity = Math.max(floor, next.equipment[type].quantity ?? 0);
+  }
   next.achievements = { unlocked: [...new Set([...(defaults.achievements.unlocked ?? []), ...(account.achievements?.unlocked ?? [])])] };
   next.weaponUnlocks = {
     primary: mergeList(defaults.weaponUnlocks.primary, account.weaponUnlocks?.primary),

@@ -17,7 +17,7 @@ import {
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, createLevelEnemies, stepGame } from '../src/core/game.js';
 import { recalculateCell } from '../src/core/cell.js';
-import { CELL_SIZE } from '../src/core/voxelMask.js';
+import { CELL_SIZE, VOXELS } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 test('enemy takes voxel damage and records score damage', () => {
@@ -35,7 +35,7 @@ test('enemies use doubled module footprints without scaling voxel masks', () => 
   assert.equal(enemy.moduleLinearScale, ENEMY_MODULE_LINEAR_SCALE);
   assert.equal(enemy.cells.length, 33);
   assert.equal(gunCells.length, 4);
-  assert.equal(enemy.cells.every((cell) => cell.mask.length === 6 && cell.mask.every((row) => row.length === 6)), true);
+  assert.equal(enemy.cells.every((cell) => cell.mask.length === VOXELS && cell.mask.every((row) => row.length === VOXELS)), true);
   assert.equal(enemy.radius > CELL_SIZE * 3, true);
   assert.equal(boss.moduleLinearScale, ENEMY_MODULE_LINEAR_SCALE);
   assert.equal(boss.cells.filter((cell) => cell.type === 'gun').length > 64, true);

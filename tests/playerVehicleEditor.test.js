@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
-import { createPrototypePlayerAccountData, equipmentLimit, validatePlayerAccountData } from '../src/core/playerAccount.js';
+import { createPrototypePlayerAccountData, equipmentLimit, normalizePrototypePlayerAccountData, validatePlayerAccountData } from '../src/core/playerAccount.js';
 import {
   addEditableVehicleCell,
   connectEditableVehicleCells,
@@ -24,6 +24,22 @@ test('prototype player account exposes non-core equipment quantities', () => {
   assert.equal(equipmentLimit(account, 'armor') > startingVehicleDefinition.cells.filter((cell) => cell.type === 'armor').length, true);
 });
 
+test('old player accounts are normalized to the expanded equipment baseline', () => {
+  const account = normalizePrototypePlayerAccountData({
+    ...createPrototypePlayerAccountData(),
+    equipment: {
+      armor: { unlocked: true, quantity: 14 },
+      gun: { unlocked: true, quantity: 3 },
+      wheel: { unlocked: true, quantity: 4 },
+      engine: { unlocked: true, quantity: 3 },
+    },
+  });
+  assert.equal(equipmentLimit(account, 'armor'), 28);
+  assert.equal(equipmentLimit(account, 'gun'), 6);
+  assert.equal(equipmentLimit(account, 'wheel'), 8);
+  assert.equal(equipmentLimit(account, 'engine'), 6);
+});
+
 test('starting player vehicle content creates the default runtime vehicle', () => {
   const vehicle = createStartingVehicle();
   assert.equal(vehicle.cells.length, 7);
@@ -37,6 +53,14 @@ test('player vehicle editor can add additional unlocked equipment copies', () =>
   const result = addEditableVehicleCell(startingVehicleDefinition, account, 'armor', -2, -1);
   assert.equal(result.changed, true);
   assert.equal(result.definition.cells.some((cell) => cell.type === 'armor' && cell.gridX === -2 && cell.gridY === -1), true);
+});
+
+test('player vehicle editor allows the expanded build radius', () => {
+  const account = createPrototypePlayerAccountData();
+  const edgeResult = addEditableVehicleCell(startingVehicleDefinition, account, 'armor', 8, 0);
+  const outsideResult = addEditableVehicleCell(startingVehicleDefinition, account, 'armor', 9, 0);
+  assert.equal(edgeResult.changed, true);
+  assert.equal(outsideResult.changed, false);
 });
 
 test('player vehicle editor refuses additional cores and occupied positions', () => {

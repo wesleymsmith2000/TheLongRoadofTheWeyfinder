@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEnemy, traceEnemyVoxelBeam, traceEnemyVoxelRay } from '../src/core/enemy.js';
-import { CELL_SIZE } from '../src/core/voxelMask.js';
+import { CELL_SIZE, VOXEL_SIZE } from '../src/core/voxelMask.js';
 
 test('beam ray trace stops at the first live enemy voxel', () => {
   const enemy = createEnemy(60, 0);
@@ -29,7 +29,7 @@ test('wide beam trace touches multiple surface voxels without pierce', () => {
 
 test('narrow beam pierce continues through additional voxels', () => {
   const enemy = createEnemy(60, 0);
-  const trace = traceEnemyVoxelBeam([enemy], { x: 0, y: 0 }, 0, 200, (CELL_SIZE / 6) * 0.4, 3);
+  const trace = traceEnemyVoxelBeam([enemy], { x: 0, y: 0 }, 0, 200, VOXEL_SIZE * 0.4, 3);
   assert.equal(trace.hits.length, 4);
   assert.deepEqual(
     trace.hits.map((hit) => hit.voxelIndex.x),

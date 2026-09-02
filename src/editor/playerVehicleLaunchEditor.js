@@ -31,6 +31,8 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
   const gridCount = VEHICLE_EDITOR_GRID_RADIUS * 2 + 1;
   const pad = 22;
   const cellSize = (elements.canvas.width - pad * 2) / gridCount;
+  const scrollContainer = elements.canvas.closest('.vehicle-editor-canvas-wrap');
+  let shouldCenterScroll = true;
 
   for (const type of PLAYER_EQUIPMENT_TYPES) elements.partSelect.append(new Option(labelForType(type), type));
   bindTool(elements.placeButton, 'place');
@@ -53,6 +55,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     state.definition = cloneDefinition(startingVehicleDefinition);
     state.selectedCellId = null;
     state.message = 'Vehicle reset.';
+    shouldCenterScroll = true;
     emitChange();
   });
   elements.canvas.addEventListener('click', handleClick);
@@ -70,6 +73,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     reset() {
       state.definition = cloneDefinition(startingVehicleDefinition);
       state.selectedCellId = null;
+      shouldCenterScroll = true;
       emitChange();
     },
   };
@@ -142,6 +146,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     syncLoadoutControls();
     draw();
     renderStatus();
+    centerScrollIfNeeded();
   }
 
   function syncToolButtons() {
@@ -279,6 +284,15 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
       }
       select.value = value;
     }
+  }
+
+  function centerScrollIfNeeded() {
+    if (!shouldCenterScroll || !scrollContainer) return;
+    shouldCenterScroll = false;
+    requestAnimationFrame(() => {
+      scrollContainer.scrollLeft = Math.max(0, (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2);
+      scrollContainer.scrollTop = Math.max(0, (scrollContainer.scrollHeight - scrollContainer.clientHeight) / 2);
+    });
   }
 }
 

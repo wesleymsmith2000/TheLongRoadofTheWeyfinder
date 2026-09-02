@@ -825,7 +825,7 @@
           center / cover no-repeat var(--level-complete-art);
         color: #fff6e7;
         pointer-events: auto;
-        touch-action: pan-y;
+        touch-action: pan-x pan-y;
         z-index: 20;
       }
 
@@ -846,7 +846,7 @@
         overflow: auto;
         scrollbar-gutter: stable;
         -webkit-overflow-scrolling: touch;
-        touch-action: pan-y;
+        touch-action: pan-x pan-y;
         padding: 16px;
         border: 1px solid rgb(244 238 228 / 0.24);
         border-radius: 8px;
@@ -884,6 +884,7 @@
       .level-complete-screen::-webkit-scrollbar,
       .level-complete-content::-webkit-scrollbar,
       .launch-panel::-webkit-scrollbar,
+      .vehicle-editor-canvas-wrap::-webkit-scrollbar,
       .shop-panel::-webkit-scrollbar,
       .upgrade-summary::-webkit-scrollbar {
         width: 14px;
@@ -896,6 +897,7 @@
       .level-complete-screen::-webkit-scrollbar-thumb,
       .level-complete-content::-webkit-scrollbar-thumb,
       .launch-panel::-webkit-scrollbar-thumb,
+      .vehicle-editor-canvas-wrap::-webkit-scrollbar-thumb,
       .shop-panel::-webkit-scrollbar-thumb,
       .upgrade-summary::-webkit-scrollbar-thumb {
         border: 3px solid rgb(20 23 24 / 0.92);
@@ -909,6 +911,7 @@
       .level-complete-screen,
       .level-complete-content,
       .launch-panel,
+      .vehicle-editor-canvas-wrap,
       .shop-panel,
       .upgrade-summary {
         scrollbar-color: rgb(247 192 106 / 0.68) rgb(20 23 24 / 0.62);
@@ -1004,10 +1007,36 @@
         min-height: 30px;
       }
 
+      .vehicle-editor-canvas-wrap {
+        display: grid;
+        justify-self: center;
+        width: min(100%, 444px);
+        max-height: min(62vh, 444px);
+        overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
+        scrollbar-gutter: stable both-edges;
+        padding: 10px;
+        border: 1px solid rgb(244 238 228 / 0.18);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.44);
+      }
+
+      .vehicle-editor-canvas-wrap::-webkit-scrollbar {
+        width: 18px;
+        height: 18px;
+      }
+
+      .vehicle-editor-canvas-wrap::-webkit-scrollbar-thumb {
+        border-width: 4px;
+      }
+
       .vehicle-editor-canvas {
-        width: 100%;
-        max-width: 360px;
-        aspect-ratio: 1;
+        width: 420px;
+        height: 420px;
+        max-width: none;
+        max-height: none;
         justify-self: center;
         border: 1px solid rgb(244 238 228 / 0.2);
         border-radius: 8px;
@@ -1216,8 +1245,9 @@
           grid-template-columns: 1fr;
         }
 
-        .vehicle-editor-canvas {
-          max-width: 300px;
+        .vehicle-editor-canvas-wrap {
+          width: 100%;
+          max-height: min(54vh, 340px);
         }
       }
     </style>
@@ -1275,7 +1305,9 @@
             </div>
             <div id="vehicleEditorStatus" class="vehicle-editor-status"></div>
           </div>
-          <canvas id="vehicleEditorCanvas" class="vehicle-editor-canvas" width="420" height="420" aria-label="Player vehicle editor"></canvas>
+          <div class="vehicle-editor-canvas-wrap">
+            <canvas id="vehicleEditorCanvas" class="vehicle-editor-canvas" width="420" height="420" aria-label="Player vehicle editor"></canvas>
+          </div>
         </div>
         <button id="launchButton" type="button">Launch Vehicle</button>
       </div>

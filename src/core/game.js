@@ -13,7 +13,7 @@ import {
   stepRoadFrame,
   worldToRoadOffset,
 } from './camera.js';
-import { CELL_SIZE } from './voxelMask.js';
+import { CELL_SIZE, VOXEL_SIZE } from './voxelMask.js';
 import { recalculateCell as recalculateEnemyCell } from './cell.js';
 import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
@@ -511,7 +511,7 @@ function carryRoadObjects(game, delta) {
 
 function stepScrapPickups(game, dt) {
   const collectRange = CELL_SIZE * 2.1 * upgradeMultiplier(game, 'scrapCaptureRadius');
-  const magnetRange = (CELL_SIZE / 6) * SHOP_COSTS.scrapMagnetVoxels * upgradeMultiplier(game, 'scrapMagnetDistance');
+  const magnetRange = VOXEL_SIZE * SHOP_COSTS.scrapMagnetVoxels * upgradeMultiplier(game, 'scrapMagnetDistance');
   const magnetStrength = upgradeMultiplier(game, 'scrapMagnetStrength');
   const kept = [];
   for (const pickup of game.scrapPickups) {
@@ -1747,9 +1747,9 @@ function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
     projectile,
     {
       start: { x: projectile.previousX, y: projectile.previousY },
-      maxLength: Math.max(CELL_SIZE / 6, travel + (projectile.radius ?? 0) * 2),
+      maxLength: Math.max(VOXEL_SIZE, travel + (projectile.radius ?? 0) * 2),
       maxHits: 48,
-      halfWidth: Math.max(projectile.radius ?? 0, CELL_SIZE / 6),
+      halfWidth: Math.max(projectile.radius ?? 0, VOXEL_SIZE),
       damageScale: 1,
     },
   );
@@ -1826,7 +1826,7 @@ function spawnGenericPlayerBlast(game, projectile) {
     const distance = Math.hypot(blastTarget.x - projectile.x, blastTarget.y - projectile.y);
     if (distance > projectile.blastRadius + blastTarget.radius) continue;
     const hit = applyEnemyBlastDamage(blastTarget, projectile, {
-      maxVoxelDistance: Math.max(1, projectile.blastRadius / (CELL_SIZE / 6)),
+      maxVoxelDistance: Math.max(1, projectile.blastRadius / VOXEL_SIZE),
       closeVoxelDistance: 5,
       closePenetration: 3,
       farPenetration: 1,
@@ -2001,7 +2001,7 @@ function spawnEnemyPulseBlast(game, projectile) {
   for (const enemy of activeEnemies(game)) {
     if (distanceSquared(enemy, projectile) > (enemy.radius + blast.radius) ** 2) continue;
     const hit = applyEnemyBlastDamage(enemy, projectile, {
-      maxVoxelDistance: Math.max(1, blast.radius / (CELL_SIZE / 6)),
+      maxVoxelDistance: Math.max(1, blast.radius / VOXEL_SIZE),
       closeVoxelDistance: 3,
       closePenetration: 1,
       farPenetration: 1,
@@ -2195,7 +2195,7 @@ function beamHalfWidth(projectile) {
   const frame = Math.max(0, Math.min(frames - 1, Math.floor(age * frames)));
   const envelope = Math.sin(((frame + 0.5) / frames) * Math.PI);
   const voxelWidth = (projectile.radius ?? 1) + envelope * 2.8;
-  return ((CELL_SIZE / 6) * voxelWidth) / 2;
+  return (VOXEL_SIZE * voxelWidth) / 2;
 }
 
 function spawnCannonImpact(game, projectile, enemy) {
@@ -2273,7 +2273,7 @@ function spawnRocketImpact(game, projectile, enemy) {
     const distance = Math.hypot(blastTarget.x - projectile.x, blastTarget.y - projectile.y);
     if (distance > projectile.blastRadius + blastTarget.radius) continue;
     const hit = applyEnemyBlastDamage(blastTarget, projectile, {
-      maxVoxelDistance: Math.max(1, projectile.blastRadius / (CELL_SIZE / 6)),
+      maxVoxelDistance: Math.max(1, projectile.blastRadius / VOXEL_SIZE),
       closeVoxelDistance: 3,
       closePenetration: 2,
       farPenetration: 1,

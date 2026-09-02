@@ -1,7 +1,8 @@
 import { clamp } from './math.js';
 
 export const CELL_SIZE = 3.75;
-export const VOXELS = 6;
+export const VOXELS = 4;
+export const VOXEL_SIZE = CELL_SIZE / VOXELS;
 
 export const Roles = {
   EMPTY: 'empty',
@@ -12,7 +13,9 @@ export const Roles = {
   DEVICE: 'device',
 };
 
-const ROLE_HP = {
+const LEGACY_VOXELS = 6;
+const VOXEL_HP_SCALE = (LEGACY_VOXELS / VOXELS) ** 2;
+const BASE_ROLE_HP = {
   [Roles.EMPTY]: 0,
   [Roles.STRUCTURE]: 5,
   [Roles.ARMOR]: 8,
@@ -20,6 +23,7 @@ const ROLE_HP = {
   [Roles.WIRE]: 4,
   [Roles.DEVICE]: 6,
 };
+const ROLE_HP = Object.fromEntries(Object.entries(BASE_ROLE_HP).map(([role, hp]) => [role, hp * VOXEL_HP_SCALE]));
 
 export function createVoxelMask(type) {
   const voxels = [];
@@ -34,28 +38,34 @@ export function createVoxelMask(type) {
     voxels.push(row);
   }
 
+  const [leftCenter, rightCenter] = centerPair();
   if (type === 'gun') {
-    setRole(voxels, 2, 1, Roles.DEVICE);
-    setRole(voxels, 3, 1, Roles.DEVICE);
-    setRole(voxels, 2, 2, Roles.WIRE);
-    setRole(voxels, 3, 2, Roles.WIRE);
+    setRoleLine(voxels, Roles.DEVICE, [leftCenter, rightCenter], 1);
+    setRoleLine(voxels, Roles.WIRE, [leftCenter, rightCenter], 2);
   } else if (type === 'core') {
-    for (let y = 2; y <= 3; y += 1) {
-      for (let x = 2; x <= 3; x += 1) setRole(voxels, x, y, Roles.DEVICE);
+    for (const y of [leftCenter, rightCenter]) {
+      for (const x of [leftCenter, rightCenter]) setRole(voxels, x, y, Roles.DEVICE);
     }
   } else if (type === 'wheel') {
-    setRole(voxels, 1, 2, Roles.DEVICE);
-    setRole(voxels, 1, 3, Roles.DEVICE);
-    setRole(voxels, 4, 2, Roles.DEVICE);
-    setRole(voxels, 4, 3, Roles.DEVICE);
+    for (const y of [leftCenter, rightCenter]) {
+      setRole(voxels, 1, y, Roles.DEVICE);
+      setRole(voxels, VOXELS - 2, y, Roles.DEVICE);
+    }
   } else if (type === 'engine') {
-    setRole(voxels, 2, 2, Roles.DEVICE);
-    setRole(voxels, 3, 2, Roles.DEVICE);
-    setRole(voxels, 2, 3, Roles.WIRE);
-    setRole(voxels, 3, 3, Roles.WIRE);
+    setRoleLine(voxels, Roles.DEVICE, [leftCenter, rightCenter], leftCenter);
+    setRoleLine(voxels, Roles.WIRE, [leftCenter, rightCenter], rightCenter);
   }
 
   return voxels;
+}
+
+function centerPair() {
+  const right = Math.floor(VOXELS / 2);
+  return [Math.max(1, right - 1), Math.min(VOXELS - 2, right)];
+}
+
+function setRoleLine(voxels, role, xs, y) {
+  for (const x of xs) setRole(voxels, x, y, role);
 }
 
 function setRole(voxels, x, y, role) {
@@ -65,7 +75,7 @@ function setRole(voxels, x, y, role) {
 export function applyDamage(mask, localX, localY, radius, damage) {
   let removed = 0;
   let hit = false;
-  const unit = CELL_SIZE / VOXELS;
+  const unit = VOXEL_SIZE;
   for (let y = 0; y < VOXELS; y += 1) {
     for (let x = 0; x < VOXELS; x += 1) {
       const voxel = mask[y][x];
@@ -116,7 +126,7 @@ export function summarizeMask(mask) {
     bottom: 0,
     left: 0,
   };
-  const unit = CELL_SIZE / VOXELS;
+  const unit = VOXEL_SIZE;
 
   for (let y = 0; y < VOXELS; y += 1) {
     for (let x = 0; x < VOXELS; x += 1) {

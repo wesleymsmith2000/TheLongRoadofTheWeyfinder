@@ -9,7 +9,7 @@ export function createConnection(a, b, aSide, bSide = OPPOSITE[aSide], type = 's
   return { a, b, aSide, bSide, type, valid: true };
 }
 
-export function updateConnectionValidity(connections, cellsById, threshold = 0.45) {
+export function updateConnectionValidity(connections, cellsById, threshold = 0.55) {
   for (const edge of connections) {
     const a = cellsById.get(edge.a);
     const b = cellsById.get(edge.b);

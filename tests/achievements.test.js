@@ -8,10 +8,10 @@ test('achievement rewards unlock account equipment for future builds', () => {
   const account = createPrototypePlayerAccountData();
   const awarded = awardAchievements(account, { levelsCompleted: 3, bossLevelsCompleted: 1, scrapCollected: 60, damageDone: 1200 });
   assert.equal(awarded.achievements.unlocked.length, 5);
-  assert.equal(equipmentLimit(awarded, 'armor'), equipmentLimit(account, 'armor') + 5);
-  assert.equal(equipmentLimit(awarded, 'gun'), equipmentLimit(account, 'gun') + 1);
-  assert.equal(equipmentLimit(awarded, 'engine'), equipmentLimit(account, 'engine') + 1);
-  assert.equal(equipmentLimit(awarded, 'wheel'), equipmentLimit(account, 'wheel') + 1);
+  assert.equal(equipmentLimit(awarded, 'armor'), equipmentLimit(account, 'armor') + 10);
+  assert.equal(equipmentLimit(awarded, 'gun'), equipmentLimit(account, 'gun') + 2);
+  assert.equal(equipmentLimit(awarded, 'engine'), equipmentLimit(account, 'engine') + 2);
+  assert.equal(equipmentLimit(awarded, 'wheel'), equipmentLimit(account, 'wheel') + 2);
 });
 
 test('enemy achievements unlock new weapon and module rewards', () => {
@@ -68,10 +68,10 @@ test('later achievements award the next equipment module bundle', () => {
     },
     specialDefeats: {},
   });
-  assert.equal(equipmentLimit(awarded, 'armor'), equipmentLimit(account, 'armor') + 10);
-  assert.equal(equipmentLimit(awarded, 'gun'), equipmentLimit(account, 'gun') + 2);
-  assert.equal(equipmentLimit(awarded, 'engine'), equipmentLimit(account, 'engine') + 2);
-  assert.equal(equipmentLimit(awarded, 'wheel'), equipmentLimit(account, 'wheel') + 3);
+  assert.equal(equipmentLimit(awarded, 'armor'), equipmentLimit(account, 'armor') + 20);
+  assert.equal(equipmentLimit(awarded, 'gun'), equipmentLimit(account, 'gun') + 4);
+  assert.equal(equipmentLimit(awarded, 'engine'), equipmentLimit(account, 'engine') + 4);
+  assert.equal(equipmentLimit(awarded, 'wheel'), equipmentLimit(account, 'wheel') + 6);
   assert.equal(awarded.modules.cloaking.quantity, 1);
 });
 

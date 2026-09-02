@@ -3,7 +3,7 @@ import { createConnection, OPPOSITE } from './connections.js';
 import { equipmentLimit, PLAYER_EQUIPMENT_TYPES } from './playerAccount.js';
 import { normalizeGunLoadouts, setGunLoadoutSlot } from './weaponLoadout.js';
 
-export const VEHICLE_EDITOR_GRID_RADIUS = 4;
+export const VEHICLE_EDITOR_GRID_RADIUS = 8;
 
 export function createVehicleFromConstructDefinition(definition) {
   const construct = instantiateConstruct(definition);
