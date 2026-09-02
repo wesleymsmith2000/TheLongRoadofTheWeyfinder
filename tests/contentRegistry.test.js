@@ -60,6 +60,14 @@ test('content registry accepts weapon image resource descriptors', () => {
   assert.equal(getAvailableContent(registry, 'image', { tag: 'weapon' }).length, 2);
 });
 
+test('content registry rejects image resources with malformed native sizes', () => {
+  const registry = createContentRegistry();
+  assert.throws(
+    () => registerContentAsset(registry, 'image', { schemaVersion: '0.1', assetId: 'sprite.bad', kind: 'image', path: 'bad.svg', nativeSize: [0, 32] }),
+    /nativeSize/,
+  );
+});
+
 test('content registry accepts terrain material and tile assets', () => {
   const registry = createContentRegistry();
   const material = registerContentAsset(registry, 'terrainMaterial', ghostForestGroundMaterial, canonPackManifest.packId);

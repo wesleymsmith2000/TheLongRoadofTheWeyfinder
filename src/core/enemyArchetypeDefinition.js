@@ -23,6 +23,7 @@ export const ENEMY_MOVEMENT_KINDS = [
 export const ENEMY_AGGREGATE_KINDS = ['singleBody', 'limbArray', 'multiPartBoss'];
 export const ENEMY_CELL_ANIMATION_KINDS = ['none', 'opacityPulse', 'sineWave', 'swirl', 'fabricWeave', 'phaseFade', 'legStride', 'wingBeat'];
 export const ENEMY_TARGET_CONDITIONS = Object.freeze(Object.values(TARGET_CONDITIONS));
+export const ENEMY_PRESENTATION_VARIANTS = ['ghostWraith', 'tractorFrog', 'heavyMortarBoat', 'spiderWalker', 'scrapBuzzard', 'inchwormCarrier', 'mothBomber'];
 
 export function validateEnemyArchetypePack(definition) {
   const errors = [];
@@ -87,12 +88,43 @@ function validateArchetypes(archetypes, errors, warnings) {
     validateAggregate(archetype.aggregate, `${prefix}.aggregate`, errors);
     validateCellAnimations(archetype.cellAnimations, `${prefix}.cellAnimations`, errors);
     validateTargeting(archetype.targeting, `${prefix}.targeting`, errors);
+    validatePresentation(archetype.presentation, `${prefix}.presentation`, errors, warnings);
     if (archetype.editable != null && !isStringArray(archetype.editable)) errors.push(`${prefix}.editable must be an array of strings when provided.`);
     if (archetype.palette != null && !isPlainObject(archetype.palette)) errors.push(`${prefix}.palette must be an object when provided.`);
     if (archetype.baseArchetype != null && !ids.has(archetype.baseArchetype)) {
       warnings.push(`${prefix}.baseArchetype "${archetype.baseArchetype}" should reference an earlier archetype in the same pack.`);
     }
   }
+}
+
+function validatePresentation(presentation, path, errors, warnings) {
+  if (presentation == null) return;
+  if (!isPlainObject(presentation)) {
+    errors.push(`${path} must be an object when provided.`);
+    return;
+  }
+  if (presentation.variant != null) {
+    if (!isNonEmptyString(presentation.variant)) {
+      errors.push(`${path}.variant must be a non-empty string when provided.`);
+    } else if (!ENEMY_PRESENTATION_VARIANTS.includes(presentation.variant)) {
+      warnings.push(`${path}.variant "${presentation.variant}" is not a known Prototype 0 renderer variant.`);
+    }
+  }
+  validateSpriteDescriptor(presentation.sprite, `${path}.sprite`, errors);
+}
+
+function validateSpriteDescriptor(sprite, path, errors) {
+  if (sprite == null) return;
+  if (!isPlainObject(sprite)) {
+    errors.push(`${path} must be an object when provided.`);
+    return;
+  }
+  if (!isNonEmptyString(sprite.assetId)) errors.push(`${path}.assetId must be a non-empty string.`);
+  if (!isNonEmptyString(sprite.path)) errors.push(`${path}.path must be a non-empty string.`);
+  validateSizeArray(sprite.nativeSize, `${path}.nativeSize`, errors);
+  validateSizeArray(sprite.displaySize, `${path}.displaySize`, errors);
+  validateAnchor(sprite.anchor, `${path}.anchor`, errors);
+  validateOptionalNumber(sprite.opacity, `${path}.opacity`, errors);
 }
 
 function validateTargeting(targeting, path, errors) {
@@ -212,6 +244,20 @@ function validateEntry(entry, path, errors) {
 
 function validateOptionalNumber(value, label, errors) {
   if (value != null && !Number.isFinite(value)) errors.push(`${label} must be a number when provided.`);
+}
+
+function validateSizeArray(value, label, errors) {
+  if (value == null) return;
+  if (!Array.isArray(value) || value.length !== 2 || value.some((entry) => !Number.isFinite(entry) || entry <= 0)) {
+    errors.push(`${label} must be a [width, height] pair of positive numbers when provided.`);
+  }
+}
+
+function validateAnchor(value, label, errors) {
+  if (value == null) return;
+  if (!Array.isArray(value) || value.length !== 2 || value.some((entry) => !Number.isFinite(entry))) {
+    errors.push(`${label} must be an [x, y] pair of numbers when provided.`);
+  }
 }
 
 function matchesArchetypeFilters(archetype, filters) {

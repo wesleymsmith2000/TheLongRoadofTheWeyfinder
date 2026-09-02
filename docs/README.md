@@ -25,6 +25,7 @@ Start here:
 - [Weapon Sprite Content Handoff](./weapon-sprite-content-handoff.md)
 - [Weapon And Construct Sprite Wiring Handoff](./weapon-construct-sprite-wiring-handoff.md)
 - [Editor Weapon Upgrade Examples Handoff](./editor-weapon-upgrade-examples-handoff.md)
+- [Editor Runtime Change Handoff](./editor-runtime-change-handoff.md)
 - [Procedural Terrain Content](./procedural-terrain-content.md)
 - [Procedural Terrain Architecture Handoff](../CODEX_HANDOFF_PROCEDURAL_TERRAIN_V0_1.md)
 - [Procedural Terrain Rendering / Art Handoff](./RENDERING_HANDOFF_PROCEDURAL_TERRAIN_V0_1.md)

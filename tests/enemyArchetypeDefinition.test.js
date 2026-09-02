@@ -5,6 +5,7 @@ import {
   ENEMY_AGGREGATE_KINDS,
   ENEMY_CELL_ANIMATION_KINDS,
   ENEMY_MOVEMENT_KINDS,
+  ENEMY_PRESENTATION_VARIANTS,
   ENEMY_TARGET_CONDITIONS,
   editableEnemyKnobs,
   getEnemyArchetype,
@@ -24,8 +25,29 @@ test('canon enemy archetype pack validates', () => {
   assert.equal(ENEMY_AGGREGATE_KINDS.includes('multiPartBoss'), true);
   assert.equal(ENEMY_CELL_ANIMATION_KINDS.includes('fabricWeave'), true);
   assert.equal(ENEMY_CELL_ANIMATION_KINDS.includes('phaseFade'), true);
+  assert.equal(ENEMY_PRESENTATION_VARIANTS.includes('ghostWraith'), true);
   assert.equal(ENEMY_TARGET_CONDITIONS.includes('targetIsDistracted'), true);
   assert.equal(ENEMY_TARGET_CONDITIONS.includes('targetIsCollectingScrap'), true);
+});
+
+test('enemy archetype validation rejects malformed presentation sprite descriptors', () => {
+  const report = validateEnemyArchetypePack({
+    ...canonEnemyArchetypes,
+    archetypes: [
+      {
+        ...canonEnemyArchetypes.archetypes[0],
+        presentation: {
+          variant: 'ghostWraith',
+          sprite: { assetId: '', path: '', nativeSize: [128], displaySize: [64, 0], anchor: [0.5] },
+        },
+      },
+    ],
+  });
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('presentation.sprite.assetId')), true);
+  assert.equal(report.errors.some((error) => error.includes('presentation.sprite.nativeSize')), true);
+  assert.equal(report.errors.some((error) => error.includes('presentation.sprite.displaySize')), true);
+  assert.equal(report.errors.some((error) => error.includes('presentation.sprite.anchor')), true);
 });
 
 test('enemy archetype helpers expose editor-facing enemy models', () => {

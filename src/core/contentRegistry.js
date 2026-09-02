@@ -258,6 +258,9 @@ function validateResourceAsset(kind, definition) {
   if (!isPlainObject(definition)) throw new Error(`${kind} asset must be an object.`);
   if (!isNonEmptyString(resourceAssetId(definition))) throw new Error(`${kind} asset must include assetId.`);
   if (!isNonEmptyString(definition.path) && !isNonEmptyString(definition.uri)) throw new Error(`${kind} asset must include path or uri.`);
+  if (kind === 'image' && definition.nativeSize != null && !isPositiveSizePair(definition.nativeSize)) {
+    throw new Error(`${kind} asset nativeSize must be a [width, height] pair of positive numbers when provided.`);
+  }
 }
 
 function normalizeAssetRefs(refs) {
@@ -269,6 +272,10 @@ function normalizeAssetRefs(refs) {
 
 function resourceAssetId(definition) {
   return definition?.assetId ?? definition?.id;
+}
+
+function isPositiveSizePair(value) {
+  return Array.isArray(value) && value.length === 2 && value.every((entry) => Number.isFinite(entry) && entry > 0);
 }
 
 function matchesFilters(asset, filters) {
