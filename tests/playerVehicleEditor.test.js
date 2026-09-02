@@ -86,6 +86,20 @@ test('player vehicle editor can connect adjacent added cells', () => {
   assert.equal(connectResult.definition.connections.some((edge) => edge.a === added.id || edge.b === added.id), true);
 });
 
+test('player vehicle editor can stack cells and connect vertical layers', () => {
+  const account = createPrototypePlayerAccountData();
+  const addResult = addEditableVehicleCell(startingVehicleDefinition, account, 'armor', 0, 0, 1);
+  const stacked = addResult.definition.cells.find((cell) => cell.gridX === 0 && cell.gridY === 0 && cell.gridZ === 1);
+  const occupiedResult = addEditableVehicleCell(addResult.definition, account, 'armor', 0, 0, 1);
+  const connectResult = connectEditableVehicleCells(addResult.definition, 'core', stacked.id);
+  const vehicle = createVehicleFromConstructDefinition(connectResult.definition);
+  assert.equal(addResult.changed, true);
+  assert.equal(occupiedResult.changed, false);
+  assert.equal(connectResult.changed, true);
+  assert.equal(connectResult.definition.connections.some((edge) => edge.aSide === 'above' && edge.bSide === 'below'), true);
+  assert.equal(vehicle.cells.find((cell) => cell.id === stacked.id).gridZ, 1);
+});
+
 test('edited player vehicle definitions instantiate into runtime vehicles', () => {
   const account = createPrototypePlayerAccountData();
   const addResult = addEditableVehicleCell(startingVehicleDefinition, account, 'engine', 0, 2);

@@ -3,6 +3,8 @@ export const OPPOSITE = {
   right: 'left',
   bottom: 'top',
   left: 'right',
+  above: 'below',
+  below: 'above',
 };
 
 export function createConnection(a, b, aSide, bSide = OPPOSITE[aSide], type = 'structural') {
@@ -17,9 +19,13 @@ export function updateConnectionValidity(connections, cellsById, threshold = 0.5
       Boolean(a && b) &&
       !a.state.destroyed &&
       !b.state.destroyed &&
-      a.state.anchorIntegrity[edge.aSide] > threshold &&
-      b.state.anchorIntegrity[edge.bSide] > threshold;
+      connectionIntegrity(a, edge.aSide) > threshold &&
+      connectionIntegrity(b, edge.bSide) > threshold;
   }
+}
+
+function connectionIntegrity(cell, side) {
+  return cell.state.anchorIntegrity[side] ?? cell.state.structureIntegrity;
 }
 
 export function connectedFromCore(cells, connections) {

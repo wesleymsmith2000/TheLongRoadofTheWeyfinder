@@ -524,7 +524,7 @@ test('repulsor primary only fires when close threats are present and aims at the
   assert.equal(Boolean(beam), true);
   assert.equal(beam.forceMode, 'push');
   assert.equal(beam.alpha, 0.5);
-  assert.equal(beam.impulse, 21.25);
+  assert.equal(beam.impulse, 10.625);
   assert.equal(game.playerFireTimer > 0.5, true);
   const expectedAngle = Math.atan2(game.enemies[0].y - beam.y, game.enemies[0].x - beam.x);
   const angleDelta = Math.atan2(Math.sin(expectedAngle - beam.angle), Math.cos(expectedAngle - beam.angle));
@@ -537,7 +537,7 @@ test('repulsor primary only fires when close threats are present and aims at the
   upgradedGame.enemySpawnQueue = [];
   stepGame(upgradedGame, { gunnerEnabled: false }, 1 / 60);
   const upgradedBeam = upgradedGame.playerProjectiles.find((projectile) => projectile.weapon === 'repulsor_beam');
-  assert.equal(upgradedBeam.impulse.toFixed(3), (85 * 0.25 * 1.05 ** 2).toFixed(3));
+  assert.equal(upgradedBeam.impulse.toFixed(3), (85 * 0.125 * 1.05 ** 2).toFixed(3));
   assert.equal(upgradedGame.playerFireTimer < game.playerFireTimer, true);
 
   const quietGame = createGame(1147, { vehicleDefinition: definition });

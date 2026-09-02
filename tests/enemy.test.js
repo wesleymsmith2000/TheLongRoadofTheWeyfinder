@@ -20,6 +20,23 @@ import { recalculateCell } from '../src/core/cell.js';
 import { CELL_SIZE, VOXELS } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
+const SINGLE_CORE_ENEMY = {
+  schemaVersion: '0.1',
+  assetId: 'test.single_core_enemy',
+  cells: [{ id: 'core', type: 'core', gridX: 0, gridY: 0 }],
+  connections: [],
+};
+
+const SHELL_FALLBACK_ENEMY = {
+  schemaVersion: '0.1',
+  assetId: 'test.shell_fallback_enemy',
+  cells: [
+    { id: 'core', type: 'core', gridX: 0, gridY: 0 },
+    { id: 'shell', type: 'armor', gridX: -1, gridY: -1 },
+  ],
+  connections: [{ a: 'core', b: 'shell', aSide: 'top', bSide: 'bottom' }],
+};
+
 test('enemy takes voxel damage and records score damage', () => {
   const enemy = createEnemy(0, 0);
   const projectile = createProjectile(0, 0, 0, 0, { damage: 20, radius: 8, team: 'player' });
@@ -57,6 +74,20 @@ test('projectile impacts damage the nearest live voxel inside a hollowed core ce
   }
   const before = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
   const hit = applyEnemyDamage(enemy, createProjectile(0, 0, 0, 0, { damage: 12, radius: 0.25, team: 'player' }));
+  const after = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(hit.hit, true);
+  assert.equal(after < before, true);
+});
+
+test('projectile impacts still damage the nearest voxel when contact lands in an empty cell pocket', () => {
+  const enemy = createEnemy(0, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
+  const core = enemy.cells.find((cell) => cell.type === 'core');
+  for (const voxel of core.mask.flat()) voxel.hp = 0;
+  core.mask[0][0].hp = core.mask[0][0].maxHp;
+  core.mask[0][1].hp = core.mask[0][1].maxHp;
+  recalculateCell(core);
+  const before = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const hit = applyEnemyDamage(enemy, createProjectile(0, 0, 0, 0, { damage: 4, radius: 0.01, team: 'player' }));
   const after = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
   assert.equal(hit.hit, true);
   assert.equal(after < before, true);
@@ -113,6 +144,20 @@ test('blast excess damage propagates through consecutive voxels in range', () =>
   });
   assert.equal(result.hit, true);
   assert.equal(result.removed > 4, true);
+});
+
+test('blast overlap damages nearest live voxels when no voxel center is inside the blast', () => {
+  const enemy = createEnemy(0, 0, SHELL_FALLBACK_ENEMY, [], { moduleScale: 1 });
+  const shell = enemy.cells.find((cell) => cell.id === 'shell');
+  for (const voxel of shell.mask.flat()) voxel.hp = 0;
+  shell.mask[0][0].hp = shell.mask[0][0].maxHp;
+  shell.mask[0][1].hp = shell.mask[0][1].maxHp;
+  recalculateCell(shell);
+  const before = shell.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const result = applyEnemyBlastDamage(enemy, { x: -CELL_SIZE / 2 - 0.01, y: -CELL_SIZE / 2 - 0.01 }, { damage: 8, maxVoxelDistance: 0.35 });
+  const after = shell.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(result.hit, true);
+  assert.equal(after < before, true);
 });
 
 test('projectile pierce carries damage into voxels behind the first struck module', () => {

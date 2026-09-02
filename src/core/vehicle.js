@@ -1,7 +1,7 @@
 import { recalculateCell } from './cell.js';
 import { updateConnectionValidity, connectedFromCore } from './connections.js';
 import { createVehicleFromConstructDefinition } from './playerVehicleEditor.js';
-import { applyDamage, CELL_SIZE, createVoxelMask } from './voxelMask.js';
+import { applyDamage, applyNearestDamage, CELL_SIZE, createVoxelMask } from './voxelMask.js';
 import { localToWorld, rotatePoint, worldToLocal } from './math.js';
 import startingVehicleDefinition from '../../content/constructs/starting_vehicle.json' with { type: 'json' };
 
@@ -40,18 +40,32 @@ export function recalculateVehicle(vehicle) {
 
 export function applyVehicleDamage(vehicle, worldPoint, radius, damage, impulse = 0, impulseDirection = { x: 0, y: 0 }) {
   const local = worldToLocal(worldPoint, vehicle);
-  const cell = findAttachedCellAtLocal(vehicle, local);
-  if (!cell) return { hit: false, detached: [] };
-  const cellLocalX = local.x - cell.gridX * CELL_SIZE;
-  const cellLocalY = local.y - cell.gridY * CELL_SIZE;
-  const result = applyDamage(cell.mask, cellLocalX, cellLocalY, radius, damage);
-  if (!result.hit) return { hit: false, detached: [] };
-  recalculateCell(cell);
-  vehicle.lastHitCellId = cell.id;
+  const cells = attachedCellsInDamageArea(vehicle, local, radius);
+  if (cells.length === 0) return { hit: false, detached: [] };
+  let hit = false;
+  let firstHitCell = null;
+  for (const cell of cells) {
+    const cellLocalX = local.x - cell.gridX * CELL_SIZE;
+    const cellLocalY = local.y - cell.gridY * CELL_SIZE;
+    const result = applyDamage(cell.mask, cellLocalX, cellLocalY, radius, damage);
+    const fallback = result.hit
+      ? null
+      : applyNearestDamage(cell.mask, cellLocalX, cellLocalY, damage, {
+          count: radius > CELL_SIZE ? 2 : 1,
+          maxDistance: Math.max(radius, CELL_SIZE),
+          minFalloff: radius > CELL_SIZE ? 0.25 : 0.5,
+        });
+    if (!result.hit && !fallback?.hit) continue;
+    hit = true;
+    firstHitCell ??= cell;
+    recalculateCell(cell);
+  }
+  if (!hit) return { hit: false, detached: [] };
+  vehicle.lastHitCellId = firstHitCell.id;
   applyImpulse(vehicle, worldPoint, impulseDirection, impulse);
   const detached = updateStructure(vehicle);
   recalculateVehicle(vehicle);
-  return { hit: true, cell, detached };
+  return { hit: true, cell: firstHitCell, detached };
 }
 
 export function updateStructure(vehicle) {
@@ -79,6 +93,26 @@ export function findAttachedCellAtLocal(vehicle, local) {
     const maxY = minY + CELL_SIZE;
     return local.x >= minX && local.x <= maxX && local.y >= minY && local.y <= maxY;
   });
+}
+
+function attachedCellsInDamageArea(vehicle, local, radius) {
+  const queryRadius = Math.max(0, radius);
+  const pointCell = findAttachedCellAtLocal(vehicle, local);
+  return vehicle.cells.filter((cell) => {
+    if (!cell.attached || cell.state.destroyed) return false;
+    if (queryRadius <= CELL_SIZE * 4) return cell === pointCell;
+    return distanceToCellSquare(local, cell) <= queryRadius;
+  });
+}
+
+function distanceToCellSquare(local, cell) {
+  const minX = cell.gridX * CELL_SIZE - CELL_SIZE / 2;
+  const maxX = minX + CELL_SIZE;
+  const minY = cell.gridY * CELL_SIZE - CELL_SIZE / 2;
+  const maxY = minY + CELL_SIZE;
+  const dx = local.x < minX ? minX - local.x : local.x > maxX ? local.x - maxX : 0;
+  const dy = local.y < minY ? minY - local.y : local.y > maxY ? local.y - maxY : 0;
+  return Math.hypot(dx, dy);
 }
 
 export function hasFunctionalGun(vehicle) {

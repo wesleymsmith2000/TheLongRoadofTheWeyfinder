@@ -1,7 +1,7 @@
 import { recalculateCell } from './cell.js';
 import { instantiateConstruct } from './constructDefinition.js';
 import { createPatternState } from './patternDefinition.js';
-import { applyDamage, CELL_SIZE, Roles, VOXELS } from './voxelMask.js';
+import { applyDamage, applyNearestDamage, CELL_SIZE, Roles, VOXELS } from './voxelMask.js';
 import { clamp } from './math.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
 import enemyAimedShotDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
@@ -394,26 +394,10 @@ export function applyEnemyDamage(enemy, projectile) {
 }
 
 function damageNearestLiveVoxel(cell, localX, localY, projectile) {
-  const unit = CELL_SIZE / VOXELS;
-  const maxSearch = Math.max(projectile.radius * 3.4, unit * 2.5);
-  let nearest = null;
-  for (let y = 0; y < VOXELS; y += 1) {
-    for (let x = 0; x < VOXELS; x += 1) {
-      const voxel = cell.mask[y][x];
-      if (voxel.hp <= 0) continue;
-      const cx = (x + 0.5) * unit - CELL_SIZE / 2;
-      const cy = (y + 0.5) * unit - CELL_SIZE / 2;
-      const distance = Math.hypot(localX - cx, localY - cy);
-      if (distance > maxSearch || (nearest && distance >= nearest.distance)) continue;
-      nearest = { voxel, distance };
-    }
-  }
-  if (!nearest) return { hit: false, removed: 0, damage: 0 };
-  const before = nearest.voxel.hp;
-  const falloff = clamp(1 - nearest.distance / Math.max(maxSearch, 1), 0.35, 1);
-  const damage = projectile.damage * falloff;
-  nearest.voxel.hp = Math.max(0, nearest.voxel.hp - damage);
-  return { hit: true, removed: before > 0 && nearest.voxel.hp <= 0 ? 1 : 0, damage };
+  return applyNearestDamage(cell.mask, localX, localY, projectile.damage, {
+    maxDistance: Math.max(projectile.radius * 3.4, CELL_SIZE),
+    minFalloff: 0.5,
+  });
 }
 
 export function applyEnemyVoxelDamage(enemy, hit, damage) {
@@ -508,6 +492,22 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
           cellRemoved += propagated.removed;
           for (const changedCell of propagated.changedCells) changedCells.add(changedCell);
         }
+      }
+    }
+    if (!cellHit && enemyCellIntersectsBlast(enemy, cell, origin, maxDistance * voxelSize)) {
+      const fallback = applyEnemyBlastFallback(enemy, cell, origin, {
+        damage,
+        maxDistance,
+        closeDistance,
+        closePenetration,
+        farPenetration,
+        voxelSize,
+      });
+      if (fallback.hit) {
+        hit = true;
+        cellHit = true;
+        removed += fallback.removed;
+        cellRemoved += fallback.removed;
       }
     }
     if (cellHit) recalculateCell(cell);
@@ -708,6 +708,45 @@ function findEnemyVoxelAt(enemies, worldPoint) {
     }
   }
   return null;
+}
+
+function applyEnemyBlastFallback(enemy, cell, origin, options) {
+  const candidates = [];
+  for (let vy = 0; vy < VOXELS; vy += 1) {
+    for (let vx = 0; vx < VOXELS; vx += 1) {
+      const voxel = cell.mask[vy][vx];
+      if (voxel.hp <= 0) continue;
+      const world = enemyVoxelWorldCenter(enemy, cell, vx, vy);
+      const distanceVoxels = Math.hypot(world.x - origin.x, world.y - origin.y) / options.voxelSize;
+      const shellDistance = Math.min(distanceVoxels, options.maxDistance);
+      const penetration = blastPenetration(shellDistance, options.closeDistance, options.maxDistance, options.closePenetration, options.farPenetration);
+      if (enemyVoxelShellDepth(cell, vx, vy) > penetration) continue;
+      candidates.push({ voxel, distanceVoxels });
+    }
+  }
+  if (candidates.length === 0) return { hit: false, removed: 0 };
+  candidates.sort((a, b) => a.distanceVoxels - b.distanceVoxels);
+  let removed = 0;
+  for (const candidate of candidates.slice(0, options.maxDistance > 8 ? 2 : 1)) {
+    const before = candidate.voxel.hp;
+    const falloff = clamp(1 - Math.min(candidate.distanceVoxels, options.maxDistance) / Math.max(options.maxDistance, 1), 0.25, 1);
+    candidate.voxel.hp = Math.max(0, candidate.voxel.hp - options.damage * falloff);
+    if (before > 0 && candidate.voxel.hp <= 0) removed += 1;
+  }
+  return { hit: true, removed };
+}
+
+function enemyCellIntersectsBlast(enemy, cell, origin, radius) {
+  const scale = enemyVisualScale(enemy);
+  const localX = (origin.x - enemy.x) / scale;
+  const localY = (origin.y - enemy.y) / scale;
+  const minX = cell.gridX * CELL_SIZE - CELL_SIZE / 2;
+  const maxX = minX + CELL_SIZE;
+  const minY = cell.gridY * CELL_SIZE - CELL_SIZE / 2;
+  const maxY = minY + CELL_SIZE;
+  const dx = localX < minX ? minX - localX : localX > maxX ? localX - maxX : 0;
+  const dy = localY < minY ? minY - localY : localY > maxY ? localY - maxY : 0;
+  return Math.hypot(dx, dy) * scale <= radius;
 }
 
 function enemyVoxelWorldCenter(enemy, cell, vx, vy) {

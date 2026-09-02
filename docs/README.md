@@ -31,6 +31,7 @@ Start here:
 - [Sculpted Zone Enemy Constructs Handoff](./sculpted-zone-enemy-constructs-handoff.md)
 - [Player Module Voxel And Build Grid Handoff](./player-module-voxel-and-build-grid-handoff.md)
 - [Sandbox Mode Editor Handoff](./sandbox-mode-editor-handoff.md)
+- [Multilayer Cell Model And Voxelizer Handoff](./multilayer-cell-model-and-voxelizer-handoff.md)
 - [Procedural Terrain Content](./procedural-terrain-content.md)
 - [Procedural Terrain Architecture Handoff](../CODEX_HANDOFF_PROCEDURAL_TERRAIN_V0_1.md)
 - [Procedural Terrain Rendering / Art Handoff](./RENDERING_HANDOFF_PROCEDURAL_TERRAIN_V0_1.md)

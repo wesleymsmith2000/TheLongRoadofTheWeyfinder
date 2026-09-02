@@ -44,7 +44,7 @@
     "detonateAtTarget": true,
     "blastDamage": 90,
     "blastRadiusCells": 19.125,
-    "blastKnockback": 140,
+    "blastKnockback": 105,
     "zCollision": true
   }
 }

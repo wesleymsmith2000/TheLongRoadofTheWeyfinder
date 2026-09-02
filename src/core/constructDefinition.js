@@ -5,7 +5,7 @@ import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNo
 export const CONSTRUCT_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export { CANON_STATUSES };
 export const CELL_TYPES = ['armor', 'core', 'engine', 'gun', 'wheel'];
-export const CONNECTION_SIDES = ['top', 'right', 'bottom', 'left'];
+export const CONNECTION_SIDES = ['top', 'right', 'bottom', 'left', 'above', 'below'];
 
 export function validateConstructDefinition(definition) {
   const errors = [];
@@ -44,8 +44,9 @@ export function validateConstructDefinition(definition) {
     if (!CELL_TYPES.includes(cell.type)) errors.push(`${label}.type must be one of: ${CELL_TYPES.join(', ')}.`);
     if (!Number.isInteger(cell.gridX)) errors.push(`${label}.gridX must be an integer.`);
     if (!Number.isInteger(cell.gridY)) errors.push(`${label}.gridY must be an integer.`);
-    if (Number.isInteger(cell.gridX) && Number.isInteger(cell.gridY)) {
-      const key = `${cell.gridX},${cell.gridY}`;
+    if (cell.gridZ != null && !Number.isInteger(cell.gridZ)) errors.push(`${label}.gridZ must be an integer when provided.`);
+    if (Number.isInteger(cell.gridX) && Number.isInteger(cell.gridY) && (cell.gridZ == null || Number.isInteger(cell.gridZ))) {
+      const key = `${cell.gridX},${cell.gridY},${cell.gridZ ?? 0}`;
       if (occupied.has(key)) errors.push(`Multiple cells occupy grid position ${key}.`);
       occupied.add(key);
     }
@@ -81,7 +82,7 @@ export function instantiateConstruct(definition) {
   if (!report.valid) {
     throw new Error(`Invalid construct "${definition?.assetId ?? 'unknown'}": ${report.errors.join(' ')}`);
   }
-  const cells = definition.cells.map((cell) => createCell(cell.id, cell.type, cell.gridX, cell.gridY));
+  const cells = definition.cells.map((cell) => createCell(cell.id, cell.type, cell.gridX, cell.gridY, cell.gridZ ?? cell.layer ?? 0));
   const connections = (definition.connections ?? []).map((edge) => createConnection(edge.a, edge.b, edge.aSide, edge.bSide ?? OPPOSITE[edge.aSide], edge.type ?? 'structural'));
   return {
     assetId: definition.assetId,

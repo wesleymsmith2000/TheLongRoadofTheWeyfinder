@@ -1,12 +1,13 @@
 import { createVoxelMask, summarizeMask } from './voxelMask.js';
 
-export function createCell(id, type, gridX, gridY) {
+export function createCell(id, type, gridX, gridY, gridZ = 0) {
   const cell = {
     id,
     type,
     gridX,
     gridY,
-    layer: 0,
+    gridZ,
+    layer: gridZ,
     rotation: 0,
     material: type === 'armor' ? 'plate' : 'scrap',
     mask: createVoxelMask(type),

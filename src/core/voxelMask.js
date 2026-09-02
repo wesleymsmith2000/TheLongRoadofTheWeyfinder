@@ -95,6 +95,37 @@ export function applyDamage(mask, localX, localY, radius, damage) {
   return { hit, removed };
 }
 
+export function applyNearestDamage(mask, localX, localY, damage, options = {}) {
+  const unit = VOXEL_SIZE;
+  const candidates = [];
+  for (let y = 0; y < VOXELS; y += 1) {
+    for (let x = 0; x < VOXELS; x += 1) {
+      const voxel = mask[y][x];
+      if (voxel.hp <= 0) continue;
+      const cx = (x + 0.5) * unit - CELL_SIZE / 2;
+      const cy = (y + 0.5) * unit - CELL_SIZE / 2;
+      candidates.push({ voxel, x, y, distance: Math.hypot(localX - cx, localY - cy) });
+    }
+  }
+  if (candidates.length === 0) return { hit: false, removed: 0, damage: 0, voxels: [] };
+  candidates.sort((a, b) => a.distance - b.distance);
+  const count = Math.max(1, Math.floor(options.count ?? 1));
+  const maxDistance = options.maxDistance ?? Math.max(CELL_SIZE, candidates[0].distance);
+  let removed = 0;
+  let applied = 0;
+  const damaged = [];
+  for (const candidate of candidates.slice(0, count)) {
+    const before = candidate.voxel.hp;
+    const falloff = clamp(1 - candidate.distance / Math.max(maxDistance, 1), options.minFalloff ?? 0.35, 1);
+    const voxelDamage = damage * falloff;
+    candidate.voxel.hp = Math.max(0, candidate.voxel.hp - voxelDamage);
+    applied += voxelDamage;
+    if (before > 0 && candidate.voxel.hp <= 0) removed += 1;
+    damaged.push({ x: candidate.x, y: candidate.y, damage: voxelDamage });
+  }
+  return { hit: true, removed, damage: applied, voxels: damaged };
+}
+
 export function summarizeMask(mask) {
   const summary = {
     mass: 0,

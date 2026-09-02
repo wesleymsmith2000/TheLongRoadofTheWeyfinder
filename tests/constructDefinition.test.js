@@ -71,3 +71,31 @@ test('construct presentation metadata is preserved without replacing cells', () 
   assert.equal(construct.cells.length, startingVehicleDefinition.cells.length);
   assert.equal(construct.connections.length, startingVehicleDefinition.connections.length);
 });
+
+test('construct definitions support stacked gridZ cells and vertical connections', () => {
+  const layered = {
+    ...startingVehicleDefinition,
+    cells: [
+      { id: 'core', type: 'core', gridX: 0, gridY: 0, gridZ: 0 },
+      { id: 'upper-gun', type: 'gun', gridX: 0, gridY: 0, gridZ: 1 },
+    ],
+    connections: [{ a: 'core', b: 'upper-gun', aSide: 'above', bSide: 'below' }],
+  };
+  const report = validateConstructDefinition(layered);
+  assert.equal(report.valid, true);
+  const construct = instantiateConstruct(layered);
+  assert.equal(construct.cells.find((cell) => cell.id === 'upper-gun').gridZ, 1);
+  assert.equal(construct.connections[0].aSide, 'above');
+});
+
+test('construct validation treats matching x and y on different z layers as separate positions', () => {
+  const report = validateConstructDefinition({
+    ...startingVehicleDefinition,
+    cells: [
+      { id: 'core', type: 'core', gridX: 0, gridY: 0 },
+      { id: 'top-armor', type: 'armor', gridX: 0, gridY: 0, gridZ: 1 },
+    ],
+    connections: [{ a: 'core', b: 'top-armor', aSide: 'above', bSide: 'below' }],
+  });
+  assert.equal(report.valid, true);
+});

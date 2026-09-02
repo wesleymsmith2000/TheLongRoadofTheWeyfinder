@@ -33,21 +33,29 @@ export function createVehicleFromConstructDefinition(definition) {
 export function vehicleToConstructDefinition(vehicle, baseDefinition) {
   return {
     ...baseDefinition,
-    cells: vehicle.cells.map((cell) => ({ id: cell.id, type: cell.type, gridX: cell.gridX, gridY: cell.gridY })),
+    cells: vehicle.cells.map((cell) => ({
+      id: cell.id,
+      type: cell.type,
+      gridX: cell.gridX,
+      gridY: cell.gridY,
+      ...(cell.gridZ ? { gridZ: cell.gridZ } : {}),
+    })),
     connections: vehicle.connections.map((edge) => ({ a: edge.a, b: edge.b, aSide: edge.aSide, bSide: edge.bSide, type: edge.type })),
     gunLoadouts: normalizeGunLoadouts(baseDefinition),
     modules: baseDefinition.modules ?? [],
   };
 }
 
-export function addEditableVehicleCell(definition, account, type, gridX, gridY) {
+export function addEditableVehicleCell(definition, account, type, gridX, gridY, gridZ = 0) {
   if (!PLAYER_EQUIPMENT_TYPES.includes(type)) return { changed: false, reason: 'This equipment type is not available.' };
-  if (definition.cells.some((cell) => cell.gridX === gridX && cell.gridY === gridY)) return { changed: false, reason: 'Grid position is already occupied.' };
+  if (definition.cells.some((cell) => cell.gridX === gridX && cell.gridY === gridY && (cell.gridZ ?? 0) === gridZ)) {
+    return { changed: false, reason: 'Grid position is already occupied.' };
+  }
   if (!withinEditorGrid(gridX, gridY)) return { changed: false, reason: 'Grid position is outside the current editor bounds.' };
   const used = definition.cells.filter((cell) => cell.type === type).length;
   if (used >= equipmentLimit(account, type)) return { changed: false, reason: `No ${type} equipment remaining.` };
   const next = cloneDefinition(definition);
-  next.cells.push({ id: uniqueCellId(next, type, gridX, gridY), type, gridX, gridY });
+  next.cells.push({ id: uniqueCellId(next, type, gridX, gridY, gridZ), type, gridX, gridY, ...(gridZ ? { gridZ } : {}) });
   next.gunLoadouts = normalizeGunLoadouts(next);
   return { changed: true, definition: next };
 }
@@ -103,10 +111,13 @@ function withinEditorGrid(gridX, gridY) {
 function adjacentSide(a, b) {
   const dx = b.gridX - a.gridX;
   const dy = b.gridY - a.gridY;
-  if (dx === 1 && dy === 0) return 'right';
-  if (dx === -1 && dy === 0) return 'left';
-  if (dx === 0 && dy === 1) return 'bottom';
-  if (dx === 0 && dy === -1) return 'top';
+  const dz = (b.gridZ ?? 0) - (a.gridZ ?? 0);
+  if (dz === 0 && dx === 1 && dy === 0) return 'right';
+  if (dz === 0 && dx === -1 && dy === 0) return 'left';
+  if (dz === 0 && dx === 0 && dy === 1) return 'bottom';
+  if (dz === 0 && dx === 0 && dy === -1) return 'top';
+  if (dx === 0 && dy === 0 && dz === 1) return 'above';
+  if (dx === 0 && dy === 0 && dz === -1) return 'below';
   return null;
 }
 
@@ -114,8 +125,8 @@ function sameConnection(edge, a, b) {
   return (edge.a === a && edge.b === b) || (edge.a === b && edge.b === a);
 }
 
-function uniqueCellId(definition, type, gridX, gridY) {
-  const base = `${type}-${gridX}-${gridY}`.replaceAll('-', 'm');
+function uniqueCellId(definition, type, gridX, gridY, gridZ = 0) {
+  const base = `${type}-${gridX}-${gridY}-${gridZ}`.replaceAll('-', 'm');
   const ids = new Set(definition.cells.map((cell) => cell.id));
   let id = base;
   let suffix = 2;

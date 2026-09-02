@@ -1014,7 +1014,7 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
     return {
       ...base,
       radius: base.radius * 3,
-      impulse: base.impulse * 0.25 * upgradeMultiplier(game, 'repulsorKnockback'),
+      impulse: base.impulse * 0.125 * upgradeMultiplier(game, 'repulsorKnockback'),
       color: '#5cff9a',
       alpha: 0.5,
       targetHint: null,
