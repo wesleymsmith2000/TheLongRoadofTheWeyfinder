@@ -75,6 +75,8 @@ const PRIMARY_WEAPON_DEFINITIONS = {
   repulsor_beam: runtimeWeaponDefinition(repulsorBeamDefinition),
 };
 const ENEMY_UPGRADE_TYPES = ['damage', 'attackRate', 'armor', 'movementSpeed'];
+const HOPPER_FROG_VISUAL_SCALE = 1.5;
+const HOPPER_FROG_HOP_IMPULSE = 71.25;
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
@@ -410,6 +412,10 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   if (archetype.phase) enemy.phase = structuredClone(archetype.phase);
   if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);
   if (archetype.artillery) enemy.artillery = structuredClone(archetype.artillery);
+  if (archetype.id === 'hopping_stream_mob.digitized_stream') {
+    enemy.visualScale = HOPPER_FROG_VISUAL_SCALE;
+    enemy.radius *= HOPPER_FROG_VISUAL_SCALE;
+  }
 }
 
 function usesBoatSilhouetteEnemy(trackName, level) {
@@ -967,8 +973,8 @@ function stepHopperFrog(game, enemy, dt) {
   enemy.elevation.z = Math.max(0, Math.sin(Math.max(0, enemy.hopTimer) * Math.PI * 2) * 18);
   if (enemy.hopTimer > 0) return;
   const direction = directionFromTo(enemy, game.vehicle);
-  enemy.vx += direction.x * 95 * enemyMovementUpgradeScale(enemy);
-  enemy.vy += direction.y * 95 * enemyMovementUpgradeScale(enemy);
+  enemy.vx += direction.x * HOPPER_FROG_HOP_IMPULSE * enemyMovementUpgradeScale(enemy);
+  enemy.vy += direction.y * HOPPER_FROG_HOP_IMPULSE * enemyMovementUpgradeScale(enemy);
   enemy.hopTimer = game.rng.range(0.65, 1.25);
   fireShortEnemyBeam(game, enemy, '#f26cff', 0.65);
 }

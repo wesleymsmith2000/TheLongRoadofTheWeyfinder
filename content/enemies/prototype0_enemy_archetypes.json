@@ -207,7 +207,7 @@
       "entry": { "kind": "zoneAmbush", "direction": "roadForward", "speed": 32 },
       "palette": { "core": "#72fff3", "armor": "#334fff", "gun": "#ffec7a", "accent": "#f26cff" },
       "movementProfiles": [
-        { "id": "hop-to-point", "kind": "hop", "target": "nearestNonFrogConstruct", "speed": 82, "hopHeight": 52, "duration": 0.65, "frequency": 0.55 }
+        { "id": "hop-to-point", "kind": "hop", "target": "nearestNonFrogConstruct", "speed": 61.5, "hopHeight": 52, "duration": 0.65, "frequency": 0.55 }
       ],
       "targeting": {
         "targetTeams": ["player", "construct"],

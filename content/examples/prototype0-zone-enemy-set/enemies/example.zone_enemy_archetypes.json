@@ -61,7 +61,7 @@
       "entry": { "kind": "zoneAmbush", "direction": "roadForward", "speed": 42, "warningLeadSeconds": 1 },
       "palette": { "core": "#72fff3", "armor": "#334fff", "gun": "#ffec7a", "accent": "#f26cff" },
       "movementProfiles": [
-        { "id": "frog-hop", "kind": "hop", "target": "nearestNonFrogConstruct", "speed": 86, "hopHeight": 58, "duration": 0.62, "frequency": 0.62 }
+        { "id": "frog-hop", "kind": "hop", "target": "nearestNonFrogConstruct", "speed": 64.5, "hopHeight": 58, "duration": 0.62, "frequency": 0.62 }
       ],
       "targeting": {
         "targetTeams": ["player", "construct"],

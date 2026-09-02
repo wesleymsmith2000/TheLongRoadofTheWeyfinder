@@ -297,8 +297,13 @@ function constructRadius(cells) {
 }
 
 export function applyEnemyDamage(enemy, projectile) {
-  const localX = projectile.x - enemy.x;
-  const localY = projectile.y - enemy.y;
+  const scale = enemyVisualScale(enemy);
+  const localX = (projectile.x - enemy.x) / scale;
+  const localY = (projectile.y - enemy.y) / scale;
+  const localProjectile = {
+    ...projectile,
+    radius: (projectile.radius ?? 0) / scale,
+  };
   const cell = enemy.cells.find((candidate) => {
     if (candidate.state.destroyed) return false;
     const minX = candidate.gridX * CELL_SIZE - CELL_SIZE / 2;
@@ -310,11 +315,11 @@ export function applyEnemyDamage(enemy, projectile) {
     cell.mask,
     localX - cell.gridX * CELL_SIZE,
     localY - cell.gridY * CELL_SIZE,
-    projectile.radius * 3.4,
+    localProjectile.radius * 3.4,
     projectile.damage,
   );
   if (!result.hit) {
-    const fallback = damageNearestLiveVoxel(cell, localX - cell.gridX * CELL_SIZE, localY - cell.gridY * CELL_SIZE, projectile);
+    const fallback = damageNearestLiveVoxel(cell, localX - cell.gridX * CELL_SIZE, localY - cell.gridY * CELL_SIZE, localProjectile);
     if (!fallback.hit) return { hit: false, removed: 0, destroyedNow: false };
     recalculateCell(cell);
     enemy.damageTaken += fallback.damage + fallback.removed * 3;
@@ -404,7 +409,7 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
 
 export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   if (enemy.destroyed) return { hit: false, removed: 0, destroyedNow: false };
-  const voxelSize = CELL_SIZE / VOXELS;
+  const voxelSize = (CELL_SIZE / VOXELS) * enemyVisualScale(enemy);
   const maxDistance = options.maxVoxelDistance ?? 20;
   const closeDistance = options.closeVoxelDistance ?? 5;
   const closePenetration = options.closePenetration ?? 3;
@@ -629,8 +634,9 @@ function enemyVoxelKey(hit) {
 function findEnemyVoxelAt(enemies, worldPoint) {
   for (const enemy of enemies) {
     if (enemy.destroyed) continue;
-    const localX = worldPoint.x - enemy.x;
-    const localY = worldPoint.y - enemy.y;
+    const scale = enemyVisualScale(enemy);
+    const localX = (worldPoint.x - enemy.x) / scale;
+    const localY = (worldPoint.y - enemy.y) / scale;
     for (const cell of enemy.cells) {
       if (cell.state.destroyed) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
@@ -647,10 +653,17 @@ function findEnemyVoxelAt(enemies, worldPoint) {
 
 function enemyVoxelWorldCenter(enemy, cell, vx, vy) {
   const unit = CELL_SIZE / VOXELS;
+  const scale = enemyVisualScale(enemy);
+  const localX = cell.gridX * CELL_SIZE + (vx + 0.5) * unit - CELL_SIZE / 2;
+  const localY = cell.gridY * CELL_SIZE + (vy + 0.5) * unit - CELL_SIZE / 2;
   return {
-    x: enemy.x + cell.gridX * CELL_SIZE + (vx + 0.5) * unit - CELL_SIZE / 2,
-    y: enemy.y + cell.gridY * CELL_SIZE + (vy + 0.5) * unit - CELL_SIZE / 2,
+    x: enemy.x + localX * scale,
+    y: enemy.y + localY * scale,
   };
+}
+
+function enemyVisualScale(enemy) {
+  return Math.max(0.001, enemy.visualScale ?? 1);
 }
 
 function blastPenetration(distanceVoxels, closeDistance, maxDistance, closePenetration, farPenetration) {

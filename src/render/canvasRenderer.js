@@ -361,6 +361,8 @@ function drawEnemy(ctx, enemy, time, imageAssets) {
   } else {
     ctx.rotate(enemyRenderRotation(enemy, time));
   }
+  const visualScale = enemy.visualScale ?? 1;
+  if (visualScale !== 1) ctx.scale(visualScale, visualScale);
   drawConstructPresentation(ctx, enemy, imageAssets);
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
   for (const cell of enemy.cells) {

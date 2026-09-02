@@ -14,7 +14,7 @@ import {
   traceEnemyVoxelRay,
 } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
-import { createGame, stepGame } from '../src/core/game.js';
+import { createGame, createLevelEnemies, stepGame } from '../src/core/game.js';
 import { recalculateCell } from '../src/core/cell.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
@@ -170,6 +170,22 @@ test('mortar skiff roams, fires inaccurate arcing mortars, and gets dizzy on roa
   assert.equal(skiff.dizzyTimer > 2, true);
   assert.equal(game.enemyProjectiles.length, 0);
   assert.equal(Math.abs(skiff.vx) < 120, true);
+});
+
+test('digitized stream hopper is enlarged and uses the slower hop impulse', () => {
+  const game = createGame();
+  const frog = createLevelEnemies(game.road, 1, ['DigitizedStream_1'])[0];
+  frog.x = game.vehicle.x - 100;
+  frog.y = game.vehicle.y;
+  frog.vx = 0;
+  frog.vy = 0;
+  frog.hopTimer = 0;
+  game.enemies = [frog];
+  game.enemySpawnQueue = [];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(frog.visualScale, 1.5);
+  assert.equal(frog.radius > CELL_SIZE * 3, true);
+  assert.equal(frog.vx > 70 && frog.vx < 72, true);
 });
 
 test('destroyed enemy remaining voxels become collectible scrap', () => {
