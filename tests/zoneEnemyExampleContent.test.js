@@ -20,7 +20,6 @@ import behaviorContracts from '../content/examples/prototype0-zone-enemy-set/beh
 import ghostPhaserSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.ghost_phaser.json' with { type: 'json' };
 import spiderWalkerSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.spider_walker.json' with { type: 'json' };
 import heavyMortarBoatSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.heavy_mortar_boat.json' with { type: 'json' };
-import tractorFrogSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.tractor_frog.json' with { type: 'json' };
 import scrapBuzzardSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.scrap_buzzard.json' with { type: 'json' };
 import inchwormCarrierSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.inchworm_carrier.json' with { type: 'json' };
 import mothBomberSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.moth_bomber.json' with { type: 'json' };
@@ -47,7 +46,7 @@ const constructs = [
   inchwormCarrierConstruct,
   mothBomberConstruct,
 ];
-const imageResources = [ghostPhaserSprite, spiderWalkerSprite, heavyMortarBoatSprite, tractorFrogSprite, scrapBuzzardSprite, inchwormCarrierSprite, mothBomberSprite];
+const imageResources = [ghostPhaserSprite, spiderWalkerSprite, heavyMortarBoatSprite, scrapBuzzardSprite, inchwormCarrierSprite, mothBomberSprite];
 
 test('zone enemy example content pack validates for editor import', () => {
   assert.equal(validateContentPack(manifest).valid, true);
@@ -88,6 +87,7 @@ test('zone enemy examples preserve requested advanced behavior descriptors', () 
   assert.equal(byId.get('example.ghost_phase_mob.ghost_forrest').presentation.sprite.assetId, 'sprite.enemy.ghost_phaser');
   assert.equal(byId.get('example.ghost_phase_mob.ghost_forrest').construct, 'example.construct.ghost_phaser_sculpted');
   assert.equal(byId.get('example.tractor_frog.digitized_stream').presentation.variant, 'tractorFrog');
+  assert.equal(byId.get('example.tractor_frog.digitized_stream').presentation.sprite, undefined);
   assert.equal(byId.get('example.tractor_frog.digitized_stream').construct, 'example.construct.tractor_frog_sculpted');
   assert.equal(byId.get('example.elevated_walker.starlight_road').presentation.variant, 'spiderWalker');
   assert.equal(byId.get('example.scrap_buzzard.shadowed_desert').presentation.sprite.assetId, 'sprite.enemy.scrap_buzzard');

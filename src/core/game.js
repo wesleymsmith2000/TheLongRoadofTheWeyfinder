@@ -52,12 +52,13 @@ import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLeve
 import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { createCombatEventStats, recordEnemyDefeat } from './combatEvents.js';
-import { getEnemyArchetype } from './enemyArchetypeDefinition.js';
+import { getEnemyArchetype, listEnemyArchetypes } from './enemyArchetypeDefinition.js';
 import { createTerrainGenerator } from './terrainGenerator.js';
 import { sampleTerrain } from './terrainQuery.js';
 import { createTerrainState, updateTerrainStreaming } from './terrainStreaming.js';
 import { normalizeGunLoadouts } from './weaponLoadout.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
+import { normalizeSandboxDefinition, validateSandboxDefinition } from './sandboxMode.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
@@ -123,12 +124,15 @@ export function createGame(seed = 1147, options = {}) {
   const levelMusic = options.levelMusic ?? DEFAULT_LEVEL_MUSIC;
   const startLevel = Math.max(1, Math.floor(options.startLevel ?? options.level ?? 1));
   const rng = new Rng(seed);
-  const enemySpawnQueue = createLevelEnemySchedule(road, startLevel, levelMusic, rng);
+  const sandboxDefinition = options.sandbox ? normalizeSandboxDefinition(options.sandbox) : null;
+  const enemySpawnQueue = sandboxDefinition
+    ? createSandboxEnemySchedule(road, sandboxDefinition, rng, options)
+    : createLevelEnemySchedule(road, startLevel, levelMusic, rng);
   const initialSpawns = dequeueReadySpawns(enemySpawnQueue, 0);
   return {
     rng,
     levelMusic,
-    currentMusic: musicForLevel(startLevel, levelMusic),
+    currentMusic: sandboxDefinition ? options.music ?? 'Sandbox' : musicForLevel(startLevel, levelMusic),
     vehicleDefinition,
     vehicle,
     road,
@@ -154,7 +158,7 @@ export function createGame(seed = 1147, options = {}) {
     playerGunIndex: 0,
     levelComplete: false,
     levelTime: 0,
-    level: startLevel,
+    level: sandboxDefinition?.level ?? startLevel,
     levelStartTime: 0,
     levelTimes: [],
     levelsCompleted: 0,
@@ -168,6 +172,7 @@ export function createGame(seed = 1147, options = {}) {
     paused: false,
     targetingMode: 'mixed',
     guidedTargetId: null,
+    sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options.enemyArchetypes) : null,
   };
 }
 
@@ -181,7 +186,14 @@ export function stepGame(game, input, dt) {
     return game;
   }
   game.time += dt;
-  if (input.resetPressed) return createGame(1147, { vehicleDefinition: game.vehicleDefinition, levelMusic: game.levelMusic });
+  if (input.resetPressed) {
+    return createGame(1147, {
+      vehicleDefinition: game.vehicleDefinition,
+      levelMusic: game.levelMusic,
+      sandbox: game.sandbox?.definition,
+      enemyArchetypes: game.sandbox?.enemyArchetypes,
+    });
+  }
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
   if (game.levelComplete || game.gameOver) {
     stepShop(game, input);
@@ -196,6 +208,7 @@ export function stepGame(game, input, dt) {
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
   applyRoadTurnDizziness(game, roadDelta.turnAngle);
+  stepSandboxEvents(game);
   stepEnemySpawner(game, dt);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   stepVehicle(game.vehicle, input, dt, game.road.heading, game.upgrades, game.terrainSample);
@@ -231,14 +244,7 @@ export function stepGame(game, input, dt) {
   updateTerrainStreaming(game.terrain, game.camera);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   game.gameOver = !game.vehicle.alive;
-  if (activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0 && game.scrapPickups.length === 0) {
-    game.levelComplete = true;
-    game.levelTime = game.time - game.levelStartTime;
-    game.levelTimes.push(game.levelTime);
-    game.levelsCompleted = game.level;
-    if (isBossLevel(game.level, game.levelMusic)) game.bossLevelsCompleted += 1;
-    emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
-  }
+  if (shouldCompleteRun(game) && activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0 && game.scrapPickups.length === 0) finishLevel(game);
   return game;
 }
 
@@ -250,11 +256,28 @@ function stepPausedGame(game, input, dt) {
   stepSmokeParticles(game, dt);
 }
 
+function shouldCompleteRun(game) {
+  if (!game.sandbox?.enabled) return true;
+  return game.sandbox.definition.completeOnEmpty === true || game.sandbox.completeRequested === true;
+}
+
+function finishLevel(game) {
+  game.levelComplete = true;
+  game.levelTime = game.time - game.levelStartTime;
+  game.levelTimes.push(game.levelTime);
+  if (!game.sandbox?.enabled) {
+    game.levelsCompleted = game.level;
+    if (isBossLevel(game.level, game.levelMusic)) game.bossLevelsCompleted += 1;
+  }
+  emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
+}
+
 export function startNextLevel(game) {
   game.level += 1;
   game.levelComplete = false;
   game.levelTime = 0;
   game.levelStartTime = game.time;
+  game.sandbox = null;
   game.currentMusic = musicForLevel(game.level, game.levelMusic);
   game.enemySpawnQueue = createLevelEnemySchedule(game.road, game.level, game.levelMusic, game.rng);
   game.enemies = dequeueReadySpawns(game.enemySpawnQueue, 0);
@@ -265,6 +288,28 @@ export function startNextLevel(game) {
   game.soundEvents = [];
   game.scrapPickups = [];
   return game;
+}
+
+export function applySandboxDefinitionToGame(game, definition, options = {}) {
+  const report = validateSandboxDefinition(definition);
+  if (!report.valid) throw new Error(`Invalid sandbox definition: ${report.errors.join(' ')}`);
+  const sandboxDefinition = report.definition;
+  game.sandbox = createSandboxRuntimeState(sandboxDefinition, report.warnings, options.enemyArchetypes);
+  game.level = sandboxDefinition.level;
+  game.currentMusic = options.music ?? 'Sandbox';
+  game.levelComplete = false;
+  game.levelTime = 0;
+  game.levelStartTime = game.time;
+  game.enemySpawnQueue = createSandboxEnemySchedule(game.road, sandboxDefinition, game.rng, options);
+  game.enemies = dequeueReadySpawns(game.enemySpawnQueue, 0);
+  game.incomingMarkers = [];
+  game.playerProjectiles = [];
+  game.enemyProjectiles = [];
+  game.smokeParticles = [];
+  game.scrapPickups = [];
+  game.soundEvents = [];
+  game.guidedTargetId = null;
+  return { game, report };
 }
 
 export function createLevelEnemySchedule(road, level, levelMusic = DEFAULT_LEVEL_MUSIC, rng = new Rng(level * 9973)) {
@@ -279,6 +324,136 @@ export function createLevelEnemySchedule(road, level, levelMusic = DEFAULT_LEVEL
       return { at, enemy, markerShown: false, type: enemy.kind ?? 'standard' };
     })
     .sort((a, b) => a.at - b.at);
+}
+
+export function createSandboxEnemySchedule(road, definition, rng = new Rng(1147), options = {}) {
+  const sandboxDefinition = normalizeSandboxDefinition(definition);
+  return createSandboxSpawnEntries(road, sandboxDefinition.spawns, rng, {
+    ...options,
+    level: sandboxDefinition.level,
+  }).sort((a, b) => a.at - b.at);
+}
+
+function createSandboxRuntimeState(definition, warnings = [], enemyArchetypes = []) {
+  return {
+    enabled: true,
+    definition: structuredClone(definition),
+    events: definition.events.map((event) => ({ ...structuredClone(event), fired: false })),
+    enemyArchetypes: structuredClone(enemyArchetypes ?? []),
+    warnings: [...warnings],
+    lastMessage: '',
+  };
+}
+
+function stepSandboxEvents(game) {
+  if (!game.sandbox?.enabled) return;
+  const elapsed = game.time - game.levelStartTime;
+  for (const event of game.sandbox.events) {
+    if (event.fired || event.at > elapsed) continue;
+    event.fired = true;
+    applySandboxEvent(game, event, elapsed);
+  }
+}
+
+function applySandboxEvent(game, event, elapsed) {
+  if (event.type === 'spawn') {
+    const entries = createSandboxSpawnEntries(game.road, event.spawns, game.rng, {
+      level: game.sandbox?.definition.level ?? game.level,
+      enemyArchetypes: game.sandbox?.enemyArchetypes,
+      timeOffset: elapsed,
+    });
+    game.enemySpawnQueue.push(...entries);
+    game.enemySpawnQueue.sort((a, b) => a.at - b.at);
+    game.sandbox.lastMessage = `${event.id}: queued ${entries.length} enemies.`;
+  } else if (event.type === 'clearEnemies') {
+    game.enemies = [];
+    game.enemyProjectiles = [];
+    game.incomingMarkers = [];
+    game.sandbox.lastMessage = `${event.id}: arena cleared.`;
+  } else if (event.type === 'setScrap') {
+    game.scrap = Math.max(0, Math.floor(event.value ?? 0));
+    game.sandbox.lastMessage = `${event.id}: scrap set to ${game.scrap}.`;
+  } else if (event.type === 'addScrap') {
+    game.scrap = Math.max(0, Math.floor(game.scrap + (event.value ?? 0)));
+    game.sandbox.lastMessage = `${event.id}: scrap is ${game.scrap}.`;
+  } else if (event.type === 'setTargetingMode' && TARGETING_MODES.includes(event.mode)) {
+    game.targetingMode = event.mode;
+    game.sandbox.lastMessage = `${event.id}: targeting ${event.mode}.`;
+  } else if (event.type === 'complete') {
+    game.sandbox.completeRequested = true;
+    game.sandbox.lastMessage = `${event.id}: completion armed.`;
+    if (!game.levelComplete) finishLevel(game);
+  } else if (event.text) {
+    game.sandbox.lastMessage = event.text;
+  }
+}
+
+function createSandboxSpawnEntries(road, spawns, rng, options = {}) {
+  const entries = [];
+  for (const spawn of spawns ?? []) {
+    const count = Math.max(1, spawn.count ?? 1);
+    const interval = Math.max(0, spawn.interval ?? 0);
+    for (let index = 0; index < count; index += 1) {
+      const laneOffset = sandboxLaneOffset(spawn, index, count, rng);
+      const roadY = spawn.roadY ?? sandboxRoadY(spawn, road);
+      const world = roadOffsetToWorld({ x: laneOffset, y: roadY }, road);
+      const enemy = createSandboxEnemy(spawn, world.x, world.y, road, options);
+      const at = Math.max(0, (options.timeOffset ?? 0) + (spawn.at ?? 0) + index * interval);
+      entries.push({ at, enemy, markerShown: false, type: enemy.kind ?? spawn.kind ?? 'standard', sandbox: true, source: spawn.id });
+    }
+  }
+  return entries;
+}
+
+function createSandboxEnemy(spawn, x, y, road, options = {}) {
+  const archetype = sandboxArchetypeForSpawn(spawn, options.enemyArchetypes ?? []);
+  const kind = spawn.kind ?? 'standard';
+  const enemy = archetype ? createEnemyForArchetype(archetype, x, y, kind) : createEnemy(x, y);
+  if (archetype) applyArchetypeRuntimeMetadata(enemy, archetype);
+  enemy.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
+  const velocitySign = spawn.entry === 'behind' ? -1 : 1;
+  const direction = roadDirectionToWorld(0, velocitySign, road);
+  const speed = spawn.speed ?? (spawn.entry === 'behind' ? 155 : 24);
+  enemy.vx = direction.x * speed;
+  enemy.vy = direction.y * speed;
+  applyEnemyLevelUpgrades(enemy, spawn.level ?? options.level ?? 1);
+  return enemy;
+}
+
+function sandboxArchetypeForSpawn(spawn, extraArchetypes = []) {
+  const archetypeId = spawn.archetype ?? spawn.enemy;
+  if (archetypeId) {
+    const match = extraArchetypes.find((archetype) => archetype.id === archetypeId || archetype.assetIdAlias === archetypeId);
+    return match ?? runtimeArchetype(archetypeId);
+  }
+  if (spawn.construct) {
+    return (
+      extraArchetypes.find((archetype) => archetype.construct === spawn.construct) ??
+      listCanonEnemyArchetypes().find((archetype) => archetype.construct === spawn.construct) ??
+      null
+    );
+  }
+  return null;
+}
+
+function runtimeArchetype(id) {
+  return getEnemyArchetype(id) ?? RUNTIME_ENEMY_ARCHETYPES[id] ?? null;
+}
+
+function listCanonEnemyArchetypes() {
+  return listEnemyArchetypes();
+}
+
+function sandboxLaneOffset(spawn, index, count, rng) {
+  const centeredIndex = index - (count - 1) / 2;
+  const spread = spawn.spread ?? 0;
+  const random = spawn.randomLaneOffset ? rng.range(-spawn.randomLaneOffset, spawn.randomLaneOffset) : 0;
+  return (spawn.laneOffset ?? 0) + centeredIndex * spread + random;
+}
+
+function sandboxRoadY(spawn, road) {
+  if (spawn.entry === 'behind') return road.halfHeight + 47.5;
+  return -road.halfHeight - 47.5;
 }
 
 function dequeueReadySpawns(queue, elapsed) {

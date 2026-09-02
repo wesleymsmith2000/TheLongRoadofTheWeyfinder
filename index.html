@@ -255,6 +255,21 @@
         z-index: 30;
       }
 
+      .sandbox-toggle {
+        position: fixed;
+        right: 326px;
+        top: 14px;
+        min-width: 62px;
+        height: 36px;
+        border: 1px solid rgb(244 238 228 / 0.3);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.78);
+        color: #f4eee4;
+        font-weight: 800;
+        letter-spacing: 0;
+        z-index: 30;
+      }
+
       .hud-toggle {
         position: fixed;
         right: 106px;
@@ -345,6 +360,95 @@
         -webkit-overflow-scrolling: touch;
         touch-action: pan-y;
         z-index: 31;
+      }
+
+      .sandbox-panel {
+        position: fixed;
+        right: 14px;
+        top: 58px;
+        width: min(620px, calc(100vw - 28px));
+        max-height: calc(100vh - 74px);
+        overflow: auto;
+        padding: 12px 14px;
+        border: 1px solid rgb(244 238 228 / 0.22);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.94);
+        color: #f4eee4;
+        font-size: 13px;
+        line-height: 1.45;
+        scrollbar-gutter: stable;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        z-index: 31;
+      }
+
+      .sandbox-panel h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .sandbox-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .sandbox-grid label,
+      .sandbox-script-label {
+        display: grid;
+        gap: 4px;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .sandbox-grid label:first-child {
+        grid-column: span 2;
+      }
+
+      .sandbox-grid select,
+      .sandbox-grid input,
+      .sandbox-script-label textarea {
+        min-height: 34px;
+        border: 1px solid rgb(244 238 228 / 0.24);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.84);
+        color: #f4eee4;
+      }
+
+      .sandbox-script-label {
+        margin-top: 10px;
+      }
+
+      .sandbox-script-label textarea {
+        min-height: 230px;
+        padding: 8px;
+        resize: vertical;
+        font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+
+      .sandbox-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .sandbox-actions button {
+        min-height: 38px;
+        padding: 0 12px;
+        border: 1px solid rgb(244 238 228 / 0.28);
+        border-radius: 8px;
+        background: rgb(247 192 106 / 0.16);
+        color: #fff6e7;
+        font-weight: 800;
+      }
+
+      .sandbox-status {
+        min-height: 18px;
+        margin-top: 8px;
+        color: #d7ceb8;
+        font-size: 12px;
       }
 
       .pause-screen {
@@ -879,6 +983,7 @@
       }
 
       .controls-panel::-webkit-scrollbar,
+      .sandbox-panel::-webkit-scrollbar,
       .achievements-panel::-webkit-scrollbar,
       .control-config-panel::-webkit-scrollbar,
       .level-complete-screen::-webkit-scrollbar,
@@ -892,6 +997,7 @@
       }
 
       .controls-panel::-webkit-scrollbar-thumb,
+      .sandbox-panel::-webkit-scrollbar-thumb,
       .achievements-panel::-webkit-scrollbar-thumb,
       .control-config-panel::-webkit-scrollbar-thumb,
       .level-complete-screen::-webkit-scrollbar-thumb,
@@ -906,6 +1012,7 @@
       }
 
       .controls-panel,
+      .sandbox-panel,
       .achievements-panel,
       .control-config-panel,
       .level-complete-screen,
@@ -1074,6 +1181,11 @@
           min-width: 62px;
         }
 
+        .sandbox-toggle {
+          right: 10px;
+          top: 54px;
+        }
+
         .build-version-tag {
           left: 10px;
           top: 10px;
@@ -1103,6 +1215,21 @@
           top: 52px;
           width: calc(100vw - 20px);
           font-size: 12px;
+        }
+
+        .sandbox-panel {
+          right: 10px;
+          top: 96px;
+          width: calc(100vw - 20px);
+          font-size: 12px;
+        }
+
+        .sandbox-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .sandbox-grid label:first-child {
+          grid-column: span 2;
         }
 
         .pause-screen {
@@ -1317,7 +1444,44 @@
     <button id="debugToggle" class="debug-toggle" type="button" aria-label="Toggle debug stats">DBG</button>
     <button id="controlConfigToggle" class="control-config-toggle" type="button" aria-label="Configure controls">CFG</button>
     <button id="achievementsToggle" class="achievements-toggle" type="button" aria-label="Toggle achievements">ACH</button>
+    <button id="sandboxToggle" class="sandbox-toggle" type="button" aria-label="Toggle sandbox" aria-pressed="false">SBOX</button>
     <button id="controlsToggle" class="controls-toggle" type="button" aria-label="Toggle controls">?</button>
+    <div id="sandboxPanel" class="sandbox-panel hidden">
+      <h2>Sandbox</h2>
+      <div class="sandbox-grid">
+        <label for="sandboxEnemySelect">
+          Enemy
+          <select id="sandboxEnemySelect"></select>
+        </label>
+        <label for="sandboxCountInput">
+          Count
+          <input id="sandboxCountInput" type="number" min="1" max="24" step="1" value="1" />
+        </label>
+        <label for="sandboxFrequencyInput">
+          Frequency
+          <input id="sandboxFrequencyInput" type="number" min="0" max="8" step="0.1" value="0" />
+        </label>
+        <label for="sandboxSpreadInput">
+          Spread
+          <input id="sandboxSpreadInput" type="number" min="0" max="260" step="4" value="72" />
+        </label>
+        <label for="sandboxLevelInput">
+          Level
+          <input id="sandboxLevelInput" type="number" min="1" max="99" step="1" value="1" />
+        </label>
+      </div>
+      <label class="sandbox-script-label" for="sandboxScriptInput">
+        Event Script
+        <textarea id="sandboxScriptInput" spellcheck="false"></textarea>
+      </label>
+      <div class="sandbox-actions">
+        <button id="sandboxQuickRun" type="button">Run Quick</button>
+        <button id="sandboxScriptRun" type="button">Run Script</button>
+        <button id="sandboxStop" type="button">Stop</button>
+        <button id="sandboxRefresh" type="button">Refresh Content</button>
+      </div>
+      <div id="sandboxStatus" class="sandbox-status" aria-live="polite"></div>
+    </div>
     <div id="achievementsPanel" class="achievements-panel hidden">
       <h2>Achievements</h2>
       <div id="achievementList" class="achievement-list"></div>

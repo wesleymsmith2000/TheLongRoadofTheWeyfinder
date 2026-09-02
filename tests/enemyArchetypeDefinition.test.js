@@ -63,6 +63,7 @@ test('enemy archetype helpers expose editor-facing enemy models', () => {
   assert.equal(getEnemyArchetype('ghost_phaser.ghost_forrest').presentation.sprite.assetId, 'sprite.enemy.ghost_phaser');
   assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').movementProfiles[0].kind, 'hop');
   assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').presentation.variant, 'tractorFrog');
+  assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').presentation.sprite, undefined);
   assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').targeting.preferConditions.includes('targetIsDistracted'), true);
   assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').artillery.weapon, 'mortar');
   assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').presentation.sprite.assetId, 'sprite.enemy.heavy_mortar_boat');

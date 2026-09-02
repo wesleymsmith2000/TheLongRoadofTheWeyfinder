@@ -211,8 +211,7 @@
       "entry": { "kind": "zoneAmbush", "direction": "roadForward", "speed": 32 },
       "palette": { "core": "#72fff3", "armor": "#334fff", "gun": "#ffec7a", "accent": "#f26cff" },
       "presentation": {
-        "variant": "tractorFrog",
-        "sprite": { "assetId": "sprite.enemy.tractor_frog", "path": "assets/images/enemies/tractor_frog.svg", "nativeSize": [128, 128], "displaySize": [180, 180], "anchor": [0.5, 0.56], "opacity": 0.88 }
+        "variant": "tractorFrog"
       },
       "movementProfiles": [
         { "id": "hop-to-point", "kind": "hop", "target": "nearestNonFrogConstruct", "speed": 61.5, "hopHeight": 52, "duration": 0.65, "frequency": 0.55 }

@@ -18,7 +18,6 @@ import behaviorContracts from '../../content/examples/prototype0-zone-enemy-set/
 import ghostPhaserSprite from '../../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.ghost_phaser.json' with { type: 'json' };
 import spiderWalkerSprite from '../../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.spider_walker.json' with { type: 'json' };
 import heavyMortarBoatSprite from '../../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.heavy_mortar_boat.json' with { type: 'json' };
-import tractorFrogSprite from '../../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.tractor_frog.json' with { type: 'json' };
 import scrapBuzzardSprite from '../../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.scrap_buzzard.json' with { type: 'json' };
 import inchwormCarrierSprite from '../../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.inchworm_carrier.json' with { type: 'json' };
 import mothBomberSprite from '../../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.moth_bomber.json' with { type: 'json' };
@@ -45,7 +44,6 @@ export const EXAMPLE_ZONE_ENEMY_SET_BUNDLE = Object.freeze({
     { kind: 'image', definition: ghostPhaserSprite, sourcePack: manifest.packId },
     { kind: 'image', definition: spiderWalkerSprite, sourcePack: manifest.packId },
     { kind: 'image', definition: heavyMortarBoatSprite, sourcePack: manifest.packId },
-    { kind: 'image', definition: tractorFrogSprite, sourcePack: manifest.packId },
     { kind: 'image', definition: scrapBuzzardSprite, sourcePack: manifest.packId },
     { kind: 'image', definition: inchwormCarrierSprite, sourcePack: manifest.packId },
     { kind: 'image', definition: mothBomberSprite, sourcePack: manifest.packId },
@@ -71,7 +69,6 @@ export const EXAMPLE_ZONE_ENEMY_SET_BUNDLE = Object.freeze({
     { path: 'content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.ghost_phaser.json', name: 'sprite.enemy.ghost_phaser.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.spider_walker.json', name: 'sprite.enemy.spider_walker.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.heavy_mortar_boat.json', name: 'sprite.enemy.heavy_mortar_boat.json' },
-    { path: 'content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.tractor_frog.json', name: 'sprite.enemy.tractor_frog.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.scrap_buzzard.json', name: 'sprite.enemy.scrap_buzzard.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.inchworm_carrier.json', name: 'sprite.enemy.inchworm_carrier.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.moth_bomber.json', name: 'sprite.enemy.moth_bomber.json' },

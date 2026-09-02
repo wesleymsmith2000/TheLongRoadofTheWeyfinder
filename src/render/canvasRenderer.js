@@ -13,7 +13,6 @@ import mortarEnemyMarkerUrl from '../../assets/images/weapons/mortar_enemy_marke
 import ghostPhaserUrl from '../../assets/images/enemies/ghost_phaser.svg';
 import spiderWalkerUrl from '../../assets/images/enemies/spider_walker.svg';
 import heavyMortarBoatUrl from '../../assets/images/enemies/heavy_mortar_boat.svg';
-import tractorFrogUrl from '../../assets/images/enemies/tractor_frog.svg';
 import scrapBuzzardUrl from '../../assets/images/enemies/scrap_buzzard.svg';
 import inchwormCarrierUrl from '../../assets/images/enemies/inchworm_carrier.svg';
 import mothBomberUrl from '../../assets/images/enemies/moth_bomber.svg';
@@ -56,7 +55,6 @@ const CANON_IMAGE_URLS = new Map([
   ['sprite.enemy.ghost_phaser', ghostPhaserUrl],
   ['sprite.enemy.spider_walker', spiderWalkerUrl],
   ['sprite.enemy.heavy_mortar_boat', heavyMortarBoatUrl],
-  ['sprite.enemy.tractor_frog', tractorFrogUrl],
   ['sprite.enemy.scrap_buzzard', scrapBuzzardUrl],
   ['sprite.enemy.inchworm_carrier', inchwormCarrierUrl],
   ['sprite.enemy.moth_bomber', mothBomberUrl],
@@ -410,6 +408,7 @@ function drawEnemyPresentationUnderlay(ctx, enemy, time, imageAssets) {
   if (presentation.variant === 'spiderWalker') drawWalkerLegStride(ctx, enemy, time, enemy.palette ?? COLORS);
   if (presentation.variant === 'scrapBuzzard') drawBuzzardWingBeat(ctx, enemy, time, enemy.palette ?? COLORS);
   if (presentation.variant === 'inchwormCarrier') drawInchwormSegmentWave(ctx, enemy, time, enemy.palette ?? COLORS);
+  if (presentation.variant === 'tractorFrog') return;
   drawConstructPresentation(ctx, enemy, imageAssets);
 }
 

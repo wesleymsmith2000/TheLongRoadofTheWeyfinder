@@ -1,9 +1,10 @@
-import { LEVEL_TARGET_DURATION, TARGETING_MODES, createGame, stepGame } from './core/game.js';
+import { LEVEL_TARGET_DURATION, TARGETING_MODES, applySandboxDefinitionToGame, createGame, stepGame } from './core/game.js';
 import { BUILD_VERSION } from './core/buildVersion.js';
 import { configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
 import { createGamepadInput } from './input/gamepad.js';
+import { listEnemyArchetypes } from './core/enemyArchetypeDefinition.js';
 import {
   CONTROL_ACTIONS,
   DEFAULT_CONTROL_BINDINGS,
@@ -42,6 +43,7 @@ import {
   upgradeStatus,
 } from './core/economy.js';
 import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairTargetOptions } from './core/vehicle.js';
+import { DEFAULT_SANDBOX_DEFINITION, sandboxDefinitionFromEnemy, validateSandboxDefinition } from './core/sandboxMode.js';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import levelFailArt from '../assets/images/level_fail_screen.png';
 import pauseArt from '../assets/images/pause_screen.png';
@@ -174,6 +176,19 @@ const combatPanel = document.querySelector('#combatPanel');
 const debugToggle = document.querySelector('#debugToggle');
 const controlsToggle = document.querySelector('#controlsToggle');
 const controlsPanel = document.querySelector('#controlsPanel');
+const sandboxToggle = document.querySelector('#sandboxToggle');
+const sandboxPanel = document.querySelector('#sandboxPanel');
+const sandboxEnemySelect = document.querySelector('#sandboxEnemySelect');
+const sandboxCountInput = document.querySelector('#sandboxCountInput');
+const sandboxFrequencyInput = document.querySelector('#sandboxFrequencyInput');
+const sandboxSpreadInput = document.querySelector('#sandboxSpreadInput');
+const sandboxLevelInput = document.querySelector('#sandboxLevelInput');
+const sandboxScriptInput = document.querySelector('#sandboxScriptInput');
+const sandboxQuickRun = document.querySelector('#sandboxQuickRun');
+const sandboxScriptRun = document.querySelector('#sandboxScriptRun');
+const sandboxStop = document.querySelector('#sandboxStop');
+const sandboxRefresh = document.querySelector('#sandboxRefresh');
+const sandboxStatus = document.querySelector('#sandboxStatus');
 const controlConfigToggle = document.querySelector('#controlConfigToggle');
 const controlConfigPanel = document.querySelector('#controlConfigPanel');
 const controlConfigList = document.querySelector('#controlConfigList');
@@ -224,6 +239,7 @@ const levelName = document.querySelector('#levelName');
 const levelProgressFill = document.querySelector('#levelProgressFill');
 const renderer = new CanvasRenderer(canvas);
 const CONTROL_BINDINGS_STORAGE_KEY = 'weyfinder.prototype0.controlBindings';
+const SANDBOX_STORAGE_KEY = 'weyfinder.prototype0.sandboxDefinition';
 let controlBindings = loadControlBindings();
 let pendingControlCapture = null;
 const keyboard = createKeyboardInput(window, controlBindings);
@@ -268,7 +284,10 @@ document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
 if (buildVersionTag) buildVersionTag.textContent = BUILD_VERSION;
 exposeLocalContentModuleApi();
+exposeSandboxApi();
 populateUpgradeSelect();
+populateSandboxEnemySelect();
+syncSandboxScript(loadSandboxDefinition());
 refreshRepairTargets();
 renderAchievements();
 renderControlConfig();
@@ -378,6 +397,7 @@ function frame(now) {
   gameOver.classList.toggle('hidden', !game.gameOver);
   levelComplete.classList.toggle('hidden', !game.levelComplete);
   syncProgressHud();
+  syncSandboxUi();
   refreshAchievementAwards();
   levelTime.textContent = game.levelTime.toFixed(1);
   levelNumber.textContent = game.level;
@@ -403,6 +423,7 @@ requestAnimationFrame(frame);
 bindButtonActivation(debugToggle, toggleDebug);
 bindButtonActivation(hudToggle, toggleCombatHud);
 bindButtonActivation(controlsToggle, toggleControls);
+bindButtonActivation(sandboxToggle, toggleSandboxPanel);
 bindButtonActivation(controlConfigToggle, toggleControlConfig);
 bindButtonActivation(achievementsToggle, toggleAchievements);
 bindButtonActivation(launchButton, launchVehicle);
@@ -411,6 +432,18 @@ pauseSecondarySelect.addEventListener('change', syncSecondarySelects);
 secondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 pauseSecondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 controlConfigReset.addEventListener('click', resetControlBindings);
+sandboxQuickRun.addEventListener('click', runQuickSandbox);
+sandboxScriptRun.addEventListener('click', runScriptSandbox);
+sandboxStop.addEventListener('click', stopSandbox);
+sandboxRefresh.addEventListener('click', () => {
+  populateSandboxEnemySelect();
+  sandboxStatus.textContent = 'Sandbox content refreshed.';
+});
+sandboxEnemySelect.addEventListener('change', updateSandboxScriptFromQuick);
+sandboxCountInput.addEventListener('input', updateSandboxScriptFromQuick);
+sandboxFrequencyInput.addEventListener('input', updateSandboxScriptFromQuick);
+sandboxSpreadInput.addEventListener('input', updateSandboxScriptFromQuick);
+sandboxLevelInput.addEventListener('input', updateSandboxScriptFromQuick);
 window.addEventListener('keydown', captureKeyboardBinding, { capture: true });
 const pauseTogglePressed = createButtonPress(pauseToggle);
 const resumeButtonPressed = createButtonPress(resumeButton);
@@ -436,6 +469,11 @@ function toggleControlConfig() {
 
 function toggleAchievements() {
   achievementsPanel.classList.toggle('hidden');
+}
+
+function toggleSandboxPanel() {
+  sandboxPanel.classList.toggle('hidden');
+  sandboxToggle.setAttribute('aria-pressed', String(!sandboxPanel.classList.contains('hidden')));
 }
 
 function syncSecondarySelects(event) {
@@ -468,6 +506,61 @@ function launchVehicle() {
   previous = performance.now();
   syncMusic(true);
   syncLaunchScreen();
+}
+
+function runQuickSandbox() {
+  const definition = quickSandboxDefinition();
+  syncSandboxScript(definition);
+  startSandbox(definition);
+}
+
+function runScriptSandbox() {
+  try {
+    const definition = JSON.parse(sandboxScriptInput.value);
+    const report = validateSandboxDefinition(definition);
+    if (!report.valid) {
+      sandboxStatus.textContent = `Sandbox rejected: ${report.errors.join(' ')}`;
+      return;
+    }
+    startSandbox(report.definition);
+  } catch (error) {
+    sandboxStatus.textContent = `Sandbox parse failed: ${error.message}`;
+  }
+}
+
+function startSandbox(definition) {
+  const enemyArchetypes = localEnemyArchetypes();
+  try {
+    if (game.sandbox?.enabled) {
+      applySandboxDefinitionToGame(game, definition, { enemyArchetypes });
+    } else {
+      game = createGame(1147, {
+        vehicleDefinition: playerVehicleDefinition ?? undefined,
+        sandbox: definition,
+        enemyArchetypes,
+      });
+    }
+    awaitingLaunch = false;
+    game.paused = false;
+    game.levelStartTime = game.time;
+    previous = performance.now();
+    localStorage.setItem(SANDBOX_STORAGE_KEY, JSON.stringify(definition));
+    refreshRepairTargets();
+    syncLaunchScreen();
+    syncMusic(true);
+    sandboxStatus.textContent = `Sandbox running: ${definition.title}`;
+  } catch (error) {
+    sandboxStatus.textContent = `Sandbox failed: ${error.message}`;
+  }
+}
+
+function stopSandbox() {
+  game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
+  awaitingLaunch = true;
+  previous = performance.now();
+  refreshRepairTargets();
+  syncLaunchScreen();
+  sandboxStatus.textContent = 'Sandbox stopped.';
 }
 
 function syncLaunchScreen() {
@@ -539,6 +632,84 @@ async function importSelectedSave() {
   } catch (error) {
     saveStatus.textContent = `Save import failed: ${error.message}`;
   }
+}
+
+function quickSandboxDefinition(options = {}) {
+  const enemyId = sandboxEnemySelect.value || DEFAULT_SANDBOX_DEFINITION.spawns[0].archetype;
+  return sandboxDefinitionFromEnemy(enemyId, {
+    count: numericInputValue(sandboxCountInput, 1),
+    frequency: numericInputValue(sandboxFrequencyInput, 0),
+    spread: numericInputValue(sandboxSpreadInput, 72),
+    level: numericInputValue(sandboxLevelInput, 1),
+    title: 'Sandbox Level',
+    ...options,
+  });
+}
+
+function loadSandboxDefinition() {
+  try {
+    return JSON.parse(localStorage.getItem(SANDBOX_STORAGE_KEY)) ?? DEFAULT_SANDBOX_DEFINITION;
+  } catch {
+    return DEFAULT_SANDBOX_DEFINITION;
+  }
+}
+
+function syncSandboxScript(definition) {
+  sandboxScriptInput.value = `${JSON.stringify(definition, null, 2)}\n`;
+}
+
+function updateSandboxScriptFromQuick() {
+  syncSandboxScript(quickSandboxDefinition());
+}
+
+function numericInputValue(input, fallback) {
+  const value = Number(input.value);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function populateSandboxEnemySelect() {
+  const selected = sandboxEnemySelect.value;
+  const options = sandboxEnemyOptions();
+  sandboxEnemySelect.replaceChildren(
+    ...options.map((enemy) => {
+      const option = document.createElement('option');
+      option.value = enemy.id;
+      option.textContent = `${enemy.displayName ?? enemy.id} (${enemy.id})`;
+      return option;
+    }),
+  );
+  sandboxEnemySelect.value = options.some((enemy) => enemy.id === selected) ? selected : options[0]?.id ?? '';
+}
+
+function sandboxEnemyOptions() {
+  const byId = new Map();
+  for (const archetype of [...listEnemyArchetypes(), ...localEnemyArchetypes()]) {
+    if (archetype?.id) byId.set(archetype.id, archetype);
+  }
+  byId.set('mortar_skiff.prototype0', {
+    id: 'mortar_skiff.prototype0',
+    displayName: 'Mortar Skiff',
+  });
+  return [...byId.values()].sort((a, b) => (a.displayName ?? a.id).localeCompare(b.displayName ?? b.id));
+}
+
+function localEnemyArchetypes() {
+  try {
+    const { registry, ok } = createRegistryWithLocalContent(localStorage);
+    if (!ok) return [];
+    return [...(registry.assets.get('enemyArchetype')?.values() ?? [])].flatMap((pack) => (Array.isArray(pack.archetypes) ? pack.archetypes : []));
+  } catch {
+    return [];
+  }
+}
+
+function syncSandboxUi() {
+  const enabled = Boolean(game.sandbox?.enabled);
+  sandboxToggle.setAttribute('aria-pressed', String(enabled || !sandboxPanel.classList.contains('hidden')));
+  if (!enabled || sandboxPanel.classList.contains('hidden')) return;
+  const pending = game.enemySpawnQueue.length;
+  const active = game.enemies.filter((enemy) => !enemy.destroyed).length;
+  sandboxStatus.textContent = game.sandbox.lastMessage || `Sandbox active: ${active} active, ${pending} queued.`;
 }
 
 function syncMusic(forcePlay = false) {
@@ -701,6 +872,14 @@ function renderAchievements() {
 }
 
 function syncProgressHud() {
+  if (game.sandbox?.enabled) {
+    levelName.textContent = `Sandbox: ${game.sandbox.definition.title}`;
+    const duration = Math.max(1, game.sandbox.definition.duration ?? LEVEL_TARGET_DURATION);
+    const elapsed = Math.max(0, game.time - game.levelStartTime);
+    const progress = game.levelComplete ? 1 : Math.min(0.985, elapsed / duration);
+    levelProgressFill.style.width = `${progress * 100}%`;
+    return;
+  }
   levelName.textContent = levelNameFromTrack(game.currentMusic);
   const elapsed = Math.max(0, game.time - game.levelStartTime);
   const progress = game.levelComplete ? 1 : Math.min(0.985, elapsed / LEVEL_TARGET_DURATION);
@@ -732,6 +911,35 @@ function exposeLocalContentModuleApi() {
     },
     instantiateLevel(levelId, seed = 0) {
       return instantiateLocalLevel(levelId, { storage: localStorage, seed });
+    },
+  });
+}
+
+function exposeSandboxApi() {
+  window.WeyfinderSandbox = Object.freeze({
+    defaultDefinition() {
+      return structuredClone(DEFAULT_SANDBOX_DEFINITION);
+    },
+    enemies() {
+      return sandboxEnemyOptions().map((enemy) => ({ id: enemy.id, displayName: enemy.displayName ?? enemy.id }));
+    },
+    validate: validateSandboxDefinition,
+    run(definition) {
+      const report = validateSandboxDefinition(definition);
+      if (!report.valid) return report;
+      syncSandboxScript(report.definition);
+      startSandbox(report.definition);
+      return report;
+    },
+    quickSpawn(enemyId, options = {}) {
+      const definition = sandboxDefinitionFromEnemy(enemyId, options);
+      syncSandboxScript(definition);
+      startSandbox(definition);
+      return definition;
+    },
+    stop: stopSandbox,
+    current() {
+      return game.sandbox?.definition ? structuredClone(game.sandbox.definition) : null;
     },
   });
 }
@@ -794,7 +1002,8 @@ function isVirtualPointerEnabled() {
     game.gameOver ||
     !controlsPanel.classList.contains('hidden') ||
     !controlConfigPanel.classList.contains('hidden') ||
-    !achievementsPanel.classList.contains('hidden')
+    !achievementsPanel.classList.contains('hidden') ||
+    !sandboxPanel.classList.contains('hidden')
   );
 }
 
