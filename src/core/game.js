@@ -424,8 +424,7 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);
   if (archetype.artillery) enemy.artillery = structuredClone(archetype.artillery);
   if (archetype.id === 'hopping_stream_mob.digitized_stream') {
-    enemy.visualScale = HOPPER_FROG_VISUAL_SCALE;
-    enemy.radius *= HOPPER_FROG_VISUAL_SCALE;
+    enemy.hopperVisualBias = HOPPER_FROG_VISUAL_SCALE;
   }
 }
 

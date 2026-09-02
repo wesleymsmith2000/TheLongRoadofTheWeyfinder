@@ -10,10 +10,11 @@ import { createCell } from './cell.js';
 import { createConnection } from './connections.js';
 
 const BASIC_ENEMY_PATTERNS = [enemyAimedShotDefinition, enemyRadialBurstDefinition];
+export const ENEMY_MODULE_LINEAR_SCALE = 2;
 
-export function createEnemy(x, y, definition = basicTurretDefinition, patternDefinitions = BASIC_ENEMY_PATTERNS) {
+export function createEnemy(x, y, definition = basicTurretDefinition, patternDefinitions = BASIC_ENEMY_PATTERNS, options = {}) {
   const construct = instantiateConstruct(definition);
-  return {
+  return enlargeEnemyModules({
     assetId: construct.assetId,
     x,
     y,
@@ -28,16 +29,16 @@ export function createEnemy(x, y, definition = basicTurretDefinition, patternDef
     destroyed: false,
     explosionStart: null,
     kind: 'standard',
-  };
+  }, options.moduleScale ?? ENEMY_MODULE_LINEAR_SCALE);
 }
 
 export function createEnhancedEnemy(x, y) {
-  const enemy = createEnemy(x, y);
+  const enemy = createEnemy(x, y, basicTurretDefinition, BASIC_ENEMY_PATTERNS, { moduleScale: 1 });
   enemy.kind = 'enhanced';
   addMobileEnemyEngines(enemy);
   enemy.charge = { state: 'idle', timer: 1.8, x: 0, y: 1 };
   enemy.shieldActive = false;
-  return enemy;
+  return enlargeEnemyModules(enemy);
 }
 
 export function createPirateShipEnemy(x, y, options = {}) {
@@ -90,7 +91,7 @@ export function createPirateShipEnemy(x, y, options = {}) {
     connect(connections, 'stern-right', 'starboard-engine', 'top');
   }
 
-  return {
+  return enlargeEnemyModules({
     assetId: options.ramBulkhead ? 'enemy.pirate_ram_ship.prototype0' : 'enemy.pirate_ship.prototype0',
     x,
     y,
@@ -107,7 +108,7 @@ export function createPirateShipEnemy(x, y, options = {}) {
     silhouette: 'pirateShip',
     ramBulkhead: Boolean(options.ramBulkhead),
     visualHeading: Math.PI / 2,
-  };
+  }, options.moduleScale ?? ENEMY_MODULE_LINEAR_SCALE);
 }
 
 function addMobileEnemyEngines(enemy) {
@@ -148,7 +149,7 @@ export function createMortarSkiffEnemy(x, y) {
   connect(connections, 'core', 'mortar-gun', 'right');
   connect(connections, 'core', 'bow', 'bottom');
 
-  return {
+  return enlargeEnemyModules({
     assetId: 'enemy.mortar_skiff.prototype0',
     archetypeId: 'mortar_skiff.prototype0',
     displayName: 'Dizzy Mortar Skiff',
@@ -170,7 +171,7 @@ export function createMortarSkiffEnemy(x, y) {
     artilleryTimer: 1.8,
     roamTimer: 0,
     dizzyTimer: 0,
-  };
+  });
 }
 
 export function createBossEnemy(x, y, rng) {
@@ -231,7 +232,7 @@ export function createBossEnemy(x, y, rng) {
     }
   }
 
-  return {
+  return enlargeEnemyModules({
     assetId: 'boss.octopus.prototype0',
     kind: 'boss',
     x,
@@ -248,11 +249,69 @@ export function createBossEnemy(x, y, rng) {
     damageTaken: 0,
     destroyed: false,
     explosionStart: null,
-  };
+  });
 }
 
 function connect(connections, a, b, side, type = 'structural') {
   connections.push(createConnection(a, b, side, undefined, type));
+}
+
+function enlargeEnemyModules(enemy, linearScale = ENEMY_MODULE_LINEAR_SCALE) {
+  const factor = Math.max(1, Math.floor(linearScale));
+  if (factor <= 1 || enemy.moduleLinearScale >= factor) return enemy;
+  const cells = [];
+  for (const cell of enemy.cells) {
+    if (cell.type === 'core') {
+      cells.push(cloneEnemyCell(cell, cell.id, cell.gridX, cell.gridY));
+      continue;
+    }
+    for (let y = 0; y < factor; y += 1) {
+      for (let x = 0; x < factor; x += 1) {
+        const id = x === 0 && y === 0 ? cell.id : `${cell.id}__${x}_${y}`;
+        cells.push(cloneEnemyCell(cell, id, expandedGridCoordinate(cell.gridX, x, factor), expandedGridCoordinate(cell.gridY, y, factor)));
+      }
+    }
+  }
+  enemy.cells = cells;
+  enemy.connections = moduleAdjacencyConnections(cells);
+  enemy.radius = constructRadius(cells);
+  enemy.moduleLinearScale = factor;
+  if (enemy.presentation?.sprite?.displaySize) {
+    enemy.presentation = structuredClone(enemy.presentation);
+    enemy.presentation.sprite.displaySize = enemy.presentation.sprite.displaySize.map((size) => size * factor);
+  }
+  return enemy;
+}
+
+function cloneEnemyCell(cell, id, gridX, gridY) {
+  const clone = {
+    ...cell,
+    id,
+    gridX,
+    gridY,
+    mask: structuredClone(cell.mask),
+    state: null,
+  };
+  recalculateCell(clone);
+  return clone;
+}
+
+function expandedGridCoordinate(value, index, factor) {
+  if (value < 0) return value * factor + index;
+  if (value > 0) return value * factor - (factor - 1) + index;
+  return index - Math.floor(factor / 2);
+}
+
+function moduleAdjacencyConnections(cells) {
+  const byPosition = new Map(cells.map((cell) => [`${cell.gridX},${cell.gridY}`, cell]));
+  const connections = [];
+  for (const cell of cells) {
+    const right = byPosition.get(`${cell.gridX + 1},${cell.gridY}`);
+    const bottom = byPosition.get(`${cell.gridX},${cell.gridY + 1}`);
+    if (right) connections.push(createConnection(cell.id, right.id, 'right'));
+    if (bottom) connections.push(createConnection(cell.id, bottom.id, 'bottom'));
+  }
+  return connections;
 }
 
 function carveVoxelMask(cell, keep) {

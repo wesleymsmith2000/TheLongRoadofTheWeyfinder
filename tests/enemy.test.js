@@ -7,6 +7,7 @@ import {
   createBossEnemy,
   createEnemy,
   createEnhancedEnemy,
+  ENEMY_MODULE_LINEAR_SCALE,
   createEnhancedPirateShipEnemy,
   createMortarSkiffEnemy,
   createPirateShipEnemy,
@@ -25,6 +26,19 @@ test('enemy takes voxel damage and records score damage', () => {
   const hit = applyEnemyDamage(enemy, projectile);
   assert.equal(hit.hit, true);
   assert.equal(enemy.damageTaken > 0, true);
+});
+
+test('enemies use doubled module footprints without scaling voxel masks', () => {
+  const enemy = createEnemy(0, 0);
+  const boss = createBossEnemy(0, 0);
+  const gunCells = enemy.cells.filter((cell) => cell.type === 'gun');
+  assert.equal(enemy.moduleLinearScale, ENEMY_MODULE_LINEAR_SCALE);
+  assert.equal(enemy.cells.length, 33);
+  assert.equal(gunCells.length, 4);
+  assert.equal(enemy.cells.every((cell) => cell.mask.length === 6 && cell.mask.every((row) => row.length === 6)), true);
+  assert.equal(enemy.radius > CELL_SIZE * 3, true);
+  assert.equal(boss.moduleLinearScale, ENEMY_MODULE_LINEAR_SCALE);
+  assert.equal(boss.cells.filter((cell) => cell.type === 'gun').length > 64, true);
 });
 
 test('enemy destruction is detected when core is shredded', () => {
@@ -204,7 +218,8 @@ test('digitized stream hopper is enlarged and uses the slower hop impulse', () =
   game.enemies = [frog];
   game.enemySpawnQueue = [];
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
-  assert.equal(frog.visualScale, 1.5);
+  assert.equal(frog.moduleLinearScale, 2);
+  assert.equal(frog.hopperVisualBias, 1.5);
   assert.equal(frog.radius > CELL_SIZE * 3, true);
   assert.equal(frog.vx > 70 && frog.vx < 72, true);
 });

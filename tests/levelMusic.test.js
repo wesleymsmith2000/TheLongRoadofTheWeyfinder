@@ -43,7 +43,8 @@ test('zone soundtrack names route standard spawns to zone archetypes', () => {
   assert.equal(ghost.presentation.sprite.assetId, 'sprite.enemy.ghost_phaser');
   const frog = createLevelEnemies(road, 1, ['DigitizedStream_1'])[0];
   assert.equal(frog.archetypeId, 'hopping_stream_mob.digitized_stream');
-  assert.equal(frog.visualScale, 1.5);
+  assert.equal(frog.moduleLinearScale, 2);
+  assert.equal(frog.hopperVisualBias, 1.5);
   assert.equal(frog.presentation.variant, 'tractorFrog');
   assert.equal(createLevelEnemies(road, 1, ['PiratesRoad_1'])[0].archetypeId, 'heavy_mortar_boat.pirates_road');
   assert.equal(createLevelEnemies(road, 2, ['PiratesRoad_1'])[1].archetypeId, 'mortar_skiff.prototype0');
