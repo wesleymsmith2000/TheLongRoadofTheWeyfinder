@@ -16,6 +16,7 @@ import {
 } from '../core/weaponLoadout.js';
 import { secondaryAmmoCapacity } from '../core/secondaryWeapon.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
+import { bindBuildVersion } from './versionBadge.js';
 
 const canvas = document.querySelector('#constructCanvas');
 const context = canvas.getContext('2d');
@@ -42,6 +43,8 @@ const loadoutSelects = [
   document.querySelector('#secondarySlot1Select'),
   document.querySelector('#secondarySlot2Select'),
 ];
+
+bindBuildVersion();
 
 const cellColors = {
   armor: '#818a8b',

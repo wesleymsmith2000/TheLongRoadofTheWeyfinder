@@ -5,6 +5,7 @@ import {
   createLevelPackagePlan,
   validateLevelDefinition,
 } from '../core/levelDefinition.js';
+import { bindBuildVersion } from './versionBadge.js';
 import prototypeLevelDefinition from '../../content/levels/prototype0_road_trial.json' with { type: 'json' };
 
 const canvas = document.querySelector('#levelCanvas');
@@ -16,6 +17,8 @@ const downloadButton = document.querySelector('#downloadButton');
 const resetButton = document.querySelector('#resetButton');
 const applyJsonButton = document.querySelector('#applyJsonButton');
 const copyJsonButton = document.querySelector('#copyJsonButton');
+
+bindBuildVersion();
 
 const fields = Object.fromEntries(
   [

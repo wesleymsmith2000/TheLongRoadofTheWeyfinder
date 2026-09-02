@@ -16,6 +16,7 @@ import orbOfBladesDefinition from '../../content/weapons/orb_of_blades.json' wit
 import aimedPatternDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 import { CELL_SIZE } from '../core/voxelMask.js';
+import { bindBuildVersion } from './versionBadge.js';
 
 const canonAssets = {
   weapon: [
@@ -61,6 +62,8 @@ const statsTitle = document.querySelector('#statsTitle');
 const weaponFields = document.querySelector('#weaponFields');
 const patternFields = document.querySelector('#patternFields');
 const statusEffectFields = document.querySelector('#statusEffectFields');
+
+bindBuildVersion();
 
 const fields = Object.fromEntries(
   [

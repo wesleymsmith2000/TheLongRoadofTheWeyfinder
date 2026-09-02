@@ -1,6 +1,7 @@
 import { installLocalContentBundle, installLocalContentFiles, listLocalContentPacks, removeLocalContentPack } from '../core/localContentLibrary.js';
 import { EXAMPLE_PROTOTYPE0_MODULE_SET_BUNDLE } from './examplePrototype0ModuleSet.js';
 import { EXAMPLE_ZONE_ENEMY_SET_BUNDLE } from './exampleZoneEnemySet.js';
+import { bindBuildVersion } from './versionBadge.js';
 
 const editorFrame = document.querySelector('#editorFrame');
 const editorButtons = [...document.querySelectorAll('[data-editor]')];
@@ -14,6 +15,8 @@ const refreshModulesButton = document.querySelector('#refreshModulesButton');
 const clearStatusButton = document.querySelector('#clearStatusButton');
 const moduleStatus = document.querySelector('#moduleStatus');
 const moduleList = document.querySelector('#moduleList');
+
+bindBuildVersion();
 
 for (const button of editorButtons) {
   button.addEventListener('click', () => openEditor(button));

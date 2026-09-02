@@ -23,6 +23,7 @@ import {
   installLocalContentFiles,
   listLocalContentPacks,
 } from '../core/localContentLibrary.js';
+import { bindBuildVersion } from './versionBadge.js';
 
 const canvas = document.querySelector('#enemyCanvas');
 const context = canvas.getContext('2d');
@@ -38,6 +39,8 @@ const importFilesButton = document.querySelector('#importFilesButton');
 const importFilesInput = document.querySelector('#importFilesInput');
 const applyJsonButton = document.querySelector('#applyJsonButton');
 const copyJsonButton = document.querySelector('#copyJsonButton');
+
+bindBuildVersion();
 
 const fields = Object.fromEntries(
   [

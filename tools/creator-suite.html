@@ -80,6 +80,18 @@
         gap: 8px;
       }
 
+      .build-version {
+        display: inline-grid;
+        place-items: center;
+        min-height: 36px;
+        padding: 0 10px;
+        border: 1px solid rgb(244 238 228 / 0.16);
+        border-radius: 8px;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
       .workspace {
         display: grid;
         grid-template-columns: minmax(250px, 330px) minmax(0, 1fr);
@@ -188,6 +200,7 @@
           <p>Unified static shell for mob/construct, enemy, projectile/weapon, pattern, bullet, and level tools.</p>
         </div>
         <div class="actions">
+          <span class="build-version" data-build-version></span>
           <a href="../"><button type="button">Game</button></a>
           <button id="importFolderButton" type="button">Import Folder</button>
           <button id="importFilesButton" type="button">Import Files</button>
