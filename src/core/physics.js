@@ -1,4 +1,4 @@
-import { angleDelta, clamp, rotatePoint } from './math.js';
+import { angleDelta, clamp } from './math.js';
 import { SAFE_TERRAIN_SAMPLE } from './terrainMaterial.js';
 
 export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, upgrades = {}, terrainContact = SAFE_TERRAIN_SAMPLE) {
@@ -19,9 +19,9 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   const pull = turnBalance * 0.35;
   const massPenalty = Math.sqrt(vehicle.totalMass / 120);
 
-  const localAx = (inputX * 135 * propulsion * engineAcceleration * terrain.traction) / massPenalty;
-  const localAy = (inputY * 135 * propulsion * engineAcceleration * terrain.traction) / massPenalty;
-  const accel = rotatePoint(localAx, localAy, roadHeading);
+  const worldAx = (inputX * 135 * propulsion * engineAcceleration * terrain.traction) / massPenalty;
+  const worldAy = (inputY * 135 * propulsion * engineAcceleration * terrain.traction) / massPenalty;
+  const accel = { x: worldAx, y: worldAy };
   vehicle.vx += accel.x * dt;
   vehicle.vy += accel.y * dt;
   applyWheelGrounding(vehicle, accel, wheelPower, wheelInertiaCompensation * terrain.traction, dt);

@@ -19,6 +19,15 @@ test('boost dodge spends fuel and pushes in the requested direction', () => {
   assert.equal(boost.activeTime > 0, true);
 });
 
+test('boost dodge input stays in terrain coordinates when the road frame turns', () => {
+  const vehicle = createStartingVehicle();
+  const boost = createBoostState();
+  const used = stepBoost(vehicle, boost, { dodgePressed: true, dodgeX: 0, dodgeY: -1 }, Math.PI / 2, 0.016);
+  assert.equal(used, true);
+  assert.equal(vehicle.vy < -25, true);
+  assert.equal(Math.abs(vehicle.vx) < 1, true);
+});
+
 test('additional engines scale boost drive reserve recharge and duration', () => {
   const lightGame = createGame();
   const engineGame = createGame();

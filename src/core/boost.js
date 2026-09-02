@@ -1,4 +1,4 @@
-import { clamp, rotatePoint } from './math.js';
+import { clamp } from './math.js';
 
 export function createBoostState() {
   return {
@@ -20,7 +20,7 @@ export function createBoostState() {
   };
 }
 
-export function stepBoost(vehicle, boost, input, roadHeading, dt) {
+export function stepBoost(vehicle, boost, input, _roadHeading, dt) {
   boost.cooldown = Math.max(0, boost.cooldown - dt);
   if (boost.driveTime > 0 && boost.driveDirection) {
     boost.driveTime = Math.max(0, boost.driveTime - dt);
@@ -34,7 +34,7 @@ export function stepBoost(vehicle, boost, input, roadHeading, dt) {
   if (!input.dodgePressed || boost.cooldown > 0 || boost.fuel < boost.cost) return false;
 
   const direction = dodgeDirection(input);
-  const world = rotatePoint(direction.x, direction.y, roadHeading);
+  const world = direction;
   vehicle.vx += world.x * boost.acceleration;
   vehicle.vy += world.y * boost.acceleration;
   clampBoostSpeed(vehicle, boost.maxSpeed);
