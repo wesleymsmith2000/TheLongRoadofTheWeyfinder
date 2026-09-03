@@ -19,7 +19,7 @@ export function createProceduralRoadRoute(seed = 1147, options = {}) {
     previousSign = sign;
     const magnitude = Math.PI / 10 + nextUnit() * (Math.PI / 7.5);
     const turnLength = 1050 + nextUnit() * 950;
-    segments.push({ id: `road.curve.${index}`, length: turnLength, turnRadians: sign * magnitude });
+    segments.push({ id: `road.curve.${index}`, length: turnLength, turnRadians: sign * magnitude, curve: 'bezier' });
   }
 
   return {
@@ -87,6 +87,9 @@ function advanceAlongSegment(x, y, heading, segment, distance) {
   const length = segmentLength(segment);
   const turnRadians = Number.isFinite(segment?.turnRadians) ? segment.turnRadians : 0;
   if (length <= 0 || distance <= 0) return { x, y, heading };
+  if (segment?.curve === 'bezier' || segment?.curve === 'spline') {
+    return advanceAlongBezierSegment(x, y, heading, segment, distance, length, turnRadians);
+  }
   if (Math.abs(turnRadians) <= 0.000001) {
     const forward = rotatePoint(0, -1, heading);
     return {
@@ -103,6 +106,66 @@ function advanceAlongSegment(x, y, heading, segment, distance) {
     y: y + (Math.sin(heading) - Math.sin(endHeading)) / turnRate,
     heading: endHeading,
   };
+}
+
+function advanceAlongBezierSegment(x, y, heading, segment, distance, length, turnRadians) {
+  const t = clamp01(distance / length);
+  const endHeading = heading + turnRadians;
+  const forward = rotatePoint(0, -1, heading);
+  const endForward = rotatePoint(0, -1, endHeading);
+  const controlScale = clamp01(segment.controlScale ?? 0.38);
+  const endBias = clamp01(segment.endBias ?? 0.52);
+  const startWeight = 1 - endBias;
+  const p0 = { x, y };
+  const p3 = {
+    x: x + forward.x * length * startWeight + endForward.x * length * endBias,
+    y: y + forward.y * length * startWeight + endForward.y * length * endBias,
+  };
+  const p1 = {
+    x: p0.x + forward.x * length * controlScale,
+    y: p0.y + forward.y * length * controlScale,
+  };
+  const p2 = {
+    x: p3.x - endForward.x * length * controlScale,
+    y: p3.y - endForward.y * length * controlScale,
+  };
+  const point = cubicBezierPoint(p0, p1, p2, p3, t);
+  const tangent = cubicBezierTangent(p0, p1, p2, p3, t);
+  return {
+    x: point.x,
+    y: point.y,
+    heading: headingFromForward(tangent),
+  };
+}
+
+function cubicBezierPoint(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  const tt = t * t;
+  const uu = u * u;
+  const uuu = uu * u;
+  const ttt = tt * t;
+  return {
+    x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
+    y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y,
+  };
+}
+
+function cubicBezierTangent(p0, p1, p2, p3, t) {
+  const u = 1 - t;
+  return {
+    x: 3 * u * u * (p1.x - p0.x) + 6 * u * t * (p2.x - p1.x) + 3 * t * t * (p3.x - p2.x),
+    y: 3 * u * u * (p1.y - p0.y) + 6 * u * t * (p2.y - p1.y) + 3 * t * t * (p3.y - p2.y),
+  };
+}
+
+function headingFromForward(vector) {
+  if (Math.hypot(vector.x, vector.y) <= 0.000001) return 0;
+  return Math.atan2(vector.x, -vector.y);
+}
+
+function clamp01(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
 }
 
 function validSegments(route) {

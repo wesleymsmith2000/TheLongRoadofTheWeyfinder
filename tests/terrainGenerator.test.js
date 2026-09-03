@@ -64,6 +64,56 @@ test('procedural terrain route stamps connected turn tiles', () => {
   assert.equal(generator.debugLog.length, 0);
 });
 
+test('procedural terrain places beach and ocean bands beside the road', () => {
+  const generator = createTerrainGenerator({
+    seed: 1,
+    route: {
+      startX: 0,
+      startY: 0,
+      startHeading: 0,
+      routePadding: 0,
+      segments: [{ id: 'coast-road', length: 6000, turnRadians: 0 }],
+    },
+  });
+  assert.equal(generateTile(generator, 8, -10).tags.includes('beach'), true);
+  assert.equal(generateTile(generator, 12, -10).tags.includes('ocean'), true);
+});
+
+test('procedural streams cross roads through bridge tiles', () => {
+  const generator = createTerrainGenerator({
+    seed: 1,
+    route: {
+      startX: 0,
+      startY: 0,
+      startHeading: 0,
+      routePadding: 0,
+      segments: [{ id: 'bridge-road', length: 6000, turnRadians: 0 }],
+    },
+  });
+  const bridge = generateTile(generator, 0, -68);
+  const stream = generateTile(generator, 8, -67);
+  assert.equal(bridge.tags.includes('bridge'), true);
+  assert.equal(bridge.tags.includes('road'), true);
+  assert.equal(stream.tags.includes('stream'), true);
+  assert.equal(stream.semantic.fluidGrid[0][0].type, 'stream');
+});
+
+test('procedural ravines cut the inland side away from the coast', () => {
+  const generator = createTerrainGenerator({
+    seed: 1,
+    route: {
+      startX: 0,
+      startY: 0,
+      startHeading: 0,
+      routePadding: 0,
+      segments: [{ id: 'ravine-road', length: 6000, turnRadians: 0 }],
+    },
+  });
+  const ravine = generateTile(generator, -9, -94);
+  assert.equal(ravine.tags.includes('ravine'), true);
+  assert.equal(ravine.semantic.heightGrid[0][0], -1);
+});
+
 test('world terrain addressing supports negatives and exact boundaries', () => {
   const address = worldToTerrainAddress(-1, -32);
   assert.equal(address.chunkX, -1);
@@ -95,4 +145,11 @@ test('streamed chunks retire and regenerate identically', () => {
 
 function tileIds(chunk) {
   return chunk.tiles.map((row) => row.map((tile) => `${tile.sourceAssetId}:${tile.rotation}:${tile.fallback ? 'fallback' : 'authored'}`));
+}
+
+function generateTile(generator, worldTileX, worldTileY) {
+  const chunk = generateTerrainChunk(generator, Math.floor(worldTileX / 16), Math.floor(worldTileY / 16));
+  const localX = ((worldTileX % 16) + 16) % 16;
+  const localY = ((worldTileY % 16) + 16) % 16;
+  return chunk.tiles[localY][localX];
 }

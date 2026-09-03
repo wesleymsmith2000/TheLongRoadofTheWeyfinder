@@ -55,6 +55,29 @@ test('road frame follows route curves and emits turn events when entering bends'
   assert.equal(road.lastTurnAngle, Math.PI / 2);
 });
 
+test('road frame follows bezier route curves smoothly', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle, {
+    route: {
+      startX: 0,
+      startY: 0,
+      startHeading: 0,
+      segments: [
+        { id: 'spline-bend', length: 240, turnRadians: Math.PI / 3, curve: 'bezier' },
+      ],
+    },
+  });
+  road.speed = 120;
+  const first = stepRoadFrame(road, 1);
+  const firstHeading = road.heading;
+  const second = stepRoadFrame(road, 1);
+  assert.equal(first.turnAngle, 0);
+  assert.equal(second.turnAngle, 0);
+  assert.equal(firstHeading > 0, true);
+  assert.equal(road.heading > firstHeading, true);
+  assert.equal(Math.abs(road.heading - Math.PI / 3) < 0.02, true);
+});
+
 test('road camera rotates toward road heading', () => {
   const vehicle = createStartingVehicle();
   const road = createRoadFrame(vehicle);

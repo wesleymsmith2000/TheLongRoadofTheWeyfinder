@@ -4,6 +4,10 @@ const MATERIAL_COLORS = Object.freeze({
   'ghost_forest.ground': '#1d2a24',
   'ghost_forest.path': '#3b3830',
   'ghost_forest.slippery_moss': '#3e7368',
+  'ghost_forest.beach_sand': '#9f946a',
+  'ghost_forest.shallow_water': '#2e6f7a',
+  'ghost_forest.deep_water': '#123f58',
+  'ghost_forest.ravine_floor': '#16191e',
   'safe.default': '#242826',
 });
 
@@ -45,6 +49,7 @@ export class TerrainRenderer {
 function drawTile(ctx, tile, x, y, size, atlasLibrary) {
   const baseMaterial = tile.semantic?.materialGrid?.[0]?.[0] ?? 'ghost_forest.ground';
   const isRoad = tile.tags.includes('road');
+  if (drawProceduralFeatureTile(ctx, tile, x, y, size, atlasLibrary)) return;
   if (drawAtlasTile(ctx, tile, x, y, size, atlasLibrary)) return;
   ctx.fillStyle = MATERIAL_COLORS[baseMaterial] ?? MATERIAL_COLORS['safe.default'];
   ctx.fillRect(x, y, size, size);
@@ -52,16 +57,146 @@ function drawTile(ctx, tile, x, y, size, atlasLibrary) {
   if (isRoad) drawRoadShape(ctx, tile, x, y, size);
 }
 
+function drawProceduralFeatureTile(ctx, tile, x, y, size, atlasLibrary) {
+  if (tile.tags.includes('bridge')) {
+    drawWaterTile(ctx, tile, x, y, size, atlasLibrary, '#244d5a');
+    drawBridgeTile(ctx, tile, x, y, size);
+    return true;
+  }
+  if (tile.tags.includes('stream')) {
+    drawWaterTile(ctx, tile, x, y, size, atlasLibrary, '#2e6f7a');
+    return true;
+  }
+  if (tile.tags.includes('ocean')) {
+    drawOceanTile(ctx, tile, x, y, size);
+    return true;
+  }
+  if (tile.tags.includes('beach')) {
+    drawBeachTile(ctx, tile, x, y, size);
+    return true;
+  }
+  if (tile.tags.includes('ravine')) {
+    drawRavineTile(ctx, tile, x, y, size, atlasLibrary);
+    return true;
+  }
+  return false;
+}
+
 function drawAtlasTile(ctx, tile, x, y, size, atlasLibrary) {
-  const resolved = atlasLibrary?.resolve(tile.render?.baseAsset);
+  return drawAtlasSprite(ctx, tile.render?.baseAsset, x, y, size, atlasLibrary, tile.rotation);
+}
+
+function drawAtlasSprite(ctx, ref, x, y, size, atlasLibrary, rotation = 0) {
+  const resolved = atlasLibrary?.resolve(ref);
   if (!resolved?.image?.complete || resolved.image.naturalWidth <= 0) return false;
   const { source } = resolved;
   ctx.save();
   ctx.translate(x + size / 2, y + size / 2);
-  ctx.rotate((tile.rotation * Math.PI) / 180);
+  ctx.rotate((rotation * Math.PI) / 180);
   ctx.drawImage(resolved.image, source.x, source.y, source.width, source.height, -size / 2, -size / 2, size, size);
   ctx.restore();
   return true;
+}
+
+function drawWaterTile(ctx, tile, x, y, size, atlasLibrary, fallback) {
+  if (!drawAtlasSprite(ctx, tile.render?.baseAsset, x, y, size, atlasLibrary, tile.rotation)) {
+    ctx.fillStyle = fallback;
+    ctx.fillRect(x, y, size, size);
+  }
+  drawWaterRipples(ctx, tile, x, y, size, tile.tags.includes('stream') ? '#b5f3ff' : '#86cad4');
+}
+
+function drawOceanTile(ctx, tile, x, y, size) {
+  const roll = hashUnit(tile.worldTileX, tile.worldTileY, 941);
+  const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
+  gradient.addColorStop(0, '#0d3149');
+  gradient.addColorStop(1, roll > 0.5 ? '#155574' : '#123f58');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, size, size);
+  drawWaterRipples(ctx, tile, x, y, size, '#82cddd');
+}
+
+function drawBeachTile(ctx, tile, x, y, size) {
+  const roll = hashUnit(tile.worldTileX, tile.worldTileY, 613);
+  ctx.fillStyle = roll > 0.5 ? '#a99a69' : '#91865f';
+  ctx.fillRect(x, y, size, size);
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = '#d6cc9b';
+  ctx.fillRect(x + size * ((roll * 5) % 0.72), y + size * ((roll * 11) % 0.72), size * 0.36, size * 0.08);
+  ctx.fillStyle = '#5f806f';
+  ctx.fillRect(x, y + size * 0.76, size, size * 0.1);
+  ctx.globalAlpha = 1;
+}
+
+function drawRavineTile(ctx, tile, x, y, size, atlasLibrary) {
+  if (!drawAtlasSprite(ctx, tile.render?.baseAsset, x, y, size, atlasLibrary, tile.rotation)) {
+    ctx.fillStyle = '#13161b';
+    ctx.fillRect(x, y, size, size);
+  }
+  ctx.save();
+  ctx.globalAlpha = 0.72;
+  ctx.strokeStyle = '#505262';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + size * 0.12, y + size * 0.2);
+  ctx.lineTo(x + size * 0.88, y + size * 0.78);
+  ctx.stroke();
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = '#07090d';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(x + size * 0.06, y + size * 0.3);
+  ctx.lineTo(x + size * 0.94, y + size * 0.86);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBridgeTile(ctx, tile, x, y, size) {
+  const centerX = x + size / 2;
+  const centerY = y + size / 2;
+  const halfWidth = size * 0.28;
+  ctx.save();
+  ctx.strokeStyle = '#6c5940';
+  ctx.lineWidth = halfWidth * 2;
+  ctx.lineCap = 'butt';
+  for (const [direction, socket] of Object.entries(tile.sockets)) {
+    if (socket.road === 'closed') continue;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    if (direction === 'north') ctx.lineTo(centerX, y);
+    if (direction === 'east') ctx.lineTo(x + size, centerY);
+    if (direction === 'south') ctx.lineTo(centerX, y + size);
+    if (direction === 'west') ctx.lineTo(x, centerY);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#6c5940';
+  ctx.fillRect(centerX - halfWidth, centerY - halfWidth, halfWidth * 2, halfWidth * 2);
+  ctx.globalAlpha = 0.45;
+  ctx.strokeStyle = '#d1ba82';
+  ctx.lineWidth = 1;
+  for (let step = -2; step <= 2; step += 1) {
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.18, centerY + step * size * 0.11);
+    ctx.lineTo(x + size * 0.82, centerY + step * size * 0.11);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawWaterRipples(ctx, tile, x, y, size, color) {
+  const roll = hashUnit(tile.worldTileX, tile.worldTileY, 283);
+  ctx.save();
+  ctx.globalAlpha = 0.24;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  for (let index = 0; index < 3; index += 1) {
+    const yy = y + size * (0.22 + index * 0.23 + ((roll * (index + 3)) % 0.08));
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.1, yy);
+    ctx.quadraticCurveTo(x + size * 0.48, yy - size * 0.08, x + size * 0.9, yy);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawGroundVariation(ctx, tile, x, y, size) {
