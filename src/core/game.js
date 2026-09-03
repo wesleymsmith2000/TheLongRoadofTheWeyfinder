@@ -720,15 +720,21 @@ function stepScrapPickups(game, dt) {
     const dy = game.vehicle.y - pickup.y;
     const distance = Math.hypot(dx, dy);
     if (clearFieldSweep && distance > 0) {
+      const sweepAge = pickup.clearFieldSweepAge ?? 0;
+      const sweepScale = 0.25 + Math.min(1, sweepAge / 4) * 0.75;
       const sweepSpeed = clamp(distance * 1.15, 420, 1200);
-      const speed = Math.max(sweepSpeed, Math.hypot(pickup.vx, pickup.vy));
+      const speed = Math.max(sweepSpeed * sweepScale, Math.hypot(pickup.vx, pickup.vy));
       pickup.vx = (dx / distance) * speed;
       pickup.vy = (dy / distance) * speed;
+      pickup.clearFieldSweepAge = sweepAge + dt;
       pickup.life = Math.max(pickup.life, distance / speed + 1.1);
     } else if (distance > 0 && distance <= magnetRange) {
+      pickup.clearFieldSweepAge = 0;
       const pull = 1 - distance / magnetRange;
       pickup.vx += (dx / distance) * (65 + pull * 130) * magnetStrength * dt;
       pickup.vy += (dy / distance) * (65 + pull * 130) * magnetStrength * dt;
+    } else {
+      pickup.clearFieldSweepAge = 0;
     }
     pickup.x += pickup.vx * dt;
     pickup.y += pickup.vy * dt;

@@ -63,8 +63,27 @@ test('remaining scrap b-lines toward the vehicle once the field is clear', () =>
   game.enemyProjectiles = [];
   game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 1 }];
   stepGame(game, {}, 1 / 60);
-  assert.equal(game.scrapPickups[0].vx < -200, true);
+  assert.equal(game.scrapPickups[0].vx < -90, true);
+  assert.equal(game.scrapPickups[0].vx > -120, true);
   assert.equal(game.scrapPickups[0].life > 1, true);
+});
+
+test('clear-field scrap sweep accelerates from a quarter speed over four seconds', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [];
+  game.enemyProjectiles = [];
+  game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 1000, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 1 }];
+  stepGame(game, {}, 1 / 60);
+  const initialSpeed = Math.hypot(game.scrapPickups[0].vx, game.scrapPickups[0].vy);
+  assert.equal(initialSpeed > 285 && initialSpeed < 305, true);
+
+  for (let index = 0; index < 240; index += 1) stepGame(game, {}, 1 / 60);
+  const laterSpeed = Math.hypot(game.scrapPickups[0].vx, game.scrapPickups[0].vy);
+  assert.equal(laterSpeed > initialSpeed * 3, true);
+  assert.equal(laterSpeed <= 1200, true);
 });
 
 test('clear-field scrap sweep reaches distant pickups before they expire', () => {
@@ -103,5 +122,5 @@ test('scrap sweep ignores queued waves and live projectiles once enemy cores are
   game.enemyProjectiles = [createProjectile(game.vehicle.x, game.vehicle.y - 40, 0, 20, { team: 'enemy', damage: 1, lifetime: 1 })];
   game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 }];
   stepGame(game, {}, 1 / 60);
-  assert.equal(game.scrapPickups[0].vx < -200, true);
+  assert.equal(game.scrapPickups[0].vx < -90, true);
 });
