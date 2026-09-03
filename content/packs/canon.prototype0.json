@@ -45,12 +45,6 @@
       "../resources/weapons/sprite.weapon.mortar_enemy_shell.json",
       "../resources/weapons/sprite.weapon.mortar_player_marker.json",
       "../resources/weapons/sprite.weapon.mortar_enemy_marker.json",
-      "../resources/enemies/sprite.enemy.ghost_phaser.json",
-      "../resources/enemies/sprite.enemy.spider_walker.json",
-      "../resources/enemies/sprite.enemy.heavy_mortar_boat.json",
-      "../resources/enemies/sprite.enemy.scrap_buzzard.json",
-      "../resources/enemies/sprite.enemy.inchworm_carrier.json",
-      "../resources/enemies/sprite.enemy.moth_bomber.json",
       "../resources/terrain/image.terrain_1_spritesheet.json",
       "../resources/terrain/image.terrain_2_spritesheet.json"
     ],

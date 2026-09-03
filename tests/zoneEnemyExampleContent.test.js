@@ -17,12 +17,6 @@ import inchwormCarrierConstruct from '../content/examples/prototype0-zone-enemy-
 import mothBomberConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.moth_bomber_sculpted.json' with { type: 'json' };
 import zoneEnemyArchetypes from '../content/examples/prototype0-zone-enemy-set/enemies/example.zone_enemy_archetypes.json' with { type: 'json' };
 import behaviorContracts from '../content/examples/prototype0-zone-enemy-set/behaviors/example.zone_enemy_behavior_contracts.json' with { type: 'json' };
-import ghostPhaserSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.ghost_phaser.json' with { type: 'json' };
-import spiderWalkerSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.spider_walker.json' with { type: 'json' };
-import heavyMortarBoatSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.heavy_mortar_boat.json' with { type: 'json' };
-import scrapBuzzardSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.scrap_buzzard.json' with { type: 'json' };
-import inchwormCarrierSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.inchworm_carrier.json' with { type: 'json' };
-import mothBomberSprite from '../content/examples/prototype0-zone-enemy-set/resources/enemies/sprite.enemy.moth_bomber.json' with { type: 'json' };
 import { loadContentBundle, validateContentPack } from '../src/core/contentRegistry.js';
 import { validateConstructDefinition } from '../src/core/constructDefinition.js';
 import { validateEnemyArchetypePack } from '../src/core/enemyArchetypeDefinition.js';
@@ -46,7 +40,6 @@ const constructs = [
   inchwormCarrierConstruct,
   mothBomberConstruct,
 ];
-const imageResources = [ghostPhaserSprite, spiderWalkerSprite, heavyMortarBoatSprite, scrapBuzzardSprite, inchwormCarrierSprite, mothBomberSprite];
 
 test('zone enemy example content pack validates for editor import', () => {
   assert.equal(validateContentPack(manifest).valid, true);
@@ -62,14 +55,13 @@ test('zone enemy example content pack validates for editor import', () => {
       ...patterns.map((definition) => ({ kind: 'pattern', definition, sourcePack: manifest.packId })),
       { kind: 'enemyArchetype', definition: zoneEnemyArchetypes, sourcePack: manifest.packId },
       { kind: 'behavior', definition: behaviorContracts, sourcePack: manifest.packId },
-      ...imageResources.map((definition) => ({ kind: 'image', definition, sourcePack: manifest.packId })),
     ],
   };
   const report = loadContentBundle(bundle);
   assert.equal(report.valid, true);
   assert.equal(report.registry.assets.get('construct').size, constructs.length);
   assert.equal(report.registry.assets.get('pattern').size, patterns.length);
-  assert.equal(report.registry.assets.get('image').size, imageResources.length);
+  assert.equal(report.registry.assets.get('image').size, 0);
   assert.equal(report.registry.assets.get('enemyArchetype').has('example.zone_enemy_archetypes'), true);
 });
 
@@ -84,13 +76,12 @@ test('zone enemy examples preserve requested advanced behavior descriptors', () 
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').segments.maxCount, 12);
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').eyeGuns.repelsIncomingProjectiles, true);
   assert.equal(byId.get('example.moth_bomber.freedoms_pass').detonation.trigger, 'contactPlayerOrConstruct');
-  assert.equal(byId.get('example.ghost_phase_mob.ghost_forrest').presentation.sprite.assetId, 'sprite.enemy.ghost_phaser');
   assert.equal(byId.get('example.ghost_phase_mob.ghost_forrest').construct, 'example.construct.ghost_phaser_sculpted');
   assert.equal(byId.get('example.tractor_frog.digitized_stream').presentation.variant, 'tractorFrog');
   assert.equal(byId.get('example.tractor_frog.digitized_stream').presentation.sprite, undefined);
   assert.equal(byId.get('example.tractor_frog.digitized_stream').construct, 'example.construct.tractor_frog_sculpted');
   assert.equal(byId.get('example.elevated_walker.starlight_road').presentation.variant, 'spiderWalker');
-  assert.equal(byId.get('example.scrap_buzzard.shadowed_desert').presentation.sprite.assetId, 'sprite.enemy.scrap_buzzard');
+  assert.equal(zoneEnemyArchetypes.archetypes.every((archetype) => archetype.presentation?.sprite == null), true);
 });
 
 test('zone enemy sculpted constructs use enlarged editable module counts', () => {

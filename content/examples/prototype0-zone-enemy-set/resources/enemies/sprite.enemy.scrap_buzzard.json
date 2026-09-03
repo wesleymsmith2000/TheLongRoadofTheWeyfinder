@@ -1,9 +1,0 @@
-{
-  "schemaVersion": "0.1",
-  "assetId": "sprite.enemy.scrap_buzzard",
-  "kind": "image",
-  "displayName": "Scrap Buzzard Sprite",
-  "path": "assets/images/enemies/scrap_buzzard.svg",
-  "nativeSize": [160, 112],
-  "tags": ["enemy", "buzzard", "vulture", "shadowed-desert"]
-}

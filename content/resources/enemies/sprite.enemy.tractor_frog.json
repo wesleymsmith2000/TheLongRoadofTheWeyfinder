@@ -1,9 +1,0 @@
-{
-  "schemaVersion": "0.1",
-  "assetId": "sprite.enemy.tractor_frog",
-  "kind": "image",
-  "displayName": "Tractor Frog Sprite",
-  "path": "assets/images/enemies/tractor_frog.svg",
-  "nativeSize": [128, 128],
-  "tags": ["enemy", "frog", "hopper", "digitized-stream"]
-}

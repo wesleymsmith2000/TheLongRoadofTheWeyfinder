@@ -10,12 +10,6 @@ import mortarPlayerShellUrl from '../../assets/images/weapons/mortar_player_shel
 import mortarEnemyShellUrl from '../../assets/images/weapons/mortar_enemy_shell.png';
 import mortarPlayerMarkerUrl from '../../assets/images/weapons/mortar_player_marker.png';
 import mortarEnemyMarkerUrl from '../../assets/images/weapons/mortar_enemy_marker.png';
-import ghostPhaserUrl from '../../assets/images/enemies/ghost_phaser.svg';
-import spiderWalkerUrl from '../../assets/images/enemies/spider_walker.svg';
-import heavyMortarBoatUrl from '../../assets/images/enemies/heavy_mortar_boat.svg';
-import scrapBuzzardUrl from '../../assets/images/enemies/scrap_buzzard.svg';
-import inchwormCarrierUrl from '../../assets/images/enemies/inchworm_carrier.svg';
-import mothBomberUrl from '../../assets/images/enemies/moth_bomber.svg';
 
 const COLORS = {
   core: '#e4d66b',
@@ -52,12 +46,6 @@ const CANON_IMAGE_URLS = new Map([
   ['sprite.weapon.mortar_enemy_shell', mortarEnemyShellUrl],
   ['sprite.weapon.mortar_player_marker', mortarPlayerMarkerUrl],
   ['sprite.weapon.mortar_enemy_marker', mortarEnemyMarkerUrl],
-  ['sprite.enemy.ghost_phaser', ghostPhaserUrl],
-  ['sprite.enemy.spider_walker', spiderWalkerUrl],
-  ['sprite.enemy.heavy_mortar_boat', heavyMortarBoatUrl],
-  ['sprite.enemy.scrap_buzzard', scrapBuzzardUrl],
-  ['sprite.enemy.inchworm_carrier', inchwormCarrierUrl],
-  ['sprite.enemy.moth_bomber', mothBomberUrl],
 ]);
 
 export function createImageAssetLibrary(imageFactory = null) {
@@ -123,7 +111,7 @@ export class CanvasRenderer {
     drawRoadLane(ctx, game.road);
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
-    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, this.imageAssets);
+    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time);
     drawSmokeParticles(ctx, game.smokeParticles);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
@@ -361,7 +349,7 @@ function drawComMarker(ctx, com) {
   ctx.stroke();
 }
 
-function drawEnemy(ctx, enemy, time, imageAssets) {
+function drawEnemy(ctx, enemy, time) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
@@ -375,7 +363,7 @@ function drawEnemy(ctx, enemy, time, imageAssets) {
   }
   const visualScale = enemy.visualScale ?? 1;
   if (visualScale !== 1) ctx.scale(visualScale, visualScale);
-  drawEnemyPresentationUnderlay(ctx, enemy, time, imageAssets);
+  drawEnemyPresentationUnderlay(ctx, enemy, time);
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
   for (const cell of enemy.cells) {
     if (!cell.state.destroyed) {
@@ -402,14 +390,12 @@ function drawConstructPresentation(ctx, construct, imageAssets) {
   return drawSpriteDescriptor(ctx, imageAssets, sprite, 0, 0, 0);
 }
 
-function drawEnemyPresentationUnderlay(ctx, enemy, time, imageAssets) {
+function drawEnemyPresentationUnderlay(ctx, enemy, time) {
   const presentation = enemy.presentation;
   if (!presentation) return;
   if (presentation.variant === 'spiderWalker') drawWalkerLegStride(ctx, enemy, time, enemy.palette ?? COLORS);
   if (presentation.variant === 'scrapBuzzard') drawBuzzardWingBeat(ctx, enemy, time, enemy.palette ?? COLORS);
   if (presentation.variant === 'inchwormCarrier') drawInchwormSegmentWave(ctx, enemy, time, enemy.palette ?? COLORS);
-  if (presentation.variant === 'tractorFrog') return;
-  drawConstructPresentation(ctx, enemy, imageAssets);
 }
 
 function drawEnemyPresentationOverlay(ctx, enemy, palette, time) {

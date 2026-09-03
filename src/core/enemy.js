@@ -276,10 +276,6 @@ function enlargeEnemyModules(enemy, linearScale = ENEMY_MODULE_LINEAR_SCALE) {
   enemy.connections = moduleAdjacencyConnections(cells);
   enemy.radius = constructRadius(cells);
   enemy.moduleLinearScale = factor;
-  if (enemy.presentation?.sprite?.displaySize) {
-    enemy.presentation = structuredClone(enemy.presentation);
-    enemy.presentation.sprite.displaySize = enemy.presentation.sprite.displaySize.map((size) => size * factor);
-  }
   return enemy;
 }
 
