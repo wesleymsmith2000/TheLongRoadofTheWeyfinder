@@ -229,6 +229,46 @@ test('damage-budget blades damage nearest live voxel when crossing an empty cell
   assert.equal(after < before, true);
 });
 
+test('damage-budget blades use rotated enemy collision coordinates', () => {
+  const enemy = createEnemy(0, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
+  enemy.collisionRotation = Math.PI / 2;
+  const core = enemy.cells.find((cell) => cell.type === 'core');
+  for (const voxel of core.mask.flat()) voxel.hp = 0;
+  core.mask[0][0].hp = core.mask[0][0].maxHp;
+  core.mask[0][1].hp = core.mask[0][1].maxHp;
+  recalculateCell(core);
+  const unit = CELL_SIZE / VOXELS;
+  const localTopLeft = {
+    x: 0.5 * unit - CELL_SIZE / 2,
+    y: 0.5 * unit - CELL_SIZE / 2,
+  };
+  const visibleTopLeft = {
+    x: -localTopLeft.y,
+    y: localTopLeft.x,
+  };
+  const topLeftBefore = core.mask[0][0].hp;
+  const topRightBefore = core.mask[0][1].hp;
+  const projectile = createProjectile(visibleTopLeft.x, visibleTopLeft.y, 0, 0, {
+    team: 'player',
+    weapon: 'orb_flechette',
+    damage: 1,
+    radius: 0.1,
+    pierce: 1,
+    pierceDamageScale: 1,
+    damagePiercesUntilSpent: true,
+  });
+  const pierce = applyEnemyProjectilePierceDamage([enemy], projectile, {
+    start: visibleTopLeft,
+    maxLength: 0,
+    maxHits: 1,
+    halfWidth: 0,
+    damageScale: 1,
+  });
+  assert.equal(pierce.hit, true);
+  assert.equal(core.mask[0][0].hp, topLeftBefore - 1);
+  assert.equal(core.mask[0][1].hp, topRightBefore);
+});
+
 test('wide damage-budget blades sweep through enemies and keep remaining damage', () => {
   const game = createGame();
   game.autofire = false;
@@ -251,6 +291,28 @@ test('wide damage-budget blades sweep through enemies and keep remaining damage'
   assert.equal(Boolean(blade), true);
   assert.equal(blade.damage < 1000, true);
   assert.equal(blade.lifetime > 0, true);
+  assert.equal(game.score.damageDone > 0, true);
+});
+
+test('damage-budget blades trace along actual frame travel instead of stale sprite angle', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [createEnemy(0, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 })];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [
+    createProjectile(-CELL_SIZE * 5, 0, CELL_SIZE * 5 * 60, 0, {
+      team: 'player',
+      weapon: 'orb_flechette',
+      angle: Math.PI / 2,
+      damage: 18,
+      radius: 0.1,
+      pierce: 4,
+      pierceDamageFalloff: 1,
+      damagePiercesUntilSpent: true,
+      lifetime: 1,
+    }),
+  ];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(game.score.damageDone > 0, true);
 });
 

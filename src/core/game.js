@@ -1126,6 +1126,7 @@ function stepEnemy(game, enemy, dt) {
   if (enemy.destroyed) return;
   stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
+  updateEnemyCollisionRotation(enemy, game.time);
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
   enemy.vx *= Math.pow(0.78, dt);
@@ -1148,6 +1149,7 @@ function stepDizzyEnemy(enemy, dt) {
   enemy.vy *= Math.pow(0.03, dt);
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
+  updateEnemyCollisionRotation(enemy);
 }
 
 function applyRoadTurnDizziness(game, turnAngle = 0) {
@@ -1312,6 +1314,19 @@ function updateEnemyVisualHeading(enemy, dt) {
   if (speed <= 8) return;
   const target = Math.atan2(enemy.vy, enemy.vx);
   enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? target, target, 5.8 * dt);
+}
+
+function updateEnemyCollisionRotation(enemy, time = Infinity) {
+  if (enemy.kind === 'boss' || enemy.silhouette !== 'pirateShip') {
+    enemy.collisionRotation = 0;
+    return;
+  }
+  let heading = enemy.visualHeading ?? Math.PI / 2;
+  const firedAge = enemy.lastFiredAt == null ? Infinity : time - enemy.lastFiredAt;
+  if (firedAge >= 0 && firedAge < 0.85 && Number.isFinite(enemy.attackHeading)) {
+    heading = closestBroadsideHeading(heading, enemy.attackHeading);
+  }
+  enemy.collisionRotation = heading - Math.PI / 2;
 }
 
 function stepEnhancedEnemy(game, enemy, dt) {
@@ -1918,11 +1933,13 @@ function enemyCanBeHitByProjectile(enemy, projectile) {
 
 function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
   const travel = Math.hypot(projectile.x - projectile.previousX, projectile.y - projectile.previousY);
+  const travelAngle = travel > 0.001 ? Math.atan2(projectile.y - projectile.previousY, projectile.x - projectile.previousX) : (projectile.angle ?? Math.atan2(projectile.vy, projectile.vx));
   const pierce = applyEnemyProjectilePierceDamage(
     activeEnemies(game).filter((enemy) => enemyCanBeHitByProjectile(enemy, projectile)),
     projectile,
     {
       start: { x: projectile.previousX, y: projectile.previousY },
+      angle: travelAngle,
       maxLength: Math.max(VOXEL_SIZE, travel + (projectile.radius ?? 0) * 2),
       maxHits: 48,
       halfWidth: Math.max(projectile.radius ?? 0, VOXEL_SIZE),
@@ -2039,7 +2056,10 @@ function createEmittedPlayerProjectile(game, source, emitter) {
   const spokeCount = Math.max(1, emitter.count ?? 1);
   const angle = source.angle + ((Math.PI * 2 * (source.emitIndex % spokeCount)) / spokeCount);
   const speed = emitter.projectileSpeed ?? 180;
-  return createProjectile(source.x, source.y, Math.cos(angle) * speed + source.vx * 0.25, Math.sin(angle) * speed + source.vy * 0.25, {
+  const vx = Math.cos(angle) * speed + source.vx * 0.25;
+  const vy = Math.sin(angle) * speed + source.vy * 0.25;
+  const travelAngle = Math.atan2(vy, vx);
+  return createProjectile(source.x, source.y, vx, vy, {
     team: 'player',
     weapon: emitter.weapon ?? 'emitted-projectile',
     radius: emitter.radius ?? 1,
@@ -2047,7 +2067,7 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     color: emitter.color,
     impulse: emitter.impulse ?? source.impulse * 0.35,
     lifetime: emitter.lifetime ?? 0.9,
-    angle,
+    angle: travelAngle,
     pierce: emitter.pierce ?? 0,
     pierceDamageScale: 0.85,
     pierceDamageFalloff: 0.72,
@@ -2641,6 +2661,16 @@ function turnTowardAngle(current, target, maxStep) {
   const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
   if (Math.abs(delta) <= maxStep) return target;
   return current + Math.sign(delta) * maxStep;
+}
+
+function closestBroadsideHeading(current, attackHeading) {
+  const left = attackHeading + Math.PI / 2;
+  const right = attackHeading - Math.PI / 2;
+  return Math.abs(angleDelta(current, left)) <= Math.abs(angleDelta(current, right)) ? left : right;
+}
+
+function angleDelta(a, b) {
+  return Math.atan2(Math.sin(b - a), Math.cos(b - a));
 }
 
 function steerEnemyBackToLaneCenter(enemy, road, dt) {

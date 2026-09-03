@@ -555,6 +555,7 @@ function drawEnemyElevationShadow(ctx, enemy) {
 }
 
 function enemyRenderRotation(enemy, time) {
+  if (Number.isFinite(enemy.collisionRotation)) return enemy.collisionRotation;
   if (enemy.silhouette !== 'pirateShip') return 0;
   let heading = enemy.visualHeading ?? Math.PI / 2;
   const firedAge = enemy.lastFiredAt == null ? Infinity : time - enemy.lastFiredAt;

@@ -357,8 +357,9 @@ function constructRadius(cells) {
 
 export function applyEnemyDamage(enemy, projectile) {
   const scale = enemyVisualScale(enemy);
-  const localX = (projectile.x - enemy.x) / scale;
-  const localY = (projectile.y - enemy.y) / scale;
+  const local = enemyWorldToLocal(enemy, projectile);
+  const localX = local.x;
+  const localY = local.y;
   const localProjectile = {
     ...projectile,
     radius: (projectile.radius ?? 0) / scale,
@@ -417,7 +418,7 @@ export function applyEnemyVoxelDamage(enemy, hit, damage) {
 export function applyEnemyProjectilePierceDamage(enemies, projectile, options = {}) {
   const pierce = Math.max(0, Math.floor(projectile.pierce ?? 0));
   if (pierce <= 0 || projectile.damage <= 0) return { hit: false, removed: 0, destroyedNow: false, destroyedEnemies: [] };
-  const angle = projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
+  const angle = options.angle ?? projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
   const unit = CELL_SIZE / VOXELS;
   const start = options.start ?? {
     x: projectile.x + Math.cos(angle) * unit,
@@ -695,9 +696,7 @@ function enemyVoxelKey(hit) {
 function findEnemyVoxelAt(enemies, worldPoint) {
   for (const enemy of enemies) {
     if (enemy.destroyed) continue;
-    const scale = enemyVisualScale(enemy);
-    const localX = (worldPoint.x - enemy.x) / scale;
-    const localY = (worldPoint.y - enemy.y) / scale;
+    const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
     for (const cell of enemy.cells) {
       if (cell.state.destroyed) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
@@ -744,9 +743,7 @@ function findNearestEnemyVoxelInCellAt(enemies, worldPoint) {
 function findEnemyCellAt(enemies, worldPoint) {
   for (const enemy of enemies) {
     if (enemy.destroyed) continue;
-    const scale = enemyVisualScale(enemy);
-    const localX = (worldPoint.x - enemy.x) / scale;
-    const localY = (worldPoint.y - enemy.y) / scale;
+    const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
     for (const cell of enemy.cells) {
       if (cell.state.destroyed) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
@@ -786,8 +783,7 @@ function applyEnemyBlastFallback(enemy, cell, origin, options) {
 
 function enemyCellIntersectsBlast(enemy, cell, origin, radius) {
   const scale = enemyVisualScale(enemy);
-  const localX = (origin.x - enemy.x) / scale;
-  const localY = (origin.y - enemy.y) / scale;
+  const { x: localX, y: localY } = enemyWorldToLocal(enemy, origin);
   const minX = cell.gridX * CELL_SIZE - CELL_SIZE / 2;
   const maxX = minX + CELL_SIZE;
   const minY = cell.gridY * CELL_SIZE - CELL_SIZE / 2;
@@ -799,17 +795,48 @@ function enemyCellIntersectsBlast(enemy, cell, origin, radius) {
 
 function enemyVoxelWorldCenter(enemy, cell, vx, vy) {
   const unit = CELL_SIZE / VOXELS;
-  const scale = enemyVisualScale(enemy);
   const localX = cell.gridX * CELL_SIZE + (vx + 0.5) * unit - CELL_SIZE / 2;
   const localY = cell.gridY * CELL_SIZE + (vy + 0.5) * unit - CELL_SIZE / 2;
-  return {
-    x: enemy.x + localX * scale,
-    y: enemy.y + localY * scale,
-  };
+  return enemyLocalToWorld(enemy, { x: localX, y: localY });
 }
 
 function enemyVisualScale(enemy) {
   return Math.max(0.001, enemy.visualScale ?? 1);
+}
+
+function enemyCollisionRotation(enemy) {
+  return Number.isFinite(enemy.collisionRotation) ? enemy.collisionRotation : 0;
+}
+
+function enemyWorldToLocal(enemy, point) {
+  const scale = enemyVisualScale(enemy);
+  const dx = (point.x - enemy.x) / scale;
+  const dy = (point.y - enemy.y) / scale;
+  const rotation = enemyCollisionRotation(enemy);
+  if (Math.abs(rotation) <= 0.000001) return { x: dx, y: dy };
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: dx * cos + dy * sin,
+    y: -dx * sin + dy * cos,
+  };
+}
+
+function enemyLocalToWorld(enemy, point) {
+  const scale = enemyVisualScale(enemy);
+  const rotation = enemyCollisionRotation(enemy);
+  if (Math.abs(rotation) <= 0.000001) {
+    return {
+      x: enemy.x + point.x * scale,
+      y: enemy.y + point.y * scale,
+    };
+  }
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: enemy.x + (point.x * cos - point.y * sin) * scale,
+    y: enemy.y + (point.x * sin + point.y * cos) * scale,
+  };
 }
 
 function blastPenetration(distanceVoxels, closeDistance, maxDistance, closePenetration, farPenetration) {
