@@ -1,6 +1,6 @@
 import { clamp } from './math.js';
 
-export const CELL_SIZE = 3.75;
+export const CELL_SIZE = 4;
 export const VOXELS = 4;
 export const VOXEL_SIZE = CELL_SIZE / VOXELS;
 
