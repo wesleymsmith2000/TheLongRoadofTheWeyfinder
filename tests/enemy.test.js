@@ -160,6 +160,24 @@ test('blast overlap damages nearest live voxels when no voxel center is inside t
   assert.equal(after < before, true);
 });
 
+test('close mortar blast destroys a stripped standard enemy core', () => {
+  const enemy = createEnemy(0, 0);
+  for (const cell of enemy.cells) {
+    if (cell.type === 'core') continue;
+    for (const voxel of cell.mask.flat()) voxel.hp = 0;
+    recalculateCell(cell);
+  }
+  const result = applyEnemyBlastDamage(enemy, { x: enemy.x, y: enemy.y }, {
+    damage: 90,
+    maxVoxelDistance: 20,
+    closeVoxelDistance: 5,
+    closePenetration: 3,
+    farPenetration: 1,
+  });
+  assert.equal(result.hit, true);
+  assert.equal(enemy.destroyed, true);
+});
+
 test('projectile pierce carries damage into voxels behind the first struck module', () => {
   const enemy = createEnemy(0, 0);
   const core = enemy.cells.find((cell) => cell.type === 'core');
@@ -177,6 +195,36 @@ test('projectile pierce carries damage into voxels behind the first struck modul
   const pierce = applyEnemyProjectilePierceDamage([enemy], projectile);
   const after = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
   assert.equal(impact.hit, true);
+  assert.equal(pierce.hit, true);
+  assert.equal(after < before, true);
+});
+
+test('damage-budget blades damage nearest live voxel when crossing an empty cell pocket', () => {
+  const enemy = createEnemy(0, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
+  const core = enemy.cells.find((cell) => cell.type === 'core');
+  for (const voxel of core.mask.flat()) voxel.hp = 0;
+  core.mask[0][0].hp = core.mask[0][0].maxHp;
+  core.mask[0][1].hp = core.mask[0][1].maxHp;
+  recalculateCell(core);
+  const before = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const projectile = createProjectile(-CELL_SIZE, 0, 100, 0, {
+    team: 'player',
+    weapon: 'orb_flechette',
+    damage: 18,
+    radius: 0.1,
+    pierce: 4,
+    pierceDamageScale: 1,
+    pierceDamageFalloff: 1,
+    damagePiercesUntilSpent: true,
+  });
+  const pierce = applyEnemyProjectilePierceDamage([enemy], projectile, {
+    start: { x: -CELL_SIZE, y: 0 },
+    maxLength: CELL_SIZE * 2,
+    maxHits: 4,
+    halfWidth: 0.1,
+    damageScale: 1,
+  });
+  const after = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
   assert.equal(pierce.hit, true);
   assert.equal(after < before, true);
 });

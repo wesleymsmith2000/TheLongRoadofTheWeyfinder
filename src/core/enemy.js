@@ -463,6 +463,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   let removed = 0;
   const propagationLoss = options.propagationLoss ?? 0.18;
   const changedCells = new Set();
+  const shellDepths = enemyLiveVoxelShellDepths(enemy);
 
   for (const cell of enemy.cells) {
     if (cell.state.destroyed) continue;
@@ -476,7 +477,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
         const distanceVoxels = Math.hypot(world.x - origin.x, world.y - origin.y) / voxelSize;
         if (distanceVoxels > maxDistance) continue;
         const penetration = blastPenetration(distanceVoxels, closeDistance, maxDistance, closePenetration, farPenetration);
-        if (enemyVoxelShellDepth(cell, vx, vy) > penetration) continue;
+        if (enemyVoxelShellDepth(shellDepths, cell, vx, vy) > penetration) continue;
         const falloff = clamp(1 - distanceVoxels / maxDistance, 0.35, 1);
         const before = voxel.hp;
         const appliedDamage = damage * falloff;
@@ -487,7 +488,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
           removed += 1;
           cellRemoved += 1;
           const excess = Math.max(0, appliedDamage - before) * (1 - propagationLoss);
-          const propagated = propagateBlastExcess(enemy, cell, vx, vy, origin, maxDistance, penetration, excess);
+          const propagated = propagateBlastExcess(enemy, cell, vx, vy, origin, maxDistance, penetration, excess, shellDepths);
           removed += propagated.removed;
           cellRemoved += propagated.removed;
           for (const changedCell of propagated.changedCells) changedCells.add(changedCell);
@@ -502,6 +503,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
         closePenetration,
         farPenetration,
         voxelSize,
+        shellDepths,
       });
       if (fallback.hit) {
         hit = true;
@@ -520,14 +522,14 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   return { hit, removed, destroyedNow: !wasDestroyed && enemy.destroyed };
 }
 
-function propagateBlastExcess(enemy, sourceCell, sourceVx, sourceVy, origin, maxDistance, penetration, initialPower) {
+function propagateBlastExcess(enemy, sourceCell, sourceVx, sourceVy, origin, maxDistance, penetration, initialPower, shellDepths) {
   let power = initialPower;
   let removed = 0;
   let current = enemyVoxelWorldCenter(enemy, sourceCell, sourceVx, sourceVy);
   const visited = new Set([`${sourceCell.id}:${sourceVx}:${sourceVy}`]);
   const changedCells = new Set();
   while (power > 0.05) {
-    const next = nearestBlastPropagationVoxel(enemy, current, origin, maxDistance, penetration + removed, visited);
+    const next = nearestBlastPropagationVoxel(enemy, current, origin, maxDistance, penetration + removed, visited, shellDepths);
     if (!next) break;
     visited.add(`${next.cell.id}:${next.vx}:${next.vy}`);
     const before = next.voxel.hp;
@@ -544,8 +546,8 @@ function propagateBlastExcess(enemy, sourceCell, sourceVx, sourceVy, origin, max
   return { removed, changedCells };
 }
 
-function nearestBlastPropagationVoxel(enemy, from, origin, maxDistance, penetration, visited) {
-  const voxelSize = CELL_SIZE / VOXELS;
+function nearestBlastPropagationVoxel(enemy, from, origin, maxDistance, penetration, visited, shellDepths) {
+  const voxelSize = (CELL_SIZE / VOXELS) * enemyVisualScale(enemy);
   let nearest = null;
   for (const cell of enemy.cells) {
     if (cell.state.destroyed) continue;
@@ -555,7 +557,7 @@ function nearestBlastPropagationVoxel(enemy, from, origin, maxDistance, penetrat
         if (visited.has(key)) continue;
         const voxel = cell.mask[vy][vx];
         if (voxel.hp <= 0) continue;
-        if (enemyVoxelShellDepth(cell, vx, vy) > penetration + 1) continue;
+        if (enemyVoxelShellDepth(shellDepths, cell, vx, vy) > penetration + 1) continue;
         const world = enemyVoxelWorldCenter(enemy, cell, vx, vy);
         const originDistance = Math.hypot(world.x - origin.x, world.y - origin.y) / voxelSize;
         if (originDistance > maxDistance) continue;
@@ -673,7 +675,7 @@ function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0,
         x: start.x + dx * distance + nx * offset,
         y: start.y + dy * distance + ny * offset,
       };
-      const hit = findEnemyVoxelAt(enemies, point);
+      const hit = findEnemyVoxelAt(enemies, point) ?? findNearestEnemyVoxelInCellAt(enemies, point);
       if (!hit) continue;
       const key = enemyVoxelKey(hit);
       if (pierced.has(key)) continue;
@@ -710,6 +712,52 @@ function findEnemyVoxelAt(enemies, worldPoint) {
   return null;
 }
 
+function findNearestEnemyVoxelInCellAt(enemies, worldPoint) {
+  const cellHit = findEnemyCellAt(enemies, worldPoint);
+  if (!cellHit) return null;
+  const unit = CELL_SIZE / VOXELS;
+  const candidates = [];
+  for (let y = 0; y < VOXELS; y += 1) {
+    for (let x = 0; x < VOXELS; x += 1) {
+      const voxel = cellHit.cell.mask[y][x];
+      if (voxel.hp <= 0) continue;
+      const cx = (x + 0.5) * unit - CELL_SIZE / 2;
+      const cy = (y + 0.5) * unit - CELL_SIZE / 2;
+      candidates.push({
+        voxel,
+        voxelIndex: { x, y },
+        distance: Math.hypot(cellHit.cellLocalX - cx, cellHit.cellLocalY - cy),
+      });
+    }
+  }
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => a.distance - b.distance);
+  const nearest = candidates[0];
+  return {
+    enemy: cellHit.enemy,
+    cell: cellHit.cell,
+    voxel: nearest.voxel,
+    voxelIndex: nearest.voxelIndex,
+  };
+}
+
+function findEnemyCellAt(enemies, worldPoint) {
+  for (const enemy of enemies) {
+    if (enemy.destroyed) continue;
+    const scale = enemyVisualScale(enemy);
+    const localX = (worldPoint.x - enemy.x) / scale;
+    const localY = (worldPoint.y - enemy.y) / scale;
+    for (const cell of enemy.cells) {
+      if (cell.state.destroyed) continue;
+      const cellLocalX = localX - cell.gridX * CELL_SIZE;
+      const cellLocalY = localY - cell.gridY * CELL_SIZE;
+      if (Math.abs(cellLocalX) > CELL_SIZE / 2 || Math.abs(cellLocalY) > CELL_SIZE / 2) continue;
+      return { enemy, cell, cellLocalX, cellLocalY };
+    }
+  }
+  return null;
+}
+
 function applyEnemyBlastFallback(enemy, cell, origin, options) {
   const candidates = [];
   for (let vy = 0; vy < VOXELS; vy += 1) {
@@ -720,7 +768,7 @@ function applyEnemyBlastFallback(enemy, cell, origin, options) {
       const distanceVoxels = Math.hypot(world.x - origin.x, world.y - origin.y) / options.voxelSize;
       const shellDistance = Math.min(distanceVoxels, options.maxDistance);
       const penetration = blastPenetration(shellDistance, options.closeDistance, options.maxDistance, options.closePenetration, options.farPenetration);
-      if (enemyVoxelShellDepth(cell, vx, vy) > penetration) continue;
+      if (enemyVoxelShellDepth(options.shellDepths, cell, vx, vy) > penetration) continue;
       candidates.push({ voxel, distanceVoxels });
     }
   }
@@ -770,10 +818,56 @@ function blastPenetration(distanceVoxels, closeDistance, maxDistance, closePenet
   return farPenetration + (closePenetration - farPenetration) * (1 - t);
 }
 
-function enemyVoxelShellDepth(cell, vx, vy) {
-  const gridX = (cell.gridX + 1) * VOXELS + vx;
-  const gridY = (cell.gridY + 1) * VOXELS + vy;
-  return Math.min(gridX, gridY, VOXELS * 3 - 1 - gridX, VOXELS * 3 - 1 - gridY) + 1;
+function enemyLiveVoxelShellDepths(enemy) {
+  const live = new Set();
+  for (const cell of enemy.cells) {
+    if (cell.state.destroyed) continue;
+    for (let vy = 0; vy < VOXELS; vy += 1) {
+      for (let vx = 0; vx < VOXELS; vx += 1) {
+        if (cell.mask[vy][vx].hp > 0) live.add(enemyVoxelGridKey(cell, vx, vy));
+      }
+    }
+  }
+
+  const depths = new Map();
+  const queue = [];
+  for (const key of live) {
+    const [x, y] = key.split(',').map(Number);
+    if (
+      !live.has(`${x - 1},${y}`) ||
+      !live.has(`${x + 1},${y}`) ||
+      !live.has(`${x},${y - 1}`) ||
+      !live.has(`${x},${y + 1}`)
+    ) {
+      depths.set(key, 1);
+      queue.push({ x, y, depth: 1 });
+    }
+  }
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index];
+    for (const [nx, ny] of [
+      [current.x - 1, current.y],
+      [current.x + 1, current.y],
+      [current.x, current.y - 1],
+      [current.x, current.y + 1],
+    ]) {
+      const key = `${nx},${ny}`;
+      if (!live.has(key) || depths.has(key)) continue;
+      depths.set(key, current.depth + 1);
+      queue.push({ x: nx, y: ny, depth: current.depth + 1 });
+    }
+  }
+
+  return depths;
+}
+
+function enemyVoxelShellDepth(shellDepths, cell, vx, vy) {
+  return shellDepths?.get(enemyVoxelGridKey(cell, vx, vy)) ?? Infinity;
+}
+
+function enemyVoxelGridKey(cell, vx, vy) {
+  return `${cell.gridX * VOXELS + vx},${cell.gridY * VOXELS + vy}`;
 }
 
 export function updateEnemyDestroyed(enemy) {
