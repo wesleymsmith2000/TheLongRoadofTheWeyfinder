@@ -29,7 +29,7 @@ test('level completion waits until dropped scrap is collected or gone', () => {
 
 test('nearby scrap magnetizes toward the vehicle before collection', () => {
   const game = createGame();
-  game.enemies = [];
+  game.enemies = [{ destroyed: false, cells: [{ type: 'core', state: { destroyed: false } }] }];
   game.enemySpawnQueue = [{ at: game.time + 20, enemy: null, markerShown: false, type: 'standard' }];
   game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 4, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 3, life: 8 }];
   const before = Math.abs(game.scrapPickups[0].x - game.vehicle.x);
@@ -82,14 +82,26 @@ test('clear-field scrap sweep reaches distant pickups before they expire', () =>
   assert.equal(game.scrapPickups.length, 0);
 });
 
-test('scrap waits for live projectiles before clear-field collection starts', () => {
+test('scrap sweep waits while an active enemy core remains', () => {
   const game = createGame();
   game.autofire = false;
-  game.enemies = [];
+  game.enemies = [{ destroyed: false, cells: [{ type: 'core', state: { destroyed: false } }] }];
   game.enemySpawnQueue = [];
-  game.playerProjectiles = [createProjectile(game.vehicle.x, game.vehicle.y - 20, 0, -20, { team: 'player', damage: 1, lifetime: 1 })];
+  game.playerProjectiles = [];
   game.enemyProjectiles = [];
   game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 }];
   stepGame(game, {}, 1 / 60);
   assert.equal(game.scrapPickups[0].vx, 0);
+});
+
+test('scrap sweep ignores queued waves and live projectiles once enemy cores are gone', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: game.time + 20, enemy: null, markerShown: false, type: 'standard' }];
+  game.playerProjectiles = [createProjectile(game.vehicle.x, game.vehicle.y - 20, 0, -20, { team: 'player', damage: 1, lifetime: 1 })];
+  game.enemyProjectiles = [createProjectile(game.vehicle.x, game.vehicle.y - 40, 0, 20, { team: 'enemy', damage: 1, lifetime: 1 })];
+  game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 }];
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.scrapPickups[0].vx < -200, true);
 });

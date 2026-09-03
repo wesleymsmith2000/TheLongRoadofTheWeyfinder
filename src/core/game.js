@@ -746,11 +746,11 @@ function stepScrapPickups(game, dt) {
 }
 
 function shouldSweepRemainingScrap(game) {
-  if (activeEnemies(game).length > 0) return false;
-  if (!game.levelComplete && game.enemySpawnQueue.length > 0) return false;
-  const blockingPlayerProjectiles = game.playerProjectiles.some((projectile) => projectile.lifetime > 0 && projectile.behavior !== 'beam' && projectile.behavior !== 'blast');
-  if (blockingPlayerProjectiles) return false;
-  return !game.enemyProjectiles.some((projectile) => projectile.lifetime > 0 && projectile.behavior !== 'beam' && projectile.behavior !== 'blast');
+  return !activeEnemies(game).some((enemy) => enemyHasLiveCore(enemy));
+}
+
+function enemyHasLiveCore(enemy) {
+  return enemy.cells?.some((cell) => cell.type === 'core' && !cell.state.destroyed);
 }
 
 function stepShop(game, input) {
