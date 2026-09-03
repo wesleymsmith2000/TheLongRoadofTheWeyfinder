@@ -1,7 +1,6 @@
 import {
   CANON_STATUSES,
   CELL_TYPES,
-  CONNECTION_SIDES,
   CONSTRUCT_SCHEMA_VERSION,
   validateConstructDefinition,
 } from '../core/constructDefinition.js';
@@ -30,9 +29,13 @@ const schemaInput = document.querySelector('#schemaInput');
 const canonStatusSelect = document.querySelector('#canonStatusSelect');
 const tagsInput = document.querySelector('#tagsInput');
 const cellTypeSelect = document.querySelector('#cellTypeSelect');
+const layerInput = document.querySelector('#layerInput');
+const layerViewSelect = document.querySelector('#layerViewSelect');
 const paintButton = document.querySelector('#paintButton');
 const eraseButton = document.querySelector('#eraseButton');
 const connectButton = document.querySelector('#connectButton');
+const connectAboveButton = document.querySelector('#connectAboveButton');
+const connectBelowButton = document.querySelector('#connectBelowButton');
 const resetButton = document.querySelector('#resetButton');
 const downloadButton = document.querySelector('#downloadButton');
 const copyJsonButton = document.querySelector('#copyJsonButton');
@@ -63,10 +66,12 @@ const gridCount = gridRadius * 2 + 1;
 const gridPad = 44;
 const gridSize = canvas.width - gridPad * 2;
 const cellSize = gridSize / gridCount;
+const maxEditorLayer = 31;
 
 let tool = 'paint';
 let selectedCellId = null;
 let constructCatalog = [];
+let currentLayer = 0;
 let definition = cloneDefinition(BUILTIN_CONSTRUCT_DEFINITIONS[0]);
 
 for (const status of CANON_STATUSES) {
@@ -90,9 +95,17 @@ displayNameInput.addEventListener('input', syncFieldsToDefinition);
 schemaInput.addEventListener('input', syncFieldsToDefinition);
 canonStatusSelect.addEventListener('change', syncFieldsToDefinition);
 tagsInput.addEventListener('input', syncFieldsToDefinition);
+layerInput.addEventListener('input', () => {
+  currentLayer = clampLayer(Number(layerInput.value));
+  layerInput.value = String(currentLayer);
+  render();
+});
+layerViewSelect.addEventListener('change', render);
 paintButton.addEventListener('click', () => setTool('paint'));
 eraseButton.addEventListener('click', () => setTool('erase'));
 connectButton.addEventListener('click', () => setTool('connect'));
+connectAboveButton.addEventListener('click', () => connectVertical(1));
+connectBelowButton.addEventListener('click', () => connectVertical(-1));
 resetButton.addEventListener('click', () => loadDefinition(BUILTIN_CONSTRUCT_DEFINITIONS[0]));
 downloadButton.addEventListener('click', downloadJson);
 copyJsonButton.addEventListener('click', copyJson);
@@ -166,8 +179,10 @@ function loadDefinition(nextDefinition) {
   definition.cells ??= [];
   definition.connections ??= [];
   definition.modules ??= [];
+  definition.cells = definition.cells.map((cell) => ({ ...cell, gridZ: normalizedLayer(cell) }));
   definition.gunLoadouts = normalizeGunLoadouts(definition);
   selectedCellId = null;
+  currentLayer = clampLayer(layerForInitialView(definition));
   syncDefinitionToFields();
   populateConstructSelect();
   render();
@@ -179,6 +194,7 @@ function syncDefinitionToFields() {
   schemaInput.value = definition.schemaVersion ?? CONSTRUCT_SCHEMA_VERSION;
   canonStatusSelect.value = definition.canonStatus ?? 'EXPERIMENTAL';
   tagsInput.value = (definition.tags ?? []).join(', ');
+  layerInput.value = String(currentLayer);
 }
 
 function syncFieldsToDefinition() {
@@ -197,7 +213,7 @@ function handleCanvasClick(event) {
   const point = canvasPoint(event);
   const grid = pointToGrid(point);
   if (!grid) return;
-  const existing = cellAt(grid.x, grid.y);
+  const existing = cellAt(grid.x, grid.y, currentLayer);
   if (tool === 'erase') {
     if (existing) removeCell(existing.id);
     render();
@@ -212,8 +228,8 @@ function handleCanvasClick(event) {
     existing.type = cellTypeSelect.value;
     selectedCellId = existing.id;
   } else {
-    const id = uniqueCellId(cellTypeSelect.value, grid.x, grid.y);
-    definition.cells.push({ id, type: cellTypeSelect.value, gridX: grid.x, gridY: grid.y });
+    const id = uniqueCellId(cellTypeSelect.value, grid.x, grid.y, currentLayer);
+    definition.cells.push({ id, type: cellTypeSelect.value, gridX: grid.x, gridY: grid.y, gridZ: currentLayer });
     selectedCellId = id;
   }
   render();
@@ -241,6 +257,19 @@ function selectOrConnect(cell) {
   selectedCellId = cell.id;
 }
 
+function connectVertical(direction) {
+  const from = definition.cells.find((candidate) => candidate.id === selectedCellId);
+  if (!from) return;
+  const targetLayer = normalizedLayer(from) + direction;
+  const to = cellAt(from.gridX, from.gridY, targetLayer);
+  if (!to) return;
+  addConnection(from, to, direction > 0 ? 'above' : 'below');
+  selectedCellId = to.id;
+  currentLayer = clampLayer(targetLayer);
+  syncDefinitionToFields();
+  render();
+}
+
 function removeCell(id) {
   definition.cells = definition.cells.filter((cell) => cell.id !== id);
   definition.connections = definition.connections.filter((edge) => edge.a !== id && edge.b !== id);
@@ -250,6 +279,8 @@ function removeCell(id) {
 function render() {
   syncFieldsToDefinitionSilently();
   definition.gunLoadouts = normalizeGunLoadouts(definition);
+  currentLayer = clampLayer(currentLayer);
+  layerInput.value = String(currentLayer);
   drawCanvas();
   renderLists();
   syncLoadoutControls();
@@ -292,25 +323,38 @@ function drawCanvas() {
 }
 
 function drawConnections() {
-  context.lineWidth = 5;
   context.lineCap = 'round';
-  context.strokeStyle = '#f7c06a';
   for (const edge of definition.connections ?? []) {
     const a = definition.cells.find((cell) => cell.id === edge.a);
     const b = definition.cells.find((cell) => cell.id === edge.b);
     if (!a || !b) continue;
+    const visibility = connectionVisibility(a, b);
+    if (!visibility.visible) continue;
     const start = gridToCanvas(a.gridX, a.gridY);
     const end = gridToCanvas(b.gridX, b.gridY);
+    context.save();
+    context.globalAlpha = visibility.alpha;
+    context.lineWidth = edge.aSide === 'above' || edge.aSide === 'below' ? 3 : 5;
+    context.strokeStyle = edge.aSide === 'above' || edge.aSide === 'below' ? '#6fe0bf' : '#f7c06a';
     context.beginPath();
-    context.moveTo(start.x, start.y);
-    context.lineTo(end.x, end.y);
+    if (start.x === end.x && start.y === end.y) {
+      context.arc(start.x, start.y, Math.max(8, cellSize * 0.24), 0, Math.PI * 2);
+    } else {
+      context.moveTo(start.x, start.y);
+      context.lineTo(end.x, end.y);
+    }
     context.stroke();
+    context.restore();
   }
 }
 
 function drawCell(cell) {
+  const visibility = cellVisibility(cell);
+  if (!visibility.visible) return;
   const center = gridToCanvas(cell.gridX, cell.gridY);
-  const size = cellSize - 10;
+  const size = (cellSize - 10) * visibility.scale;
+  context.save();
+  context.globalAlpha = visibility.alpha;
   context.fillStyle = cellColors[cell.type] ?? '#d7ceb8';
   context.strokeStyle = cell.id === selectedCellId ? '#ffffff' : 'rgb(0 0 0 / 0.45)';
   context.lineWidth = cell.id === selectedCellId ? 4 : 2;
@@ -322,7 +366,8 @@ function drawCell(cell) {
   context.font = '700 13px Inter, sans-serif';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  context.fillText(cell.type.toUpperCase().slice(0, 2), center.x, center.y);
+  context.fillText(`${cell.type.toUpperCase().slice(0, 2)}${normalizedLayer(cell) === currentLayer ? '' : normalizedLayer(cell)}`, center.x, center.y);
+  context.restore();
 }
 
 function drawAxes() {
@@ -341,11 +386,13 @@ function drawAxes() {
 
 function renderLists() {
   cellList.replaceChildren(
-    ...definition.cells.map((cell) => {
+    ...[...definition.cells]
+      .sort((a, b) => normalizedLayer(a) - normalizedLayer(b) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id))
+      .map((cell) => {
       const item = document.createElement('div');
       item.className = 'item';
       const label = document.createElement('span');
-      label.innerHTML = `<strong>${escapeHtml(cell.id)}</strong><br />${escapeHtml(cell.type)} at ${cell.gridX}, ${cell.gridY}`;
+      label.innerHTML = `<strong>${escapeHtml(cell.id)}</strong><br />${escapeHtml(cell.type)} at ${cell.gridX}, ${cell.gridY}, ${normalizedLayer(cell)}`;
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'danger';
@@ -356,6 +403,8 @@ function renderLists() {
       });
       item.addEventListener('click', () => {
         selectedCellId = cell.id;
+        currentLayer = clampLayer(normalizedLayer(cell));
+        syncDefinitionToFields();
         render();
       });
       item.append(label, remove);
@@ -393,7 +442,7 @@ function renderStatus() {
   const lines = [
     `<span><strong>${report.valid ? 'Valid construct asset' : 'Construct needs changes'}</strong></span>`,
     selectedEntry ? `<span>Loaded from ${escapeHtml(selectedEntry.group)}: ${escapeHtml(selectedEntry.label)}</span>` : null,
-    `<span>${definition.cells.length} cells, ${(definition.connections ?? []).length} explicit connections</span>`,
+    `<span>Layer ${currentLayer}: ${cellsOnLayer(currentLayer).length} visible cells; ${definition.cells.length} total cells, ${(definition.connections ?? []).length} explicit connections</span>`,
     `<span>${moduleSummary.guns} firing points, main-gun rate x${moduleSummary.gunRateMultiplier}</span>`,
     `<span>${moduleSummary.engines} engines, acceleration/top speed x${moduleSummary.engineMultiplier}</span>`,
     `<span>${moduleSummary.wheels} wheels, braking/control x${moduleSummary.wheelMultiplier}${moduleSummary.wheelAsymmetry ? ', asymmetric pull likely' : ''}</span>`,
@@ -451,7 +500,7 @@ function normalizedDefinition() {
     dependencies: definition.dependencies,
     derivedFrom: definition.derivedFrom,
     tags: definition.tags ?? [],
-    cells: [...definition.cells].sort((a, b) => a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id)),
+    cells: [...definition.cells].map(normalizedCell).sort((a, b) => a.gridZ - b.gridZ || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id)),
     connections: [...(definition.connections ?? [])],
     modules: definition.modules ?? [],
     gunLoadouts: normalizeGunLoadouts(definition),
@@ -578,12 +627,13 @@ function gridToCanvas(gridX, gridY) {
   };
 }
 
-function cellAt(gridX, gridY) {
-  return definition.cells.find((cell) => cell.gridX === gridX && cell.gridY === gridY);
+function cellAt(gridX, gridY, gridZ = currentLayer) {
+  return definition.cells.find((cell) => cell.gridX === gridX && cell.gridY === gridY && normalizedLayer(cell) === gridZ);
 }
 
-function uniqueCellId(type, gridX, gridY) {
-  const base = `${type}-${gridX}-${gridY}`.replaceAll('-', gridX < 0 || gridY < 0 ? '_' : '-');
+function uniqueCellId(type, gridX, gridY, gridZ = currentLayer) {
+  const zPart = gridZ === 0 ? '' : `-${gridZ}`;
+  const base = `${type}-${gridX}-${gridY}${zPart}`.replaceAll('-', gridX < 0 || gridY < 0 || gridZ < 0 ? '_' : '-');
   let id = base;
   let suffix = 2;
   const ids = new Set(definition.cells.map((cell) => cell.id));
@@ -597,19 +647,74 @@ function uniqueCellId(type, gridX, gridY) {
 function adjacentSide(a, b) {
   const dx = b.gridX - a.gridX;
   const dy = b.gridY - a.gridY;
-  if (dx === 1 && dy === 0) return 'right';
-  if (dx === -1 && dy === 0) return 'left';
-  if (dx === 0 && dy === 1) return 'bottom';
-  if (dx === 0 && dy === -1) return 'top';
+  const dz = normalizedLayer(b) - normalizedLayer(a);
+  if (dz === 0 && dx === 1 && dy === 0) return 'right';
+  if (dz === 0 && dx === -1 && dy === 0) return 'left';
+  if (dz === 0 && dx === 0 && dy === 1) return 'bottom';
+  if (dz === 0 && dx === 0 && dy === -1) return 'top';
+  if (dx === 0 && dy === 0 && dz === 1) return 'above';
+  if (dx === 0 && dy === 0 && dz === -1) return 'below';
   return null;
 }
 
 function oppositeSide(side) {
-  return CONNECTION_SIDES[(CONNECTION_SIDES.indexOf(side) + 2) % CONNECTION_SIDES.length];
+  return {
+    top: 'bottom',
+    right: 'left',
+    bottom: 'top',
+    left: 'right',
+    above: 'below',
+    below: 'above',
+  }[side];
 }
 
 function sameConnection(edge, a, b) {
   return (edge.a === a && edge.b === b) || (edge.a === b && edge.b === a);
+}
+
+function addConnection(from, to, side) {
+  const exists = definition.connections.some((edge) => sameConnection(edge, from.id, to.id));
+  if (!exists) definition.connections.push({ a: from.id, b: to.id, aSide: side, bSide: oppositeSide(side), type: 'structural' });
+}
+
+function normalizedLayer(cell) {
+  return Number.isInteger(cell?.gridZ) ? cell.gridZ : Number.isInteger(cell?.layer) ? cell.layer : 0;
+}
+
+function normalizedCell(cell) {
+  return { ...cell, gridZ: normalizedLayer(cell) };
+}
+
+function layerForInitialView(construct) {
+  const core = construct.cells?.find((cell) => cell.type === 'core');
+  return normalizedLayer(core ?? construct.cells?.[0]);
+}
+
+function clampLayer(value) {
+  return Math.max(0, Math.min(maxEditorLayer, Number.isFinite(value) ? Math.round(value) : 0));
+}
+
+function cellsOnLayer(layer) {
+  return definition.cells.filter((cell) => normalizedLayer(cell) === layer);
+}
+
+function cellVisibility(cell) {
+  const layer = normalizedLayer(cell);
+  if (layer === currentLayer) return { visible: true, alpha: 1, scale: 1 };
+  if (layer < currentLayer && (layerViewSelect.value === 'lower' || layerViewSelect.value === 'all')) {
+    return { visible: true, alpha: 0.22, scale: 0.86 };
+  }
+  if (layer > currentLayer && layerViewSelect.value === 'all') {
+    return { visible: true, alpha: 0.12, scale: 0.74 };
+  }
+  return { visible: false, alpha: 0, scale: 1 };
+}
+
+function connectionVisibility(a, b) {
+  const aVisible = cellVisibility(a);
+  const bVisible = cellVisibility(b);
+  if (!aVisible.visible && !bVisible.visible) return { visible: false, alpha: 0 };
+  return { visible: true, alpha: Math.max(0.12, Math.min(aVisible.alpha || 0, bVisible.alpha || 0) || Math.max(aVisible.alpha, bVisible.alpha) * 0.6) };
 }
 
 function cloneDefinition(value) {

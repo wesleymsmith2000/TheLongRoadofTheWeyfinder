@@ -75,6 +75,8 @@ content/examples/prototype0-zone-enemy-set/
 
 It contains advanced enemy archetypes, firing patterns, sprite descriptors, and sculpted construct JSONs for the new GhostForrest, DigitizedStream, PiratesRoad, StarlightRoad, TwilightCrossroads, ShadowedDesert, and FreedomsPass enemies. Those construct examples are authored as larger editable module layouts for the `4x4` voxel cell line: keep one clear core, use explicit graph connections, and add cells/modules for silhouette rather than relying on runtime-only visual scaling.
 
+Constructs may now include stacked `gridZ` cells and vertical `above` / `below` connections. The browser Mesh Voxelizer emits this same construct JSON shape from imported OBJ or STL meshes.
+
 ## Supported Asset Kinds
 
 The current registry can validate and store:

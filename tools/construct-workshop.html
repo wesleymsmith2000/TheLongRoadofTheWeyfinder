@@ -276,6 +276,7 @@
           <a href="../"><button type="button">Game</button></a>
           <a href="./creator-suite.html"><button type="button">Suite</button></a>
           <a href="./creator-guide.html"><button type="button">Guide</button></a>
+          <a href="./mesh-voxelizer.html"><button type="button">Voxelizer</button></a>
           <a href="./enemy-editor.html"><button type="button">Enemies</button></a>
           <button id="resetButton" type="button">Reset</button>
           <button id="downloadButton" type="button">Download JSON</button>
@@ -319,10 +320,26 @@
               Cell Type
               <select id="cellTypeSelect"></select>
             </label>
+            <div class="split">
+              <label>
+                Layer
+                <input id="layerInput" type="number" min="0" max="31" step="1" />
+              </label>
+              <label>
+                Visible Layers
+                <select id="layerViewSelect">
+                  <option value="current">Current Only</option>
+                  <option value="lower" selected>Lower Ghosted</option>
+                  <option value="all">All Ghosted</option>
+                </select>
+              </label>
+            </div>
             <div class="tool-row">
               <button id="paintButton" type="button" aria-pressed="true">Paint</button>
               <button id="eraseButton" type="button" aria-pressed="false">Erase</button>
               <button id="connectButton" type="button" aria-pressed="false">Connect</button>
+              <button id="connectAboveButton" type="button">Connect Above</button>
+              <button id="connectBelowButton" type="button">Connect Below</button>
             </div>
           </div>
           <h2>Cells</h2>

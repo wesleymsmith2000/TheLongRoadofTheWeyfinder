@@ -34,7 +34,13 @@ Early editor work lives in this main game repo while Prototype 0 is hardening it
 - keep simulation code independent of Canvas, DOM, and editor UI
 - move a creator suite to a separate repo only when it needs its own release cycle, package/dependency stack, publishing flow, accounts, plugin system, or total-conversion launcher
 
-Open the first tool during local development at:
+Open the unified creator suite during local development at:
+
+```text
+http://127.0.0.1:5173/tools/creator-suite.html
+```
+
+Open the construct workshop at:
 
 ```text
 http://127.0.0.1:5173/tools/construct-workshop.html
@@ -50,6 +56,12 @@ Open the level editor framework at:
 
 ```text
 http://127.0.0.1:5173/tools/level-editor.html
+```
+
+Open the mesh voxelizer at:
+
+```text
+http://127.0.0.1:5173/tools/mesh-voxelizer.html
 ```
 
 The launch screen includes the first in-game player vehicle editor. It uses local prototype account data for available equipment and edits the runtime vehicle construct before deployment.

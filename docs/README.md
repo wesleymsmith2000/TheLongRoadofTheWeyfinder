@@ -17,6 +17,7 @@ Start here:
 - [Enemy Editor Runtime Handoff](./enemy-editor-runtime-handoff.md)
 - [Creator Suite Local Modules Handoff](./creator-suite-local-modules-handoff.md)
 - [Creator Suite User Guide](./creator-suite-user-guide.md)
+- [Mesh Voxelizer Editor Handoff](./mesh-voxelizer-editor-handoff.md)
 - [Weapon Loadout And Flechette Handoff](./weapon-loadout-and-flechette-handoff.md)
 - [Elevation Enemy And Loadout Editor Handoff](./elevation-enemy-loadout-editor-handoff.md)
 - [Arc Projectiles And Status Effects Editor Handoff](./arc-status-effects-editor-handoff.md)

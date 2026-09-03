@@ -180,6 +180,7 @@
           <a href="../"><button type="button">Game</button></a>
           <a href="./creator-suite.html"><button type="button">Suite</button></a>
           <a href="./construct-workshop.html"><button type="button">Constructs</button></a>
+          <a href="./mesh-voxelizer.html"><button type="button">Voxelizer</button></a>
           <a href="./enemy-editor.html"><button type="button">Enemies</button></a>
           <a href="./weapon-pattern-lab.html"><button type="button">Weapons</button></a>
           <a href="./level-editor.html"><button type="button">Levels</button></a>
@@ -217,7 +218,19 @@
               <li><code>Paint</code> places or changes cells using the selected cell type. A construct should usually have one clear <code>core</code>.</li>
               <li><code>Erase</code> removes a cell and any connections attached to it.</li>
               <li><code>Connect</code> links two adjacent cells. Runtime connectivity follows explicit graph edges, so disconnected cells will not behave like attached structure.</li>
+              <li><code>Layer</code> edits stacked <code>gridZ</code> cells. Lower layers can be ghosted while upper layers stay hidden.</li>
+              <li><code>Connect Above</code> and <code>Connect Below</code> link the selected cell to the matching X/Y cell on the next vertical layer.</li>
               <li>Gun loadout controls apply to the selected <code>gun</code> cell and let one construct carry multiple weapon choices.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Mesh Voxelizer</h2>
+          <div class="body">
+            <ul>
+              <li>Import <code>.obj</code> or ASCII <code>.stl</code> mesh files and convert sampled mesh surfaces into ordinary construct JSON.</li>
+              <li>The first pass chooses one core near the mesh centroid, makes other occupied cells armor, and creates explicit adjacency connections.</li>
+              <li>Open the generated JSON in the Construct Workshop to assign cell types, gun loadouts, special roles, and cleaner hand-authored connections.</li>
             </ul>
           </div>
         </section>
