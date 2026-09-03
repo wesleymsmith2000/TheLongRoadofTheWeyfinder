@@ -6,6 +6,7 @@ export const PLAYER_EQUIPMENT_TYPES = CELL_TYPES.filter((type) => type !== 'core
 export const PLAYER_EQUIPMENT_BASE_QUANTITIES = {
   armor: 28,
   gun: 6,
+  utility: 2,
   wheel: 8,
   engine: 6,
 };
@@ -18,6 +19,7 @@ export function createPrototypePlayerAccountData() {
     equipment: {
       armor: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.armor },
       gun: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.gun },
+      utility: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.utility },
       wheel: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.wheel },
       engine: { unlocked: true, quantity: PLAYER_EQUIPMENT_BASE_QUANTITIES.engine },
     },

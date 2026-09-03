@@ -16,6 +16,7 @@ const cellColors = {
   core: '#e4d66b',
   engine: '#6fe0bf',
   gun: '#d46e4f',
+  utility: '#70c8ff',
   wheel: '#9ca8ff',
 };
 
@@ -298,6 +299,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
 
 function labelForType(type) {
   if (type === 'gun') return 'Gun';
+  if (type === 'utility') return 'Utility';
   if (type === 'wheel') return 'Wheel';
   if (type === 'engine') return 'Engine';
   if (type === 'armor') return 'Armor';

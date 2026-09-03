@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "image.terrain.wide_roads_paths.v0",
+  "path": "assets/images/terrain__wide_roads_and_paths__spritesheet.png",
+  "displayName": "Wide Roads And Paths Terrain Sheet",
+  "tags": ["terrain", "atlas", "wide-roads", "paths", "presentation-source"]
+}

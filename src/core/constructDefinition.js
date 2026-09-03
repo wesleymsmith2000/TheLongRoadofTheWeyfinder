@@ -4,7 +4,7 @@ import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNo
 
 export const CONSTRUCT_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export { CANON_STATUSES };
-export const CELL_TYPES = ['armor', 'core', 'engine', 'gun', 'wheel'];
+export const CELL_TYPES = ['armor', 'core', 'engine', 'gun', 'utility', 'wheel'];
 export const CONNECTION_SIDES = ['top', 'right', 'bottom', 'left', 'above', 'below'];
 
 export function validateConstructDefinition(definition) {
@@ -90,6 +90,7 @@ export function instantiateConstruct(definition) {
     canonStatus: definition.canonStatus ?? 'EXPERIMENTAL',
     tags: [...(definition.tags ?? [])],
     presentation: definition.presentation ? structuredClone(definition.presentation) : null,
+    modules: structuredClone(definition.modules ?? []),
     cells,
     connections,
   };

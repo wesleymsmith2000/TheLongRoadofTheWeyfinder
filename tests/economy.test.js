@@ -234,10 +234,18 @@ test('repair screen upgrade list only includes unlocked installed systems', () =
   assert.equal(baseline.includes('rocketImpactDamage'), true);
   assert.equal(baseline.includes('beamDamage'), true);
   assert.equal(baseline.includes('miniBeamDamage'), false);
-  assert.equal(baseline.includes('scrapMagnetDistance'), false);
-  account.moduleUnlocks.push('scrap_magnet');
-  const withMagnet = availableUpgradeDefinitions(game, account, startingVehicleDefinition).map((upgrade) => upgrade.id);
-  assert.equal(withMagnet.includes('scrapMagnetDistance'), true);
+  assert.equal(baseline.includes('boostAcceleration'), true);
+  assert.equal(baseline.includes('scrapMagnetDistance'), true);
+
+  const withoutUtility = {
+    ...startingVehicleDefinition,
+    cells: startingVehicleDefinition.cells.filter((cell) => cell.type !== 'utility'),
+    connections: startingVehicleDefinition.connections.filter((edge) => edge.a !== 'utility' && edge.b !== 'utility'),
+    modules: [],
+  };
+  const utilityFiltered = availableUpgradeDefinitions(game, account, withoutUtility).map((upgrade) => upgrade.id);
+  assert.equal(utilityFiltered.includes('boostAcceleration'), false);
+  assert.equal(utilityFiltered.includes('scrapMagnetDistance'), false);
 
   const withMiniBeam = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 1, 'mini_beam').definition;
   const miniBeamUpgrades = availableUpgradeDefinitions(game, account, withMiniBeam).map((upgrade) => upgrade.id);

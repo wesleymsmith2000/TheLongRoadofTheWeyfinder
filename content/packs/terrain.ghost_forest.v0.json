@@ -22,7 +22,9 @@
     ],
     "images": [
       "../resources/terrain/image.terrain_1_spritesheet.json",
-      "../resources/terrain/image.terrain_2_spritesheet.json"
+      "../resources/terrain/image.terrain_2_spritesheet.json",
+      "../resources/terrain/image.terrain_wide_roads_paths_spritesheet.json",
+      "../resources/terrain/image.terrain_environment_landforms_water_spritesheet.json"
     ]
   }
 }

@@ -117,7 +117,7 @@ test('destroyed enemies explode and knock nearby enemies back', () => {
 
 test('player main gun emits a sound event when firing', () => {
   const game = createGame();
-  game.enemies = [];
+  game.enemies = [createEnemy(game.vehicle.x + CELL_SIZE * 10, game.vehicle.y)];
   game.enemySpawnQueue = [];
   stepGame(game, { fireHeld: true, gunnerEnabled: false }, 1 / 60);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_MAIN_GUN), true);

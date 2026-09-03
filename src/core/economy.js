@@ -84,19 +84,19 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'engineAcceleration', label: 'Engine Acceleration', system: 'Mobility', requires: { module: 'engine' } },
   { id: 'engineMaxVelocity', label: 'Engine Max Velocity', system: 'Mobility', requires: { module: 'engine' } },
   { id: 'wheelInertiaCompensation', label: 'Wheel Inertia Compensation', system: 'Mobility', requires: { module: 'wheel' } },
-  { id: 'boostAcceleration', label: 'Booster Acceleration', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'boostDuration', label: 'Booster Max Duration', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'boostEfficiency', label: 'Booster Efficiency', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'boostRecharge', label: 'Booster Recharge Rate', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'boostCapacity', label: 'Booster Charge Capacity', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'boostRamDamage', label: 'Booster Ram Damage', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'boostRecoilDamage', label: 'Booster Recoil Damage Dampening', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'boostRecoilKnockback', label: 'Booster Recoil Knockback Dampening', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'boostShielding', label: 'Booster Damage Shielding', system: 'Boosters', requires: { module: 'gun' } },
-  { id: 'boostCooldown', label: 'Booster Cooldown', system: 'Boosters', requires: { module: 'engine' } },
-  { id: 'scrapMagnetDistance', label: 'Magnet Distance', system: 'Scrap Collection', requires: { moduleUnlock: 'scrap_magnet' } },
-  { id: 'scrapMagnetStrength', label: 'Magnet Strength', system: 'Scrap Collection', requires: { moduleUnlock: 'scrap_magnet' } },
-  { id: 'scrapCaptureRadius', label: 'Capture Radius', system: 'Scrap Collection', requires: { moduleUnlock: 'scrap_magnet' } },
+  { id: 'boostAcceleration', label: 'Booster Acceleration', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostDuration', label: 'Booster Max Duration', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostEfficiency', label: 'Booster Efficiency', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostRecharge', label: 'Booster Recharge Rate', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostCapacity', label: 'Booster Charge Capacity', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostRamDamage', label: 'Booster Ram Damage', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostRecoilDamage', label: 'Booster Recoil Damage Dampening', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostRecoilKnockback', label: 'Booster Recoil Knockback Dampening', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostShielding', label: 'Booster Damage Shielding', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'boostCooldown', label: 'Booster Cooldown', system: 'Boosters', requires: { utility: 'booster' } },
+  { id: 'scrapMagnetDistance', label: 'Magnet Distance', system: 'Scrap Collection', requires: { utility: 'scrap_magnet' } },
+  { id: 'scrapMagnetStrength', label: 'Magnet Strength', system: 'Scrap Collection', requires: { utility: 'scrap_magnet' } },
+  { id: 'scrapCaptureRadius', label: 'Capture Radius', system: 'Scrap Collection', requires: { utility: 'scrap_magnet' } },
 ];
 
 export function createUpgradeState() {
@@ -138,6 +138,7 @@ export function upgradeAvailable(game, id, account = game.account, vehicleDefini
   const requires = upgrade.requires ?? {};
   if (requires.module && !moduleInstalled(game, requires.module)) return false;
   if (requires.moduleUnlock && !account?.moduleUnlocks?.includes(requires.moduleUnlock)) return false;
+  if (requires.utility && !utilitySlotInstalled(game, requires.utility, vehicleDefinition)) return false;
   if (requires.primary && !weaponInstalled(vehicleDefinition, 'primary', requires.primary)) return false;
   if (requires.secondary && !weaponInstalled(vehicleDefinition, 'secondary', requires.secondary)) return false;
   return true;
@@ -156,6 +157,18 @@ export function buyUpgradeWithScrap(game, id, account = game.account, vehicleDef
 
 function moduleInstalled(game, moduleType) {
   return game.vehicle?.cells?.some((cell) => cell.type === moduleType);
+}
+
+function utilitySlotInstalled(game, slotId, vehicleDefinition = game.vehicleDefinition) {
+  const utilityCellIds = new Set(
+    (vehicleDefinition?.cells ?? game.vehicle?.cells ?? [])
+      .filter((cell) => cell.type === 'utility')
+      .map((cell) => cell.id),
+  );
+  if (utilityCellIds.size === 0) return false;
+  const slotModules = (vehicleDefinition?.modules ?? game.vehicle?.modules ?? []).filter((module) => module.kind === 'utilitySlots' && utilityCellIds.has(module.cellId));
+  if (slotModules.length === 0) return ['booster', 'scrap_magnet'].includes(slotId);
+  return slotModules.some((module) => (module.slots ?? []).includes(slotId));
 }
 
 function weaponInstalled(vehicleDefinition, slotKind, weaponId) {

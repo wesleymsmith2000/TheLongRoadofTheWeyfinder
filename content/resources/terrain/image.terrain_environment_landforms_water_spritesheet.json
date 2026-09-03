@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "image.terrain.environment_landforms_water.v0",
+  "path": "assets/images/terrain__environment_landforms_and_water__spritesheet.png",
+  "displayName": "Environment Landforms And Water Terrain Sheet",
+  "tags": ["terrain", "atlas", "water", "landforms", "ravines", "presentation-source"]
+}

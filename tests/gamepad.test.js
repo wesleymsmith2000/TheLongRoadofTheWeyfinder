@@ -65,9 +65,22 @@ test('standard gamepad exposes launch-screen virtual cursor movement and A/B cli
 });
 
 test('standard gamepad honors custom button bindings', () => {
-  const input = mapStandardGamepad(createPad({ pressed: [2] }), new Set(), { secondaryFire: [2], cursorClick: [3] });
+  const input = mapStandardGamepad(createPad({ pressed: [2, 4, 5, 6, 7, 13] }), new Set(), {
+    secondaryFire: [2],
+    cursorClick: [3],
+    hudToggle: [4],
+    controlConfigToggle: [5],
+    achievementsToggle: [6],
+    sandboxToggle: [7],
+    gunnerToggle: [13],
+  });
   assert.equal(input.secondaryFirePressed, true);
   assert.equal(input.cursorClickPressed, false);
+  assert.equal(input.hudTogglePressed, true);
+  assert.equal(input.controlConfigTogglePressed, true);
+  assert.equal(input.achievementsTogglePressed, true);
+  assert.equal(input.sandboxTogglePressed, true);
+  assert.equal(input.gunnerTogglePressed, true);
 });
 
 function createPad({ axes = [0, 0, 0, 0], pressed = [], buttons = {} } = {}) {

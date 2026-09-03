@@ -22,6 +22,7 @@ test('prototype player account exposes non-core equipment quantities', () => {
   assert.equal(report.valid, true);
   assert.equal(equipmentLimit(account, 'core'), 0);
   assert.equal(equipmentLimit(account, 'armor') > startingVehicleDefinition.cells.filter((cell) => cell.type === 'armor').length, true);
+  assert.equal(equipmentLimit(account, 'utility') > startingVehicleDefinition.cells.filter((cell) => cell.type === 'utility').length, true);
 });
 
 test('old player accounts are normalized to the expanded equipment baseline', () => {
@@ -38,14 +39,17 @@ test('old player accounts are normalized to the expanded equipment baseline', ()
   assert.equal(equipmentLimit(account, 'gun'), 6);
   assert.equal(equipmentLimit(account, 'wheel'), 8);
   assert.equal(equipmentLimit(account, 'engine'), 6);
+  assert.equal(equipmentLimit(account, 'utility'), 2);
 });
 
 test('starting player vehicle content creates the default runtime vehicle', () => {
   const vehicle = createStartingVehicle();
-  assert.equal(vehicle.cells.length, 7);
-  assert.equal(vehicle.connections.length, 6);
+  assert.equal(vehicle.cells.length, 8);
+  assert.equal(vehicle.connections.length, 7);
   assert.equal(vehicle.alive, true);
   assert.equal(vehicle.cells.some((cell) => cell.type === 'core'), true);
+  assert.equal(vehicle.cells.some((cell) => cell.type === 'utility'), true);
+  assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet']);
 });
 
 test('player vehicle editor can add additional unlocked equipment copies', () => {
@@ -53,6 +57,18 @@ test('player vehicle editor can add additional unlocked equipment copies', () =>
   const result = addEditableVehicleCell(startingVehicleDefinition, account, 'armor', -2, -1);
   assert.equal(result.changed, true);
   assert.equal(result.definition.cells.some((cell) => cell.type === 'armor' && cell.gridX === -2 && cell.gridY === -1), true);
+});
+
+test('player vehicle editor adds default utility slots to utility cells', () => {
+  const account = createPrototypePlayerAccountData();
+  const result = addEditableVehicleCell(startingVehicleDefinition, account, 'utility', -2, -1);
+  const utility = result.definition.cells.find((cell) => cell.type === 'utility' && cell.gridX === -2 && cell.gridY === -1);
+  assert.equal(result.changed, true);
+  assert.deepEqual(result.definition.modules.find((module) => module.cellId === utility.id)?.slots, ['booster', 'scrap_magnet']);
+
+  const removed = removeEditableVehicleCell(result.definition, utility.id);
+  assert.equal(removed.changed, true);
+  assert.equal(removed.definition.modules.some((module) => module.cellId === utility.id), false);
 });
 
 test('player vehicle editor allows the expanded build radius', () => {
@@ -102,11 +118,11 @@ test('player vehicle editor can stack cells and connect vertical layers', () => 
 
 test('edited player vehicle definitions instantiate into runtime vehicles', () => {
   const account = createPrototypePlayerAccountData();
-  const addResult = addEditableVehicleCell(startingVehicleDefinition, account, 'engine', 0, 2);
+  const addResult = addEditableVehicleCell(startingVehicleDefinition, account, 'engine', 0, 3);
   const vehicle = createVehicleFromConstructDefinition(addResult.definition);
   const roundTrip = vehicleToConstructDefinition(vehicle, addResult.definition);
   const report = editableVehicleReport(roundTrip, account);
-  assert.equal(vehicle.cells.length, 8);
+  assert.equal(vehicle.cells.length, 9);
   assert.equal(report.valid, true);
 });
 

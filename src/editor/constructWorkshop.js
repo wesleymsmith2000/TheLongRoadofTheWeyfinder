@@ -59,6 +59,7 @@ const cellColors = {
   core: '#f7c06a',
   engine: '#6fe0bf',
   gun: '#ff8f70',
+  utility: '#70c8ff',
   wheel: '#9ca8ff',
 };
 const gridRadius = 8;

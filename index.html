@@ -142,6 +142,7 @@
       body.title-active .controls-toggle,
       body.title-active .combat-panel,
       body.title-active .boost-gauge,
+      body.title-active .primary-fire-toggle,
       body.title-active .boost-button,
       body.title-active .secondary-touch-button,
       body.title-active .secondary-cycle-button {
@@ -735,6 +736,7 @@
         touch-action: none;
       }
 
+      .primary-fire-toggle,
       .secondary-touch-button,
       .secondary-cycle-button {
         position: fixed;
@@ -749,6 +751,16 @@
         font-weight: 800;
         letter-spacing: 0;
         touch-action: none;
+      }
+
+      .primary-fire-toggle {
+        bottom: 220px;
+      }
+
+      .primary-fire-toggle[aria-pressed="true"] {
+        border-color: rgb(111 224 191 / 0.72);
+        background: rgb(25 79 68 / 0.78);
+        color: #dffcf3;
       }
 
       .secondary-cycle-button {
@@ -1451,6 +1463,7 @@
           font-size: 11px;
         }
 
+        .primary-fire-toggle,
         .secondary-touch-button,
         .secondary-cycle-button {
           right: 12px;
@@ -1458,6 +1471,10 @@
           width: 58px;
           height: 48px;
           font-size: 11px;
+        }
+
+        .primary-fire-toggle {
+          bottom: 194px;
         }
 
         .secondary-cycle-button {
@@ -1751,6 +1768,7 @@
       </div>
     </div>
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
+    <button id="primaryFireToggle" class="primary-fire-toggle" type="button" aria-label="Toggle primary autofire" aria-pressed="true">AUTO</button>
     <button id="secondaryTouchCycle" class="secondary-cycle-button" type="button" aria-label="Cycle secondary weapon">SWAP</button>
     <button id="secondaryTouchFire" class="secondary-touch-button" type="button" aria-label="Fire secondary weapon">2ND</button>
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>

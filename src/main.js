@@ -204,6 +204,7 @@ const controlConfigStatus = document.querySelector('#controlConfigStatus');
 const achievementsToggle = document.querySelector('#achievementsToggle');
 const achievementsPanel = document.querySelector('#achievementsPanel');
 const achievementList = document.querySelector('#achievementList');
+const primaryFireToggle = document.querySelector('#primaryFireToggle');
 const boostButton = document.querySelector('#boostButton');
 const boostFill = document.querySelector('#boostFill');
 const secondarySelect = document.querySelector('#secondarySelect');
@@ -253,6 +254,7 @@ let pendingControlCapture = null;
 const keyboard = createKeyboardInput(window, controlBindings);
 const gamepad = createGamepadInput(undefined, controlBindings);
 const mouse = createMouseInput(canvas, (screen) => screenToWorld(screen, game.camera, { width: window.innerWidth, height: window.innerHeight }));
+const touchPrimaryFireToggle = createPointerButtonInput(primaryFireToggle);
 const touchBoost = createPointerButtonInput(boostButton);
 const touchSecondary = createPointerButtonInput(secondaryFire);
 const touchSecondaryCycle = createPointerButtonInput(secondaryTouchCycle);
@@ -339,11 +341,12 @@ function frame(now) {
   updateVirtualPointer(virtualPointer, padInput, dt, isVirtualPointerEnabled());
   const mouseInput = mouse.read();
   const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
+  const primaryFireTogglePressed = keyInput.fireTogglePressed || padInput.fireTogglePressed || touchPrimaryFireToggle.consume();
   const touchBoostPressed = touchBoost.consume();
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
   const targetCycle = keyInput.targetCycle || padInput.targetCycle || targetPreviousPressed.consume() * -1 || targetNextPressed.consume();
-  if (keyInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
+  if (keyInput.gunnerTogglePressed || padInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
   updatePadReticle(padReticle, padInput, dt);
   const padAimWorld = padReticle.active && padReticle.idle <= 5 ? screenToWorld(padReticle, game.camera, viewport()) : null;
   const aimWorld = mouseInput.aimWorld ?? padAimWorld;
@@ -362,8 +365,8 @@ function frame(now) {
     compensatedAim: compensatedAimToggle.checked,
     fireHeld: false,
     brake: keyInput.brake || padInput.brake,
-    debugTogglePressed: keyInput.debugTogglePressed,
-    fireTogglePressed: keyInput.fireTogglePressed,
+    debugTogglePressed: keyInput.debugTogglePressed || padInput.debugTogglePressed,
+    fireTogglePressed: primaryFireTogglePressed,
     resetPressed: keyInput.resetPressed || restartButtonPressed.consume(),
     pausePressed: keyInput.pausePressed || padInput.pausePressed || pauseTogglePressed.consume() || resumeButtonPressed.consume(),
     controlsTogglePressed: keyInput.controlsTogglePressed || padInput.controlsTogglePressed,
@@ -394,6 +397,10 @@ function frame(now) {
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) toggleDebug();
   if (input.controlsTogglePressed) toggleControls();
+  if (keyInput.hudTogglePressed || padInput.hudTogglePressed) toggleCombatHud();
+  if (keyInput.controlConfigTogglePressed || padInput.controlConfigTogglePressed) toggleControlConfig();
+  if (keyInput.achievementsTogglePressed || padInput.achievementsTogglePressed) toggleAchievements();
+  if (keyInput.sandboxTogglePressed || padInput.sandboxTogglePressed) toggleSandboxPanel();
   if (!awaitingLaunch) {
     const next = stepGame(game, input, dt);
     if (next !== game) {
@@ -422,6 +429,8 @@ function frame(now) {
   const selectedAmmo = game.secondary.ammo[game.secondary.selected];
   secondaryAmmo.textContent = selectedAmmo == null ? '-' : formatAmmoValue(selectedAmmo);
   secondaryHeat.style.width = `${game.secondary.heat}%`;
+  primaryFireToggle.setAttribute('aria-pressed', String(game.autofire));
+  primaryFireToggle.textContent = game.autofire ? 'AUTO' : 'PRI';
   scrapCount.textContent = game.scrap;
   scoreDamage.textContent = game.score.damageDone;
   renderer.draw(game, debug);

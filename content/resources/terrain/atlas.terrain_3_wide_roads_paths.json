@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "terrain.atlas.wide_roads_paths.v0",
+  "displayName": "Wide Roads And Paths Terrain Atlas",
+  "image": {
+    "path": "assets/images/terrain__wide_roads_and_paths__spritesheet.png",
+    "width": 1448,
+    "height": 1086,
+    "hasAlpha": false
+  },
+  "nativeTileSize": 32,
+  "sourceTileSize": { "width": 56, "height": 92 },
+  "rows": {
+    "weyfinders_road": { "y": 162 },
+    "starlight_road": { "y": 263 },
+    "ghost_forest_path": { "y": 363 },
+    "shadowed_desert": { "y": 464 },
+    "pirates_road": { "y": 565 },
+    "freedoms_pass": { "y": 666 },
+    "shadowed_road": { "y": 767 },
+    "digitized_stream": { "y": 868 }
+  },
+  "columns": {
+    "base_ground": { "x": 111 },
+    "outside_shoulder_left": { "x": 175 },
+    "outside_shoulder_right": { "x": 239 },
+    "hard_edge_left": { "x": 303 },
+    "soft_edge_left": { "x": 367 },
+    "soft_edge_right": { "x": 431 },
+    "center_fill_repeatable": { "x": 495 },
+    "center_fill_alt": { "x": 559 },
+    "lane_divider_center_stripe": { "x": 623 },
+    "median_separator": { "x": 687 },
+    "inside_corner": { "x": 751 },
+    "outside_corner": { "x": 815 },
+    "t_junction_continuation": { "x": 879 },
+    "x_crossing_continuation": { "x": 943 },
+    "end_cap_taper": { "x": 1007 },
+    "damaged_wide_road_variant": { "x": 1071 }
+  },
+  "sprites": {
+    "ghost_forest_path.base_ground": { "row": "ghost_forest_path", "column": "base_ground" },
+    "ghost_forest_path.soft_edge_left": { "row": "ghost_forest_path", "column": "soft_edge_left" },
+    "ghost_forest_path.soft_edge_right": { "row": "ghost_forest_path", "column": "soft_edge_right" },
+    "ghost_forest_path.center_fill_repeatable": { "row": "ghost_forest_path", "column": "center_fill_repeatable" },
+    "ghost_forest_path.center_fill_alt": { "row": "ghost_forest_path", "column": "center_fill_alt" },
+    "ghost_forest_path.lane_divider_center_stripe": { "row": "ghost_forest_path", "column": "lane_divider_center_stripe" },
+    "ghost_forest_path.inside_corner": { "row": "ghost_forest_path", "column": "inside_corner" },
+    "ghost_forest_path.outside_corner": { "row": "ghost_forest_path", "column": "outside_corner" },
+    "ghost_forest_path.t_junction_continuation": { "row": "ghost_forest_path", "column": "t_junction_continuation" },
+    "ghost_forest_path.x_crossing_continuation": { "row": "ghost_forest_path", "column": "x_crossing_continuation" },
+    "ghost_forest_path.end_cap_taper": { "row": "ghost_forest_path", "column": "end_cap_taper" },
+    "ghost_forest_path.damaged_variant": { "row": "ghost_forest_path", "column": "damaged_wide_road_variant" }
+  },
+  "assembly": {
+    "moduleTileSize": 32,
+    "mode": "arbitrary-width",
+    "edgeContinuity": ["hard_edge_left", "soft_edge_left", "soft_edge_right", "outside_shoulder_left", "outside_shoulder_right"],
+    "repeatableFill": ["center_fill_repeatable", "center_fill_alt"],
+    "connectors": ["inside_corner", "outside_corner", "t_junction_continuation", "x_crossing_continuation", "end_cap_taper"]
+  },
+  "notes": "Presentation-sheet coordinates for v0 wide-road assembly. Crop positions intentionally remain atlas metadata until the procedural assembler consumes arbitrary-width road modules."
+}

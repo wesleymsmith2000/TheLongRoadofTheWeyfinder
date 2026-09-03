@@ -12,7 +12,8 @@
     { "id": "wheel-left", "type": "wheel", "gridX": -1, "gridY": 0 },
     { "id": "core", "type": "core", "gridX": 0, "gridY": 0 },
     { "id": "wheel-right", "type": "wheel", "gridX": 1, "gridY": 0 },
-    { "id": "engine", "type": "engine", "gridX": 0, "gridY": 1 }
+    { "id": "engine", "type": "engine", "gridX": 0, "gridY": 1 },
+    { "id": "utility", "type": "utility", "gridX": 0, "gridY": 2 }
   ],
   "connections": [
     { "a": "core", "b": "gun", "aSide": "top" },
@@ -20,7 +21,8 @@
     { "a": "gun", "b": "armor-right", "aSide": "right", "bSide": "left" },
     { "a": "core", "b": "wheel-left", "aSide": "left" },
     { "a": "core", "b": "wheel-right", "aSide": "right" },
-    { "a": "core", "b": "engine", "aSide": "bottom" }
+    { "a": "core", "b": "engine", "aSide": "bottom" },
+    { "a": "engine", "b": "utility", "aSide": "bottom" }
   ],
   "gunLoadouts": [
     {
@@ -29,5 +31,11 @@
       "secondary": ["rocket", "cannon", "beam"]
     }
   ],
-  "modules": []
+  "modules": [
+    {
+      "cellId": "utility",
+      "kind": "utilitySlots",
+      "slots": ["booster", "scrap_magnet"]
+    }
+  ]
 }

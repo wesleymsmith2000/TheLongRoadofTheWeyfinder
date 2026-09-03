@@ -54,6 +54,11 @@ export function createVoxelMask(type) {
   } else if (type === 'engine') {
     setRoleLine(voxels, Roles.DEVICE, [leftCenter, rightCenter], leftCenter);
     setRoleLine(voxels, Roles.WIRE, [leftCenter, rightCenter], rightCenter);
+  } else if (type === 'utility') {
+    setRole(voxels, leftCenter, leftCenter, Roles.DEVICE);
+    setRole(voxels, rightCenter, rightCenter, Roles.DEVICE);
+    setRole(voxels, rightCenter, leftCenter, Roles.WIRE);
+    setRole(voxels, leftCenter, rightCenter, Roles.WIRE);
   }
 
   return voxels;

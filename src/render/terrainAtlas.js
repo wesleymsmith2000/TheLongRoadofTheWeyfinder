@@ -1,15 +1,21 @@
 import coreGroundSetsAtlas from '../../content/resources/terrain/atlas.terrain_1_core_ground_sets.json' with { type: 'json' };
 import pathsEdgesTransitionsAtlas from '../../content/resources/terrain/atlas.terrain_2_paths_edges_transitions.json' with { type: 'json' };
+import wideRoadsPathsAtlas from '../../content/resources/terrain/atlas.terrain_3_wide_roads_paths.json' with { type: 'json' };
+import environmentLandformsWaterAtlas from '../../content/resources/terrain/atlas.terrain_4_environment_landforms_water.json' with { type: 'json' };
 import coreGroundSetsUrl from '../../assets/images/terrain_1_spritesheet.png';
 import pathsEdgesTransitionsUrl from '../../assets/images/terrain_2_spritesheet.png';
+import wideRoadsPathsUrl from '../../assets/images/terrain__wide_roads_and_paths__spritesheet.png';
+import environmentLandformsWaterUrl from '../../assets/images/terrain__environment_landforms_and_water__spritesheet.png';
 
 const ATLAS_IMAGE_URLS = Object.freeze({
   [coreGroundSetsAtlas.assetId]: coreGroundSetsUrl,
   [pathsEdgesTransitionsAtlas.assetId]: pathsEdgesTransitionsUrl,
+  [wideRoadsPathsAtlas.assetId]: wideRoadsPathsUrl,
+  [environmentLandformsWaterAtlas.assetId]: environmentLandformsWaterUrl,
 });
 
 export function createTerrainAtlasLibrary() {
-  return new TerrainAtlasLibrary([coreGroundSetsAtlas, pathsEdgesTransitionsAtlas], ATLAS_IMAGE_URLS);
+  return new TerrainAtlasLibrary([coreGroundSetsAtlas, pathsEdgesTransitionsAtlas, wideRoadsPathsAtlas, environmentLandformsWaterAtlas], ATLAS_IMAGE_URLS);
 }
 
 export class TerrainAtlasLibrary {

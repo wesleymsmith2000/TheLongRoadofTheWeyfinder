@@ -53,6 +53,12 @@
       "type": "engine",
       "gridX": 0,
       "gridY": 1
+    },
+    {
+      "id": "utility",
+      "type": "utility",
+      "gridX": 0,
+      "gridY": 2
     }
   ],
   "connections": [
@@ -87,8 +93,22 @@
       "a": "core",
       "b": "engine",
       "aSide": "bottom"
+    },
+    {
+      "a": "engine",
+      "b": "utility",
+      "aSide": "bottom"
     }
   ],
-  "modules": [],
+  "modules": [
+    {
+      "cellId": "utility",
+      "kind": "utilitySlots",
+      "slots": [
+        "booster",
+        "scrap_magnet"
+      ]
+    }
+  ],
   "displayName": "Example Starting Vehicle"
 }

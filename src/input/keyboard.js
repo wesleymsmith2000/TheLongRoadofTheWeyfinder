@@ -32,7 +32,11 @@ export function createKeyboardInput(target = window, bindings = {}) {
         aimX: 0,
         aimY: 0,
         brake: actionHeld(keys, controlBindings.brake),
+        hudTogglePressed: actionPressed(pressed, controlBindings.hudToggle),
         debugTogglePressed: actionPressed(pressed, controlBindings.debugToggle),
+        controlConfigTogglePressed: actionPressed(pressed, controlBindings.controlConfigToggle),
+        achievementsTogglePressed: actionPressed(pressed, controlBindings.achievementsToggle),
+        sandboxTogglePressed: actionPressed(pressed, controlBindings.sandboxToggle),
         fireTogglePressed: actionPressed(pressed, controlBindings.primaryAutofire),
         gunnerTogglePressed: actionPressed(pressed, controlBindings.gunnerToggle),
         resetPressed: actionPressed(pressed, controlBindings.reset),
@@ -87,5 +91,21 @@ function createDoubleTapDodge(bindings) {
 }
 
 function preventedKeys(bindings) {
-  return new Set(['Space', 'Tab', ...bindings.moveUp, ...bindings.moveDown, ...bindings.moveLeft, ...bindings.moveRight, ...bindings.brake, ...bindings.pause]);
+  return new Set([
+    'Space',
+    'Tab',
+    ...bindings.moveUp,
+    ...bindings.moveDown,
+    ...bindings.moveLeft,
+    ...bindings.moveRight,
+    ...bindings.brake,
+    ...bindings.pause,
+    ...bindings.primaryAutofire,
+    ...bindings.hudToggle,
+    ...bindings.debugToggle,
+    ...bindings.controlConfigToggle,
+    ...bindings.achievementsToggle,
+    ...bindings.sandboxToggle,
+    ...bindings.gunnerToggle,
+  ]);
 }

@@ -18,6 +18,7 @@ export function createVehicleFromConstructDefinition(definition) {
     manualAimGrace: 0,
     assetId: construct.assetId,
     presentation: construct.presentation,
+    modules: construct.modules,
     cells: construct.cells,
     connections: construct.connections,
     detachedPieces: [],
@@ -55,7 +56,12 @@ export function addEditableVehicleCell(definition, account, type, gridX, gridY, 
   const used = definition.cells.filter((cell) => cell.type === type).length;
   if (used >= equipmentLimit(account, type)) return { changed: false, reason: `No ${type} equipment remaining.` };
   const next = cloneDefinition(definition);
-  next.cells.push({ id: uniqueCellId(next, type, gridX, gridY, gridZ), type, gridX, gridY, ...(gridZ ? { gridZ } : {}) });
+  const id = uniqueCellId(next, type, gridX, gridY, gridZ);
+  next.cells.push({ id, type, gridX, gridY, ...(gridZ ? { gridZ } : {}) });
+  if (type === 'utility') {
+    next.modules ??= [];
+    next.modules.push({ cellId: id, kind: 'utilitySlots', slots: ['booster', 'scrap_magnet'] });
+  }
   next.gunLoadouts = normalizeGunLoadouts(next);
   return { changed: true, definition: next };
 }
@@ -67,6 +73,7 @@ export function removeEditableVehicleCell(definition, cellId) {
   const next = cloneDefinition(definition);
   next.cells = next.cells.filter((candidate) => candidate.id !== cellId);
   next.connections = (next.connections ?? []).filter((edge) => edge.a !== cellId && edge.b !== cellId);
+  next.modules = (next.modules ?? []).filter((module) => module.cellId !== cellId);
   next.gunLoadouts = normalizeGunLoadouts(next);
   return { changed: true, definition: next };
 }

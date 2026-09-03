@@ -968,6 +968,7 @@ function stepPlayerGun(game, dt) {
   stepRepulsorRecharge(game, dt);
   game.playerFireTimer -= dt;
   if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
+  if (!hasActiveOrInboundEnemies(game)) return;
   const mounts = primaryFiringMounts(game);
   if (mounts.length === 0) return;
   const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy');
@@ -1192,6 +1193,10 @@ function primaryFiringMounts(game) {
     const weapons = (loadouts.get(muzzle.cellId)?.primary ?? ['main.basic']).filter(Boolean);
     return (weapons.length ? weapons : ['main.basic']).map((weaponId) => ({ muzzle, weaponId }));
   });
+}
+
+function hasActiveOrInboundEnemies(game) {
+  return activeEnemies(game).length > 0 || game.enemySpawnQueue.some((entry) => !entry.enemy?.destroyed);
 }
 
 function playerGunFireInterval(game, activeMounts = primaryFiringMounts(game).length) {

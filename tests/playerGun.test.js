@@ -16,6 +16,24 @@ test('standard turret bullets use boosted damage', () => {
   assert.equal(bullet.radius, 1.5);
 });
 
+test('primary guns hold fire when there are no active or inbound enemies', () => {
+  const game = createGame();
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.owner === 'player'), false);
+});
+
+test('primary guns fire while enemies are inbound', () => {
+  const game = createGame();
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: game.time + 30, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: false, type: 'standard' }];
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
+});
+
 test('main gun damage upgrade increases bullet damage', () => {
   const game = createGame();
   game.upgrades.gunDamage = 1;
