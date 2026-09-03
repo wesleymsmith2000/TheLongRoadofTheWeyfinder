@@ -142,6 +142,12 @@ const SOUND_URLS = {
 const canvas = document.querySelector('#game');
 const virtualCursor = document.querySelector('#virtualCursor');
 const buildVersionTag = document.querySelector('#buildVersionTag');
+const titleScreen = document.querySelector('#titleScreen');
+const titleVersionTag = document.querySelector('#titleVersionTag');
+const titleNormalRun = document.querySelector('#titleNormalRun');
+const titleSandboxRun = document.querySelector('#titleSandboxRun');
+const titleVehicleBay = document.querySelector('#titleVehicleBay');
+const titleControls = document.querySelector('#titleControls');
 const gameOver = document.querySelector('#gameOver');
 const launchScreen = document.querySelector('#launchScreen');
 const launchButton = document.querySelector('#launchButton');
@@ -192,6 +198,7 @@ const sandboxStatus = document.querySelector('#sandboxStatus');
 const controlConfigToggle = document.querySelector('#controlConfigToggle');
 const controlConfigPanel = document.querySelector('#controlConfigPanel');
 const controlConfigList = document.querySelector('#controlConfigList');
+const controlConfigClose = document.querySelector('#controlConfigClose');
 const controlConfigReset = document.querySelector('#controlConfigReset');
 const controlConfigStatus = document.querySelector('#controlConfigStatus');
 const achievementsToggle = document.querySelector('#achievementsToggle');
@@ -259,6 +266,7 @@ let playerVehicleDefinition = playerAccount.savedVehicle;
 let game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
 let previous = performance.now();
 let awaitingLaunch = true;
+let titleActive = true;
 let activeMusicTrack = null;
 const musicAudio = new Audio();
 musicAudio.loop = true;
@@ -283,6 +291,7 @@ document.documentElement.style.setProperty('--pause-art', `url("${pauseArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
 if (buildVersionTag) buildVersionTag.textContent = BUILD_VERSION;
+if (titleVersionTag) titleVersionTag.textContent = BUILD_VERSION;
 exposeLocalContentModuleApi();
 exposeSandboxApi();
 populateUpgradeSelect();
@@ -317,6 +326,7 @@ const vehicleEditor = createPlayerVehicleLaunchEditor(
     },
   },
 );
+syncTitleScreen();
 syncLaunchScreen();
 
 function frame(now) {
@@ -427,10 +437,15 @@ bindButtonActivation(sandboxToggle, toggleSandboxPanel);
 bindButtonActivation(controlConfigToggle, toggleControlConfig);
 bindButtonActivation(achievementsToggle, toggleAchievements);
 bindButtonActivation(launchButton, launchVehicle);
+bindButtonActivation(titleNormalRun, startNormalRun);
+bindButtonActivation(titleSandboxRun, startTitleSandboxRun);
+bindButtonActivation(titleVehicleBay, openVehicleBay);
+bindButtonActivation(titleControls, openTitleControlConfig);
 secondarySelect.addEventListener('change', syncSecondarySelects);
 pauseSecondarySelect.addEventListener('change', syncSecondarySelects);
 secondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 pauseSecondaryAutofire.addEventListener('change', syncSecondaryAutofire);
+controlConfigClose.addEventListener('click', closeControlConfig);
 controlConfigReset.addEventListener('click', resetControlBindings);
 sandboxQuickRun.addEventListener('click', runQuickSandbox);
 sandboxScriptRun.addEventListener('click', runScriptSandbox);
@@ -467,6 +482,11 @@ function toggleControlConfig() {
   controlConfigPanel.classList.toggle('hidden');
 }
 
+function closeControlConfig() {
+  pendingControlCapture = null;
+  controlConfigPanel.classList.add('hidden');
+}
+
 function toggleAchievements() {
   achievementsPanel.classList.toggle('hidden');
 }
@@ -501,11 +521,48 @@ function toggleCombatHud() {
 
 function launchVehicle() {
   if (!awaitingLaunch) return;
+  titleActive = false;
   awaitingLaunch = false;
   game.levelStartTime = game.time;
   previous = performance.now();
   syncMusic(true);
+  syncTitleScreen();
   syncLaunchScreen();
+}
+
+function startNormalRun() {
+  titleActive = false;
+  closeControlConfig();
+  if (awaitingLaunch) {
+    launchVehicle();
+    return;
+  }
+  syncTitleScreen();
+}
+
+function startTitleSandboxRun() {
+  titleActive = false;
+  closeControlConfig();
+  runQuickSandbox();
+  syncTitleScreen();
+}
+
+function openVehicleBay() {
+  titleActive = false;
+  closeControlConfig();
+  if (!awaitingLaunch) {
+    game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
+    awaitingLaunch = true;
+    refreshRepairTargets();
+  }
+  previous = performance.now();
+  syncTitleScreen();
+  syncLaunchScreen();
+}
+
+function openTitleControlConfig() {
+  controlConfigPanel.classList.remove('hidden');
+  controlConfigStatus.textContent = controlConfigStatus.textContent || 'Control bindings ready.';
 }
 
 function runQuickSandbox() {
@@ -531,6 +588,8 @@ function runScriptSandbox() {
 function startSandbox(definition) {
   const enemyArchetypes = localEnemyArchetypes();
   try {
+    titleActive = false;
+    closeControlConfig();
     if (game.sandbox?.enabled) {
       applySandboxDefinitionToGame(game, definition, { enemyArchetypes });
     } else {
@@ -546,6 +605,7 @@ function startSandbox(definition) {
     previous = performance.now();
     localStorage.setItem(SANDBOX_STORAGE_KEY, JSON.stringify(definition));
     refreshRepairTargets();
+    syncTitleScreen();
     syncLaunchScreen();
     syncMusic(true);
     sandboxStatus.textContent = `Sandbox running: ${definition.title}`;
@@ -557,14 +617,23 @@ function startSandbox(definition) {
 function stopSandbox() {
   game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
   awaitingLaunch = true;
+  titleActive = true;
   previous = performance.now();
   refreshRepairTargets();
+  syncTitleScreen();
   syncLaunchScreen();
   sandboxStatus.textContent = 'Sandbox stopped.';
 }
 
+function syncTitleScreen() {
+  titleScreen.hidden = !titleActive;
+  titleScreen.classList.toggle('hidden', !titleActive);
+  titleScreen.setAttribute('aria-hidden', String(!titleActive));
+  document.body.classList.toggle('title-active', titleActive);
+}
+
 function syncLaunchScreen() {
-  const visible = awaitingLaunch;
+  const visible = awaitingLaunch && !titleActive;
   launchScreen.hidden = !visible;
   launchScreen.classList.toggle('hidden', !visible);
   launchScreen.style.display = visible ? 'grid' : 'none';
@@ -996,6 +1065,7 @@ function axisMagnitude(input) {
 
 function isVirtualPointerEnabled() {
   return (
+    titleActive ||
     awaitingLaunch ||
     game.paused ||
     game.levelComplete ||

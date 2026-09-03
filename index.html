@@ -130,6 +130,24 @@
         pointer-events: none;
       }
 
+      body.title-active .hud,
+      body.title-active .level-hud,
+      body.title-active .build-version-tag,
+      body.title-active .hud-toggle,
+      body.title-active .pause-toggle,
+      body.title-active .debug-toggle,
+      body.title-active .control-config-toggle,
+      body.title-active .achievements-toggle,
+      body.title-active .sandbox-toggle,
+      body.title-active .controls-toggle,
+      body.title-active .combat-panel,
+      body.title-active .boost-gauge,
+      body.title-active .boost-button,
+      body.title-active .secondary-touch-button,
+      body.title-active .secondary-cycle-button {
+        display: none;
+      }
+
       .title {
         margin: 0 0 6px;
         font-size: 18px;
@@ -585,8 +603,27 @@
       }
 
       .control-config-panel h2 {
-        margin: 0 0 8px;
+        margin: 0;
         font-size: 14px;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .panel-close {
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid rgb(244 238 228 / 0.24);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.72);
+        color: #f4eee4;
+        font-size: 12px;
+        font-weight: 800;
       }
 
       .control-config-panel p {
@@ -941,6 +978,108 @@
         display: none !important;
       }
 
+      .title-screen {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        align-items: center;
+        padding: clamp(18px, 4vw, 52px);
+        background:
+          linear-gradient(90deg, rgb(12 13 13 / 0.72), rgb(12 13 13 / 0.42) 52%, rgb(12 13 13 / 0.68)),
+          center / cover no-repeat var(--repair-art);
+        color: #fff6e7;
+        pointer-events: auto;
+        z-index: 24;
+      }
+
+      .title-screen.hidden {
+        display: none;
+      }
+
+      .title-version-tag {
+        position: fixed;
+        left: 16px;
+        top: 16px;
+        padding: 4px 7px;
+        border: 1px solid rgb(244 238 228 / 0.28);
+        border-radius: 4px;
+        background: rgb(20 23 24 / 0.74);
+        color: #d7ceb8;
+        font: 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+        text-shadow: 0 1px 2px #000;
+      }
+
+      .title-screen-content {
+        display: grid;
+        gap: 14px;
+        width: min(520px, calc(100vw - 36px));
+      }
+
+      .title-kicker {
+        margin: 0;
+        color: #f7c06a;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        text-shadow: 0 1px 3px #000;
+      }
+
+      .title-screen h1 {
+        max-width: 11ch;
+        margin: 0;
+        font-size: clamp(44px, 8vw, 86px);
+        line-height: 0.94;
+        letter-spacing: 0;
+        text-shadow: 0 2px 8px rgb(0 0 0 / 0.65);
+      }
+
+      .title-copy {
+        max-width: 36ch;
+        margin: 0;
+        color: #f4eee4;
+        font-size: clamp(15px, 2.2vw, 18px);
+        line-height: 1.35;
+        text-shadow: 0 1px 4px #000;
+      }
+
+      .title-menu {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 190px));
+        gap: 10px;
+        width: min(100%, 410px);
+      }
+
+      .title-menu button,
+      .title-menu a {
+        display: grid;
+        place-items: center;
+        min-height: 48px;
+        padding: 0 14px;
+        border: 1px solid rgb(244 238 228 / 0.34);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.82);
+        color: #fff6e7;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.15;
+        text-align: center;
+        text-decoration: none;
+        touch-action: manipulation;
+        box-shadow: 0 5px 18px rgb(0 0 0 / 0.24);
+      }
+
+      .title-menu button:first-child {
+        background: rgb(247 192 106 / 0.22);
+        border-color: rgb(247 192 106 / 0.58);
+      }
+
+      .title-menu button:disabled {
+        cursor: not-allowed;
+        opacity: 0.48;
+      }
+
       .launch-panel {
         position: relative;
         display: grid;
@@ -1191,6 +1330,30 @@
           top: 10px;
         }
 
+        .title-screen {
+          align-items: end;
+          padding: 54px 14px 18px;
+        }
+
+        .title-version-tag {
+          left: 10px;
+          top: 10px;
+        }
+
+        .title-screen-content {
+          width: 100%;
+        }
+
+        .title-screen h1 {
+          max-width: 10ch;
+          font-size: clamp(40px, 13vw, 58px);
+        }
+
+        .title-menu {
+          grid-template-columns: 1fr;
+          width: 100%;
+        }
+
         .hud-toggle {
           right: 98px;
           top: 10px;
@@ -1379,7 +1542,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="title-active">
     <canvas id="game" aria-label="Vehicle roguelite prototype"></canvas>
     <div id="virtualCursor" class="virtual-cursor" hidden></div>
     <div id="buildVersionTag" class="build-version-tag" aria-label="Build version"></div>
@@ -1390,6 +1553,22 @@
     <div class="level-hud">
       <strong id="levelName">The Weyfinders Road 1</strong>
       <div class="level-progress" aria-label="Level progress"><div id="levelProgressFill"></div></div>
+    </div>
+    <div id="titleScreen" class="title-screen">
+      <div id="titleVersionTag" class="title-version-tag" aria-label="Title build version"></div>
+      <div class="title-screen-content">
+        <p class="title-kicker">Prototype 0</p>
+        <h1>The Long Road of the Weyfinder</h1>
+        <p class="title-copy">Drive the machine. Lose the machine. Keep the Core moving.</p>
+        <nav class="title-menu" aria-label="Main menu">
+          <button id="titleNormalRun" type="button">Normal Run</button>
+          <button id="titleSandboxRun" type="button">Sandbox Run</button>
+          <button id="titleVehicleBay" type="button">Vehicle Bay</button>
+          <button id="titleControls" type="button">Controls</button>
+          <a href="https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/tools/creator-suite.html">Editor Page</a>
+          <button type="button" disabled>Roguelike Draft</button>
+        </nav>
+      </div>
     </div>
     <div id="launchScreen" class="launch-screen">
       <div class="launch-panel">
@@ -1487,7 +1666,10 @@
       <div id="achievementList" class="achievement-list"></div>
     </div>
     <div id="controlConfigPanel" class="control-config-panel hidden">
-      <h2>Control Bindings</h2>
+      <div class="panel-heading">
+        <h2>Control Bindings</h2>
+        <button id="controlConfigClose" class="panel-close" type="button" aria-label="Close control bindings">Close</button>
+      </div>
       <p>Choose an action, then press the next key or controller button to bind it.</p>
       <div id="controlConfigList" class="control-config-list"></div>
       <button id="controlConfigReset" class="control-config-reset" type="button">Reset Defaults</button>

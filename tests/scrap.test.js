@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
+import { createProjectile } from '../src/core/projectile.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('vehicle collects scrap pickups by driving over them', () => {
   const game = createGame();
+  game.autofire = false;
   game.enemies = [];
   game.scrapPickups = [{ x: game.vehicle.x, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 3, life: 8 }];
   stepGame(game, {}, 1 / 60);
@@ -14,6 +16,7 @@ test('vehicle collects scrap pickups by driving over them', () => {
 
 test('level completion waits until dropped scrap is collected or gone', () => {
   const game = createGame();
+  game.autofire = false;
   game.enemies = [];
   game.scrapPickups = [{ x: game.vehicle.x + 200, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 3, life: 8 }];
   stepGame(game, {}, 1 / 60);
@@ -48,4 +51,29 @@ test('scrap collection upgrades extend magnet pull and capture radius', () => {
   magnetGame.scrapPickups = [{ x: magnetGame.vehicle.x + CELL_SIZE * 8, y: magnetGame.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 }];
   stepGame(magnetGame, {}, 1 / 60);
   assert.equal(magnetGame.scrapPickups[0].vx < 0, true);
+});
+
+test('remaining scrap b-lines toward the vehicle once the field is clear', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [];
+  game.enemyProjectiles = [];
+  game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 1 }];
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.scrapPickups[0].vx < -200, true);
+  assert.equal(game.scrapPickups[0].life > 1, true);
+});
+
+test('scrap waits for live projectiles before clear-field collection starts', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [createProjectile(game.vehicle.x, game.vehicle.y - 20, 0, -20, { team: 'player', damage: 1, lifetime: 1 })];
+  game.enemyProjectiles = [];
+  game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 }];
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.scrapPickups[0].vx, 0);
 });

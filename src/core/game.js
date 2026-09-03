@@ -690,12 +690,19 @@ function stepScrapPickups(game, dt) {
   const collectRange = CELL_SIZE * 2.1 * upgradeMultiplier(game, 'scrapCaptureRadius');
   const magnetRange = VOXEL_SIZE * SHOP_COSTS.scrapMagnetVoxels * upgradeMultiplier(game, 'scrapMagnetDistance');
   const magnetStrength = upgradeMultiplier(game, 'scrapMagnetStrength');
+  const clearFieldSweep = shouldSweepRemainingScrap(game);
   const kept = [];
   for (const pickup of game.scrapPickups) {
     const dx = game.vehicle.x - pickup.x;
     const dy = game.vehicle.y - pickup.y;
     const distance = Math.hypot(dx, dy);
-    if (distance > 0 && distance <= magnetRange) {
+    if (clearFieldSweep && distance > 0) {
+      const sweepSpeed = 260;
+      const speed = Math.max(sweepSpeed, Math.hypot(pickup.vx, pickup.vy));
+      pickup.vx = (dx / distance) * speed;
+      pickup.vy = (dy / distance) * speed;
+      pickup.life = Math.max(pickup.life, 3);
+    } else if (distance > 0 && distance <= magnetRange) {
       const pull = 1 - distance / magnetRange;
       pickup.vx += (dx / distance) * (65 + pull * 130) * magnetStrength * dt;
       pickup.vy += (dy / distance) * (65 + pull * 130) * magnetStrength * dt;
@@ -713,6 +720,13 @@ function stepScrapPickups(game, dt) {
     if (pickup.life > 0) kept.push(pickup);
   }
   game.scrapPickups = kept;
+}
+
+function shouldSweepRemainingScrap(game) {
+  if (activeEnemies(game).length > 0 || game.enemySpawnQueue.length > 0) return false;
+  const blockingPlayerProjectiles = game.playerProjectiles.some((projectile) => projectile.lifetime > 0 && projectile.behavior !== 'beam' && projectile.behavior !== 'blast');
+  if (blockingPlayerProjectiles) return false;
+  return !game.enemyProjectiles.some((projectile) => projectile.lifetime > 0 && projectile.behavior !== 'beam' && projectile.behavior !== 'blast');
 }
 
 function stepShop(game, input) {
