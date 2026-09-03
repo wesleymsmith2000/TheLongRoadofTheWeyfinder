@@ -3,6 +3,7 @@ import { normalizeTerrainConfig, tilesPerChunk } from './terrainConfig.js';
 import { terrainChunkKey } from './terrainGrid.js';
 import { createTerrainMaterialLookup } from './terrainMaterial.js';
 import { createTileVariants, tileMatchesRoadSockets } from './terrainTileDefinition.js';
+import { DEFAULT_ROAD_ROUTE, roadRouteLength, sampleRoadRoute } from './roadRoute.js';
 import ghostForestGround from '../../content/terrain/materials/ghost_forest_ground.json' with { type: 'json' };
 import ghostForestPath from '../../content/terrain/materials/ghost_forest_path.json' with { type: 'json' };
 import ghostForestSlipperyMoss from '../../content/terrain/materials/ghost_forest_slippery_moss.json' with { type: 'json' };
@@ -11,10 +12,7 @@ import ghostForestPathSlippery from '../../content/terrain/tiles/ghost_forest_pa
 import ghostForestPathStraight from '../../content/terrain/tiles/ghost_forest_path_straight.json' with { type: 'json' };
 import ghostForestPathTurn from '../../content/terrain/tiles/ghost_forest_path_turn.json' with { type: 'json' };
 
-export const DEFAULT_TERRAIN_ROUTE = Object.freeze({
-  startHeading: 0,
-  segments: Object.freeze([{ id: 'prototype-endless-road', length: 48000, turnRadians: 0 }]),
-});
+export const DEFAULT_TERRAIN_ROUTE = DEFAULT_ROAD_ROUTE;
 
 export function createDefaultGhostForestTerrainContent() {
   return {
@@ -93,38 +91,27 @@ export function chooseTerrainTile(generator, worldTileX, worldTileY) {
 export function resolveRouteTiles(route = DEFAULT_TERRAIN_ROUTE, options = {}) {
   const config = options.config ?? normalizeTerrainConfig();
   const routeTiles = new Set();
-  const segments = Array.isArray(route.segments) && route.segments.length > 0 ? route.segments : DEFAULT_TERRAIN_ROUTE.segments;
-  let x = route.startX ?? 0;
-  let y = route.startY ?? 0;
-  let heading = route.startHeading ?? 0;
   const step = config.tileSize / 2;
 
   const paddingSteps = Math.ceil((route.routePadding ?? config.routePadding) / step);
-  const startBackward = rotatePoint(0, 1, heading);
+  const start = sampleRoadRoute(route, 0);
+  const startBackward = rotatePoint(0, 1, start.heading);
+  let previousTile = null;
   for (let index = paddingSteps; index > 0; index -= 1) {
-    markRouteTile(routeTiles, x + startBackward.x * index * step, y + startBackward.y * index * step, config);
+    previousTile = markConnectedRouteTile(routeTiles, previousTile, start.x + startBackward.x * index * step, start.y + startBackward.y * index * step, config);
   }
 
-  markRouteTile(routeTiles, x, y, config);
-  for (const segment of segments) {
-    const length = Number.isFinite(segment.length) ? segment.length : config.routeFallbackLength;
-    const turnRadians = Number.isFinite(segment.turnRadians) ? segment.turnRadians : 0;
-    const steps = Math.max(1, Math.ceil(length / step));
-    for (let index = 1; index <= steps; index += 1) {
-      const t = index / steps;
-      const segmentHeading = heading + turnRadians * t;
-      const direction = rotatePoint(0, -1, segmentHeading);
-      x += direction.x * step;
-      y += direction.y * step;
-      markRouteTile(routeTiles, x, y, config);
-    }
-    heading += turnRadians;
+  const routeLength = roadRouteLength(route);
+  for (let distance = 0; distance <= routeLength; distance += step) {
+    const pose = sampleRoadRoute(route, distance);
+    previousTile = markConnectedRouteTile(routeTiles, previousTile, pose.x, pose.y, config);
   }
 
-  const finalForward = rotatePoint(0, -1, heading);
+  const final = sampleRoadRoute(route, routeLength);
+  const finalForward = rotatePoint(0, -1, final.heading);
   const extensionSteps = Math.ceil(config.routeFallbackLength / step);
   for (let index = 1; index <= extensionSteps; index += 1) {
-    markRouteTile(routeTiles, x + finalForward.x * index * step, y + finalForward.y * index * step, config);
+    previousTile = markConnectedRouteTile(routeTiles, previousTile, final.x + finalForward.x * index * step, final.y + finalForward.y * index * step, config);
   }
   return routeTiles;
 }
@@ -142,7 +129,27 @@ function requiredRoadSocketsForTile(routeTiles, worldTileX, worldTileY) {
 }
 
 function markRouteTile(routeTiles, worldX, worldY, config) {
-  routeTiles.add(routeTileKey(Math.floor(worldX / config.tileSize), Math.floor(worldY / config.tileSize)));
+  const tile = { x: Math.floor(worldX / config.tileSize), y: Math.floor(worldY / config.tileSize) };
+  routeTiles.add(routeTileKey(tile.x, tile.y));
+  return tile;
+}
+
+function markConnectedRouteTile(routeTiles, previousTile, worldX, worldY, config) {
+  const tile = markRouteTile(routeTiles, worldX, worldY, config);
+  if (!previousTile) return tile;
+  let x = previousTile.x;
+  let y = previousTile.y;
+  while (x !== tile.x || y !== tile.y) {
+    const dx = tile.x - x;
+    const dy = tile.y - y;
+    if (Math.abs(dx) >= Math.abs(dy) && dx !== 0) {
+      x += Math.sign(dx);
+    } else if (dy !== 0) {
+      y += Math.sign(dy);
+    }
+    routeTiles.add(routeTileKey(x, y));
+  }
+  return tile;
 }
 
 function routeTileKey(worldTileX, worldTileY) {

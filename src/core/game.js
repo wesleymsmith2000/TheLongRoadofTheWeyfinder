@@ -59,6 +59,7 @@ import { createTerrainState, updateTerrainStreaming } from './terrainStreaming.j
 import { normalizeGunLoadouts } from './weaponLoadout.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, validateSandboxDefinition } from './sandboxMode.js';
+import { createProceduralRoadRoute } from './roadRoute.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
@@ -118,8 +119,15 @@ const MORTAR_ENEMY_MARKER_SPRITE = {
 export function createGame(seed = 1147, options = {}) {
   const vehicleDefinition = options.vehicleDefinition ?? startingVehicleDefinition;
   const vehicle = createStartingVehicle(vehicleDefinition);
-  const road = createRoadFrame(vehicle);
-  const terrainGenerator = createTerrainGenerator({ seed: options.terrainSeed ?? seed, route: options.terrainRoute });
+  const terrainRoute =
+    options.terrainRoute ??
+    createProceduralRoadRoute(options.terrainSeed ?? seed, {
+      startX: vehicle.x,
+      startY: vehicle.y,
+      startHeading: vehicle.heading,
+    });
+  const road = createRoadFrame(vehicle, { route: terrainRoute });
+  const terrainGenerator = createTerrainGenerator({ seed: options.terrainSeed ?? seed, route: terrainRoute });
   const terrain = createTerrainState(terrainGenerator);
   updateTerrainStreaming(terrain, road);
   const terrainSample = sampleTerrain(terrain, vehicle.x, vehicle.y);

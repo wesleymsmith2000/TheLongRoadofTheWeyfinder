@@ -377,7 +377,17 @@ test('blade deflection converts enemy projectiles into player shots', () => {
 });
 
 test('mortar skiff roams, fires inaccurate arcing mortars, and gets dizzy on road turns', () => {
-  const game = createGame();
+  const game = createGame(1147, {
+    terrainRoute: {
+      startX: 0,
+      startY: 0,
+      startHeading: 0,
+      segments: [
+        { id: 'short.straight', length: 5, turnRadians: 0 },
+        { id: 'test.curve', length: 90, turnRadians: Math.PI / 4 },
+      ],
+    },
+  });
   game.autofire = false;
   const skiff = createMortarSkiffEnemy(game.vehicle.x + 120, game.vehicle.y - 80);
   skiff.artilleryTimer = 0;
@@ -394,7 +404,8 @@ test('mortar skiff roams, fires inaccurate arcing mortars, and gets dizzy on roa
   game.enemyProjectiles = [];
   skiff.artilleryTimer = 0;
   skiff.vx = 120;
-  game.road.turnTimer = 0.001;
+  game.road.routeDistance = 4.9;
+  game.road.routeSegmentIndex = 0;
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(skiff.dizzyTimer > 2, true);
   assert.equal(game.enemyProjectiles.length, 0);

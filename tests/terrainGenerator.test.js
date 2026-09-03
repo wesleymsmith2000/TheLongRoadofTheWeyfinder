@@ -33,6 +33,37 @@ test('no-solution road socket combinations use deterministic fallback', () => {
   assert.equal(fallback.sourceAssetId, 'terrain.tile.fallback_road');
 });
 
+test('procedural terrain route stamps connected turn tiles', () => {
+  const generator = createTerrainGenerator({
+    seed: 22,
+    route: {
+      startX: 0,
+      startY: 0,
+      startHeading: 0,
+      routePadding: 0,
+      segments: [
+        { id: 'test.straight', length: 96, turnRadians: 0 },
+        { id: 'test.turn', length: 192, turnRadians: Math.PI / 2 },
+      ],
+    },
+  });
+  const chunks = [
+    generateTerrainChunk(generator, -1, -1),
+    generateTerrainChunk(generator, 0, -1),
+    generateTerrainChunk(generator, 1, -1),
+  ];
+  const turnTiles = chunks
+    .flatMap((chunk) => chunk.tiles.flat())
+    .filter((tile) => {
+      const sockets = tile.requiredRoadSockets;
+      const northSouth = sockets.north !== 'closed' || sockets.south !== 'closed';
+      const eastWest = sockets.east !== 'closed' || sockets.west !== 'closed';
+      return tile.tags.includes('road') && northSouth && eastWest;
+    });
+  assert.equal(turnTiles.length > 0, true);
+  assert.equal(generator.debugLog.length, 0);
+});
+
 test('world terrain addressing supports negatives and exact boundaries', () => {
   const address = worldToTerrainAddress(-1, -32);
   assert.equal(address.chunkX, -1);

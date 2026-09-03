@@ -30,18 +30,29 @@ test('road frame advances constantly in its forward direction', () => {
   assert.equal(delta.dy < 0, true);
 });
 
-test('road frame makes infrequent deterministic discrete turns', () => {
+test('road frame follows route curves and emits turn events when entering bends', () => {
   const vehicle = createStartingVehicle();
-  const road = createRoadFrame(vehicle);
-  road.turnTimer = 0.001;
+  const road = createRoadFrame(vehicle, {
+    route: {
+      startX: 0,
+      startY: 0,
+      startHeading: 0,
+      segments: [
+        { id: 'straight', length: 60, turnRadians: 0 },
+        { id: 'bend', length: 120, turnRadians: Math.PI / 2 },
+      ],
+    },
+  });
+  road.speed = 60;
   const beforeHeading = road.heading;
-  stepRoadFrame(road, 1 / 60);
-  const turnSteps = Math.abs(road.lastTurnAngle) / (Math.PI / 8);
-  assert.equal(road.heading !== beforeHeading, true);
-  assert.equal(Number.isInteger(Math.round(turnSteps)), true);
-  assert.equal(Math.abs(road.lastTurnAngle) >= Math.PI / 8, true);
-  assert.equal(Math.abs(road.lastTurnAngle) <= Math.PI / 2, true);
-  assert.equal(road.turnTimer >= 24, true);
+  const straightDelta = stepRoadFrame(road, 1);
+  assert.equal(road.heading, beforeHeading);
+  assert.equal(straightDelta.turnAngle, 0);
+
+  const curveDelta = stepRoadFrame(road, 0.25);
+  assert.equal(curveDelta.turnAngle, Math.PI / 2);
+  assert.equal(road.heading > beforeHeading, true);
+  assert.equal(road.lastTurnAngle, Math.PI / 2);
 });
 
 test('road camera rotates toward road heading', () => {

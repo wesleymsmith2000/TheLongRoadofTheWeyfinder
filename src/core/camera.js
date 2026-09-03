@@ -1,48 +1,37 @@
 import { angleDelta, clamp, lerp, rotatePoint } from './math.js';
+import { DEFAULT_ROAD_ROUTE, isRouteTurnSegment, sampleRoadRoute } from './roadRoute.js';
 
-export function createRoadFrame(vehicle) {
+export function createRoadFrame(vehicle, options = {}) {
+  const route = options.route ?? DEFAULT_ROAD_ROUTE;
+  const pose = sampleRoadRoute(route, 0);
   return {
-    x: vehicle.x,
-    y: vehicle.y,
-    heading: vehicle.heading,
+    x: pose.x,
+    y: pose.y,
+    heading: pose.heading,
     speed: 30,
     halfWidth: 120,
     halfHeight: 92,
-    turnSeed: 1147,
-    turnTimer: 28,
+    route,
+    routeDistance: 0,
+    routeSegmentIndex: pose.segmentIndex,
     lastTurnAngle: 0,
   };
 }
 
 export function stepRoadFrame(road, dt) {
-  const turnAngle = stepRoadTurns(road, dt);
-  const direction = roadForward(road);
-  const dx = direction.x * road.speed * dt;
-  const dy = direction.y * road.speed * dt;
-  road.x += dx;
-  road.y += dy;
+  const previous = { x: road.x, y: road.y, heading: road.heading, routeSegmentIndex: road.routeSegmentIndex };
+  road.routeDistance = Math.max(0, (road.routeDistance ?? 0) + road.speed * dt);
+  const pose = sampleRoadRoute(road.route ?? DEFAULT_ROAD_ROUTE, road.routeDistance);
+  road.x = pose.x;
+  road.y = pose.y;
+  road.heading = pose.heading;
+  road.routeSegmentIndex = pose.segmentIndex;
+  const enteredCurve = pose.segmentIndex !== previous.routeSegmentIndex && isRouteTurnSegment(pose.segment);
+  const turnAngle = enteredCurve ? pose.segment.turnRadians : 0;
+  const dx = road.x - previous.x;
+  const dy = road.y - previous.y;
+  road.lastTurnAngle = turnAngle;
   return { dx, dy, turnAngle };
-}
-
-function stepRoadTurns(road, dt) {
-  road.turnTimer = (road.turnTimer ?? 28) - dt;
-  if (road.turnTimer > 0) return 0;
-  const roll = nextRoadTurnRoll(road);
-  const steps = 1 + Math.floor(roll.value * 4);
-  const direction = roll.sign < 0.5 ? -1 : 1;
-  const angle = direction * steps * (Math.PI / 8);
-  road.heading += angle;
-  road.lastTurnAngle = angle;
-  const delayRoll = nextRoadTurnRoll(road).value;
-  road.turnTimer = 24 + delayRoll * 24;
-  return angle;
-}
-
-function nextRoadTurnRoll(road) {
-  road.turnSeed = ((road.turnSeed ?? 1147) * 1664525 + 1013904223) >>> 0;
-  const value = road.turnSeed / 2 ** 32;
-  road.turnSeed = ((road.turnSeed ?? 1147) * 1664525 + 1013904223) >>> 0;
-  return { value, sign: road.turnSeed / 2 ** 32 };
 }
 
 export function roadForward(road) {
