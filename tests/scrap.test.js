@@ -62,9 +62,10 @@ test('remaining scrap b-lines toward the vehicle once the field is clear', () =>
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
   game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 1 }];
+  const distance = Math.abs(game.scrapPickups[0].x - game.vehicle.x);
+  const expectedSpeed = Math.max(420, Math.min(distance * 1.15, 1200)) * 0.25 * Math.pow(0.18, 1 / 60);
   stepGame(game, {}, 1 / 60);
-  assert.equal(game.scrapPickups[0].vx < -90, true);
-  assert.equal(game.scrapPickups[0].vx > -120, true);
+  assert.equal(Math.abs(game.scrapPickups[0].vx + expectedSpeed) < 0.001, true);
   assert.equal(game.scrapPickups[0].life > 1, true);
 });
 
