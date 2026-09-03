@@ -79,6 +79,11 @@ export function runtimeWeaponDefinition(definition) {
     pierceDamageScale: projectile.pierceDamageScale ?? 0.7,
     pierceDamageFalloff: projectile.pierceDamageFalloff ?? 0.68,
     damagePiercesUntilSpent: Boolean(projectile.damagePiercesUntilSpent),
+    maxRicochets: projectile.maxRicochets ?? 0,
+    ricochetFactor: projectile.ricochetFactor ?? 0.5,
+    ricochetOnEnemyExit: Boolean(projectile.ricochetOnEnemyExit),
+    absorbsEnemyProjectiles: Boolean(projectile.absorbsEnemyProjectiles),
+    projectileDeflectionProbability: projectile.projectileDeflectionProbability ?? projectile.deflectionProbability ?? 0,
     frames: projectile.frames ?? 0,
     destructible: Boolean(projectile.destructible),
     shape: projectile.shape ?? null,
@@ -112,8 +117,17 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.pierce ?? 0, 'projectile.pierce', errors, { min: 0 });
   validateNumber(projectile.pierceDamageScale ?? 0.7, 'projectile.pierceDamageScale', errors, { min: 0 });
   validateNumber(projectile.pierceDamageFalloff ?? 0.68, 'projectile.pierceDamageFalloff', errors, { min: 0, max: 1 });
+  validateNumber(projectile.maxRicochets ?? 0, 'projectile.maxRicochets', errors, { min: 0, integer: true });
+  validateNumber(projectile.ricochetFactor ?? 0.5, 'projectile.ricochetFactor', errors, { min: 0, max: 1 });
+  validateNumber(projectile.projectileDeflectionProbability ?? projectile.deflectionProbability ?? 0, 'projectile.projectileDeflectionProbability', errors, { min: 0, max: 1 });
   if (projectile.damagePiercesUntilSpent != null && typeof projectile.damagePiercesUntilSpent !== 'boolean') {
     errors.push('projectile.damagePiercesUntilSpent must be a boolean when provided.');
+  }
+  if (projectile.ricochetOnEnemyExit != null && typeof projectile.ricochetOnEnemyExit !== 'boolean') {
+    errors.push('projectile.ricochetOnEnemyExit must be a boolean when provided.');
+  }
+  if (projectile.absorbsEnemyProjectiles != null && typeof projectile.absorbsEnemyProjectiles !== 'boolean') {
+    errors.push('projectile.absorbsEnemyProjectiles must be a boolean when provided.');
   }
   if (projectile.delayBeforeAcceleration != null) validateNumber(projectile.delayBeforeAcceleration, 'projectile.delayBeforeAcceleration', errors, { min: 0 });
   if (projectile.lockBeforeLaunchSeconds != null) validateNumber(projectile.lockBeforeLaunchSeconds, 'projectile.lockBeforeLaunchSeconds', errors, { min: 0 });
@@ -144,6 +158,7 @@ function validateProjectile(projectile, errors, warnings) {
   if (projectile.emitsProjectiles?.absorbsEnemyProjectiles != null && typeof projectile.emitsProjectiles.absorbsEnemyProjectiles !== 'boolean') {
     errors.push('projectile.emitsProjectiles.absorbsEnemyProjectiles must be a boolean when provided.');
   }
+  validateBladePayload(projectile.emitsProjectiles, 'projectile.emitsProjectiles', errors);
   validateDetonationBurst(projectile.detonationBurst, errors);
 }
 
@@ -268,5 +283,17 @@ function validateBurstPayload(payload, label, errors) {
   validateNumber(payload.pierce ?? 0, `${label}.pierce`, errors, { min: 0 });
   if (payload.damagePiercesUntilSpent != null && typeof payload.damagePiercesUntilSpent !== 'boolean') errors.push(`${label}.damagePiercesUntilSpent must be a boolean when provided.`);
   if (payload.absorbsEnemyProjectiles != null && typeof payload.absorbsEnemyProjectiles !== 'boolean') errors.push(`${label}.absorbsEnemyProjectiles must be a boolean when provided.`);
+  validateBladePayload(payload, label, errors);
   validateSpriteDescriptor(payload.sprite, `${label}.sprite`, errors);
+}
+
+function validateBladePayload(payload, label, errors) {
+  if (payload == null) return;
+  if (!isPlainObject(payload)) return;
+  validateNumber(payload.maxRicochets ?? 0, `${label}.maxRicochets`, errors, { min: 0, integer: true });
+  validateNumber(payload.ricochetFactor ?? 0.5, `${label}.ricochetFactor`, errors, { min: 0, max: 1 });
+  validateNumber(payload.projectileDeflectionProbability ?? payload.deflectionProbability ?? 0, `${label}.projectileDeflectionProbability`, errors, { min: 0, max: 1 });
+  if (payload.ricochetOnEnemyExit != null && typeof payload.ricochetOnEnemyExit !== 'boolean') {
+    errors.push(`${label}.ricochetOnEnemyExit must be a boolean when provided.`);
+  }
 }

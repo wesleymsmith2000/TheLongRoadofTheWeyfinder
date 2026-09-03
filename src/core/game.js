@@ -61,6 +61,7 @@ import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, validateSandboxDefinition } from './sandboxMode.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
+import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
 import repulsorBeamDefinition from '../../content/weapons/repulsor_beam.json' with { type: 'json' };
 import startingVehicleDefinition from '../../content/constructs/starting_vehicle.json' with { type: 'json' };
@@ -73,6 +74,7 @@ const BOSS_LASER_LOCK_TIME = 1;
 const PRIMARY_WEAPON_DEFINITIONS = {
   tracking_flechette: runtimeWeaponDefinition(trackingFlechetteDefinition),
   mortar: runtimeWeaponDefinition(mortarDefinition),
+  blade_launcher: runtimeWeaponDefinition(bladeLauncherDefinition),
   mini_beam: runtimeWeaponDefinition(miniBeamDefinition),
   repulsor_beam: runtimeWeaponDefinition(repulsorBeamDefinition),
 };
@@ -922,6 +924,11 @@ function firePrimaryWeapon(game, muzzle, def) {
       pierceDamageScale: def.pierceDamageScale,
       pierceDamageFalloff: def.pierceDamageFalloff,
       damagePiercesUntilSpent: def.damagePiercesUntilSpent,
+      maxRicochets: def.maxRicochets,
+      ricochetFactor: def.ricochetFactor,
+      ricochetOnEnemyExit: def.ricochetOnEnemyExit,
+      absorbsEnemyProjectiles: def.absorbsEnemyProjectiles,
+      projectileDeflectionProbability: def.projectileDeflectionProbability,
       emitsProjectiles: def.emitsProjectiles,
       detonationBurst: def.detonationBurst,
       forceMode: def.forceMode,
@@ -1030,6 +1037,18 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
       blastRadius: base.blastRadius * upgradeMultiplier(game, 'mortarBlastRadius'),
     };
   }
+  if (weaponId === 'blade_launcher') {
+    const baseDeflectChance = base.projectileDeflectionProbability ?? 0.25;
+    return {
+      ...base,
+      cooldown: base.cooldown / upgradeMultiplier(game, 'bladeLauncherFireRate'),
+      damage: base.damage * upgradeMultiplier(game, 'bladeLauncherImpactDamage'),
+      pierce: base.pierce + upgradeLevel(game, 'bladeLauncherPierce'),
+      maxRicochets: base.maxRicochets + upgradeLevel(game, 'bladeLauncherMaxRicochets'),
+      ricochetFactor: base.ricochetFactor * upgradeMultiplier(game, 'bladeLauncherRicochetFactor'),
+      projectileDeflectionProbability: projectileDeflectionChance(baseDeflectChance, upgradeLevel(game, 'bladeLauncherProjectileDeflection')),
+    };
+  }
   if (weaponId === 'tracking_flechette') {
     return {
       ...base,
@@ -1060,6 +1079,10 @@ function playerGunFireInterval(game, activeMounts = primaryFiringMounts(game).le
 
 function primaryWeaponFireInterval(game, def, activeMounts) {
   return def.cooldown / Math.sqrt(Math.max(1, activeMounts + 1));
+}
+
+function projectileDeflectionChance(baseChance, levels) {
+  return clamp(1 - (1 - clamp(baseChance, 0, 1)) * 0.95 ** Math.max(0, levels), 0, 0.98);
 }
 
 function primaryHeatSinkRate(game) {
@@ -1946,12 +1969,52 @@ function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
       damageScale: 1,
     },
   );
-  if (!pierce.hit) return false;
+  if (!pierce.hit) return maybeRicochetDamageBudgetProjectile(game, projectile);
   game.score.damageDone += Math.round((pierce.damage ?? projectile.damage) + pierce.removed * 3);
+  for (const hitEnemy of pierce.hitEnemies ?? []) {
+    hitEnemy.vx += Math.cos(travelAngle) * (projectile.impulse ?? 0) * 0.004;
+    hitEnemy.vy += Math.sin(travelAngle) * (projectile.impulse ?? 0) * 0.004;
+  }
   for (const piercedEnemy of pierce.destroyedEnemies) explodeEnemy(game, piercedEnemy);
   projectile.damage = pierce.remainingDamage ?? 0;
+  updateDamageBudgetProjectileRicochetContact(projectile, pierce.hitEnemies);
   if (projectile.damage <= 0.05) projectile.lifetime = 0;
   return true;
+}
+
+function updateDamageBudgetProjectileRicochetContact(projectile, hitEnemies = []) {
+  if (!projectile.ricochetOnEnemyExit || hitEnemies.length === 0) return;
+  projectile.ricochetContactEnemy = hitEnemies[hitEnemies.length - 1];
+}
+
+function maybeRicochetDamageBudgetProjectile(game, projectile) {
+  if (!projectile.ricochetOnEnemyExit || !projectile.ricochetContactEnemy) return false;
+  const previousEnemy = projectile.ricochetContactEnemy;
+  projectile.ricochetContactEnemy = null;
+  if ((projectile.ricochetCount ?? 0) >= (projectile.maxRicochets ?? 0)) return false;
+  const target = nearestRicochetTarget(game, projectile, previousEnemy);
+  if (!target) return false;
+  projectile.ricochetCount = (projectile.ricochetCount ?? 0) + 1;
+  projectile.damage *= projectile.ricochetFactor ?? 0.5;
+  if (projectile.damage <= 0.05) {
+    projectile.lifetime = 0;
+    return true;
+  }
+  const speed = Math.max(1, Math.hypot(projectile.vx, projectile.vy));
+  projectile.angle = Math.atan2(target.y - projectile.y, target.x - projectile.x);
+  projectile.vx = Math.cos(projectile.angle) * speed;
+  projectile.vy = Math.sin(projectile.angle) * speed;
+  projectile.previousX = projectile.x;
+  projectile.previousY = projectile.y;
+  return true;
+}
+
+function nearestRicochetTarget(game, projectile, previousEnemy = null) {
+  return activeEnemies(game).reduce((nearest, enemy) => {
+    if (enemy === previousEnemy) return nearest;
+    if (!nearest) return enemy;
+    return distanceSquared(projectile, enemy) < distanceSquared(projectile, nearest) ? enemy : nearest;
+  }, null);
 }
 
 function detonatePlayerProjectile(game, projectile, enemy) {
@@ -1992,7 +2055,11 @@ function spawnPlayerDetonationBurst(game, projectile) {
           pierceDamageScale: group.pierceDamageScale ?? 0.85,
           pierceDamageFalloff: group.pierceDamageFalloff ?? 0.72,
           damagePiercesUntilSpent: group.damagePiercesUntilSpent,
+          maxRicochets: group.maxRicochets,
+          ricochetFactor: group.ricochetFactor,
+          ricochetOnEnemyExit: group.ricochetOnEnemyExit,
           absorbsEnemyProjectiles: group.absorbsEnemyProjectiles,
+          projectileDeflectionProbability: group.projectileDeflectionProbability,
           sprite: group.sprite,
         }),
       );
@@ -2072,7 +2139,11 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     pierceDamageScale: 0.85,
     pierceDamageFalloff: 0.72,
     damagePiercesUntilSpent: emitter.damagePiercesUntilSpent,
+    maxRicochets: emitter.maxRicochets,
+    ricochetFactor: emitter.ricochetFactor,
+    ricochetOnEnemyExit: emitter.ricochetOnEnemyExit,
     absorbsEnemyProjectiles: emitter.absorbsEnemyProjectiles,
+    projectileDeflectionProbability: emitter.projectileDeflectionProbability,
     sprite: emitter.sprite,
   });
 }
@@ -2111,19 +2182,54 @@ function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
 }
 
 function playerProjectileAbsorbsEnemyProjectile(game, playerProjectile) {
-  if (!playerProjectile.absorbsEnemyProjectiles || playerProjectile.lifetime <= 0 || playerProjectile.damage <= 0) return false;
+  const deflectionChance = playerProjectile.projectileDeflectionProbability ?? 0;
+  if ((!playerProjectile.absorbsEnemyProjectiles && deflectionChance <= 0) || playerProjectile.lifetime <= 0 || playerProjectile.damage <= 0) return false;
   let absorbed = false;
   for (const enemyProjectile of game.enemyProjectiles) {
     if (enemyProjectile.lifetime <= 0 || enemyProjectile.behavior === 'beam' || enemyProjectile.behavior === 'blast') continue;
     if (enemyProjectile.behavior === 'arc' && !enemyProjectile.arcLanded) continue;
     const hitRange = enemyProjectile.radius + playerProjectile.radius;
-    if (!projectileIntersectsPoint(playerProjectile, enemyProjectile, hitRange)) continue;
-    enemyProjectile.lifetime = 0;
-    playerProjectile.damage = Math.max(0, playerProjectile.damage - (enemyProjectile.damage ?? 0));
-    if (playerProjectile.damage <= 0.05) playerProjectile.lifetime = 0;
-    absorbed = true;
+    if (!projectileSegmentsIntersectRange(playerProjectile, enemyProjectile, hitRange)) continue;
+    if (deflectionChance > 0 && game.rng.next() < deflectionChance) {
+      deflectEnemyProjectile(game, enemyProjectile, playerProjectile);
+      absorbed = true;
+      continue;
+    }
+    if (playerProjectile.absorbsEnemyProjectiles) {
+      enemyProjectile.lifetime = 0;
+      playerProjectile.damage = Math.max(0, playerProjectile.damage - (enemyProjectile.damage ?? 0));
+      if (playerProjectile.damage <= 0.05) playerProjectile.lifetime = 0;
+      absorbed = true;
+    }
   }
   return absorbed;
+}
+
+function deflectEnemyProjectile(game, enemyProjectile, playerProjectile) {
+  const target = nearestTargetFromPoint(activeEnemies(game), enemyProjectile);
+  const fallbackAngle = playerProjectile.angle ?? Math.atan2(playerProjectile.vy, playerProjectile.vx);
+  const angle = target ? Math.atan2(target.y - enemyProjectile.y, target.x - enemyProjectile.x) : fallbackAngle;
+  const speed = Math.max(120, Math.hypot(enemyProjectile.vx ?? 0, enemyProjectile.vy ?? 0), Math.hypot(playerProjectile.vx ?? 0, playerProjectile.vy ?? 0) * 0.55);
+  game.playerProjectiles.push(createProjectile(enemyProjectile.x, enemyProjectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+    team: 'player',
+    weapon: `deflected-${enemyProjectile.weapon ?? 'projectile'}`,
+    behavior: 'ballistic',
+    radius: enemyProjectile.radius ?? 2,
+    damage: Math.max(1, enemyProjectile.damage ?? 1),
+    impulse: enemyProjectile.impulse ?? 20,
+    lifetime: Math.max(0.45, Math.min(2.2, enemyProjectile.lifetime ?? 1.2)),
+    angle,
+    color: '#9be5ff',
+  }));
+  enemyProjectile.lifetime = 0;
+}
+
+function nearestTargetFromPoint(targets, point) {
+  return targets.reduce((nearest, target) => {
+    if (target.destroyed) return nearest;
+    if (!nearest) return target;
+    return distanceSquared(point, target) < distanceSquared(point, nearest) ? target : nearest;
+  }, null);
 }
 
 function traceAbsorbingEnemyProjectileRay(projectiles, origin, angle, length, beamHalfWidth = 0) {
@@ -2239,6 +2345,42 @@ function projectileIntersectsPoint(projectile, target, radius) {
   const t = clamp(along, 0, 1);
   const closest = { x: projectile.previousX + dx * t, y: projectile.previousY + dy * t };
   return distanceSquared(closest, target) <= radius * radius;
+}
+
+function projectileSegmentsIntersectRange(a, b, radius) {
+  const a0 = { x: a.previousX ?? a.x, y: a.previousY ?? a.y };
+  const a1 = { x: a.x, y: a.y };
+  const b0 = { x: b.previousX ?? b.x, y: b.previousY ?? b.y };
+  const b1 = { x: b.x, y: b.y };
+  if (segmentsIntersect(a0, a1, b0, b1)) return true;
+  const rangeSquared = radius * radius;
+  return (
+    pointSegmentDistanceSquared(a0, b0, b1) <= rangeSquared ||
+    pointSegmentDistanceSquared(a1, b0, b1) <= rangeSquared ||
+    pointSegmentDistanceSquared(b0, a0, a1) <= rangeSquared ||
+    pointSegmentDistanceSquared(b1, a0, a1) <= rangeSquared
+  );
+}
+
+function pointSegmentDistanceSquared(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0.000001) return distanceSquared(point, start);
+  const t = clamp(((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared, 0, 1);
+  return distanceSquared(point, { x: start.x + dx * t, y: start.y + dy * t });
+}
+
+function segmentsIntersect(a0, a1, b0, b1) {
+  const o1 = orientation(a0, a1, b0);
+  const o2 = orientation(a0, a1, b1);
+  const o3 = orientation(b0, b1, a0);
+  const o4 = orientation(b0, b1, a1);
+  return o1 * o2 < 0 && o3 * o4 < 0;
+}
+
+function orientation(a, b, c) {
+  return Math.sign((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
 }
 
 function projectileReachedDetonationTarget(projectile) {

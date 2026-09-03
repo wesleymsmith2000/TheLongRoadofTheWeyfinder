@@ -316,6 +316,66 @@ test('damage-budget blades trace along actual frame travel instead of stale spri
   assert.equal(game.score.damageDone > 0, true);
 });
 
+test('damage-budget blades ricochet toward next enemy after leaving contact', () => {
+  const game = createGame();
+  game.autofire = false;
+  const first = createEnemy(0, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
+  const second = createEnemy(0, CELL_SIZE * 10, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
+  game.enemies = [first, second];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [
+    createProjectile(-CELL_SIZE * 5, 0, CELL_SIZE * 5 * 60, 0, {
+      team: 'player',
+      weapon: 'orb_flechette',
+      damage: 400,
+      radius: 4.2,
+      pierce: 48,
+      pierceDamageFalloff: 1,
+      damagePiercesUntilSpent: true,
+      maxRicochets: 1,
+      ricochetFactor: 0.5,
+      ricochetOnEnemyExit: true,
+      lifetime: 1,
+    }),
+  ];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'orb_flechette');
+  assert.equal(first.destroyed, true);
+  assert.equal(blade.ricochetContactEnemy, first);
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(blade.ricochetCount, 1);
+  assert.equal(blade.damage.toFixed(1), '192.1');
+  assert.equal(blade.angle > Math.PI / 2, true);
+});
+
+test('blade deflection converts enemy projectiles into player shots', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.rng.next = () => 0.1;
+  game.enemies = [createEnemy(CELL_SIZE * 30, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 })];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [
+    createProjectile(CELL_SIZE * 18, 0, 60, 0, {
+      team: 'player',
+      weapon: 'blade_launcher',
+      damage: 22,
+      radius: 4.2,
+      pierce: 4,
+      damagePiercesUntilSpent: true,
+      absorbsEnemyProjectiles: true,
+      projectileDeflectionProbability: 0.25,
+      lifetime: 1,
+    }),
+  ];
+  game.enemyProjectiles = [createProjectile(CELL_SIZE * 18 + 1, 0, -80, 0, { team: 'enemy', weapon: 'enemy-bullet', radius: 2, damage: 7, lifetime: 1 })];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const deflected = game.playerProjectiles.find((projectile) => projectile.weapon === 'deflected-enemy-bullet');
+  assert.equal(game.enemyProjectiles.every((projectile) => projectile.lifetime <= 0), true);
+  assert.equal(Boolean(deflected), true);
+  assert.equal(deflected.team, 'player');
+  assert.equal(deflected.vx > 0, true);
+});
+
 test('mortar skiff roams, fires inaccurate arcing mortars, and gets dizzy on road turns', () => {
   const game = createGame();
   game.autofire = false;

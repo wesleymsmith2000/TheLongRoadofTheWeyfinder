@@ -132,6 +132,19 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   assert.equal(flechette.launchWhenFacingTarget, true);
   assert.equal(flechette.delayBeforeAcceleration > 0.32, true);
   assert.equal(Math.abs(Math.abs(angleDelta(aimAngle, flechette.angle)) - Math.PI / 2) <= Math.PI / 6, true);
+
+  const bladeDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'blade_launcher').definition;
+  const bladeGame = createGame(1147, { vehicleDefinition: bladeDefinition });
+  bladeGame.autofire = true;
+  stepGame(bladeGame, {}, 1 / 60);
+  const blade = bladeGame.playerProjectiles.find((projectile) => projectile.weapon === 'blade_launcher');
+  assert.equal(blade.damagePiercesUntilSpent, true);
+  assert.equal(blade.maxRicochets, 1);
+  assert.equal(blade.ricochetFactor, 0.5);
+  assert.equal(blade.ricochetOnEnemyExit, true);
+  assert.equal(blade.absorbsEnemyProjectiles, true);
+  assert.equal(blade.projectileDeflectionProbability, 0.25);
+  assert.equal(bladeGame.playerFireTimer > 0.22 / Math.sqrt(2) * 4, true);
 });
 
 test('tracking flechette upgrades scale primary weapon stats', () => {
@@ -190,4 +203,24 @@ test('mortar upgrades scale impact and blast stats', () => {
   assert.equal(mortar.blastDamage.toFixed(2), (90 * 1.05 ** 2).toFixed(2));
   assert.equal(mortar.blastRadius.toFixed(3), (19.125 * CELL_SIZE * 1.05).toFixed(3));
   assert.equal(game.playerFireTimer.toFixed(3), (((1.8666666667 / 1.05 ** 2) / Math.sqrt(2)) * 1.25).toFixed(3));
+});
+
+test('blade launcher upgrades scale primary blade stats', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'blade_launcher').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.upgrades.bladeLauncherFireRate = 2;
+  game.upgrades.bladeLauncherMaxRicochets = 2;
+  game.upgrades.bladeLauncherImpactDamage = 1;
+  game.upgrades.bladeLauncherPierce = 3;
+  game.upgrades.bladeLauncherRicochetFactor = 2;
+  game.upgrades.bladeLauncherProjectileDeflection = 2;
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+  const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'blade_launcher');
+  assert.equal(blade.damage.toFixed(2), (22 * 1.05).toFixed(2));
+  assert.equal(blade.pierce, 7);
+  assert.equal(blade.maxRicochets, 3);
+  assert.equal(blade.ricochetFactor.toFixed(4), (0.5 * 1.05 ** 2).toFixed(4));
+  assert.equal(blade.projectileDeflectionProbability.toFixed(4), (1 - 0.75 * 0.95 ** 2).toFixed(4));
+  assert.equal(game.playerFireTimer < (0.88 / Math.sqrt(2)) * 1.064, true);
 });

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "blade_launcher",
+  "displayName": "Blade Launcher",
+  "author": "Weyfinder prototype",
+  "provenance": "Prototype primary ricocheting blade weapon contract.",
+  "canonStatus": "CANON",
+  "tags": ["primary", "blade", "ricochet", "deflection", "prototype"],
+  "ammo": 0,
+  "heat": 6,
+  "cooldown": 0.88,
+  "projectile": {
+    "team": "player",
+    "weapon": "blade_launcher",
+    "behavior": "ballistic",
+    "projectileSpeed": 320,
+    "radius": 4.2,
+    "damage": 22,
+    "impulse": 42,
+    "lifetime": 1.45,
+    "sprite": {
+      "assetId": "sprite.weapon.orb_blade_shard",
+      "path": "assets/images/weapons/orb_blade_shard.png",
+      "sourceSheet": "assets/stylesheets/weapons__OrbOfBlades__sprite_stylesheet.png",
+      "nativeSize": [33, 37],
+      "displaySize": [10.5, 12],
+      "anchor": [0.5, 0.5],
+      "alignToVelocity": true
+    },
+    "pierce": 4,
+    "pierceDamageScale": 1,
+    "pierceDamageFalloff": 0.72,
+    "damagePiercesUntilSpent": true,
+    "maxRicochets": 1,
+    "ricochetFactor": 0.5,
+    "ricochetOnEnemyExit": true,
+    "absorbsEnemyProjectiles": true,
+    "projectileDeflectionProbability": 0.25
+  }
+}

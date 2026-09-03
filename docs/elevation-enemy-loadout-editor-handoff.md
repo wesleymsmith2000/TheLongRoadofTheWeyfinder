@@ -74,7 +74,7 @@ weaponStackMultiplier(definition, weaponId)
 
 Current slot lists:
 
-- Primary: `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`, `repulsor_beam`
+- Primary: `main.basic`, `tracking_flechette`, `mortar`, `blade_launcher`, `mini_beam`, `repulsor_beam`
 - Secondary: `rocket`, `cannon`, `beam`, `tractor_beam`, `sta_missile`, `orb_of_blades`
 
 The launch build screen filters these choices through `account.weaponUnlocks`; the construct workshop keeps the full list available for editor/dev work.

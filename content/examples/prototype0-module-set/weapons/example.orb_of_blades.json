@@ -37,6 +37,7 @@
     },
     "targetHint": "aimReticle",
     "detonateAtTarget": true,
+    "projectileDeflectionProbability": 0.5,
     "emitsProjectiles": {
       "kind": "sequentialRadial",
       "weapon": "orb_flechette",
@@ -48,7 +49,11 @@
       "radius": 5.8,
       "pierce": 4,
       "damagePiercesUntilSpent": true,
+      "maxRicochets": 1,
+      "ricochetFactor": 0.5,
+      "ricochetOnEnemyExit": true,
       "absorbsEnemyProjectiles": true,
+      "projectileDeflectionProbability": 0.25,
       "sprite": {
         "assetId": "sprite.weapon.orb_blade_shard",
         "path": "assets/images/weapons/orb_blade_shard.png",
@@ -70,7 +75,11 @@
           "radius": 5.8,
           "pierce": 4,
           "damagePiercesUntilSpent": true,
+          "maxRicochets": 1,
+          "ricochetFactor": 0.5,
+          "ricochetOnEnemyExit": true,
           "absorbsEnemyProjectiles": true,
+          "projectileDeflectionProbability": 0.25,
           "lifetime": 0.9,
           "sprite": {
             "assetId": "sprite.weapon.orb_blade_shard",

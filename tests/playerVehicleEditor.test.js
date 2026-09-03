@@ -124,7 +124,7 @@ test('player vehicle editor stores configurable weapon loadouts on gun cells', (
 
 test('prototype account exposes only unlocked player weapon choices', () => {
   const account = createPrototypePlayerAccountData();
-  assert.deepEqual(availablePrimaryWeaponIds(account), ['main.basic', 'tracking_flechette', 'mortar', 'mini_beam', 'repulsor_beam']);
+  assert.deepEqual(availablePrimaryWeaponIds(account), ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam', 'repulsor_beam']);
   assert.deepEqual(availableSecondaryWeaponIds(account), ['rocket', 'cannon', 'beam', 'tractor_beam', 'sta_missile', 'orb_of_blades']);
   account.weaponUnlocks.primary.push('mortar');
   account.weaponUnlocks.secondary.push('sta_missile');

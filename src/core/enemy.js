@@ -417,7 +417,7 @@ export function applyEnemyVoxelDamage(enemy, hit, damage) {
 
 export function applyEnemyProjectilePierceDamage(enemies, projectile, options = {}) {
   const pierce = Math.max(0, Math.floor(projectile.pierce ?? 0));
-  if (pierce <= 0 || projectile.damage <= 0) return { hit: false, removed: 0, destroyedNow: false, destroyedEnemies: [] };
+  if (pierce <= 0 || projectile.damage <= 0) return { hit: false, removed: 0, destroyedNow: false, destroyedEnemies: [], hitEnemies: [] };
   const angle = options.angle ?? projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
   const unit = CELL_SIZE / VOXELS;
   const start = options.start ?? {
@@ -435,11 +435,17 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
   let damage = 0;
   let destroyedNow = false;
   const destroyedEnemies = [];
+  const hitEnemies = [];
+  const hitEnemySet = new Set();
   for (const voxelHit of hits) {
     if (power <= 0.05) break;
     const result = applyEnemyVoxelDamage(voxelHit.enemy, voxelHit, power);
     if (!result.hit) continue;
     hit = true;
+    if (!hitEnemySet.has(voxelHit.enemy)) {
+      hitEnemySet.add(voxelHit.enemy);
+      hitEnemies.push(voxelHit.enemy);
+    }
     removed += result.removed;
     damage += result.damage ?? power;
     if (result.destroyedNow) {
@@ -448,7 +454,7 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
     }
     power = Math.max(0, power - voxelHit.maxHpBeforeDamage) * falloff;
   }
-  return { hit, removed, damage, remainingDamage: power, destroyedNow, destroyedEnemies };
+  return { hit, removed, damage, remainingDamage: power, destroyedNow, destroyedEnemies, hitEnemies };
 }
 
 export function applyEnemyBlastDamage(enemy, origin, options = {}) {

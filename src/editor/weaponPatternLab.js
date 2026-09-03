@@ -8,6 +8,7 @@ import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'j
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
+import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
 import tractorBeamDefinition from '../../content/weapons/tractor_beam.json' with { type: 'json' };
 import repulsorBeamDefinition from '../../content/weapons/repulsor_beam.json' with { type: 'json' };
@@ -25,6 +26,7 @@ const canonAssets = {
     beamDefinition,
     trackingFlechetteDefinition,
     mortarDefinition,
+    bladeLauncherDefinition,
     miniBeamDefinition,
     tractorBeamDefinition,
     repulsorBeamDefinition,

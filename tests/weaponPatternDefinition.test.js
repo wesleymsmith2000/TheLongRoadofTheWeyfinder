@@ -5,6 +5,7 @@ import cannonDefinition from '../content/weapons/cannon.json' with { type: 'json
 import beamDefinition from '../content/weapons/beam.json' with { type: 'json' };
 import trackingFlechetteDefinition from '../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../content/weapons/mortar.json' with { type: 'json' };
+import bladeLauncherDefinition from '../content/weapons/blade_launcher.json' with { type: 'json' };
 import miniBeamDefinition from '../content/weapons/mini_beam.json' with { type: 'json' };
 import tractorBeamDefinition from '../content/weapons/tractor_beam.json' with { type: 'json' };
 import repulsorBeamDefinition from '../content/weapons/repulsor_beam.json' with { type: 'json' };
@@ -27,6 +28,7 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
     beamDefinition,
     trackingFlechetteDefinition,
     mortarDefinition,
+    bladeLauncherDefinition,
     miniBeamDefinition,
     tractorBeamDefinition,
     repulsorBeamDefinition,
@@ -59,7 +61,14 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
   assert.equal(sta.contrail.particleRadiusScale, 1.5);
   const orb = runtimeWeaponDefinition(orbOfBladesDefinition);
   assert.equal(orb.emitsProjectiles.absorbsEnemyProjectiles, true);
+  assert.equal(orb.emitsProjectiles.ricochetOnEnemyExit, true);
+  assert.equal(orb.emitsProjectiles.projectileDeflectionProbability, 0.25);
+  assert.equal(orb.projectileDeflectionProbability, 0.5);
   assert.equal(orb.detonationBurst.groups[0].absorbsEnemyProjectiles, true);
+  const blade = runtimeWeaponDefinition(bladeLauncherDefinition);
+  assert.equal(blade.maxRicochets, 1);
+  assert.equal(blade.ricochetFactor, 0.5);
+  assert.equal(blade.projectileDeflectionProbability, 0.25);
 });
 
 test('weapon validation rejects unavailable projectile behavior', () => {
@@ -81,6 +90,7 @@ test('example module set weapons cover current upgrade projectile fields', () =>
   assert.equal(exampleStaMissileDefinition.projectile.tracksReticleInArc, true);
   assert.equal(exampleStaMissileDefinition.projectile.contrail.particleRadiusScale, 1.5);
   assert.equal(exampleOrbOfBladesDefinition.projectile.emitsProjectiles.absorbsEnemyProjectiles, true);
+  assert.equal(exampleOrbOfBladesDefinition.projectile.emitsProjectiles.ricochetOnEnemyExit, true);
   assert.equal(exampleOrbOfBladesDefinition.projectile.detonationBurst.groups[0].absorbsEnemyProjectiles, true);
 });
 

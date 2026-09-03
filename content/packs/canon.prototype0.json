@@ -16,6 +16,7 @@
       "../weapons/beam.json",
       "../weapons/tracking_flechette.json",
       "../weapons/mortar.json",
+      "../weapons/blade_launcher.json",
       "../weapons/mini_beam.json",
       "../weapons/tractor_beam.json",
       "../weapons/repulsor_beam.json",

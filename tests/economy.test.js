@@ -274,6 +274,15 @@ test('repair screen upgrade list only includes unlocked installed systems', () =
   assert.equal(mortarUpgrades.includes('mortarImpactDamage'), true);
   assert.equal(mortarUpgrades.includes('mortarBlastDamage'), true);
 
+  const withBladeLauncher = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'blade_launcher').definition;
+  const bladeLauncherUpgrades = availableUpgradeDefinitions(game, account, withBladeLauncher).map((upgrade) => upgrade.id);
+  assert.equal(bladeLauncherUpgrades.includes('bladeLauncherFireRate'), true);
+  assert.equal(bladeLauncherUpgrades.includes('bladeLauncherMaxRicochets'), true);
+  assert.equal(bladeLauncherUpgrades.includes('bladeLauncherImpactDamage'), true);
+  assert.equal(bladeLauncherUpgrades.includes('bladeLauncherPierce'), true);
+  assert.equal(bladeLauncherUpgrades.includes('bladeLauncherRicochetFactor'), true);
+  assert.equal(bladeLauncherUpgrades.includes('bladeLauncherProjectileDeflection'), true);
+
   const withRepulsor = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'repulsor_beam').definition;
   const repulsorUpgrades = availableUpgradeDefinitions(game, account, withRepulsor).map((upgrade) => upgrade.id);
   assert.equal(repulsorUpgrades.includes('repulsorKnockback'), true);

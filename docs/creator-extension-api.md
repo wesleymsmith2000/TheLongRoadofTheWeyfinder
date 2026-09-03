@@ -244,7 +244,7 @@ Player/construct definitions may carry per-gun weapon loadouts:
 }
 ```
 
-Current primary ids are `main.basic`, `tracking_flechette`, `mortar`, `mini_beam`, and `repulsor_beam`. Current secondary ids are `rocket`, `cannon`, `beam`, `tractor_beam`, `sta_missile`, and `orb_of_blades`. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`. Secondary ammo capacity uses `ceil((baseCapacity + ammoBonus) * sqrt(N + 1))`, where `N` is the number of mounted copies of that secondary weapon on the player's craft.
+Current primary ids are `main.basic`, `tracking_flechette`, `mortar`, `blade_launcher`, `mini_beam`, and `repulsor_beam`. Current secondary ids are `rocket`, `cannon`, `beam`, `tractor_beam`, `sta_missile`, and `orb_of_blades`. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`. Secondary ammo capacity uses `ceil((baseCapacity + ammoBonus) * sqrt(N + 1))`, where `N` is the number of mounted copies of that secondary weapon on the player's craft.
 
 Available equipment is read from player account data rather than hard-coded into the editor. Prototype 0 uses local in-memory account data:
 
@@ -356,6 +356,10 @@ Pierce fields:
 - `pierceDamageScale`: fraction of impact damage available to the first pierced voxel.
 - `pierceDamageFalloff`: remaining pierce damage multiplier after each voxel.
 - `damagePiercesUntilSpent`: if true, the projectile uses its visible radius as a swept hit box and continues through hit voxels until its damage budget is depleted.
+- `maxRicochets`: number of times a damage-budget projectile can retarget after leaving enemy contact.
+- `ricochetFactor`: remaining damage multiplier applied each time a projectile ricochets.
+- `ricochetOnEnemyExit`: if true, a damage-budget projectile marks the enemy it is touching and retargets after it exits contact.
+- `projectileDeflectionProbability`: chance that an overlapping enemy shot is converted into a player-owned projectile instead of being destroyed.
 
 Particle beams are width-aware at the voxel layer. Runtime sampling follows the animated beam width, damages the first damageable voxel on each sampled lane, and continues through additional voxels only according to `pierce`. Wide low-pierce beams strip surface area; narrow high-pierce beams drill deeper.
 
@@ -372,7 +376,7 @@ Optional projectile presentation/simulation fields:
 - `launchAngleSpreadRadians`: random launch-angle spread applied to `launchAngleMode`.
 - `launchWhenFacingTarget`: if true on a delayed-acceleration projectile, it turns toward its selected target before locking the acceleration vector.
 - `tracksReticleInArc`: if true on an arc player weapon, the projectile continuously updates its target point and horizontal velocity from the live aim reticle.
-- `absorbsEnemyProjectiles`: if true on a player projectile payload, it destroys overlapping enemy shots and loses damage equal to the absorbed projectile's damage.
+- `absorbsEnemyProjectiles`: if true on a player projectile payload, it destroys overlapping enemy shots and loses damage equal to the absorbed projectile's damage unless the shot is deflected.
 
 Sprite descriptors are render-facing JSON and should not change simulation results. A minimal descriptor:
 
