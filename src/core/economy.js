@@ -68,6 +68,7 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'orbOfBladesBladeDamage', label: 'Orb Of Blades Blade Damage', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
   { id: 'orbOfBladesBladesPerCycle', label: 'Orb Of Blades Blades Per Cycle', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
   { id: 'orbOfBladesBladeKnockback', label: 'Orb Of Blades Blade Knockback', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
+  { id: 'mortarFireRate', label: 'Mortar Fire Rate', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
   { id: 'mortarImpactDamage', label: 'Mortar Impact Damage', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
   { id: 'mortarBlastDamage', label: 'Mortar Blast Damage', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
   { id: 'mortarBlastRadius', label: 'Mortar Blast Radius', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },

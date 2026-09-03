@@ -1024,6 +1024,7 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
   if (weaponId === 'mortar') {
     return {
       ...base,
+      cooldown: base.cooldown / upgradeMultiplier(game, 'mortarFireRate'),
       damage: base.damage * upgradeMultiplier(game, 'mortarImpactDamage'),
       blastDamage: base.blastDamage * upgradeMultiplier(game, 'mortarBlastDamage'),
       blastRadius: base.blastRadius * upgradeMultiplier(game, 'mortarBlastRadius'),

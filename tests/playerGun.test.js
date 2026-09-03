@@ -179,6 +179,7 @@ function angleDelta(a, b) {
 test('mortar upgrades scale impact and blast stats', () => {
   const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
   const game = createGame(1147, { vehicleDefinition });
+  game.upgrades.mortarFireRate = 2;
   game.upgrades.mortarImpactDamage = 1;
   game.upgrades.mortarBlastDamage = 2;
   game.upgrades.mortarBlastRadius = 1;
@@ -188,4 +189,5 @@ test('mortar upgrades scale impact and blast stats', () => {
   assert.equal(mortar.damage.toFixed(2), (24 * 1.05).toFixed(2));
   assert.equal(mortar.blastDamage.toFixed(2), (90 * 1.05 ** 2).toFixed(2));
   assert.equal(mortar.blastRadius.toFixed(3), (19.125 * CELL_SIZE * 1.05).toFixed(3));
+  assert.equal(game.playerFireTimer.toFixed(3), (((1.8666666667 / 1.05 ** 2) / Math.sqrt(2)) * 1.25).toFixed(3));
 });

@@ -270,6 +270,7 @@ test('repair screen upgrade list only includes unlocked installed systems', () =
 
   const withMortar = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
   const mortarUpgrades = availableUpgradeDefinitions(game, account, withMortar).map((upgrade) => upgrade.id);
+  assert.equal(mortarUpgrades.includes('mortarFireRate'), true);
   assert.equal(mortarUpgrades.includes('mortarImpactDamage'), true);
   assert.equal(mortarUpgrades.includes('mortarBlastDamage'), true);
 
