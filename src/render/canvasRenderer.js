@@ -298,7 +298,7 @@ function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
   const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
   const depth = CELL_SIZE * 0.11;
   const shadowOffset = CELL_SIZE * 0.15;
-  const gap = Math.max(0.5, unit * 0.11);
+  const gap = unit <= 1.25 ? 0 : Math.min(0.5, unit * 0.11);
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.fillStyle = palette.shadow ?? COLORS.shadow;
@@ -311,10 +311,11 @@ function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
       const px = x - CELL_SIZE / 2 + vx * unit;
       const py = y - CELL_SIZE / 2 + vy * unit;
       const lift = depth + fraction * depth;
+      const width = Math.max(1, unit - gap * 2);
       ctx.fillStyle = shade(base, ROLE_SHADE[voxel.role] ?? 0);
-      ctx.fillRect(px + gap, py + gap - lift, unit - gap * 2, unit - gap * 2);
+      ctx.fillRect(px + gap, py + gap - lift, width, width);
       ctx.fillStyle = shade(base, -36);
-      ctx.fillRect(px + gap, py + unit - gap * 2 - lift, unit - gap * 2, Math.max(1, depth * 0.65));
+      ctx.fillRect(px + gap, py + unit - gap * 2 - lift, width, Math.max(1, depth * 0.65));
       ctx.fillStyle = 'rgb(255 255 255 / 0.12)';
       ctx.fillRect(px + gap * 1.5, py + gap * 1.5 - lift, Math.max(1, unit - gap * 3), Math.max(1, depth * 0.3));
     }

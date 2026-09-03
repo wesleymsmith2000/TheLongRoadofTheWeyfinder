@@ -1338,7 +1338,7 @@ function stepGhostPhaser(game, enemy, dt) {
       enemy.y = world.y;
     }
   }
-  enemy.renderAlpha = enemy.phasedOut ? 0.24 : 0.88;
+  enemy.renderAlpha = enemy.phasedOut ? 0.24 : 1;
 }
 
 function startPhantomOverload(enemy) {
@@ -1434,7 +1434,7 @@ function stepWalkerEnemy(game, enemy, dt) {
 
 function stepScrapBuzzard(game, enemy, dt) {
   enemy.elevation ??= { z: 110, canBeHitByGroundFire: false, arcCollision: true };
-  enemy.renderAlpha = 0.92;
+  enemy.renderAlpha = 1;
   enemy.buzzardTimer = (enemy.buzzardTimer ?? game.rng.range(0.8, 1.8)) - dt * enemyAttackRateUpgradeScale(enemy);
   if (enemy.buzzardTimer <= 0) {
     enemy.buzzardTimer = game.rng.range(1.4, 2.2);
