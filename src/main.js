@@ -430,7 +430,7 @@ function frame(now) {
   secondaryAmmo.textContent = selectedAmmo == null ? '-' : formatAmmoValue(selectedAmmo);
   secondaryHeat.style.width = `${game.secondary.heat}%`;
   primaryFireToggle.setAttribute('aria-pressed', String(game.autofire));
-  primaryFireToggle.textContent = game.autofire ? 'AUTO' : 'PRI';
+  primaryFireToggle.textContent = game.autofire ? 'FIRE' : 'QUIET';
   scrapCount.textContent = game.scrap;
   scoreDamage.textContent = game.score.damageDone;
   renderer.draw(game, debug);

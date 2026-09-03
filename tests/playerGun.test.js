@@ -28,10 +28,19 @@ test('primary guns hold fire when there are no active or inbound enemies', () =>
 test('primary guns fire while enemies are inbound', () => {
   const game = createGame();
   game.enemies = [];
-  game.enemySpawnQueue = [{ at: game.time + 30, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: false, type: 'standard' }];
+  game.enemySpawnQueue = [{ at: game.time + 30, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: true, type: 'standard' }];
   game.autofire = true;
   stepGame(game, {}, 1 / 60);
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
+});
+
+test('primary guns hold fire before inbound warnings begin', () => {
+  const game = createGame();
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: game.time + 30, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: false, type: 'standard' }];
+  game.autofire = true;
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), false);
 });
 
 test('main gun damage upgrade increases bullet damage', () => {
@@ -188,7 +197,7 @@ test('mortar primary arcs land on the selected aim reticle', () => {
   const game = createGame(1147, { vehicleDefinition });
   game.autofire = true;
   game.enemies = [];
-  game.enemySpawnQueue = [{ at: 99, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: false, type: 'standard' }];
+  game.enemySpawnQueue = [{ at: 99, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: true, type: 'standard' }];
   const target = { x: game.vehicle.x + 72, y: game.vehicle.y - 96 };
   stepGame(game, { aimWorld: target, manualAimActive: true, gunnerEnabled: false }, 1 / 60);
   game.autofire = false;

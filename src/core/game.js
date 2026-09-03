@@ -1196,7 +1196,7 @@ function primaryFiringMounts(game) {
 }
 
 function hasActiveOrInboundEnemies(game) {
-  return activeEnemies(game).length > 0 || game.enemySpawnQueue.some((entry) => !entry.enemy?.destroyed);
+  return activeEnemies(game).length > 0 || game.enemySpawnQueue.some((entry) => entry.markerShown && !entry.enemy?.destroyed);
 }
 
 function playerGunFireInterval(game, activeMounts = primaryFiringMounts(game).length) {
