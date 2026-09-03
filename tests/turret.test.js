@@ -83,3 +83,27 @@ test('gunner AI moves an aim reticle when manual aim is idle', () => {
   assert.equal(game.aimReticle.source, 'ai');
   assert.equal(game.aimReticle.x > game.vehicle.x, true);
 });
+
+test('guided targeting starts its reticle from the player vehicle', () => {
+  const game = createGame();
+  game.aiAimReticle = { x: game.vehicle.x + 5000, y: game.vehicle.y + 5000 };
+  game.enemies[0].x = game.vehicle.x + 220;
+  game.enemies[0].y = game.vehicle.y;
+  stepGame(game, { targetingMode: 'guided', gunnerEnabled: true }, 1 / 60);
+  assert.equal(game.aimReticle.source, 'ai');
+  assert.equal(Math.abs(game.aimReticle.x - game.vehicle.x) < 6, true);
+  assert.equal(Math.abs(game.aimReticle.y - game.vehicle.y) < 6, true);
+});
+
+test('guided targeting gets faster and steadier with AI experience', () => {
+  const novice = createGame();
+  const trained = createGame();
+  trained.targetingAi.xp = 225;
+  for (const game of [novice, trained]) {
+    game.enemies[0].x = game.vehicle.x + 400;
+    game.enemies[0].y = game.vehicle.y;
+    stepGame(game, { targetingMode: 'guided', gunnerEnabled: true }, 1 / 60);
+  }
+  assert.equal(trained.aimReticle.x - trained.vehicle.x > novice.aimReticle.x - novice.vehicle.x, true);
+  assert.equal(trained.targetingAi.xp > 225, true);
+});

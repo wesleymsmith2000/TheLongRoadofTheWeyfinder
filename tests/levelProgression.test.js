@@ -16,11 +16,14 @@ test('starting the next level schedules one more enemy over time', () => {
 test('clearing all enemies records level time and completion count', () => {
   const game = createGame();
   game.time = 12.5;
+  game.targetingAi.xp = 9;
+  game.targetingAi.levelStartXp = 4;
   for (const enemy of game.enemies) enemy.destroyed = true;
   stepGame(game, {}, 0.016);
   assert.equal(game.levelComplete, true);
   assert.equal(game.levelsCompleted, 1);
   assert.equal(game.levelTime > 12, true);
+  assert.equal(game.targetingAi.lastLevelXp, 5);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.STAGE_VICTORY), true);
 });
 

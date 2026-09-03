@@ -12,6 +12,8 @@ test('save states restore run progression and verify checksum', () => {
   game.upgrades.gunDamage = 2;
   game.secondary.selected = 'beam';
   game.score.damageDone = 1234;
+  game.targetingAi.xp = 37;
+  game.targetingAi.lastLevelXp = 8;
   const save = createSaveState(game, account, { savedAt: '2026-08-31T00:00:00.000Z' });
 
   const report = validateSaveState(save);
@@ -25,6 +27,8 @@ test('save states restore run progression and verify checksum', () => {
   assert.equal(restored.upgrades.gunDamage, 2);
   assert.equal(restored.secondary.selected, 'beam');
   assert.equal(restored.score.damageDone, 1234);
+  assert.equal(restored.targetingAi.xp, 37);
+  assert.equal(restored.targetingAi.lastLevelXp, 8);
   assert.equal(restored.paused, true);
 });
 

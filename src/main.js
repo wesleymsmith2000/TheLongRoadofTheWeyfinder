@@ -220,6 +220,7 @@ const scrapCount = document.querySelector('#scrapCount');
 const scoreDamage = document.querySelector('#scoreDamage');
 const levelComplete = document.querySelector('#levelComplete');
 const levelTime = document.querySelector('#levelTime');
+const targetingAiXpGain = document.querySelector('#targetingAiXpGain');
 const levelNumber = document.querySelector('#levelNumber');
 const levelsCompleted = document.querySelector('#levelsCompleted');
 const nextLevelButton = document.querySelector('#nextLevelButton');
@@ -410,6 +411,7 @@ function frame(now) {
   syncSandboxUi();
   refreshAchievementAwards();
   levelTime.textContent = game.levelTime.toFixed(1);
+  targetingAiXpGain.textContent = (game.targetingAi?.lastLevelXp ?? 0).toFixed(1);
   levelNumber.textContent = game.level;
   levelsCompleted.textContent = game.levelsCompleted;
   updateShopUi();

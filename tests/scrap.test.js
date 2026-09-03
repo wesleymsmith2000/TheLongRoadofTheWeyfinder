@@ -66,6 +66,21 @@ test('remaining scrap b-lines toward the vehicle once the field is clear', () =>
   assert.equal(game.scrapPickups[0].life > 1, true);
 });
 
+test('clear-field scrap sweep reaches distant pickups before they expire', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [];
+  game.enemyProjectiles = [];
+  game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 120, y: game.vehicle.y, vx: 0, vy: 0, value: 3, radius: 1, life: 1 }];
+  for (let index = 0; index < 260 && game.scrapPickups.length > 0; index += 1) {
+    stepGame(game, {}, 1 / 60);
+  }
+  assert.equal(game.scrap, 3);
+  assert.equal(game.scrapPickups.length, 0);
+});
+
 test('scrap waits for live projectiles before clear-field collection starts', () => {
   const game = createGame();
   game.autofire = false;

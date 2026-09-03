@@ -89,6 +89,10 @@ const PHANTOM_OVERLOAD_RADIUS = CELL_SIZE * 3.2;
 const PHANTOM_OVERLOAD_IMPULSE = 140;
 const ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS = 1.55;
 const ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS = 0.22;
+const TARGETING_AI_BASE_SPEED = 145;
+const TARGETING_AI_SPEED_PER_RANK = 12;
+const TARGETING_AI_XP_PER_RANK = 45;
+const TARGETING_AI_BASE_WOBBLE = 18;
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
@@ -182,13 +186,17 @@ export function createGame(seed = 1147, options = {}) {
     paused: false,
     targetingMode: 'mixed',
     guidedTargetId: null,
+    targetingAi: createTargetingAiState(options.targetingAi),
     sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options.enemyArchetypes) : null,
   };
 }
 
 export function stepGame(game, input, dt) {
   dt = Math.min(dt, 0.033);
-  if (input.targetingMode && TARGETING_MODES.includes(input.targetingMode)) game.targetingMode = input.targetingMode;
+  if (input.targetingMode && TARGETING_MODES.includes(input.targetingMode)) {
+    if (input.targetingMode === 'guided' && game.targetingMode !== 'guided') resetAiAimReticle(game);
+    game.targetingMode = input.targetingMode;
+  }
   if (input.pausePressed) game.paused = !game.paused;
   if (input.targetCycle) cycleGuidedTarget(game, input.targetCycle);
   if (game.paused) {
@@ -207,6 +215,7 @@ export function stepGame(game, input, dt) {
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
   if (game.levelComplete || game.gameOver) {
     stepShop(game, input);
+    stepScrapPickups(game, dt);
     game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
     stepSmokeParticles(game, dt);
     stepRoadCamera(game.camera, game.road, game.vehicle, dt);
@@ -275,6 +284,7 @@ function finishLevel(game) {
   game.levelComplete = true;
   game.levelTime = game.time - game.levelStartTime;
   game.levelTimes.push(game.levelTime);
+  updateTargetingAiLevelGain(game);
   if (!game.sandbox?.enabled) {
     game.levelsCompleted = game.level;
     if (isBossLevel(game.level, game.levelMusic)) game.bossLevelsCompleted += 1;
@@ -297,6 +307,7 @@ export function startNextLevel(game) {
   game.smokeParticles = [];
   game.soundEvents = [];
   game.scrapPickups = [];
+  startTargetingAiLevel(game);
   return game;
 }
 
@@ -319,6 +330,8 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.scrapPickups = [];
   game.soundEvents = [];
   game.guidedTargetId = null;
+  resetAiAimReticle(game);
+  startTargetingAiLevel(game);
   return { game, report };
 }
 
@@ -687,8 +700,10 @@ function carryRoadObjects(game, delta) {
     ...game.smokeParticles,
     ...game.incomingMarkers,
     ...game.vehicle.detachedPieces,
+    game.aiAimReticle,
   ];
   for (const object of objects) {
+    if (!object) continue;
     object.x += delta.dx;
     object.y += delta.dy;
   }
@@ -705,11 +720,11 @@ function stepScrapPickups(game, dt) {
     const dy = game.vehicle.y - pickup.y;
     const distance = Math.hypot(dx, dy);
     if (clearFieldSweep && distance > 0) {
-      const sweepSpeed = 260;
+      const sweepSpeed = clamp(distance * 1.15, 420, 1200);
       const speed = Math.max(sweepSpeed, Math.hypot(pickup.vx, pickup.vy));
       pickup.vx = (dx / distance) * speed;
       pickup.vy = (dy / distance) * speed;
-      pickup.life = Math.max(pickup.life, 3);
+      pickup.life = Math.max(pickup.life, distance / speed + 1.1);
     } else if (distance > 0 && distance <= magnetRange) {
       const pull = 1 - distance / magnetRange;
       pickup.vx += (dx / distance) * (65 + pull * 130) * magnetStrength * dt;
@@ -731,7 +746,8 @@ function stepScrapPickups(game, dt) {
 }
 
 function shouldSweepRemainingScrap(game) {
-  if (activeEnemies(game).length > 0 || game.enemySpawnQueue.length > 0) return false;
+  if (activeEnemies(game).length > 0) return false;
+  if (!game.levelComplete && game.enemySpawnQueue.length > 0) return false;
   const blockingPlayerProjectiles = game.playerProjectiles.some((projectile) => projectile.lifetime > 0 && projectile.behavior !== 'beam' && projectile.behavior !== 'blast');
   if (blockingPlayerProjectiles) return false;
   return !game.enemyProjectiles.some((projectile) => projectile.lifetime > 0 && projectile.behavior !== 'beam' && projectile.behavior !== 'blast');
@@ -780,19 +796,30 @@ function guidedAimInput(game, input, dt) {
     game.aimReticle = null;
     return { ...input, aimWorld: null, manualAimActive: false };
   }
-  game.aiAimReticle = moveToward(game.aiAimReticle ?? { x: game.vehicle.x, y: game.vehicle.y }, target, 160 * dt);
+  if (!game.aiAimReticle || game.aiAimMode !== 'guided' || game.aiAimTargetId !== target.targetId) resetAiAimReticle(game);
+  game.aiAimMode = 'guided';
+  game.aiAimTargetId = target.targetId;
+  const stats = targetingAiStats(game);
+  const aimPoint = applyTargetingAiWobble(game, target, stats);
+  game.aiAimReticle = moveToward(game.aiAimReticle, aimPoint, stats.reticleSpeed * dt);
   game.aimReticle = { ...game.aiAimReticle, active: true, source: 'ai' };
+  stepTargetingAiExperience(game, target.enemy, dt);
   return { ...input, aimWorld: game.aiAimReticle, manualAimActive: false, compensatedAim: game.secondary.selected !== 'beam' };
 }
 
 function guidedAimTarget(game) {
-  const target = guidedTarget(game) ?? nearestTargetedEnemy(game);
-  if (!target) return null;
+  const enemy = guidedTarget(game) ?? nearestTargetedEnemy(game);
+  if (!enemy) return null;
   const beamSelected = game.secondary.selected === 'beam';
   const projectileSpeed = beamSelected ? 1_000_000 : PRIMARY_PROJECTILE_SPEED;
-  const distance = Math.hypot(target.x - game.vehicle.x, target.y - game.vehicle.y);
+  const distance = Math.hypot(enemy.x - game.vehicle.x, enemy.y - game.vehicle.y);
   const leadTime = Math.min(beamSelected ? 0.05 : 0.75, distance / projectileSpeed);
-  return { x: target.x + (target.vx ?? 0) * leadTime, y: target.y + (target.vy ?? 0) * leadTime };
+  return {
+    x: enemy.x + (enemy.vx ?? 0) * leadTime,
+    y: enemy.y + (enemy.vy ?? 0) * leadTime,
+    enemy,
+    targetId: enemyTargetId(enemy),
+  };
 }
 
 function gunnerAimTarget(game) {
@@ -816,11 +843,13 @@ function cycleGuidedTarget(game, direction = 1) {
   const enemies = activeEnemies(game);
   if (enemies.length === 0) {
     game.guidedTargetId = null;
+    resetAiAimReticle(game);
     return null;
   }
   const current = enemies.findIndex((enemy) => enemyTargetId(enemy) === game.guidedTargetId);
   const next = (current + Math.sign(direction || 1) + enemies.length) % enemies.length;
   game.guidedTargetId = enemyTargetId(enemies[next]);
+  resetAiAimReticle(game);
   return enemies[next];
 }
 
@@ -846,6 +875,76 @@ function moveToward(from, to, maxDistance) {
   const distance = Math.hypot(dx, dy);
   if (distance <= maxDistance || distance <= 0.001) return { ...to };
   return { x: from.x + (dx / distance) * maxDistance, y: from.y + (dy / distance) * maxDistance };
+}
+
+function createTargetingAiState(initial = {}) {
+  const xp = Math.max(0, Number(initial?.xp ?? 0));
+  return {
+    xp,
+    levelStartXp: Math.max(0, Number(initial?.levelStartXp ?? xp)),
+    lastLevelXp: Math.max(0, Number(initial?.lastLevelXp ?? 0)),
+    activeSeconds: Math.max(0, Number(initial?.activeSeconds ?? 0)),
+  };
+}
+
+function targetingAiStats(game) {
+  const ai = createTargetingAiState(game.targetingAi);
+  game.targetingAi = ai;
+  const rank = Math.floor(ai.xp / TARGETING_AI_XP_PER_RANK);
+  return {
+    rank,
+    reticleSpeed: TARGETING_AI_BASE_SPEED + rank * TARGETING_AI_SPEED_PER_RANK,
+    wobbleRadius: Math.max(2, TARGETING_AI_BASE_WOBBLE * 0.87 ** rank),
+  };
+}
+
+function stepTargetingAiExperience(game, target, dt) {
+  if (!target || dt <= 0) return;
+  const ai = createTargetingAiState(game.targetingAi);
+  const targetSpeed = Math.hypot(target.vx ?? 0, target.vy ?? 0);
+  const fastTargetBonus = clamp(targetSpeed / 180, 0, 1.5) * 0.55;
+  ai.xp += dt * (1 + fastTargetBonus);
+  ai.activeSeconds += dt;
+  game.targetingAi = ai;
+}
+
+function updateTargetingAiLevelGain(game) {
+  const ai = createTargetingAiState(game.targetingAi);
+  ai.lastLevelXp = Math.max(0, ai.xp - (ai.levelStartXp ?? 0));
+  game.targetingAi = ai;
+}
+
+function startTargetingAiLevel(game) {
+  const ai = createTargetingAiState(game.targetingAi);
+  ai.levelStartXp = ai.xp;
+  ai.lastLevelXp = 0;
+  game.targetingAi = ai;
+}
+
+function resetAiAimReticle(game) {
+  game.aiAimReticle = { x: game.vehicle.x, y: game.vehicle.y };
+  game.aiAimTargetId = null;
+  game.aiAimMode = null;
+}
+
+function applyTargetingAiWobble(game, target, stats) {
+  const radius = stats.wobbleRadius;
+  if (radius <= 0.1) return { x: target.x, y: target.y };
+  const phase = hashStringUnit(target.targetId ?? 'target') * Math.PI * 2;
+  const wobbleTime = game.time * (1.15 + stats.rank * 0.04) + phase;
+  return {
+    x: target.x + Math.cos(wobbleTime) * radius,
+    y: target.y + Math.sin(wobbleTime * 0.73 + phase) * radius * 0.72,
+  };
+}
+
+function hashStringUnit(text) {
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return hash / 2 ** 32;
 }
 
 function configureBoostFromUpgrades(game) {
