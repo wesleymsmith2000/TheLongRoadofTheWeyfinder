@@ -43,8 +43,9 @@ export function roadForward(road) {
 }
 
 export function configureRoadLaneForViewport(road, width, height) {
-  road.halfWidth = clamp(width * 0.34, 110, 360);
-  road.halfHeight = clamp(height * 0.24, 84, 230);
+  const scale = cameraViewScale({ width, height });
+  road.halfWidth = clamp(width * 0.34, 110, 360) / scale;
+  road.halfHeight = clamp(height * 0.24, 84, 230) / scale;
 }
 
 export function createRoadCamera(road) {

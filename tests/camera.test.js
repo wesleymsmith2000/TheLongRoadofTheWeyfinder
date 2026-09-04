@@ -132,3 +132,14 @@ test('road play lane scales to fill most of the viewport', () => {
   assert.equal(road.halfWidth, 340);
   assert.equal(road.halfHeight, 168);
 });
+
+test('mobile road play lane keeps its previous screen footprint after zooming out', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  const viewport = { width: 390, height: 844 };
+  const scale = cameraViewScale(viewport);
+  configureRoadLaneForViewport(road, viewport.width, viewport.height);
+  assert.equal(scale, 0.5);
+  assert.equal((road.halfWidth * scale).toFixed(2), (viewport.width * 0.34).toFixed(2));
+  assert.equal((road.halfHeight * scale).toFixed(2), (viewport.height * 0.24).toFixed(2));
+});
