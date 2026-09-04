@@ -39,6 +39,7 @@ export function createKeyboardInput(target = window, bindings = {}) {
         sandboxTogglePressed: actionPressed(pressed, controlBindings.sandboxToggle),
         fireTogglePressed: actionPressed(pressed, controlBindings.primaryAutofire),
         gunnerTogglePressed: actionPressed(pressed, controlBindings.gunnerToggle),
+        aiLeadTogglePressed: actionPressed(pressed, controlBindings.aiLeadToggle),
         resetPressed: actionPressed(pressed, controlBindings.reset),
         pausePressed: actionPressed(pressed, controlBindings.pause),
         controlsTogglePressed: actionPressed(pressed, controlBindings.controlsToggle),
@@ -107,5 +108,6 @@ function preventedKeys(bindings) {
     ...bindings.achievementsToggle,
     ...bindings.sandboxToggle,
     ...bindings.gunnerToggle,
+    ...bindings.aiLeadToggle,
   ]);
 }

@@ -12,6 +12,7 @@ export const CONTROL_ACTIONS = [
   { id: 'achievementsToggle', label: 'Toggle Achievements', keyboard: ['KeyV'], gamepad: [] },
   { id: 'sandboxToggle', label: 'Toggle Sandbox Panel', keyboard: ['KeyB'], gamepad: [] },
   { id: 'gunnerToggle', label: 'Toggle Gunner AI', keyboard: ['KeyG'], gamepad: [] },
+  { id: 'aiLeadToggle', label: 'Toggle AI Shot Leading', keyboard: ['KeyL'], gamepad: [13] },
   { id: 'reset', label: 'Restart / Reset', keyboard: ['KeyR'], gamepad: [3] },
   { id: 'controlsToggle', label: 'Help / Controls', keyboard: ['KeyH', 'Slash'], gamepad: [8, 9] },
   { id: 'secondaryLeft', label: 'Previous Secondary', keyboard: ['KeyQ', 'KeyZ'], gamepad: [4] },

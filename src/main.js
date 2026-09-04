@@ -205,6 +205,7 @@ const achievementsToggle = document.querySelector('#achievementsToggle');
 const achievementsPanel = document.querySelector('#achievementsPanel');
 const achievementList = document.querySelector('#achievementList');
 const primaryFireToggle = document.querySelector('#primaryFireToggle');
+const aiLeadToggle = document.querySelector('#aiLeadToggle');
 const boostButton = document.querySelector('#boostButton');
 const boostFill = document.querySelector('#boostFill');
 const secondarySelect = document.querySelector('#secondarySelect');
@@ -249,12 +250,14 @@ const levelProgressFill = document.querySelector('#levelProgressFill');
 const renderer = new CanvasRenderer(canvas);
 const CONTROL_BINDINGS_STORAGE_KEY = 'weyfinder.prototype0.controlBindings';
 const SANDBOX_STORAGE_KEY = 'weyfinder.prototype0.sandboxDefinition';
+const AI_SHOT_LEADING_STORAGE_KEY = 'weyfinder.prototype0.aiShotLeading';
 let controlBindings = loadControlBindings();
 let pendingControlCapture = null;
 const keyboard = createKeyboardInput(window, controlBindings);
 const gamepad = createGamepadInput(undefined, controlBindings);
 const mouse = createMouseInput(canvas, (screen) => screenToWorld(screen, game.camera, { width: window.innerWidth, height: window.innerHeight }));
 const touchPrimaryFireToggle = createPointerButtonInput(primaryFireToggle);
+const touchAiLeadToggle = createPointerButtonInput(aiLeadToggle);
 const touchBoost = createPointerButtonInput(boostButton);
 const touchSecondary = createPointerButtonInput(secondaryFire);
 const touchSecondaryCycle = createPointerButtonInput(secondaryTouchCycle);
@@ -267,6 +270,7 @@ const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
 let playerAccount = loadPlayerAccount();
 let playerVehicleDefinition = playerAccount.savedVehicle;
 let game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
+let aiShotLeading = loadAiShotLeading();
 let previous = performance.now();
 let awaitingLaunch = true;
 let titleActive = true;
@@ -331,6 +335,7 @@ const vehicleEditor = createPlayerVehicleLaunchEditor(
 );
 syncTitleScreen();
 syncLaunchScreen();
+syncAiLeadToggle();
 
 function frame(now) {
   const dt = (now - previous) / 1000;
@@ -342,11 +347,13 @@ function frame(now) {
   const mouseInput = mouse.read();
   const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
   const primaryFireTogglePressed = keyInput.fireTogglePressed || padInput.fireTogglePressed || touchPrimaryFireToggle.consume();
+  const aiLeadTogglePressed = keyInput.aiLeadTogglePressed || padInput.aiLeadTogglePressed || touchAiLeadToggle.consume();
   const touchBoostPressed = touchBoost.consume();
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
   const targetCycle = keyInput.targetCycle || padInput.targetCycle || targetPreviousPressed.consume() * -1 || targetNextPressed.consume();
   if (keyInput.gunnerTogglePressed || padInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
+  if (aiLeadTogglePressed) toggleAiShotLeading();
   updatePadReticle(padReticle, padInput, dt);
   const padAimWorld = padReticle.active && padReticle.idle <= 5 ? screenToWorld(padReticle, game.camera, viewport()) : null;
   const aimWorld = mouseInput.aimWorld ?? padAimWorld;
@@ -393,6 +400,7 @@ function frame(now) {
       pauseSecondaryPress.consume(),
     targetingMode: targetingModeSelect.value,
     targetCycle,
+    aiShotLeading,
   };
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) toggleDebug();
@@ -431,6 +439,7 @@ function frame(now) {
   secondaryHeat.style.width = `${game.secondary.heat}%`;
   primaryFireToggle.setAttribute('aria-pressed', String(game.autofire));
   primaryFireToggle.textContent = game.autofire ? 'FIRE' : 'QUIET';
+  syncAiLeadToggle();
   scrapCount.textContent = game.scrap;
   scoreDamage.textContent = game.score.damageDone;
   renderer.draw(game, debug);
@@ -841,6 +850,22 @@ function loadControlBindings() {
   } catch {
     return normalizeControlBindings(DEFAULT_CONTROL_BINDINGS);
   }
+}
+
+function loadAiShotLeading() {
+  return localStorage.getItem(AI_SHOT_LEADING_STORAGE_KEY) !== 'false';
+}
+
+function toggleAiShotLeading() {
+  aiShotLeading = !aiShotLeading;
+  localStorage.setItem(AI_SHOT_LEADING_STORAGE_KEY, String(aiShotLeading));
+  syncAiLeadToggle();
+}
+
+function syncAiLeadToggle() {
+  aiLeadToggle.setAttribute('aria-pressed', String(aiShotLeading));
+  aiLeadToggle.textContent = aiShotLeading ? 'AI LEAD' : `${String.fromCharCode(0x2298)} AI LEAD`;
+  aiLeadToggle.setAttribute('aria-label', aiShotLeading ? 'Disable AI shot leading' : 'Enable AI shot leading');
 }
 
 function saveControlBindings() {

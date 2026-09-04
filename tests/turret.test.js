@@ -18,6 +18,15 @@ test('gunner AI leads the nearest hostile', () => {
   assert.equal(angle.toFixed(3), '0.000');
 });
 
+test('gunner AI can disable shot leading', () => {
+  const vehicle = createStartingVehicle();
+  const enemy = { x: 100, y: 0, vx: 0, vy: 120 };
+  const led = gunnerAim(vehicle, [enemy]);
+  const direct = gunnerAim(vehicle, [enemy], { shotLeading: false });
+  assert.equal(led > direct, true);
+  assert.equal(direct.toFixed(3), '0.000');
+});
+
 test('turret aim rotates toward desired heading over time', () => {
   const vehicle = createStartingVehicle();
   vehicle.turretHeading = 0;
@@ -106,4 +115,25 @@ test('guided targeting gets faster and steadier with AI experience', () => {
   }
   assert.equal(trained.aimReticle.x - trained.vehicle.x > novice.aimReticle.x - novice.vehicle.x, true);
   assert.equal(trained.targetingAi.xp > 225, true);
+});
+
+test('guided targeting can disable shot leading for reticle weapons', () => {
+  const led = createGame();
+  const direct = createGame();
+  for (const game of [led, direct]) {
+    const enemy = game.enemies[0];
+    enemy.targetId = 'fast-hopper';
+    enemy.x = game.vehicle.x + 300;
+    enemy.y = game.vehicle.y;
+    enemy.vx = 0;
+    enemy.vy = 360;
+    game.guidedTargetId = enemy.targetId;
+    game.aiAimMode = 'guided';
+    game.aiAimTargetId = enemy.targetId;
+    game.aiAimReticle = { x: enemy.x, y: enemy.y };
+    game.targetingAi.xp = 1000;
+  }
+  stepGame(led, { targetingMode: 'guided', gunnerEnabled: true, aiShotLeading: true }, 1 / 60);
+  stepGame(direct, { targetingMode: 'guided', gunnerEnabled: true, aiShotLeading: false }, 1 / 60);
+  assert.equal(led.aimReticle.y - direct.aimReticle.y > 3, true);
 });

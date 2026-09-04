@@ -789,7 +789,7 @@ function aimInputForTurret(game, input, dt) {
     return input;
   }
 
-  const target = gunnerAimTarget(game);
+  const target = gunnerAimTarget(game, input.aiShotLeading !== false);
   if (!target) return input;
   game.aiAimReticle = moveToward(game.aiAimReticle ?? { x: game.vehicle.x, y: game.vehicle.y }, target, 130 * dt);
   game.aimReticle = { ...game.aiAimReticle, active: true, source: 'ai' };
@@ -797,7 +797,7 @@ function aimInputForTurret(game, input, dt) {
 }
 
 function guidedAimInput(game, input, dt) {
-  const target = guidedAimTarget(game);
+  const target = guidedAimTarget(game, input.aiShotLeading !== false);
   if (!target) {
     game.aimReticle = null;
     return { ...input, aimWorld: null, manualAimActive: false };
@@ -813,9 +813,17 @@ function guidedAimInput(game, input, dt) {
   return { ...input, aimWorld: game.aiAimReticle, manualAimActive: false, compensatedAim: game.secondary.selected !== 'beam' };
 }
 
-function guidedAimTarget(game) {
+function guidedAimTarget(game, shotLeading = true) {
   const enemy = guidedTarget(game) ?? nearestTargetedEnemy(game);
   if (!enemy) return null;
+  if (!shotLeading) {
+    return {
+      x: enemy.x,
+      y: enemy.y,
+      enemy,
+      targetId: enemyTargetId(enemy),
+    };
+  }
   const beamSelected = game.secondary.selected === 'beam';
   const projectileSpeed = beamSelected ? 1_000_000 : PRIMARY_PROJECTILE_SPEED;
   const distance = Math.hypot(enemy.x - game.vehicle.x, enemy.y - game.vehicle.y);
@@ -828,9 +836,10 @@ function guidedAimTarget(game) {
   };
 }
 
-function gunnerAimTarget(game) {
+function gunnerAimTarget(game, shotLeading = true) {
   const target = nearestTargetedEnemy(game);
   if (!target) return null;
+  if (!shotLeading) return { x: target.x, y: target.y };
   const beamSelected = game.secondary.selected === 'beam';
   const projectileSpeed = beamSelected ? 1_000_000 : PRIMARY_PROJECTILE_SPEED;
   const distance = Math.hypot(target.x - game.vehicle.x, target.y - game.vehicle.y);

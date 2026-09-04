@@ -143,6 +143,7 @@
       body.title-active .combat-panel,
       body.title-active .boost-gauge,
       body.title-active .primary-fire-toggle,
+      body.title-active .ai-lead-toggle,
       body.title-active .boost-button,
       body.title-active .secondary-touch-button,
       body.title-active .secondary-cycle-button {
@@ -737,6 +738,7 @@
       }
 
       .primary-fire-toggle,
+      .ai-lead-toggle,
       .secondary-touch-button,
       .secondary-cycle-button {
         position: fixed;
@@ -757,7 +759,12 @@
         bottom: 220px;
       }
 
-      .primary-fire-toggle[aria-pressed="true"] {
+      .ai-lead-toggle {
+        bottom: 282px;
+      }
+
+      .primary-fire-toggle[aria-pressed="true"],
+      .ai-lead-toggle[aria-pressed="true"] {
         border-color: rgb(111 224 191 / 0.72);
         background: rgb(25 79 68 / 0.78);
         color: #dffcf3;
@@ -1464,6 +1471,7 @@
         }
 
         .primary-fire-toggle,
+        .ai-lead-toggle,
         .secondary-touch-button,
         .secondary-cycle-button {
           right: 12px;
@@ -1475,6 +1483,10 @@
 
         .primary-fire-toggle {
           bottom: 194px;
+        }
+
+        .ai-lead-toggle {
+          bottom: 250px;
         }
 
         .secondary-cycle-button {
@@ -1769,6 +1781,7 @@
     </div>
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
     <button id="primaryFireToggle" class="primary-fire-toggle" type="button" aria-label="Toggle primary fire mode" aria-pressed="true">FIRE</button>
+    <button id="aiLeadToggle" class="ai-lead-toggle" type="button" aria-label="Disable AI shot leading" aria-pressed="true">AI LEAD</button>
     <button id="secondaryTouchCycle" class="secondary-cycle-button" type="button" aria-label="Cycle secondary weapon">SWAP</button>
     <button id="secondaryTouchFire" class="secondary-touch-button" type="button" aria-label="Fire secondary weapon">2ND</button>
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>

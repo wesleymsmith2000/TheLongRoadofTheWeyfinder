@@ -25,7 +25,7 @@ export function resolveTurretAim(vehicle, enemies, input) {
   }
   if (input.gunnerEnabled === false) return vehicle.turretHeading;
   if ((vehicle.manualAimGrace ?? 0) > 0) return vehicle.turretHeading;
-  return gunnerAim(vehicle, enemies);
+  return gunnerAim(vehicle, enemies, { shotLeading: input.aiShotLeading !== false });
 }
 
 export function directAimHeading(vehicle, target) {
@@ -55,9 +55,10 @@ function compensatedAimFromMuzzle(vehicle, target, projectileSpeed, currentHeadi
   return Math.atan2(aimY, aimX);
 }
 
-export function gunnerAim(vehicle, enemies) {
+export function gunnerAim(vehicle, enemies, options = {}) {
   const target = nearestEnemy(vehicle, enemies);
   if (!target) return vehicle.turretHeading;
+  if (options.shotLeading === false) return directAimHeading(vehicle, target);
   const projectileSpeed = PRIMARY_PROJECTILE_SPEED;
   const dx = target.x - vehicle.x;
   const dy = target.y - vehicle.y;
