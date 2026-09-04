@@ -13,7 +13,8 @@ import tractorFrogConstruct from '../content/examples/prototype0-zone-enemy-set/
 import heavyMortarBoatConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
 import spiderWalkerConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
 import scrapBuzzardConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
-import inchwormCarrierConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_carrier_sculpted.json' with { type: 'json' };
+import inchwormHeadConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json' with { type: 'json' };
+import inchwormBodySegmentConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json' with { type: 'json' };
 import mothBomberConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.moth_bomber_sculpted.json' with { type: 'json' };
 import zoneEnemyArchetypes from '../content/examples/prototype0-zone-enemy-set/enemies/example.zone_enemy_archetypes.json' with { type: 'json' };
 import behaviorContracts from '../content/examples/prototype0-zone-enemy-set/behaviors/example.zone_enemy_behavior_contracts.json' with { type: 'json' };
@@ -37,7 +38,8 @@ const constructs = [
   heavyMortarBoatConstruct,
   spiderWalkerConstruct,
   scrapBuzzardConstruct,
-  inchwormCarrierConstruct,
+  inchwormHeadConstruct,
+  inchwormBodySegmentConstruct,
   mothBomberConstruct,
 ];
 
@@ -74,6 +76,10 @@ test('zone enemy examples preserve requested advanced behavior descriptors', () 
   assert.equal(byId.get('example.elevated_walker.starlight_road').fallWhenSupportsDestroyed.requiredDestroyedCount, 4);
   assert.equal(byId.get('example.scrap_buzzard.shadowed_desert').scrapFeeding.landWhenScrapPresent, true);
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').segments.maxCount, 12);
+  assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').segments.destroyedSegmentRelease.kind, 'scrapSpray');
+  assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').segments.destroyedSegmentRelease.shrapnel, false);
+  assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').construct, 'example.construct.inchworm_head_sculpted');
+  assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').aggregate.parts[1].construct, 'example.construct.inchworm_body_segment_sculpted');
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').eyeGuns.repelsIncomingProjectiles, true);
   assert.equal(byId.get('example.moth_bomber.freedoms_pass').detonation.trigger, 'contactPlayerOrConstruct');
   assert.equal(byId.get('example.ghost_phase_mob.ghost_forrest').construct, 'example.construct.ghost_phaser_sculpted');
@@ -91,7 +97,20 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   assert.equal(byId.get('example.construct.heavy_mortar_boat_sculpted').cells.length >= 32, true);
   assert.equal(byId.get('example.construct.spider_walker_sculpted').cells.filter((cell) => cell.role === 'supportLeg').length, 8);
   assert.equal(byId.get('example.construct.scrap_buzzard_sculpted').cells.filter((cell) => cell.role === 'wing').length >= 8, true);
-  assert.equal(byId.get('example.construct.inchworm_carrier_sculpted').cells.length >= 40, true);
+  assert.equal(byId.get('example.construct.inchworm_head_sculpted').cells.length >= 55, true);
+  assert.equal(byId.get('example.construct.inchworm_body_segment_sculpted').cells.length >= 35, true);
+  assert.equal(byId.get('example.construct.inchworm_head_sculpted').presentation.relativeScale, 1.25);
+  assert.equal(byId.get('example.construct.inchworm_head_sculpted').cells.filter((cell) => cell.role === 'mandible').length >= 6, true);
+  assert.deepEqual(
+    byId
+      .get('example.construct.inchworm_head_sculpted')
+      .cells.filter((cell) => cell.role === 'eyeGun')
+      .map((cell) => cell.appearance.tint)
+      .sort(),
+    ['#ff2d1a', '#ff8a1f'],
+  );
+  assert.equal(byId.get('example.construct.inchworm_body_segment_sculpted').cells.filter((cell) => cell.role === 'nubbyLeg').length >= 2, true);
+  assert.equal(byId.get('example.construct.inchworm_body_segment_sculpted').cells.filter((cell) => cell.role === 'mothLaunchNode').length, 1);
   for (const construct of constructs) {
     assert.equal(construct.cells.filter((cell) => cell.type === 'core').length, 1, construct.assetId);
     assert.equal(construct.connections.length, construct.cells.length - 1, construct.assetId);

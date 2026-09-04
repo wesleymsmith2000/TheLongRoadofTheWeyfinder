@@ -21,7 +21,8 @@ Added constructs:
 - `example.construct.heavy_mortar_boat_sculpted` - 33 cells
 - `example.construct.spider_walker_sculpted` - 35 cells
 - `example.construct.scrap_buzzard_sculpted` - 32 cells
-- `example.construct.inchworm_carrier_sculpted` - 42 cells
+- `example.construct.inchworm_head_sculpted` - 89 layered cells
+- `example.construct.inchworm_body_segment_sculpted` - 48 layered cells
 - `example.construct.moth_bomber_sculpted` - 20 cells
 
 Each construct keeps exactly one `core` cell and uses explicit structural connections. The non-core footprint is deliberately larger than the prior placeholder `basic_turret` references so these enemies can remain visually substantial after the module-size change.
@@ -49,7 +50,7 @@ Right now these sculpted constructs are valid editor/import assets, but the acti
 3. Preserve special runtime behavior for boss arms, elevated walker support roles, phasing, aerial enemies, and carrier spawns by reading `role` metadata from construct cells where needed.
 4. Once the authored constructs cover the canon enemy set, remove or set the temporary runtime `ENEMY_MODULE_LINEAR_SCALE` adapter back to `1`.
 
-The example constructs are a practical target for that bridge because they already contain one core, explicit graph edges, and role labels for eyes, wings, legs, elevated body, mortar, head, body segments, and moth blast nodes.
+The example constructs are a practical target for that bridge because they already contain one core, explicit graph edges, and role labels for eyes, wings, legs, elevated body, mortar, inchworm head mandibles, body segments, moth launch nodes, and moth blast nodes.
 
 ## Repro
 

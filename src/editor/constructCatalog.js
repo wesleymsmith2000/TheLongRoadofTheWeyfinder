@@ -5,7 +5,8 @@ import tractorFrogConstruct from '../../content/examples/prototype0-zone-enemy-s
 import heavyMortarBoatConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
 import spiderWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
 import scrapBuzzardConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
-import inchwormCarrierConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_carrier_sculpted.json' with { type: 'json' };
+import inchwormHeadConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json' with { type: 'json' };
+import inchwormBodySegmentConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json' with { type: 'json' };
 import mothBomberConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.moth_bomber_sculpted.json' with { type: 'json' };
 
 export const BUILTIN_CONSTRUCT_DEFINITIONS = Object.freeze([
@@ -16,9 +17,9 @@ export const BUILTIN_CONSTRUCT_DEFINITIONS = Object.freeze([
   heavyMortarBoatConstruct,
   spiderWalkerConstruct,
   scrapBuzzardConstruct,
-  inchwormCarrierConstruct,
+  inchwormHeadConstruct,
+  inchwormBodySegmentConstruct,
   mothBomberConstruct,
 ]);
 
 export const BUILTIN_CONSTRUCT_BY_ID = new Map(BUILTIN_CONSTRUCT_DEFINITIONS.map((definition) => [definition.assetId, definition]));
-

@@ -527,7 +527,7 @@ test('digitized stream hopper is enlarged and uses the slower hop impulse', () =
   game.enemies = [frog];
   game.enemySpawnQueue = [];
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
-  assert.equal(frog.moduleLinearScale, 2);
+  assert.equal(frog.assetId, 'example.construct.tractor_frog_sculpted');
   assert.equal(frog.hopperVisualBias, 1.5);
   assert.equal(frog.radius > CELL_SIZE * 3, true);
   assert.equal(frog.vx > 70 && frog.vx < 72, true);

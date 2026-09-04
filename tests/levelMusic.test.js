@@ -44,16 +44,40 @@ test('zone soundtrack names route standard spawns to zone archetypes', () => {
   assert.equal(ghost.presentation.sprite, undefined);
   const frog = createLevelEnemies(road, 1, ['DigitizedStream_1'])[0];
   assert.equal(frog.archetypeId, 'hopping_stream_mob.digitized_stream');
-  assert.equal(frog.moduleLinearScale, 2);
+  assert.equal(frog.assetId, 'example.construct.tractor_frog_sculpted');
   assert.equal(frog.hopperVisualBias, 1.5);
   assert.equal(frog.presentation.variant, 'tractorFrog');
   assert.equal(frog.presentation.sprite, undefined);
   assert.equal(createLevelEnemies(road, 1, ['PiratesRoad_1'])[0].archetypeId, 'heavy_mortar_boat.pirates_road');
-  assert.equal(createLevelEnemies(road, 2, ['PiratesRoad_1'])[1].archetypeId, 'mortar_skiff.prototype0');
+  assert.equal(createLevelEnemies(road, 2, ['PiratesRoad_1']).some((enemy) => enemy.archetypeId === 'mortar_skiff.prototype0'), true);
   assert.equal(createLevelEnemies(road, 1, ['StarlightRoad_1'])[0].archetypeId, 'starlight_walker.prototype0');
   assert.equal(createLevelEnemies(road, 1, ['TwilightCrossroads'])[0].archetypeId, 'twilight_walker.prototype0');
   assert.equal(createLevelEnemies(road, 1, ['ShadowedDesert_Journey'])[0].archetypeId, 'scrap_buzzard.shadowed_desert');
   assert.equal(createLevelEnemies(road, 1, ['FreedomsPass_Journey'])[0].archetypeId, 'inchworm_carrier.freedoms_pass');
+});
+
+test('zone archetype spawns include sculpted leaders and basic brood turrets', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const enemies = createLevelEnemies(road, 1, ['DigitizedStream_1']);
+  assert.equal(enemies[0].assetId, 'example.construct.tractor_frog_sculpted');
+  assert.equal(enemies[0].presentation.sprite, undefined);
+  assert.equal(enemies.slice(1).length >= 1, true);
+  assert.equal(enemies.slice(1).length <= 3, true);
+  assert.equal(enemies.slice(1).every((enemy) => enemy.archetypeId === 'hopping_stream_mob.digitized_stream.brood_turret'), true);
+  assert.equal(enemies.slice(1).every((enemy) => enemy.assetId === 'basic_turret'), true);
+});
+
+test('freedoms pass inchworm spawns as linked head and body segment enemies', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const enemies = createLevelEnemies(road, 1, ['FreedomsPass_Journey']);
+  const head = enemies.find((enemy) => enemy.archetypeId === 'inchworm_carrier.freedoms_pass');
+  const segments = enemies.filter((enemy) => enemy.archetypeId === 'inchworm_segment.freedoms_pass');
+  assert.equal(head.assetId, 'example.construct.inchworm_head_sculpted');
+  assert.equal(head.inchworm.role, 'head');
+  assert.equal(segments.length >= 4, true);
+  assert.equal(segments.every((segment) => segment.assetId === 'example.construct.inchworm_body_segment_sculpted'), true);
+  assert.equal(segments.every((segment) => segment.inchworm.suppressDeathBlast), true);
+  assert.equal(head.inchworm.segmentIds.length, segments.length);
 });
 
 test('enemy round upgrades scale two deterministic enemy traits per level', () => {

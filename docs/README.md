@@ -30,6 +30,7 @@ Start here:
 - [Editor Runtime Change Handoff](./editor-runtime-change-handoff.md)
 - [Enemy Module Scaling And Canon Module Handoff](./enemy-module-scaling-canon-module-handoff.md)
 - [Sculpted Zone Enemy Constructs Handoff](./sculpted-zone-enemy-constructs-handoff.md)
+- [Inchworm Linked Construct Editor Handoff](./inchworm-linked-construct-editor-handoff.md)
 - [Player Module Voxel And Build Grid Handoff](./player-module-voxel-and-build-grid-handoff.md)
 - [Sandbox Mode Editor Handoff](./sandbox-mode-editor-handoff.md)
 - [Multilayer Cell Model And Voxelizer Handoff](./multilayer-cell-model-and-voxelizer-handoff.md)

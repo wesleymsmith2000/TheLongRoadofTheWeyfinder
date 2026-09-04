@@ -66,6 +66,14 @@ import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' 
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
 import repulsorBeamDefinition from '../../content/weapons/repulsor_beam.json' with { type: 'json' };
 import startingVehicleDefinition from '../../content/constructs/starting_vehicle.json' with { type: 'json' };
+import ghostPhaserSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json' with { type: 'json' };
+import tractorFrogSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
+import heavyMortarBoatSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
+import spiderWalkerSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
+import scrapBuzzardSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
+import inchwormHeadSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json' with { type: 'json' };
+import inchwormSegmentSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json' with { type: 'json' };
+import mothBomberSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.moth_bomber_sculpted.json' with { type: 'json' };
 
 export const LEVEL_TARGET_DURATION = 180;
 export const TARGETING_MODES = ['manual', 'guided', 'mixed'];
@@ -88,6 +96,26 @@ const PHANTOM_OVERLOAD_DAMAGE = 22;
 const PHANTOM_OVERLOAD_RADIUS = CELL_SIZE * 3.2;
 const PHANTOM_OVERLOAD_IMPULSE = 140;
 const ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS = 1.55;
+const BROODABLE_ARCHETYPES = new Set([
+  'ghost_phaser.ghost_forrest',
+  'hopping_stream_mob.digitized_stream',
+  'heavy_mortar_boat.pirates_road',
+  'starlight_walker.prototype0',
+  'twilight_walker.prototype0',
+  'scrap_buzzard.shadowed_desert',
+  'inchworm_carrier.freedoms_pass',
+]);
+const RUNTIME_SCULPTED_CONSTRUCTS = {
+  'ghost_phaser.ghost_forrest': ghostPhaserSculptedDefinition,
+  'hopping_stream_mob.digitized_stream': tractorFrogSculptedDefinition,
+  'heavy_mortar_boat.pirates_road': heavyMortarBoatSculptedDefinition,
+  'starlight_walker.prototype0': spiderWalkerSculptedDefinition,
+  'twilight_walker.prototype0': spiderWalkerSculptedDefinition,
+  'scrap_buzzard.shadowed_desert': scrapBuzzardSculptedDefinition,
+  'moth_bomber.freedoms_pass': mothBomberSculptedDefinition,
+};
+const INCHWORM_HEAD_CONSTRUCT = inchwormHeadSculptedDefinition;
+const INCHWORM_SEGMENT_CONSTRUCT = inchwormSegmentSculptedDefinition;
 const ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS = 0.22;
 const TARGETING_AI_BASE_SPEED = 145;
 const TARGETING_AI_SPEED_PER_RANK = 12;
@@ -501,10 +529,11 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
     const row = Math.floor(i / 4) * 35;
     const kind = i < standardCount ? 'standard' : 'enhanced';
     const archetype = zoneArchetypeForMusic(currentMusic, kind, i);
-    const world =
+    const offset =
       kind === 'enhanced'
-        ? roadOffsetToWorld({ x: spread, y: road.halfHeight + 47.5 + row }, road)
-        : roadOffsetToWorld({ x: spread, y: -road.halfHeight - 47.5 - row }, road);
+        ? { x: spread, y: road.halfHeight + 47.5 + row }
+        : { x: spread, y: -road.halfHeight - 47.5 - row };
+    const world = roadOffsetToWorld(offset, road);
     const pirateShip = usesBoatSilhouetteEnemy(currentMusic, level);
     const enemy = archetype
       ? createEnemyForArchetype(archetype, world.x, world.y, kind)
@@ -529,7 +558,14 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
       enemy.vy = velocity.y * 17.5;
     }
     applyEnemyLevelUpgrades(enemy, level);
-    enemies.push(enemy);
+    if (archetype?.id === 'inchworm_carrier.freedoms_pass') {
+      enemies.push(...createLinkedInchwormEnemies(enemy, archetype, road, level, i));
+    } else {
+      enemies.push(enemy);
+    }
+    if (archetype && isBroodableArchetype(archetype)) {
+      enemies.push(...createBroodTurretsForEnemy(archetype, road, offset, level, i, kind));
+    }
   }
   if (isBoss) {
     const bossWorld = roadOffsetToWorld({ x: 0, y: -road.halfHeight - 90 }, road);
@@ -603,12 +639,98 @@ function zoneNameFromTrack(trackName = '') {
 }
 
 function createEnemyForArchetype(archetype, x, y, kind) {
+  const runtimeConstruct = RUNTIME_SCULPTED_CONSTRUCTS[archetype.id];
+  if (runtimeConstruct) {
+    const enemy = createEnemy(x, y, runtimeConstruct, undefined, { moduleScale: 1 });
+    if (archetype.id === 'heavy_mortar_boat.pirates_road') enemy.silhouette = 'pirateShip';
+    return enemy;
+  }
+  if (archetype.id === 'inchworm_carrier.freedoms_pass') {
+    return createEnemy(x, y, INCHWORM_HEAD_CONSTRUCT, undefined, { moduleScale: 1 });
+  }
   const factory = archetype.runtimeFactory;
   if (factory === 'createMortarSkiffEnemy') return createMortarSkiffEnemy(x, y);
   if (factory === 'createPirateShipEnemy') return createPirateShipEnemy(x, y, { kind });
   if (factory === 'createEnhancedPirateShipEnemy') return createEnhancedPirateShipEnemy(x, y);
   if (factory === 'createEnhancedEnemy') return createEnhancedEnemy(x, y);
   return createEnemy(x, y);
+}
+
+function isBroodableArchetype(archetype) {
+  return BROODABLE_ARCHETYPES.has(archetype.id);
+}
+
+function createBroodTurretsForEnemy(archetype, road, offset, level, index, kind) {
+  if (kind !== 'standard') return [];
+  const count = 1 + ((level + index + archetype.id.length) % 3);
+  const velocity = roadDirectionToWorld(0, 1, road);
+  const sideDirection = roadDirectionToWorld(1, 0, road);
+  const escorts = [];
+  for (let i = 0; i < count; i += 1) {
+    const side = i - (count - 1) / 2;
+    const stagger = CELL_SIZE * (5.2 + i * 1.1);
+    const world = roadOffsetToWorld({
+      x: offset.x + side * CELL_SIZE * 5.4,
+      y: offset.y - stagger,
+    }, road);
+    const escort = createEnemy(world.x, world.y);
+    escort.archetypeId = `${archetype.id}.brood_turret`;
+    escort.displayName = `${archetype.displayName ?? 'Enemy'} Brood Turret`;
+    escort.zone = archetype.zone;
+    escort.palette = archetype.palette ? { ...archetype.palette } : escort.palette;
+    escort.vx = velocity.x * 17.5 + sideDirection.x * side * 8;
+    escort.vy = velocity.y * 17.5 + sideDirection.y * side * 8;
+    applyEnemyLevelUpgrades(escort, level);
+    escorts.push(escort);
+  }
+  return escorts;
+}
+
+function createLinkedInchwormEnemies(head, archetype, road, level, index) {
+  const segmentCount = Math.min(archetype.segments?.maxCount ?? 8, Math.max(archetype.segments?.minCount ?? 4, 4 + (level + index) % 5));
+  const chainId = `inchworm:${level}:${index}:${Math.round(head.x)}:${Math.round(head.y)}`;
+  const heading = Math.atan2(head.vy, head.vx);
+  head.assetId = INCHWORM_HEAD_CONSTRUCT.assetId;
+  head.inchworm = {
+    chainId,
+    role: 'head',
+    segmentIds: [],
+    phase: 0,
+    heading: Number.isFinite(heading) ? heading : 0,
+    baseSpacing: CELL_SIZE * 3.1,
+  };
+  head.targetId = `${chainId}:head`;
+  const backward = roadDirectionToWorld(0, -1, road);
+  const segments = [];
+  for (let i = 0; i < segmentCount; i += 1) {
+    const segment = createEnemy(
+      head.x + backward.x * CELL_SIZE * 2.2 * (i + 1),
+      head.y + backward.y * CELL_SIZE * 2.2 * (i + 1),
+      INCHWORM_SEGMENT_CONSTRUCT,
+      [],
+      { moduleScale: 1 },
+    );
+    segment.archetypeId = 'inchworm_segment.freedoms_pass';
+    segment.displayName = 'Freedoms Pass Inchworm Segment';
+    segment.zone = archetype.zone;
+    segment.palette = archetype.palette ? { ...archetype.palette, core: archetype.palette.armor ?? archetype.palette.core } : segment.palette;
+    segment.presentation = { variant: 'inchwormCarrier' };
+    segment.inchworm = {
+      chainId,
+      role: 'segment',
+      headId: head.targetId,
+      chainIndex: i,
+      heading: head.inchworm.heading,
+      suppressDeathBlast: true,
+    };
+    segment.targetId = `${chainId}:segment:${i}`;
+    segment.vx = head.vx;
+    segment.vy = head.vy;
+    applyEnemyLevelUpgrades(segment, level);
+    head.inchworm.segmentIds.push(segment.targetId);
+    segments.push(segment);
+  }
+  return [head, ...segments];
 }
 
 function applyArchetypeRuntimeMetadata(enemy, archetype) {
@@ -621,6 +743,7 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   if (archetype.phase) enemy.phase = structuredClone(archetype.phase);
   if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);
   if (archetype.artillery) enemy.artillery = structuredClone(archetype.artillery);
+  if (archetype.id === 'heavy_mortar_boat.pirates_road') enemy.silhouette = 'pirateShip';
   if (archetype.id === 'hopping_stream_mob.digitized_stream') {
     enemy.hopperVisualBias = HOPPER_FROG_VISUAL_SCALE;
   }
@@ -1305,6 +1428,7 @@ function stepArchetypeEnemy(game, enemy, dt) {
   if (enemy.archetypeId === 'starlight_walker.prototype0' || enemy.archetypeId === 'twilight_walker.prototype0') stepWalkerEnemy(game, enemy, dt);
   if (enemy.archetypeId === 'scrap_buzzard.shadowed_desert') stepScrapBuzzard(game, enemy, dt);
   if (enemy.archetypeId === 'inchworm_carrier.freedoms_pass') stepInchwormCarrier(game, enemy, dt);
+  if (enemy.archetypeId === 'inchworm_segment.freedoms_pass') stepInchwormSegment(enemy, dt);
 }
 
 function stepDizzyEnemy(enemy, dt) {
@@ -1454,15 +1578,38 @@ function stepScrapBuzzard(game, enemy, dt) {
 }
 
 function stepInchwormCarrier(game, enemy, dt) {
-  enemy.wormPhase = (enemy.wormPhase ?? 0) + dt * 2.8;
-  enemy.vx += Math.sin(enemy.wormPhase) * 12 * dt * enemyMovementUpgradeScale(enemy);
+  const state = enemy.inchworm ?? {
+    role: 'head',
+    segmentIds: [],
+    phase: 0,
+    heading: Math.atan2(enemy.vy, enemy.vx),
+    baseSpacing: CELL_SIZE * 3.1,
+  };
+  enemy.inchworm = state;
+  state.phase = (state.phase + dt * 0.7 * enemyMovementUpgradeScale(enemy)) % 1;
+  const targetHeading = Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+  state.heading = turnTowardAngle(Number.isFinite(state.heading) ? state.heading : targetHeading, targetHeading, 0.95 * dt);
+  const stretch = 0.5 - Math.cos(state.phase * Math.PI * 2) * 0.5;
+  const forward = { x: Math.cos(state.heading), y: Math.sin(state.heading) };
+  const desiredSpeed = (18 + stretch * 38) * enemyMovementUpgradeScale(enemy);
+  const steer = clamp((2.6 + stretch * 2.2) * dt, 0, 1);
+  enemy.vx += (forward.x * desiredSpeed - enemy.vx) * steer;
+  enemy.vy += (forward.y * desiredSpeed - enemy.vy) * steer;
+  enemy.visualHeading = state.heading;
+  stepLinkedInchwormSegments(game, enemy, stretch, dt);
   enemy.spawnTimer = (enemy.spawnTimer ?? game.rng.range(2.2, 4.4)) - dt;
   if (enemy.spawnTimer > 0) return;
   enemy.spawnTimer = game.rng.range(5.5, 8.5);
-  const moth = createEnemy(enemy.x + game.rng.range(-CELL_SIZE, CELL_SIZE), enemy.y + CELL_SIZE * 1.4);
-  moth.archetypeId = 'moth_bomber.freedoms_pass';
-  moth.displayName = 'Freedoms Pass Moth Bomber';
-  moth.palette = { core: '#f4eee4', armor: '#b9d990', gun: '#ff7a1a' };
+  const mothArchetype = getEnemyArchetype('moth_bomber.freedoms_pass');
+  const moth = mothArchetype
+    ? createEnemyForArchetype(mothArchetype, enemy.x + game.rng.range(-CELL_SIZE, CELL_SIZE), enemy.y + CELL_SIZE * 1.4, 'standard')
+    : createEnemy(enemy.x + game.rng.range(-CELL_SIZE, CELL_SIZE), enemy.y + CELL_SIZE * 1.4);
+  if (mothArchetype) applyArchetypeRuntimeMetadata(moth, mothArchetype);
+  else {
+    moth.archetypeId = 'moth_bomber.freedoms_pass';
+    moth.displayName = 'Freedoms Pass Moth Bomber';
+    moth.palette = { core: '#f4eee4', armor: '#b9d990', gun: '#ff7a1a' };
+  }
   moth.elevation = { z: 35, canBeHitByGroundFire: true, arcCollision: true };
   moth.radius *= 0.7;
   const direction = directionFromTo(moth, game.vehicle);
@@ -1470,6 +1617,37 @@ function stepInchwormCarrier(game, enemy, dt) {
   moth.vy = direction.y * 170 * enemyMovementUpgradeScale(enemy);
   applyEnemyLevelUpgrades(moth, game.level);
   game.enemies.push(moth);
+}
+
+function stepLinkedInchwormSegments(game, head, stretch, dt) {
+  const ids = head.inchworm?.segmentIds ?? [];
+  if (ids.length === 0) return;
+  const segments = ids
+    .map((id) => game.enemies.find((enemy) => !enemy.destroyed && enemy.targetId === id))
+    .filter(Boolean)
+    .sort((a, b) => (a.inchworm?.chainIndex ?? 0) - (b.inchworm?.chainIndex ?? 0));
+  const heading = head.inchworm?.heading ?? Math.atan2(head.vy, head.vx);
+  const forward = { x: Math.cos(heading), y: Math.sin(heading) };
+  const baseSpacing = head.inchworm?.baseSpacing ?? CELL_SIZE * 3.1;
+  const spacing = baseSpacing * (0.5 + stretch * 0.5);
+  let anchor = head;
+  for (const segment of segments) {
+    segment.inchworm.heading = heading;
+    const target = {
+      x: anchor.x - forward.x * spacing,
+      y: anchor.y - forward.y * spacing,
+    };
+    const pull = clamp((7.5 + (1 - stretch) * 3.5) * dt, 0, 1);
+    segment.vx += ((target.x - segment.x) * 5.5 - segment.vx) * pull;
+    segment.vy += ((target.y - segment.y) * 5.5 - segment.vy) * pull;
+    segment.visualHeading = heading;
+    anchor = segment;
+  }
+}
+
+function stepInchwormSegment(enemy, dt) {
+  enemy.vx *= Math.pow(0.72, dt);
+  enemy.vy *= Math.pow(0.72, dt);
 }
 
 function updateEnemyVisualHeading(enemy, dt) {
@@ -1481,6 +1659,10 @@ function updateEnemyVisualHeading(enemy, dt) {
 }
 
 function updateEnemyCollisionRotation(enemy, time = Infinity) {
+  if (enemy.inchworm?.role) {
+    enemy.collisionRotation = (enemy.inchworm.heading ?? enemy.visualHeading ?? 0) - Math.PI;
+    return;
+  }
   if (enemy.kind === 'boss' || enemy.silhouette !== 'pirateShip') {
     enemy.collisionRotation = 0;
     return;
@@ -2981,8 +3163,9 @@ function samplePoisson(rng, mean) {
 function explodeEnemy(game, enemy) {
   enemy.explosionStart = game.time;
   recordEnemyDefeat(game.score, enemy);
-  emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
   game.scrapPickups.push(...harvestEnemyScrap(enemy, game.rng));
+  if (enemy.inchworm?.role === 'segment' || enemy.inchworm?.suppressDeathBlast) return;
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
   game.playerProjectiles.push(
     createProjectile(enemy.x, enemy.y, 0, 0, {
       team: 'player',
