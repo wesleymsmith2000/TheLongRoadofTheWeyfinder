@@ -74,6 +74,8 @@ test('enemy archetype helpers expose editor-facing enemy models', () => {
   assert.deepEqual(getEnemyArchetype('scrap_buzzard.shadowed_desert').zoneAliases, ['ShadowedDessert']);
   assert.equal(getEnemyArchetype('inchworm_carrier.freedoms_pass').spawns.archetype, 'moth_bomber.freedoms_pass');
   assert.equal(getEnemyArchetype('inchworm_carrier.freedoms_pass').presentation.variant, 'inchwormCarrier');
+  assert.equal(getEnemyArchetype('inchworm_carrier.freedoms_pass').construct, 'example.construct.inchworm_head_sculpted');
+  assert.equal(getEnemyArchetype('inchworm_carrier.freedoms_pass').segments.construct, 'example.construct.inchworm_body_segment_sculpted');
   assert.equal(listEnemyArchetypes().every((archetype) => archetype.presentation?.sprite == null), true);
   assert.equal(getEnemyArchetype('boss.octopus.prototype0').displayName, 'Octagon Boss Prototype');
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.some((entry) => entry.id === 'trackingLaser'), true);

@@ -46,7 +46,7 @@ The Enemy Editor template dropdown also includes these example archetypes direct
 - `example.elevated_walker.starlight_road`: four-leg elevated walker whose body is only arc-hittable until all legs are destroyed.
 - `example.elevated_walker.twilight_crossroads`: Twilight variant of the elevated walker with the same four-leg fall contract.
 - `example.scrap_buzzard.shadowed_desert`: aerial straight-line strafer that circles off-field, drops mortars behind itself, and lands to eat scrap.
-- `example.inchworm_carrier.freedoms_pass`: head plus 4-12 segment carrier descriptor; destroyed segments release flechettes without explosion; eye guns use repulsor and mini-beam patterns.
+- `example.inchworm_carrier.freedoms_pass`: split head plus 4-12 linked segment carrier descriptor; destroyed segments spray scrap without explosion or shrapnel; eye guns use repulsor and mini-beam patterns.
 - `example.moth_bomber.freedoms_pass`: fast spawned moth that flies toward targets and explodes on contact.
 
 ## Editor Updates

@@ -353,7 +353,7 @@
       "displayName": "Freedoms Pass Inchworm Carrier",
       "runtimeFactory": "createEnemy",
       "baseArchetype": "standard",
-      "construct": "basic_turret",
+      "construct": "example.construct.inchworm_head_sculpted",
       "patterns": ["enemy_aimed_shot"],
       "zone": "FreedomsPass",
       "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 30 },
@@ -368,11 +368,12 @@
       "aggregate": {
         "kind": "limbArray",
         "parts": [
-          { "id": "head", "role": "head", "attachment": "front", "count": 1, "contains": ["core", "gun", "gun"] },
-          { "id": "segments", "role": "bodySegment", "attachment": "chain", "movementProfile": "inchworm-crawl", "count": 8 }
+          { "id": "head", "role": "head", "attachment": "front", "construct": "example.construct.inchworm_head_sculpted", "count": 1, "contains": ["core", "gun", "gun"] },
+          { "id": "segments", "role": "bodySegment", "attachment": "chain", "construct": "example.construct.inchworm_body_segment_sculpted", "movementProfile": "inchworm-crawl", "count": 8 }
         ]
       },
       "segments": {
+        "construct": "example.construct.inchworm_body_segment_sculpted",
         "minCount": 4,
         "maxCount": 12,
         "destroyedSegmentRelease": { "kind": "scrapSpray", "explosion": false, "shrapnel": false }
