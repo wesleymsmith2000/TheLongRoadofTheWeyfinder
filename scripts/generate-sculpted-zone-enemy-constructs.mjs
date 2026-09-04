@@ -10,6 +10,7 @@ const TYPE_FOR_MARK = Object.freeze({
   c: 'core',
   e: 'engine',
   g: 'gun',
+  u: 'utility',
   w: 'wheel',
 });
 
@@ -77,6 +78,18 @@ const SHAPES = [
     displayName: 'Sculpted Spidery Eight Leg Walker Construct',
     tags: ['walker', 'spider', 'eight-leg', 'starlight-road', 'twilight-crossroads', 'runtime-hook:walkerLegs', 'dev-lookup:walker-spidery-eight-leg'],
     layers: spideryWalkerLayers(),
+  },
+  {
+    assetId: 'example.construct.burly_walker_boss_body_sculpted',
+    displayName: 'Sculpted Burly Walker Boss Body Construct',
+    tags: ['walker', 'boss', 'burly-four-leg', 'starlight-road', 'twilight-crossroads', 'runtime-hook:walkerLegs', 'runtime-hook:aggregateBoss', 'dev-lookup:walker-boss-body-burly'],
+    layers: burlyWalkerBossBodyLayers(),
+  },
+  {
+    assetId: 'example.construct.rotatable_boss_cannon_sculpted',
+    displayName: 'Sculpted Rotatable Boss Cannon Construct',
+    tags: ['boss', 'cannon', 'rotatable', 'weapon-mount', 'runtime-hook:rotatableCannon', 'runtime-hook:aggregateBoss', 'dev-lookup:boss-rotatable-cannon'],
+    layers: rotatableBossCannonLayers(),
   },
   {
     assetId: 'example.construct.scrap_buzzard_sculpted',
@@ -391,6 +404,138 @@ function spideryWalkerLayers() {
   return layers;
 }
 
+function burlyWalkerBossBodyLayers() {
+  const layers = [];
+  const legOrigins = [
+    { id: 'frontLeft', x0: -9, y0: -9, jointX: -7, jointY: -6 },
+    { id: 'frontRight', x0: 5, y0: -9, jointX: 7, jointY: -6 },
+    { id: 'rearLeft', x0: -9, y0: 5, jointX: -7, jointY: 6 },
+    { id: 'rearRight', x0: 5, y0: 5, jointX: 7, jointY: 6 },
+  ];
+  const legRows = [
+    '-aaa-',
+    'aawaa',
+    'awwwa',
+    'aawaa',
+    '-aaa-',
+  ];
+  for (let z = 0; z < 6; z += 1) {
+    for (const origin of legOrigins) {
+      layers.push({ ...origin, z, rows: legRows, layerRole: 'bossWalkerLegStack' });
+    }
+  }
+  for (const origin of legOrigins) {
+    layers.push({ id: origin.id, z: 6, x0: origin.jointX, y0: origin.jointY, rows: ['e'], layerRole: 'bossWalkerLegJoint' });
+  }
+  layers.push({
+    z: 6,
+    x0: -6,
+    y0: -6,
+    layerRole: 'bossWalkerLowerBody',
+    rows: [
+      'aauaaaaauaa',
+      'aaaaaaaaaaaaa',
+      'aaaaaaaaaaaaa',
+      'aaaaagagaaaaa',
+      'aaaaaaaaaaaaa',
+      'aaaaaaaaaaaaa',
+      'aaaaaaaaaaaaa',
+      'aaaaaaaaaaaaa',
+      'aaaaaaaaaaaaa',
+      'aaaaagagaaaaa',
+      'aaaaaaaaaaaaa',
+      'aaaaaaaaaaaaa',
+      'aauaaaaauaa',
+    ],
+  });
+  layers.push({
+    z: 7,
+    x0: -5,
+    y0: -5,
+    layerRole: 'bossWalkerUpperBody',
+    rows: [
+      '.aaaaaaaaa.',
+      'aaaaaaaaaaa',
+      'aaaaaaaaaaa',
+      'aaaagagaaaa',
+      'aaaaaaaaaaa',
+      'aaaaacaaaaa',
+      'aaaaaaaaaaa',
+      'aaaagagaaaa',
+      'aaaaaaaaaaa',
+      'aaaaaaaaaaa',
+      '.aaaaaaaaa.',
+    ],
+  });
+  layers.push({
+    z: 8,
+    x0: -4,
+    y0: -4,
+    layerRole: 'bossWalkerTopArmor',
+    rows: [
+      '..aaaaa..',
+      '.aaaaaaa.',
+      'aaaaaaaaa',
+      'aaauuuaaa',
+      'aaauuuaaa',
+      'aaauuuaaa',
+      'aaaaaaaaa',
+      '.aaaaaaa.',
+      '..aaaaa..',
+    ],
+  });
+  return layers;
+}
+
+function rotatableBossCannonLayers() {
+  return [
+    {
+      z: 0,
+      x0: -3,
+      y0: -3,
+      layerRole: 'cannonSwivelBase',
+      rows: [
+        '..a.a..',
+        '.aeeea.',
+        'aeeueea',
+        '.aecae.',
+        'aeeueea',
+        '.aeeea.',
+        '..a.a..',
+      ],
+    },
+    {
+      z: 1,
+      x0: -3,
+      y0: -5,
+      layerRole: 'cannonHousing',
+      rows: [
+        '...g...',
+        '..ggg..',
+        '..ggg..',
+        '.aaaaa.',
+        'aaeaeaa',
+        '.aaaaa.',
+        '..uuu..',
+      ],
+    },
+    {
+      z: 2,
+      x0: -2,
+      y0: -5,
+      layerRole: 'cannonTopBarrel',
+      rows: [
+        '..g..',
+        '.ggg.',
+        '..g..',
+        '.aaa.',
+        'aaaaa',
+        '.aaa.',
+      ],
+    },
+  ];
+}
+
 function connectionTree(cells, byPosition) {
   const core = cells.find((cell) => cell.type === 'core');
   const connected = new Set([core.id]);
@@ -458,12 +603,17 @@ function roleFor(shape, type, gridX, gridY, gridZ = 0) {
   if (shape.assetId.includes('ghost') && type === 'gun') return 'eyeGun';
   if (shape.assetId.includes('frog') && type === 'gun') return 'eyeGun';
   if (shape.assetId.includes('frog') && type === 'wheel') return 'leg';
+  if (shape.assetId.includes('rotatable_boss_cannon') && type === 'utility') return 'mountSocket';
+  if (shape.assetId.includes('rotatable_boss_cannon') && type === 'engine') return 'rotationJoint';
+  if (shape.assetId.includes('rotatable_boss_cannon') && type === 'gun') return 'cannonBarrel';
+  if (shape.assetId.includes('rotatable_boss_cannon') && type === 'armor') return 'cannonHousing';
+  if (shape.assetId.includes('burly_walker_boss_body') && type === 'utility') return 'cannonMount';
   if (shape.assetId.includes('walker') && type === 'wheel') return 'supportLeg';
   if (shape.assetId.includes('walker') && type === 'engine') return 'legJoint';
   if (shape.assetId.includes('walker') && type === 'gun') return 'turretGun';
   if (shape.assetId.includes('walker') && gridZ < 6) return 'legArmor';
   if (shape.assetId.includes('walker') && gridZ >= 6 && type === 'armor') return 'elevatedBody';
-  if (shape.assetId.includes('walker') && Math.abs(gridX) <= 2 && gridY <= 1) return 'elevatedBody';
+  if (shape.assetId.includes('walker') && type === 'armor' && Math.abs(gridX) <= 2 && gridY <= 1) return 'elevatedBody';
   if (shape.assetId.includes('mortar') && type === 'gun' && gridY <= -5) return 'mortar';
   if (shape.assetId.includes('mortar') && type === 'gun') return 'broadsideGun';
   if (shape.assetId.includes('buzzard') && Math.abs(gridX) >= 2 && type === 'armor') return 'wing';
@@ -483,6 +633,11 @@ function appearanceFor(shape, cell) {
   if (shape.assetId.includes('walker') && cell.role === 'supportLeg') return { tint: '#9fc8ff', label: 'wheel leg' };
   if (shape.assetId.includes('walker') && cell.role === 'legJoint') return { tint: '#6fe0bf', label: 'engine joint' };
   if (shape.assetId.includes('walker') && cell.role === 'legArmor') return { tint: '#506181', label: 'leg armor' };
+  if (shape.assetId.includes('burly_walker_boss_body') && cell.role === 'cannonMount') return { tint: '#ffd36f', label: 'cannon mount' };
+  if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'mountSocket') return { tint: '#ffd36f', label: 'mount socket' };
+  if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'rotationJoint') return { tint: '#6fe0bf', label: 'rotation joint' };
+  if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'cannonBarrel') return { tint: '#ff8f70', label: 'cannon barrel' };
+  if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'cannonHousing') return { tint: '#59636b', label: 'cannon housing' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'eyeGun' && cell.slot === 'leftEye') return { tint: '#ff2d1a', emissive: true, label: 'red eye' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'eyeGun' && cell.slot === 'rightEye') return { tint: '#ff8a1f', emissive: true, label: 'orange eye' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'mandible') return { tint: '#8ba866', label: 'pinser mandible' };
@@ -492,6 +647,13 @@ function appearanceFor(shape, cell) {
 }
 
 function metadataFor(shape, cell) {
+  if (shape.assetId.includes('burly_walker_boss_body') && cell.role === 'cannonMount') {
+    if (cell.gridZ >= 8) return { slot: 'topCannonMount' };
+    return { slot: cell.gridX < 0 ? 'leftCannonMount' : 'rightCannonMount' };
+  }
+  if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'mountSocket') {
+    return { acceptsAttachment: 'cannonMount', rotation: 'runtimeControlled' };
+  }
   if (shape.assetId.includes('inchworm_head') && cell.role === 'eyeGun') return { slot: cell.gridX < 0 ? 'leftEye' : 'rightEye' };
   if (shape.assetId.includes('inchworm_body_segment') && cell.role === 'core') return { role: 'segmentCore' };
   return null;

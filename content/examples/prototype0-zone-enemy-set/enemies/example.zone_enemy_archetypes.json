@@ -171,6 +171,45 @@
       "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "elevation", "fallWhenSupportsDestroyed", "cellAnimations"]
     },
     {
+      "id": "example.walker_cannon_boss.twilight_crossroads",
+      "displayName": "Twilight Walker Cannon Boss",
+      "runtimeFactory": "createBossEnemy",
+      "baseArchetype": "boss.octagon.prototype0",
+      "construct": "example.construct.burly_walker_boss_body_sculpted",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst", "example.mortar_line_7"],
+      "zone": "TwilightCrossroads",
+      "entry": { "kind": "aheadBoss", "direction": "roadForward", "speed": 16, "warningLeadSeconds": 4 },
+      "palette": { "core": "#f7c06a", "armor": "#2e2548", "gun": "#ff7a1a", "leg": "#a7c8ff", "mount": "#ffd36f" },
+      "presentation": {
+        "variant": "spiderWalker",
+        "bossFrame": "walkerCannonBoss"
+      },
+      "movementProfiles": [
+        { "id": "boss-heavy-stride", "kind": "walkerLegs", "target": "roadCenter", "speed": 18, "z": 76, "frequency": 0.5 },
+        { "id": "cannon-track-player", "kind": "orbitTarget", "target": "player", "speed": 0, "frequency": 1 }
+      ],
+      "aggregate": {
+        "kind": "multiPartBoss",
+        "parts": [
+          { "id": "body", "role": "elevatedBody", "construct": "example.construct.burly_walker_boss_body_sculpted", "count": 1 },
+          { "id": "left-cannon", "role": "rotatableCannon", "construct": "example.construct.rotatable_boss_cannon_sculpted", "attachment": "slot:leftCannonMount", "movementProfile": "cannon-track-player", "count": 1, "rotationMode": "trackPlayer" },
+          { "id": "right-cannon", "role": "rotatableCannon", "construct": "example.construct.rotatable_boss_cannon_sculpted", "attachment": "slot:rightCannonMount", "movementProfile": "cannon-track-player", "count": 1, "rotationMode": "trackPlayer" },
+          { "id": "top-cannon", "role": "rotatableCannon", "construct": "example.construct.rotatable_boss_cannon_sculpted", "attachment": "slot:topCannonMount", "movementProfile": "cannon-track-player", "count": 1, "rotationMode": "trackPlayer" }
+        ]
+      },
+      "elevation": { "bodyRole": "elevatedBody", "z": 76, "canBeHitByGroundFire": false, "canBeHitByArcProjectiles": true },
+      "fallWhenSupportsDestroyed": { "supportRole": "supportLeg", "requiredDestroyedCount": 4, "landedBehavior": "groundedBossTurret", "canBeHitByGroundFireAfterFall": true },
+      "cannons": {
+        "construct": "example.construct.rotatable_boss_cannon_sculpted",
+        "mounts": ["slot:leftCannonMount", "slot:rightCannonMount", "slot:topCannonMount"],
+        "rotation": "trackPlayer",
+        "fireRoles": ["cannonBarrel"],
+        "jointRole": "rotationJoint"
+      },
+      "cellAnimations": [{ "selector": "role:supportLeg", "kind": "legStride", "frequency": 0.5, "amplitude": 18 }],
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "elevation", "fallWhenSupportsDestroyed", "cellAnimations", "cannons"]
+    },
+    {
       "id": "example.scrap_buzzard.shadowed_desert",
       "displayName": "Shadowed Desert Scrap Buzzard",
       "runtimeFactory": "createEnemy",

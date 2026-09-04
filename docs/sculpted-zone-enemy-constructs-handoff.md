@@ -21,6 +21,8 @@ Added constructs:
 - `example.construct.heavy_mortar_boat_sculpted` - 33 cells
 - `example.construct.spider_walker_sculpted` - 418 layered cells, burly four-leg walker
 - `example.construct.spidery_walker_sculpted` - 338 layered cells, spidery eight-leg walker
+- `example.construct.burly_walker_boss_body_sculpted` - 859 layered cells, larger four-leg walker boss body
+- `example.construct.rotatable_boss_cannon_sculpted` - 76 layered cells, reusable rotatable boss cannon
 - `example.construct.scrap_buzzard_sculpted` - 32 cells
 - `example.construct.inchworm_head_sculpted` - 89 layered cells
 - `example.construct.inchworm_body_segment_sculpted` - 48 layered cells
@@ -53,6 +55,20 @@ Quick lookup tags for runtime/editor coordination:
 
 - Burly walker: `example.construct.spider_walker_sculpted`, `dev-lookup:walker-burly-four-leg`, `runtime-hook:walkerLegs`
 - Spidery walker: `example.construct.spidery_walker_sculpted`, `dev-lookup:walker-spidery-eight-leg`, `runtime-hook:walkerLegs`
+- Burly walker boss body: `example.construct.burly_walker_boss_body_sculpted`, `dev-lookup:walker-boss-body-burly`, `runtime-hook:walkerLegs`, `runtime-hook:aggregateBoss`
+- Rotatable boss cannon: `example.construct.rotatable_boss_cannon_sculpted`, `dev-lookup:boss-rotatable-cannon`, `runtime-hook:rotatableCannon`, `runtime-hook:aggregateBoss`
+
+The boss body uses a larger four-leg footprint through `gridZ` levels `0` through `5`:
+
+```text
+-AAA-
+AAWAA
+AWWWA
+AAWAA
+-AAA-
+```
+
+Its body starts at `gridZ: 6`, includes `utility` cells tagged `cannonMount`, and reserves mount slots named `leftCannonMount`, `rightCannonMount`, and `topCannonMount`. The rotatable cannon construct uses a `core` pivot, `engine` cells tagged `rotationJoint`, `utility` cells tagged `mountSocket`, and `gun` cells tagged `cannonBarrel`.
 
 The zone enemy example pack now references these constructs in:
 

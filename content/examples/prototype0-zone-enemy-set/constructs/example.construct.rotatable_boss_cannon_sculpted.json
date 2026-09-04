@@ -1,0 +1,1435 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.construct.rotatable_boss_cannon_sculpted",
+  "displayName": "Sculpted Rotatable Boss Cannon Construct",
+  "author": "Weyfinder editor thread",
+  "provenance": "Sculpted enlarged enemy construct example authored for the v1.0.4 4x4-voxel cell pass.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "example",
+    "enemy",
+    "sculpted",
+    "boss",
+    "cannon",
+    "rotatable",
+    "weapon-mount",
+    "runtime-hook:rotatableCannon",
+    "runtime-hook:aggregateBoss",
+    "dev-lookup:boss-rotatable-cannon"
+  ],
+  "cells": [
+    {
+      "id": "cannonHousing_xn1_yn3",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -3,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x1_yn3",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -3,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn2_yn2",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "rotationJoint_xn1_yn2",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": -2,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "rotationJoint_x0_yn2",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": -2,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "rotationJoint_x1_yn2",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": -2,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "cannonHousing_x2_yn2",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn3_yn1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "rotationJoint_xn2_yn1",
+      "type": "engine",
+      "gridX": -2,
+      "gridY": -1,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "rotationJoint_xn1_yn1",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": -1,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "mountSocket_x0_yn1",
+      "type": "utility",
+      "gridX": 0,
+      "gridY": -1,
+      "role": "mountSocket",
+      "acceptsAttachment": "cannonMount",
+      "rotation": "runtimeControlled",
+      "appearance": {
+        "tint": "#ffd36f",
+        "label": "mount socket"
+      }
+    },
+    {
+      "id": "rotationJoint_x1_yn1",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": -1,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "rotationJoint_x2_yn1",
+      "type": "engine",
+      "gridX": 2,
+      "gridY": -1,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "cannonHousing_x3_yn1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn2_y0",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "rotationJoint_xn1_y0",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": 0,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "core_x0_y0",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "role": "core"
+    },
+    {
+      "id": "cannonHousing_x1_y0",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "rotationJoint_x2_y0",
+      "type": "engine",
+      "gridX": 2,
+      "gridY": 0,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "cannonHousing_xn3_y1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 1,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "rotationJoint_xn2_y1",
+      "type": "engine",
+      "gridX": -2,
+      "gridY": 1,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "rotationJoint_xn1_y1",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": 1,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "mountSocket_x0_y1",
+      "type": "utility",
+      "gridX": 0,
+      "gridY": 1,
+      "role": "mountSocket",
+      "acceptsAttachment": "cannonMount",
+      "rotation": "runtimeControlled",
+      "appearance": {
+        "tint": "#ffd36f",
+        "label": "mount socket"
+      }
+    },
+    {
+      "id": "rotationJoint_x1_y1",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": 1,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "rotationJoint_x2_y1",
+      "type": "engine",
+      "gridX": 2,
+      "gridY": 1,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "cannonHousing_x3_y1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 1,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn2_y2",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 2,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "rotationJoint_xn1_y2",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": 2,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "rotationJoint_x0_y2",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 2,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "rotationJoint_x1_y2",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": 2,
+      "role": "rotationJoint",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "cannonHousing_x2_y2",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 2,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn1_y3",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 3,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x1_y3",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 3,
+      "role": "cannonHousing",
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonBarrel_x0_yn5_z1",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -5,
+      "role": "cannonBarrel",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_xn1_yn4_z1",
+      "type": "gun",
+      "gridX": -1,
+      "gridY": -4,
+      "role": "cannonBarrel",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_x0_yn4_z1",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -4,
+      "role": "cannonBarrel",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_x1_yn4_z1",
+      "type": "gun",
+      "gridX": 1,
+      "gridY": -4,
+      "role": "cannonBarrel",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_xn1_yn3_z1",
+      "type": "gun",
+      "gridX": -1,
+      "gridY": -3,
+      "role": "cannonBarrel",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_x0_yn3_z1",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -3,
+      "role": "cannonBarrel",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_x1_yn3_z1",
+      "type": "gun",
+      "gridX": 1,
+      "gridY": -3,
+      "role": "cannonBarrel",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonHousing_xn2_yn2_z1",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn1_yn2_z1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x0_yn2_z1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x1_yn2_z1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x2_yn2_z1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn3_yn1_z1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn2_yn1_z1",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "rotationJoint_xn1_yn1_z1",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": -1,
+      "role": "rotationJoint",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "cannonHousing_x0_yn1_z1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "rotationJoint_x1_yn1_z1",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": -1,
+      "role": "rotationJoint",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "rotation joint"
+      }
+    },
+    {
+      "id": "cannonHousing_x2_yn1_z1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x3_yn1_z1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn2_y0_z1",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn1_y0_z1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x0_y0_z1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x1_y0_z1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x2_y0_z1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "mountSocket_xn1_y1_z1",
+      "type": "utility",
+      "gridX": -1,
+      "gridY": 1,
+      "role": "mountSocket",
+      "gridZ": 1,
+      "acceptsAttachment": "cannonMount",
+      "rotation": "runtimeControlled",
+      "appearance": {
+        "tint": "#ffd36f",
+        "label": "mount socket"
+      }
+    },
+    {
+      "id": "mountSocket_x0_y1_z1",
+      "type": "utility",
+      "gridX": 0,
+      "gridY": 1,
+      "role": "mountSocket",
+      "gridZ": 1,
+      "acceptsAttachment": "cannonMount",
+      "rotation": "runtimeControlled",
+      "appearance": {
+        "tint": "#ffd36f",
+        "label": "mount socket"
+      }
+    },
+    {
+      "id": "mountSocket_x1_y1_z1",
+      "type": "utility",
+      "gridX": 1,
+      "gridY": 1,
+      "role": "mountSocket",
+      "gridZ": 1,
+      "acceptsAttachment": "cannonMount",
+      "rotation": "runtimeControlled",
+      "appearance": {
+        "tint": "#ffd36f",
+        "label": "mount socket"
+      }
+    },
+    {
+      "id": "cannonBarrel_x0_yn5_z2",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -5,
+      "role": "cannonBarrel",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_xn1_yn4_z2",
+      "type": "gun",
+      "gridX": -1,
+      "gridY": -4,
+      "role": "cannonBarrel",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_x0_yn4_z2",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -4,
+      "role": "cannonBarrel",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_x1_yn4_z2",
+      "type": "gun",
+      "gridX": 1,
+      "gridY": -4,
+      "role": "cannonBarrel",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonBarrel_x0_yn3_z2",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -3,
+      "role": "cannonBarrel",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "cannon barrel"
+      }
+    },
+    {
+      "id": "cannonHousing_xn1_yn2_z2",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x0_yn2_z2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x1_yn2_z2",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -2,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn2_yn1_z2",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn1_yn1_z2",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x0_yn1_z2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x1_yn1_z2",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x2_yn1_z2",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -1,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_xn1_y0_z2",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x0_y0_z2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    },
+    {
+      "id": "cannonHousing_x1_y0_z2",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "role": "cannonHousing",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#59636b",
+        "label": "cannon housing"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "a": "core_x0_y0",
+      "b": "mountSocket_x0_yn1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "mountSocket_x0_yn1",
+      "b": "rotationJoint_x1_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x1_yn1",
+      "b": "rotationJoint_x2_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x2_yn1",
+      "b": "cannonHousing_x3_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "core_x0_y0",
+      "b": "rotationJoint_xn1_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "core_x0_y0",
+      "b": "cannonHousing_x1_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x1_y0",
+      "b": "rotationJoint_x2_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y0",
+      "b": "rotationJoint_xn1_y1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y1",
+      "b": "mountSocket_x0_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "mountSocket_x0_y1",
+      "b": "rotationJoint_x1_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x1_y1",
+      "b": "rotationJoint_x2_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x2_y1",
+      "b": "cannonHousing_x3_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y1",
+      "b": "rotationJoint_xn1_y2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y2",
+      "b": "rotationJoint_x0_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x0_y2",
+      "b": "rotationJoint_x1_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x1_y2",
+      "b": "cannonHousing_x2_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y2",
+      "b": "cannonHousing_xn1_y3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x1_y2",
+      "b": "cannonHousing_x1_y3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "mountSocket_x0_yn1",
+      "b": "cannonHousing_x0_yn1_z1",
+      "aSide": "above",
+      "bSide": "below",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn1_z1",
+      "b": "rotationJoint_x1_yn1_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x1_yn1_z1",
+      "b": "cannonHousing_x2_yn1_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x2_yn1_z1",
+      "b": "cannonHousing_x3_yn1_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y0",
+      "b": "cannonHousing_xn1_y0_z1",
+      "aSide": "above",
+      "bSide": "below",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_xn1_y0_z1",
+      "b": "cannonHousing_x0_y0_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_y0_z1",
+      "b": "cannonHousing_x1_y0_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x1_y0_z1",
+      "b": "cannonHousing_x2_y0_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_xn1_y0_z1",
+      "b": "mountSocket_xn1_y1_z1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "mountSocket_xn1_y1_z1",
+      "b": "mountSocket_x0_y1_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "mountSocket_x0_y1_z1",
+      "b": "mountSocket_x1_y1_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn1_z1",
+      "b": "cannonHousing_x0_yn1_z2",
+      "aSide": "above",
+      "bSide": "below",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn1_z2",
+      "b": "cannonHousing_x1_yn1_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x1_yn1_z2",
+      "b": "cannonHousing_x2_yn1_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_xn1_y0_z1",
+      "b": "cannonHousing_xn1_y0_z2",
+      "aSide": "above",
+      "bSide": "below",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_xn1_y0_z2",
+      "b": "cannonHousing_x0_y0_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_y0_z2",
+      "b": "cannonHousing_x1_y0_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "mountSocket_x0_yn1",
+      "b": "rotationJoint_x0_yn2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x0_yn2",
+      "b": "rotationJoint_x1_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x1_yn2",
+      "b": "cannonHousing_x2_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "mountSocket_x0_yn1",
+      "b": "rotationJoint_xn1_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y0",
+      "b": "cannonHousing_xn2_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y1",
+      "b": "rotationJoint_xn2_y1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_y2",
+      "b": "cannonHousing_xn2_y2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn1_z1",
+      "b": "cannonHousing_x0_yn2_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn2_z1",
+      "b": "cannonHousing_x1_yn2_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x1_yn2_z1",
+      "b": "cannonHousing_x2_yn2_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn1_z1",
+      "b": "rotationJoint_xn1_yn1_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_xn1_y0_z1",
+      "b": "cannonHousing_xn2_y0_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn1_z2",
+      "b": "cannonHousing_x0_yn2_z2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn2_z2",
+      "b": "cannonHousing_x1_yn2_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn1_z2",
+      "b": "cannonHousing_xn1_yn1_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x1_yn2",
+      "b": "cannonHousing_x1_yn3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_x0_yn2",
+      "b": "rotationJoint_xn1_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_yn1",
+      "b": "rotationJoint_xn2_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn2_y1",
+      "b": "cannonHousing_xn3_y1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn2_z1",
+      "b": "cannonBarrel_x0_yn3_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn3_z1",
+      "b": "cannonBarrel_x1_yn3_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn2_z1",
+      "b": "cannonHousing_xn1_yn2_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_yn1_z1",
+      "b": "cannonHousing_xn2_yn1_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn2_z2",
+      "b": "cannonBarrel_x0_yn3_z2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_x0_yn2_z2",
+      "b": "cannonHousing_xn1_yn2_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_xn1_yn1_z2",
+      "b": "cannonHousing_xn2_yn1_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_yn2",
+      "b": "cannonHousing_xn1_yn3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn1_yn2",
+      "b": "cannonHousing_xn2_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "rotationJoint_xn2_yn1",
+      "b": "cannonHousing_xn3_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn3_z1",
+      "b": "cannonBarrel_x0_yn4_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn4_z1",
+      "b": "cannonBarrel_x1_yn4_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn3_z1",
+      "b": "cannonBarrel_xn1_yn3_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_xn1_yn2_z1",
+      "b": "cannonHousing_xn2_yn2_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonHousing_xn2_yn1_z1",
+      "b": "cannonHousing_xn3_yn1_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn3_z2",
+      "b": "cannonBarrel_x0_yn4_z2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn4_z2",
+      "b": "cannonBarrel_x1_yn4_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn4_z1",
+      "b": "cannonBarrel_x0_yn5_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn4_z1",
+      "b": "cannonBarrel_xn1_yn4_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn4_z2",
+      "b": "cannonBarrel_x0_yn5_z2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "cannonBarrel_x0_yn4_z2",
+      "b": "cannonBarrel_xn1_yn4_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    }
+  ],
+  "modules": []
+}
