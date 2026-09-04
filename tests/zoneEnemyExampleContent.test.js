@@ -92,10 +92,27 @@ test('zone enemy examples preserve requested advanced behavior descriptors', () 
 
 test('zone enemy sculpted constructs use enlarged editable module counts', () => {
   const byId = new Map(constructs.map((construct) => [construct.assetId, construct]));
+  const spiderWalker = byId.get('example.construct.spider_walker_sculpted');
+  const walkerSupportLegs = spiderWalker.cells.filter((cell) => cell.role === 'supportLeg');
+  const walkerLegJoints = spiderWalker.cells.filter((cell) => cell.role === 'legJoint');
+  const walkerLegArmor = spiderWalker.cells.filter((cell) => cell.role === 'legArmor');
+  const walkerElevatedBody = spiderWalker.cells.filter((cell) => cell.role === 'elevatedBody');
+  const walkerSupportLegLayers = [...new Set(walkerSupportLegs.map((cell) => cell.gridZ ?? 0))].sort((a, b) => a - b);
+  const walkerVerticalConnections = spiderWalker.connections.filter(
+    (connection) => connection.aSide === 'above' || connection.aSide === 'below' || connection.bSide === 'above' || connection.bSide === 'below',
+  );
   assert.equal(byId.get('example.construct.ghost_phaser_sculpted').cells.length >= 32, true);
   assert.equal(byId.get('example.construct.tractor_frog_sculpted').cells.length >= 32, true);
   assert.equal(byId.get('example.construct.heavy_mortar_boat_sculpted').cells.length >= 32, true);
-  assert.equal(byId.get('example.construct.spider_walker_sculpted').cells.filter((cell) => cell.role === 'supportLeg').length, 8);
+  assert.equal(walkerSupportLegs.length, 96);
+  assert.equal(walkerSupportLegs.every((cell) => cell.type === 'wheel'), true);
+  assert.deepEqual(walkerSupportLegLayers, [0, 1, 2, 3, 4, 5]);
+  assert.equal(walkerLegArmor.length, 192);
+  assert.equal(walkerLegArmor.every((cell) => cell.type === 'armor' && (cell.gridZ ?? 0) < 6), true);
+  assert.equal(walkerLegJoints.length, 16);
+  assert.equal(walkerLegJoints.every((cell) => cell.type === 'engine' && cell.gridZ === 6), true);
+  assert.equal(walkerElevatedBody.every((cell) => cell.gridZ >= 6), true);
+  assert.equal(walkerVerticalConnections.length > 0, true);
   assert.equal(byId.get('example.construct.scrap_buzzard_sculpted').cells.filter((cell) => cell.role === 'wing').length >= 8, true);
   assert.equal(byId.get('example.construct.inchworm_head_sculpted').cells.length >= 55, true);
   assert.equal(byId.get('example.construct.inchworm_body_segment_sculpted').cells.length >= 35, true);

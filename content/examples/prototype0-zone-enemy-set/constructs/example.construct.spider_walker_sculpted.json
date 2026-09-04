@@ -16,488 +16,7436 @@
   ],
   "cells": [
     {
-      "id": "supportLeg_xn4_yn3",
-      "type": "wheel",
-      "gridX": -4,
-      "gridY": -3,
-      "role": "supportLeg"
+      "id": "legArmor_xn5_yn6",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -6,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
     },
     {
-      "id": "elevatedBody_x0_yn3",
+      "id": "legArmor_xn4_yn6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -6,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn5",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -5,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn5",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn5",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn5",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -5,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn4",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -4,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn4",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn4",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -4,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn3",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -3,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn3",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -6,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn6",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -6,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn5",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -5,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn5",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn5",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn5",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -5,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -4,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn4",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn4",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn4",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -4,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn3",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn3",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -3,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y3",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 3,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y3",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y4",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 4,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y4",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y4",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y5",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 5,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y5",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y5",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y5",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 5,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y6",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 6,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 6,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y3",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y3",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 3,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y4",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y4",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y4",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 4,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y5",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 5,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y5",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y5",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y5",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 5,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 6,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y6",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 6,
+      "role": "legArmor",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn6_z1",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn6_z1",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn5_z1",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn5_z1",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn5_z1",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn5_z1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn4_z1",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn4_z1",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn4_z1",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn4_z1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn3_z1",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn3_z1",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn6_z1",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn6_z1",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn5_z1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn5_z1",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn5_z1",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn5_z1",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn4_z1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn4_z1",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn4_z1",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn4_z1",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn3_z1",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn3_z1",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y3_z1",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y3_z1",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y4_z1",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y4_z1",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y4_z1",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y4_z1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y5_z1",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y5_z1",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y5_z1",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y5_z1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y6_z1",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y6_z1",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y3_z1",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y3_z1",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y4_z1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y4_z1",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y4_z1",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y4_z1",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y5_z1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y5_z1",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y5_z1",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y5_z1",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y6_z1",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y6_z1",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 1,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn6_z2",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn6_z2",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn5_z2",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn5_z2",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn5_z2",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn5_z2",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn4_z2",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn4_z2",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn4_z2",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn4_z2",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn3_z2",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn3_z2",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn6_z2",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn6_z2",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn5_z2",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn5_z2",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn5_z2",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn5_z2",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn4_z2",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn4_z2",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn4_z2",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn4_z2",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn3_z2",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn3_z2",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y3_z2",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y3_z2",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y4_z2",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y4_z2",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y4_z2",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y4_z2",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y5_z2",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y5_z2",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y5_z2",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y5_z2",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y6_z2",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y6_z2",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y3_z2",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y3_z2",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y4_z2",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y4_z2",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y4_z2",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y4_z2",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y5_z2",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y5_z2",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y5_z2",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y5_z2",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y6_z2",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y6_z2",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 2,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn6_z3",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn6_z3",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn5_z3",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn5_z3",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn5_z3",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn5_z3",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn4_z3",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn4_z3",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn4_z3",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn4_z3",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn3_z3",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn3_z3",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn6_z3",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn6_z3",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn5_z3",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn5_z3",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn5_z3",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn5_z3",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn4_z3",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn4_z3",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn4_z3",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn4_z3",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn3_z3",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn3_z3",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y3_z3",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y3_z3",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y4_z3",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y4_z3",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y4_z3",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y4_z3",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y5_z3",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y5_z3",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y5_z3",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y5_z3",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y6_z3",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y6_z3",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y3_z3",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y3_z3",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y4_z3",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y4_z3",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y4_z3",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y4_z3",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y5_z3",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y5_z3",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y5_z3",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y5_z3",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y6_z3",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y6_z3",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 3,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn6_z4",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn6_z4",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn5_z4",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn5_z4",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn5_z4",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn5_z4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn4_z4",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn4_z4",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn4_z4",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn4_z4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn3_z4",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn3_z4",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn6_z4",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn6_z4",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn5_z4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn5_z4",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn5_z4",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn5_z4",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn4_z4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn4_z4",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn4_z4",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn4_z4",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn3_z4",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn3_z4",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y3_z4",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y3_z4",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y4_z4",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y4_z4",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y4_z4",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y4_z4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y5_z4",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y5_z4",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y5_z4",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y5_z4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y6_z4",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y6_z4",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y3_z4",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y3_z4",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y4_z4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y4_z4",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y4_z4",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y4_z4",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y5_z4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y5_z4",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y5_z4",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y5_z4",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y6_z4",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y6_z4",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 4,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn6_z5",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn6_z5",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn5_z5",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn5_z5",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn5_z5",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn5_z5",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_yn4_z5",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_yn4_z5",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_yn4_z5",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn4_z5",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn3_z5",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn3_z5",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn6_z5",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn6_z5",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -6,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn5_z5",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn5_z5",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn5_z5",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -5,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn5_z5",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -5,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn4_z5",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_yn4_z5",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_yn4_z5",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": -4,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_yn4_z5",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": -4,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn3_z5",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn3_z5",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -3,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y3_z5",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y3_z5",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y4_z5",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y4_z5",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y4_z5",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y4_z5",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn6_y5_z5",
+      "type": "armor",
+      "gridX": -6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_xn5_y5_z5",
+      "type": "wheel",
+      "gridX": -5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_xn4_y5_z5",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y5_z5",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y6_z5",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y6_z5",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y3_z5",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y3_z5",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 3,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y4_z5",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y4_z5",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y4_z5",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y4_z5",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 4,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y5_z5",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "supportLeg_x4_y5_z5",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "supportLeg_x5_y5_z5",
+      "type": "wheel",
+      "gridX": 5,
+      "gridY": 5,
+      "role": "supportLeg",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x6_y5_z5",
+      "type": "armor",
+      "gridX": 6,
+      "gridY": 5,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y6_z5",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x5_y6_z5",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 6,
+      "role": "legArmor",
+      "gridZ": 5,
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legJoint_xn5_yn5_z6",
+      "type": "engine",
+      "gridX": -5,
+      "gridY": -5,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_xn4_yn5_z6",
+      "type": "engine",
+      "gridX": -4,
+      "gridY": -5,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_xn5_yn4_z6",
+      "type": "engine",
+      "gridX": -5,
+      "gridY": -4,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_xn4_yn4_z6",
+      "type": "engine",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_x4_yn5_z6",
+      "type": "engine",
+      "gridX": 4,
+      "gridY": -5,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_x5_yn5_z6",
+      "type": "engine",
+      "gridX": 5,
+      "gridY": -5,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_x4_yn4_z6",
+      "type": "engine",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_x5_yn4_z6",
+      "type": "engine",
+      "gridX": 5,
+      "gridY": -4,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_xn5_y4_z6",
+      "type": "engine",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_xn4_y4_z6",
+      "type": "engine",
+      "gridX": -4,
+      "gridY": 4,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_xn5_y5_z6",
+      "type": "engine",
+      "gridX": -5,
+      "gridY": 5,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_xn4_y5_z6",
+      "type": "engine",
+      "gridX": -4,
+      "gridY": 5,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_x4_y4_z6",
+      "type": "engine",
+      "gridX": 4,
+      "gridY": 4,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_x5_y4_z6",
+      "type": "engine",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_x4_y5_z6",
+      "type": "engine",
+      "gridX": 4,
+      "gridY": 5,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "legJoint_x5_y5_z6",
+      "type": "engine",
+      "gridX": 5,
+      "gridY": 5,
+      "role": "legJoint",
+      "gridZ": 6,
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine joint"
+      }
+    },
+    {
+      "id": "elevatedBody_xn3_yn4_z6",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn2_yn4_z6",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn1_yn4_z6",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x0_yn4_z6",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x1_yn4_z6",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x2_yn4_z6",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x3_yn4_z6",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn4_yn3_z6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn3_yn3_z6",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn2_yn3_z6",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn1_yn3_z6",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x0_yn3_z6",
       "type": "armor",
       "gridX": 0,
       "gridY": -3,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "supportLeg_x4_yn3",
-      "type": "wheel",
+      "id": "elevatedBody_x1_yn3_z6",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x2_yn3_z6",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x3_yn3_z6",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x4_yn3_z6",
+      "type": "armor",
       "gridX": 4,
       "gridY": -3,
-      "role": "supportLeg"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "hull_xn3_yn2",
+      "id": "elevatedBody_xn4_yn2_z6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn3_yn2_z6",
       "type": "armor",
       "gridX": -3,
       "gridY": -2,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "elevatedBody_xn1_yn2",
+      "id": "elevatedBody_xn2_yn2_z6",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn1_yn2_z6",
       "type": "armor",
       "gridX": -1,
       "gridY": -2,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "elevatedBody_x0_yn2",
+      "id": "elevatedBody_x0_yn2_z6",
       "type": "armor",
       "gridX": 0,
       "gridY": -2,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "elevatedBody_x1_yn2",
+      "id": "elevatedBody_x1_yn2_z6",
       "type": "armor",
       "gridX": 1,
       "gridY": -2,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "hull_x3_yn2",
+      "id": "elevatedBody_x2_yn2_z6",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x3_yn2_z6",
       "type": "armor",
       "gridX": 3,
       "gridY": -2,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "supportLeg_xn2_yn1",
-      "type": "wheel",
+      "id": "elevatedBody_x4_yn2_z6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn4_yn1_z6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn3_yn1_z6",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn2_yn1_z6",
+      "type": "armor",
       "gridX": -2,
       "gridY": -1,
-      "role": "supportLeg"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "elevatedBody_xn1_yn1",
+      "id": "elevatedBody_xn1_yn1_z6",
       "type": "armor",
       "gridX": -1,
       "gridY": -1,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "elevatedBody_x0_yn1",
-      "type": "armor",
+      "id": "turretGun_x0_yn1_z6",
+      "type": "gun",
       "gridX": 0,
       "gridY": -1,
-      "role": "elevatedBody"
+      "role": "turretGun",
+      "gridZ": 6
     },
     {
-      "id": "elevatedBody_x1_yn1",
+      "id": "elevatedBody_x1_yn1_z6",
       "type": "armor",
       "gridX": 1,
       "gridY": -1,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "supportLeg_x2_yn1",
-      "type": "wheel",
+      "id": "elevatedBody_x2_yn1_z6",
+      "type": "armor",
       "gridX": 2,
       "gridY": -1,
-      "role": "supportLeg"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "hull_xn4_y0",
+      "id": "elevatedBody_x3_yn1_z6",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x4_yn1_z6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn4_y0_z6",
       "type": "armor",
       "gridX": -4,
       "gridY": 0,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "hull_xn3_y0",
+      "id": "elevatedBody_xn3_y0_z6",
       "type": "armor",
       "gridX": -3,
       "gridY": 0,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "elevatedBody_xn2_y0",
+      "id": "elevatedBody_xn2_y0_z6",
       "type": "armor",
       "gridX": -2,
       "gridY": 0,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "elevatedBody_xn1_y0",
+      "id": "elevatedBody_xn1_y0_z6",
       "type": "armor",
       "gridX": -1,
       "gridY": 0,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 6
     },
     {
-      "id": "core_x0_y0",
+      "id": "elevatedBody_x0_y0_z6",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 0,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x1_y0_z6",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x2_y0_z6",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 0,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x3_y0_z6",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 0,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x4_y0_z6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 0,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn4_y1_z6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn3_y1_z6",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn2_y1_z6",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn1_y1_z6",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "turretGun_x0_y1_z6",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": 1,
+      "role": "turretGun",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x1_y1_z6",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x2_y1_z6",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x3_y1_z6",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x4_y1_z6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn4_y2_z6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn3_y2_z6",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn2_y2_z6",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn1_y2_z6",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x0_y2_z6",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x1_y2_z6",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x2_y2_z6",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x3_y2_z6",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x4_y2_z6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn4_y3_z6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn3_y3_z6",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn2_y3_z6",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn1_y3_z6",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x0_y3_z6",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x1_y3_z6",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x2_y3_z6",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x3_y3_z6",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x4_y3_z6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn3_y4_z6",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn2_y4_z6",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn1_y4_z6",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x0_y4_z6",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x1_y4_z6",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x2_y4_z6",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_x3_y4_z6",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "elevatedBody",
+      "gridZ": 6
+    },
+    {
+      "id": "elevatedBody_xn1_yn3_z7",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x0_yn3_z7",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x1_yn3_z7",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -3,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn2_yn2_z7",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn1_yn2_z7",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x0_yn2_z7",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x1_yn2_z7",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x2_yn2_z7",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -2,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn3_yn1_z7",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn2_yn1_z7",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn1_yn1_z7",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x0_yn1_z7",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x1_yn1_z7",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x2_yn1_z7",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x3_yn1_z7",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn3_y0_z7",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 0,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn2_y0_z7",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 0,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn1_y0_z7",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "core_x0_y0_z7",
       "type": "core",
       "gridX": 0,
       "gridY": 0,
-      "role": "core"
+      "role": "core",
+      "gridZ": 7
     },
     {
-      "id": "elevatedBody_x1_y0",
+      "id": "elevatedBody_x1_y0_z7",
       "type": "armor",
       "gridX": 1,
       "gridY": 0,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "elevatedBody_x2_y0",
+      "id": "elevatedBody_x2_y0_z7",
       "type": "armor",
       "gridX": 2,
       "gridY": 0,
-      "role": "elevatedBody"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "hull_x3_y0",
+      "id": "elevatedBody_x3_y0_z7",
       "type": "armor",
       "gridX": 3,
       "gridY": 0,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "hull_x4_y0",
-      "type": "armor",
-      "gridX": 4,
-      "gridY": 0,
-      "role": "hull"
-    },
-    {
-      "id": "supportLeg_xn2_y1",
-      "type": "wheel",
-      "gridX": -2,
-      "gridY": 1,
-      "role": "supportLeg"
-    },
-    {
-      "id": "elevatedBody_xn1_y1",
-      "type": "armor",
-      "gridX": -1,
-      "gridY": 1,
-      "role": "elevatedBody"
-    },
-    {
-      "id": "elevatedBody_x0_y1",
-      "type": "armor",
-      "gridX": 0,
-      "gridY": 1,
-      "role": "elevatedBody"
-    },
-    {
-      "id": "elevatedBody_x1_y1",
-      "type": "armor",
-      "gridX": 1,
-      "gridY": 1,
-      "role": "elevatedBody"
-    },
-    {
-      "id": "supportLeg_x2_y1",
-      "type": "wheel",
-      "gridX": 2,
-      "gridY": 1,
-      "role": "supportLeg"
-    },
-    {
-      "id": "hull_xn3_y2",
+      "id": "elevatedBody_xn3_y1_z7",
       "type": "armor",
       "gridX": -3,
-      "gridY": 2,
-      "role": "hull"
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "hull_xn1_y2",
+      "id": "elevatedBody_xn2_y1_z7",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn1_y1_z7",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x0_y1_z7",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x1_y1_z7",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x2_y1_z7",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_x3_y1_z7",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 1,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn2_y2_z7",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 2,
+      "role": "elevatedBody",
+      "gridZ": 7
+    },
+    {
+      "id": "elevatedBody_xn1_y2_z7",
       "type": "armor",
       "gridX": -1,
       "gridY": 2,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "hull_x0_y2",
+      "id": "elevatedBody_x0_y2_z7",
       "type": "armor",
       "gridX": 0,
       "gridY": 2,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "hull_x1_y2",
+      "id": "elevatedBody_x1_y2_z7",
       "type": "armor",
       "gridX": 1,
       "gridY": 2,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "hull_x3_y2",
+      "id": "elevatedBody_x2_y2_z7",
       "type": "armor",
-      "gridX": 3,
+      "gridX": 2,
       "gridY": 2,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "supportLeg_xn4_y3",
-      "type": "wheel",
-      "gridX": -4,
+      "id": "elevatedBody_xn1_y3_z7",
+      "type": "armor",
+      "gridX": -1,
       "gridY": 3,
-      "role": "supportLeg"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "hull_x0_y3",
-      "type": "gun",
+      "id": "elevatedBody_x0_y3_z7",
+      "type": "armor",
       "gridX": 0,
       "gridY": 3,
-      "role": "hull"
+      "role": "elevatedBody",
+      "gridZ": 7
     },
     {
-      "id": "supportLeg_x4_y3",
-      "type": "wheel",
-      "gridX": 4,
+      "id": "elevatedBody_x1_y3_z7",
+      "type": "armor",
+      "gridX": 1,
       "gridY": 3,
-      "role": "supportLeg"
+      "role": "elevatedBody",
+      "gridZ": 7
     }
   ],
   "connections": [
     {
-      "a": "core_x0_y0",
-      "b": "elevatedBody_x0_yn1",
-      "aSide": "top",
-      "bSide": "bottom",
+      "a": "core_x0_y0_z7",
+      "b": "elevatedBody_x0_y0_z6",
+      "aSide": "below",
+      "bSide": "above",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x0_yn1",
-      "b": "elevatedBody_x1_yn1",
+      "a": "elevatedBody_x0_y0_z6",
+      "b": "elevatedBody_x1_y0_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x1_yn1",
-      "b": "supportLeg_x2_yn1",
+      "a": "elevatedBody_x1_y0_z6",
+      "b": "elevatedBody_x2_y0_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "core_x0_y0",
-      "b": "elevatedBody_xn1_y0",
-      "aSide": "left",
-      "bSide": "right",
-      "type": "structural"
-    },
-    {
-      "a": "core_x0_y0",
-      "b": "elevatedBody_x1_y0",
+      "a": "elevatedBody_x2_y0_z6",
+      "b": "elevatedBody_x3_y0_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x1_y0",
-      "b": "elevatedBody_x2_y0",
+      "a": "elevatedBody_x3_y0_z6",
+      "b": "elevatedBody_x4_y0_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x2_y0",
-      "b": "hull_x3_y0",
-      "aSide": "right",
-      "bSide": "left",
-      "type": "structural"
-    },
-    {
-      "a": "hull_x3_y0",
-      "b": "hull_x4_y0",
-      "aSide": "right",
-      "bSide": "left",
-      "type": "structural"
-    },
-    {
-      "a": "elevatedBody_xn1_y0",
-      "b": "elevatedBody_xn1_y1",
+      "a": "elevatedBody_x0_y0_z6",
+      "b": "turretGun_x0_y1_z6",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_xn1_y1",
-      "b": "elevatedBody_x0_y1",
+      "a": "turretGun_x0_y1_z6",
+      "b": "elevatedBody_x1_y1_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x0_y1",
-      "b": "elevatedBody_x1_y1",
+      "a": "elevatedBody_x1_y1_z6",
+      "b": "elevatedBody_x2_y1_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x1_y1",
-      "b": "supportLeg_x2_y1",
+      "a": "elevatedBody_x2_y1_z6",
+      "b": "elevatedBody_x3_y1_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_xn1_y1",
-      "b": "hull_xn1_y2",
+      "a": "elevatedBody_x3_y1_z6",
+      "b": "elevatedBody_x4_y1_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "turretGun_x0_y1_z6",
+      "b": "elevatedBody_x0_y2_z6",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "hull_xn1_y2",
-      "b": "hull_x0_y2",
+      "a": "elevatedBody_x0_y2_z6",
+      "b": "elevatedBody_x1_y2_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "hull_x0_y2",
-      "b": "hull_x1_y2",
+      "a": "elevatedBody_x1_y2_z6",
+      "b": "elevatedBody_x2_y2_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "hull_x0_y2",
-      "b": "hull_x0_y3",
+      "a": "elevatedBody_x2_y2_z6",
+      "b": "elevatedBody_x3_y2_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x3_y2_z6",
+      "b": "elevatedBody_x4_y2_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y2_z6",
+      "b": "elevatedBody_x0_y3_z6",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x0_yn1",
-      "b": "elevatedBody_x0_yn2",
+      "a": "elevatedBody_x0_y3_z6",
+      "b": "elevatedBody_x1_y3_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_y3_z6",
+      "b": "elevatedBody_x2_y3_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_y3_z6",
+      "b": "elevatedBody_x3_y3_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x3_y3_z6",
+      "b": "elevatedBody_x4_y3_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y3_z6",
+      "b": "elevatedBody_x0_y4_z6",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y4_z6",
+      "b": "elevatedBody_x1_y4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_y4_z6",
+      "b": "elevatedBody_x2_y4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_y4_z6",
+      "b": "elevatedBody_x3_y4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "core_x0_y0_z7",
+      "b": "elevatedBody_x0_yn1_z7",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x0_yn2",
-      "b": "elevatedBody_x1_yn2",
+      "a": "elevatedBody_x0_yn1_z7",
+      "b": "elevatedBody_x1_yn1_z7",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x0_yn1",
-      "b": "elevatedBody_xn1_yn1",
+      "a": "elevatedBody_x1_yn1_z7",
+      "b": "elevatedBody_x2_yn1_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_yn1_z7",
+      "b": "elevatedBody_x3_yn1_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "core_x0_y0_z7",
+      "b": "elevatedBody_xn1_y0_z7",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_xn1_y0",
-      "b": "elevatedBody_xn2_y0",
-      "aSide": "left",
-      "bSide": "right",
+      "a": "core_x0_y0_z7",
+      "b": "elevatedBody_x1_y0_z7",
+      "aSide": "right",
+      "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_xn1_y1",
-      "b": "supportLeg_xn2_y1",
-      "aSide": "left",
-      "bSide": "right",
+      "a": "elevatedBody_x1_y0_z7",
+      "b": "elevatedBody_x2_y0_z7",
+      "aSide": "right",
+      "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x0_yn2",
-      "b": "elevatedBody_x0_yn3",
+      "a": "elevatedBody_x2_y0_z7",
+      "b": "elevatedBody_x3_y0_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y0_z7",
+      "b": "elevatedBody_xn1_y1_z7",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y1_z7",
+      "b": "elevatedBody_x0_y1_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y1_z7",
+      "b": "elevatedBody_x1_y1_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_y1_z7",
+      "b": "elevatedBody_x2_y1_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_y1_z7",
+      "b": "elevatedBody_x3_y1_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y1_z7",
+      "b": "elevatedBody_xn1_y2_z7",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y2_z7",
+      "b": "elevatedBody_x0_y2_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y2_z7",
+      "b": "elevatedBody_x1_y2_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_y2_z7",
+      "b": "elevatedBody_x2_y2_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y2_z7",
+      "b": "elevatedBody_xn1_y3_z7",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y3_z7",
+      "b": "elevatedBody_x0_y3_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y3_z7",
+      "b": "elevatedBody_x1_y3_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x4_y3_z6",
+      "b": "legArmor_x4_y3_z5",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z5",
+      "b": "legArmor_x5_y3_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x3_y4_z6",
+      "b": "legArmor_x3_y4_z5",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z5",
+      "b": "supportLeg_x4_y4_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y4_z5",
+      "b": "supportLeg_x5_y4_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y4_z5",
+      "b": "legArmor_x6_y4_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z5",
+      "b": "legArmor_x3_y5_z5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y5_z5",
+      "b": "supportLeg_x4_y5_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z5",
+      "b": "supportLeg_x5_y5_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y5_z5",
+      "b": "legArmor_x6_y5_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z5",
+      "b": "legArmor_x4_y6_z5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y6_z5",
+      "b": "legArmor_x5_y6_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x3_y4_z6",
+      "b": "legJoint_x4_y4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_x4_y4_z6",
+      "b": "legJoint_x5_y4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_x4_y4_z6",
+      "b": "legJoint_x4_y5_z6",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_x4_y5_z6",
+      "b": "legJoint_x5_y5_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y0_z6",
+      "b": "turretGun_x0_yn1_z6",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "elevatedBody_x0_yn2",
-      "b": "elevatedBody_xn1_yn2",
-      "aSide": "left",
-      "bSide": "right",
-      "type": "structural"
-    },
-    {
-      "a": "elevatedBody_xn1_yn1",
-      "b": "supportLeg_xn2_yn1",
-      "aSide": "left",
-      "bSide": "right",
-      "type": "structural"
-    },
-    {
-      "a": "elevatedBody_xn2_y0",
-      "b": "hull_xn3_y0",
-      "aSide": "left",
-      "bSide": "right",
-      "type": "structural"
-    },
-    {
-      "a": "hull_xn3_y0",
-      "b": "hull_xn4_y0",
-      "aSide": "left",
-      "bSide": "right",
-      "type": "structural"
-    },
-    {
-      "a": "supportLeg_xn2_yn1",
-      "b": "supportLeg_xn4_yn3",
-      "aSide": "left",
-      "bSide": "right",
-      "type": "structural"
-    },
-    {
-      "a": "supportLeg_x2_yn1",
-      "b": "supportLeg_x4_yn3",
+      "a": "turretGun_x0_yn1_z6",
+      "b": "elevatedBody_x1_yn1_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "supportLeg_xn2_yn1",
-      "b": "hull_xn3_yn2",
-      "aSide": "left",
-      "bSide": "right",
-      "type": "structural"
-    },
-    {
-      "a": "supportLeg_x2_yn1",
-      "b": "hull_x3_yn2",
+      "a": "elevatedBody_x1_yn1_z6",
+      "b": "elevatedBody_x2_yn1_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "supportLeg_xn2_y1",
-      "b": "hull_xn3_y2",
-      "aSide": "left",
-      "bSide": "right",
-      "type": "structural"
-    },
-    {
-      "a": "supportLeg_x2_y1",
-      "b": "hull_x3_y2",
+      "a": "elevatedBody_x2_yn1_z6",
+      "b": "elevatedBody_x3_yn1_z6",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "hull_xn3_y2",
-      "b": "supportLeg_xn4_y3",
+      "a": "elevatedBody_x3_yn1_z6",
+      "b": "elevatedBody_x4_yn1_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y0_z6",
+      "b": "elevatedBody_xn1_y0_z6",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "hull_x3_y2",
-      "b": "supportLeg_x4_y3",
+      "a": "turretGun_x0_y1_z6",
+      "b": "elevatedBody_xn1_y1_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y2_z6",
+      "b": "elevatedBody_xn1_y2_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y3_z6",
+      "b": "elevatedBody_xn1_y3_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_y4_z6",
+      "b": "elevatedBody_xn1_y4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn1_z7",
+      "b": "elevatedBody_x0_yn2_z7",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2_z7",
+      "b": "elevatedBody_x1_yn2_z7",
       "aSide": "right",
       "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_yn2_z7",
+      "b": "elevatedBody_x2_yn2_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn1_z7",
+      "b": "elevatedBody_xn1_yn1_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y0_z7",
+      "b": "elevatedBody_xn2_y0_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y1_z7",
+      "b": "elevatedBody_xn2_y1_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y2_z7",
+      "b": "elevatedBody_xn2_y2_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z5",
+      "b": "legArmor_x4_y3_z4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z4",
+      "b": "legArmor_x5_y3_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z5",
+      "b": "legArmor_x3_y4_z4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z4",
+      "b": "supportLeg_x4_y4_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y4_z4",
+      "b": "supportLeg_x5_y4_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y4_z4",
+      "b": "legArmor_x6_y4_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z4",
+      "b": "legArmor_x3_y5_z4",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y5_z4",
+      "b": "supportLeg_x4_y5_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z4",
+      "b": "supportLeg_x5_y5_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y5_z4",
+      "b": "legArmor_x6_y5_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z4",
+      "b": "legArmor_x4_y6_z4",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y6_z4",
+      "b": "legArmor_x5_y6_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "turretGun_x0_yn1_z6",
+      "b": "elevatedBody_x0_yn2_z6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2_z6",
+      "b": "elevatedBody_x1_yn2_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_yn2_z6",
+      "b": "elevatedBody_x2_yn2_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_yn2_z6",
+      "b": "elevatedBody_x3_yn2_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x3_yn2_z6",
+      "b": "elevatedBody_x4_yn2_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "turretGun_x0_yn1_z6",
+      "b": "elevatedBody_xn1_yn1_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y0_z6",
+      "b": "elevatedBody_xn2_y0_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y1_z6",
+      "b": "elevatedBody_xn2_y1_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y2_z6",
+      "b": "elevatedBody_xn2_y2_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y3_z6",
+      "b": "elevatedBody_xn2_y3_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_y4_z6",
+      "b": "elevatedBody_xn2_y4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2_z7",
+      "b": "elevatedBody_x0_yn3_z7",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn3_z7",
+      "b": "elevatedBody_x1_yn3_z7",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2_z7",
+      "b": "elevatedBody_xn1_yn2_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_yn1_z7",
+      "b": "elevatedBody_xn2_yn1_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_y0_z7",
+      "b": "elevatedBody_xn3_y0_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_y1_z7",
+      "b": "elevatedBody_xn3_y1_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z4",
+      "b": "legArmor_x4_y3_z3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z3",
+      "b": "legArmor_x5_y3_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z4",
+      "b": "legArmor_x3_y4_z3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z3",
+      "b": "supportLeg_x4_y4_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y4_z3",
+      "b": "supportLeg_x5_y4_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y4_z3",
+      "b": "legArmor_x6_y4_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z3",
+      "b": "legArmor_x3_y5_z3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y5_z3",
+      "b": "supportLeg_x4_y5_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z3",
+      "b": "supportLeg_x5_y5_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y5_z3",
+      "b": "legArmor_x6_y5_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z3",
+      "b": "legArmor_x4_y6_z3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y6_z3",
+      "b": "legArmor_x5_y6_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2_z6",
+      "b": "elevatedBody_x0_yn3_z6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn3_z6",
+      "b": "elevatedBody_x1_yn3_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_yn3_z6",
+      "b": "elevatedBody_x2_yn3_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_yn3_z6",
+      "b": "elevatedBody_x3_yn3_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x3_yn3_z6",
+      "b": "elevatedBody_x4_yn3_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn2_z6",
+      "b": "elevatedBody_xn1_yn2_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_yn1_z6",
+      "b": "elevatedBody_xn2_yn1_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_y0_z6",
+      "b": "elevatedBody_xn3_y0_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_y1_z6",
+      "b": "elevatedBody_xn3_y1_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_y2_z6",
+      "b": "elevatedBody_xn3_y2_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_y3_z6",
+      "b": "elevatedBody_xn3_y3_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_y4_z6",
+      "b": "elevatedBody_xn3_y4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn3_z7",
+      "b": "elevatedBody_xn1_yn3_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_yn2_z7",
+      "b": "elevatedBody_xn2_yn2_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_yn1_z7",
+      "b": "elevatedBody_xn3_yn1_z7",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z3",
+      "b": "legArmor_x4_y3_z2",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z2",
+      "b": "legArmor_x5_y3_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z3",
+      "b": "legArmor_x3_y4_z2",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z2",
+      "b": "supportLeg_x4_y4_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y4_z2",
+      "b": "supportLeg_x5_y4_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y4_z2",
+      "b": "legArmor_x6_y4_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z2",
+      "b": "legArmor_x3_y5_z2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y5_z2",
+      "b": "supportLeg_x4_y5_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z2",
+      "b": "supportLeg_x5_y5_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y5_z2",
+      "b": "legArmor_x6_y5_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z2",
+      "b": "legArmor_x4_y6_z2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y6_z2",
+      "b": "legArmor_x5_y6_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x4_yn3_z6",
+      "b": "legArmor_x4_yn3_z5",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z5",
+      "b": "legArmor_x5_yn3_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_y4_z6",
+      "b": "legArmor_xn3_y4_z5",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z5",
+      "b": "legArmor_xn3_y5_z5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x4_yn3_z6",
+      "b": "legJoint_x4_yn4_z6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_x4_yn4_z6",
+      "b": "legJoint_x5_yn4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_y4_z6",
+      "b": "legJoint_xn4_y4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_xn4_y4_z6",
+      "b": "legJoint_xn4_y5_z6",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn3_z6",
+      "b": "elevatedBody_x0_yn4_z6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn4_z6",
+      "b": "elevatedBody_x1_yn4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x1_yn4_z6",
+      "b": "elevatedBody_x2_yn4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x2_yn4_z6",
+      "b": "elevatedBody_x3_yn4_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn3_z6",
+      "b": "elevatedBody_xn1_yn3_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_yn2_z6",
+      "b": "elevatedBody_xn2_yn2_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_yn1_z6",
+      "b": "elevatedBody_xn3_yn1_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_y0_z6",
+      "b": "elevatedBody_xn4_y0_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_y1_z6",
+      "b": "elevatedBody_xn4_y1_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_y2_z6",
+      "b": "elevatedBody_xn4_y2_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_y3_z6",
+      "b": "elevatedBody_xn4_y3_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z2",
+      "b": "legArmor_x4_y3_z1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z1",
+      "b": "legArmor_x5_y3_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z2",
+      "b": "legArmor_x3_y4_z1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z1",
+      "b": "supportLeg_x4_y4_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y4_z1",
+      "b": "supportLeg_x5_y4_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y4_z1",
+      "b": "legArmor_x6_y4_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z1",
+      "b": "legArmor_x3_y5_z1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y5_z1",
+      "b": "supportLeg_x4_y5_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z1",
+      "b": "supportLeg_x5_y5_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y5_z1",
+      "b": "legArmor_x6_y5_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5_z1",
+      "b": "legArmor_x4_y6_z1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y6_z1",
+      "b": "legArmor_x5_y6_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z5",
+      "b": "legArmor_x4_yn3_z4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z4",
+      "b": "legArmor_x5_yn3_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z5",
+      "b": "legArmor_xn3_y4_z4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z4",
+      "b": "legArmor_xn3_y5_z4",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x3_yn4_z6",
+      "b": "legArmor_x3_yn4_z5",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z5",
+      "b": "supportLeg_x4_yn4_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn4_z5",
+      "b": "supportLeg_x5_yn4_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn4_z5",
+      "b": "legArmor_x6_yn4_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn4_y3_z6",
+      "b": "legArmor_xn4_y3_z5",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z5",
+      "b": "supportLeg_xn4_y4_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y5_z5",
+      "b": "supportLeg_xn4_y5_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z5",
+      "b": "legArmor_xn4_y6_z5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_x4_yn4_z6",
+      "b": "legJoint_x4_yn5_z6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_x4_yn5_z6",
+      "b": "legJoint_x5_yn5_z6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_xn4_y4_z6",
+      "b": "legJoint_xn5_y4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_xn4_y5_z6",
+      "b": "legJoint_xn5_y5_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_x0_yn4_z6",
+      "b": "elevatedBody_xn1_yn4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_yn3_z6",
+      "b": "elevatedBody_xn2_yn3_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_yn2_z6",
+      "b": "elevatedBody_xn3_yn2_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_yn1_z6",
+      "b": "elevatedBody_xn4_yn1_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3_z1",
+      "b": "legArmor_x4_y3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3",
+      "b": "legArmor_x5_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4_z1",
+      "b": "legArmor_x3_y4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4",
+      "b": "supportLeg_x4_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y4",
+      "b": "supportLeg_x5_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y4",
+      "b": "legArmor_x6_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y4",
+      "b": "legArmor_x3_y5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y5",
+      "b": "supportLeg_x4_y5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5",
+      "b": "supportLeg_x5_y5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_y5",
+      "b": "legArmor_x6_y5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y5",
+      "b": "legArmor_x4_y6",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y6",
+      "b": "legArmor_x5_y6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z4",
+      "b": "legArmor_x4_yn3_z3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z3",
+      "b": "legArmor_x5_yn3_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z4",
+      "b": "legArmor_xn3_y4_z3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z3",
+      "b": "legArmor_xn3_y5_z3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z5",
+      "b": "legArmor_x3_yn4_z4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z4",
+      "b": "supportLeg_x4_yn4_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn4_z4",
+      "b": "supportLeg_x5_yn4_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn4_z4",
+      "b": "legArmor_x6_yn4_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z5",
+      "b": "legArmor_xn4_y3_z4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z4",
+      "b": "supportLeg_xn4_y4_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y5_z4",
+      "b": "supportLeg_xn4_y5_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z4",
+      "b": "legArmor_xn4_y6_z4",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z5",
+      "b": "legArmor_x3_yn5_z5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn5_z5",
+      "b": "supportLeg_x4_yn5_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z5",
+      "b": "supportLeg_x5_yn5_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn5_z5",
+      "b": "legArmor_x6_yn5_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z5",
+      "b": "legArmor_xn5_y3_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y4_z5",
+      "b": "supportLeg_xn5_y4_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z5",
+      "b": "supportLeg_xn5_y5_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y6_z5",
+      "b": "legArmor_xn5_y6_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn1_yn4_z6",
+      "b": "elevatedBody_xn2_yn4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_yn3_z6",
+      "b": "elevatedBody_xn3_yn3_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_yn2_z6",
+      "b": "elevatedBody_xn4_yn2_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z3",
+      "b": "legArmor_x4_yn3_z2",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z2",
+      "b": "legArmor_x5_yn3_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z3",
+      "b": "legArmor_xn3_y4_z2",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z2",
+      "b": "legArmor_xn3_y5_z2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z4",
+      "b": "legArmor_x3_yn4_z3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z3",
+      "b": "supportLeg_x4_yn4_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn4_z3",
+      "b": "supportLeg_x5_yn4_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn4_z3",
+      "b": "legArmor_x6_yn4_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z4",
+      "b": "legArmor_xn4_y3_z3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z3",
+      "b": "supportLeg_xn4_y4_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y5_z3",
+      "b": "supportLeg_xn4_y5_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z3",
+      "b": "legArmor_xn4_y6_z3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z4",
+      "b": "legArmor_x3_yn5_z4",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn5_z4",
+      "b": "supportLeg_x4_yn5_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z4",
+      "b": "supportLeg_x5_yn5_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn5_z4",
+      "b": "legArmor_x6_yn5_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z4",
+      "b": "legArmor_xn5_y3_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y4_z4",
+      "b": "supportLeg_xn5_y4_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z4",
+      "b": "supportLeg_xn5_y5_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y6_z4",
+      "b": "legArmor_xn5_y6_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z5",
+      "b": "legArmor_x4_yn6_z5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn6_z5",
+      "b": "legArmor_x5_yn6_z5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y4_z5",
+      "b": "legArmor_xn6_y4_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y5_z5",
+      "b": "legArmor_xn6_y5_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn2_yn4_z6",
+      "b": "elevatedBody_xn3_yn4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_yn3_z6",
+      "b": "elevatedBody_xn4_yn3_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z2",
+      "b": "legArmor_x4_yn3_z1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z1",
+      "b": "legArmor_x5_yn3_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z2",
+      "b": "legArmor_xn3_y4_z1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z1",
+      "b": "legArmor_xn3_y5_z1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z3",
+      "b": "legArmor_x3_yn4_z2",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z2",
+      "b": "supportLeg_x4_yn4_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn4_z2",
+      "b": "supportLeg_x5_yn4_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn4_z2",
+      "b": "legArmor_x6_yn4_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z3",
+      "b": "legArmor_xn4_y3_z2",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z2",
+      "b": "supportLeg_xn4_y4_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y5_z2",
+      "b": "supportLeg_xn4_y5_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z2",
+      "b": "legArmor_xn4_y6_z2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z3",
+      "b": "legArmor_x3_yn5_z3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn5_z3",
+      "b": "supportLeg_x4_yn5_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z3",
+      "b": "supportLeg_x5_yn5_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn5_z3",
+      "b": "legArmor_x6_yn5_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z3",
+      "b": "legArmor_xn5_y3_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y4_z3",
+      "b": "supportLeg_xn5_y4_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z3",
+      "b": "supportLeg_xn5_y5_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y6_z3",
+      "b": "legArmor_xn5_y6_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z4",
+      "b": "legArmor_x4_yn6_z4",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn6_z4",
+      "b": "legArmor_x5_yn6_z4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y4_z4",
+      "b": "legArmor_xn6_y4_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y5_z4",
+      "b": "legArmor_xn6_y5_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_yn4_z6",
+      "b": "legArmor_xn3_yn4_z5",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn4_yn3_z6",
+      "b": "legArmor_xn4_yn3_z5",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "elevatedBody_xn3_yn4_z6",
+      "b": "legJoint_xn4_yn4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3_z1",
+      "b": "legArmor_x4_yn3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3",
+      "b": "legArmor_x5_yn3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z1",
+      "b": "legArmor_xn3_y4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4",
+      "b": "legArmor_xn3_y5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z2",
+      "b": "legArmor_x3_yn4_z1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z1",
+      "b": "supportLeg_x4_yn4_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn4_z1",
+      "b": "supportLeg_x5_yn4_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn4_z1",
+      "b": "legArmor_x6_yn4_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z2",
+      "b": "legArmor_xn4_y3_z1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4_z1",
+      "b": "supportLeg_xn4_y4_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y5_z1",
+      "b": "supportLeg_xn4_y5_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z1",
+      "b": "legArmor_xn4_y6_z1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z2",
+      "b": "legArmor_x3_yn5_z2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn5_z2",
+      "b": "supportLeg_x4_yn5_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z2",
+      "b": "supportLeg_x5_yn5_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn5_z2",
+      "b": "legArmor_x6_yn5_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z2",
+      "b": "legArmor_xn5_y3_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y4_z2",
+      "b": "supportLeg_xn5_y4_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z2",
+      "b": "supportLeg_xn5_y5_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y6_z2",
+      "b": "legArmor_xn5_y6_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z3",
+      "b": "legArmor_x4_yn6_z3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn6_z3",
+      "b": "legArmor_x5_yn6_z3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y4_z3",
+      "b": "legArmor_xn6_y4_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y5_z3",
+      "b": "legArmor_xn6_y5_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z5",
+      "b": "legArmor_xn3_yn4_z4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z5",
+      "b": "legArmor_xn4_yn3_z4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z5",
+      "b": "legArmor_xn3_yn5_z5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z5",
+      "b": "supportLeg_xn4_yn4_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z5",
+      "b": "legArmor_xn5_yn3_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_xn4_yn4_z6",
+      "b": "legJoint_xn4_yn5_z6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_xn4_yn4_z6",
+      "b": "legJoint_xn5_yn4_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z1",
+      "b": "legArmor_x3_yn4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4",
+      "b": "supportLeg_x4_yn4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn4",
+      "b": "supportLeg_x5_yn4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn4",
+      "b": "legArmor_x6_yn4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z1",
+      "b": "legArmor_xn4_y3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y4",
+      "b": "supportLeg_xn4_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y5",
+      "b": "supportLeg_xn4_y5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5",
+      "b": "legArmor_xn4_y6",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4_z1",
+      "b": "legArmor_x3_yn5_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn5_z1",
+      "b": "supportLeg_x4_yn5_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z1",
+      "b": "supportLeg_x5_yn5_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn5_z1",
+      "b": "legArmor_x6_yn5_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3_z1",
+      "b": "legArmor_xn5_y3_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y4_z1",
+      "b": "supportLeg_xn5_y4_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5_z1",
+      "b": "supportLeg_xn5_y5_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y6_z1",
+      "b": "legArmor_xn5_y6_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z2",
+      "b": "legArmor_x4_yn6_z2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn6_z2",
+      "b": "legArmor_x5_yn6_z2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y4_z2",
+      "b": "legArmor_xn6_y4_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y5_z2",
+      "b": "legArmor_xn6_y5_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z4",
+      "b": "legArmor_xn3_yn4_z3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z4",
+      "b": "legArmor_xn4_yn3_z3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z4",
+      "b": "legArmor_xn3_yn5_z4",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z4",
+      "b": "supportLeg_xn4_yn4_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z4",
+      "b": "legArmor_xn5_yn3_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn5_z5",
+      "b": "supportLeg_xn4_yn5_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn4_z5",
+      "b": "supportLeg_xn5_yn4_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legJoint_xn4_yn5_z6",
+      "b": "legJoint_xn5_yn5_z6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn4",
+      "b": "legArmor_x3_yn5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn5",
+      "b": "supportLeg_x4_yn5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5",
+      "b": "supportLeg_x5_yn5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x5_yn5",
+      "b": "legArmor_x6_yn5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3",
+      "b": "legArmor_xn5_y3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y4",
+      "b": "supportLeg_xn5_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y5",
+      "b": "supportLeg_xn5_y5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y6",
+      "b": "legArmor_xn5_y6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5_z1",
+      "b": "legArmor_x4_yn6_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn6_z1",
+      "b": "legArmor_x5_yn6_z1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y4_z1",
+      "b": "legArmor_xn6_y4_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y5_z1",
+      "b": "legArmor_xn6_y5_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z3",
+      "b": "legArmor_xn3_yn4_z2",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z3",
+      "b": "legArmor_xn4_yn3_z2",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z3",
+      "b": "legArmor_xn3_yn5_z3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z3",
+      "b": "supportLeg_xn4_yn4_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z3",
+      "b": "legArmor_xn5_yn3_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn5_z4",
+      "b": "supportLeg_xn4_yn5_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn4_z4",
+      "b": "supportLeg_xn5_yn4_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z5",
+      "b": "legArmor_xn4_yn6_z5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z5",
+      "b": "supportLeg_xn5_yn5_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn4_z5",
+      "b": "legArmor_xn6_yn4_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5",
+      "b": "legArmor_x4_yn6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn6",
+      "b": "legArmor_x5_yn6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y4",
+      "b": "legArmor_xn6_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_y5",
+      "b": "legArmor_xn6_y5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z2",
+      "b": "legArmor_xn3_yn4_z1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z2",
+      "b": "legArmor_xn4_yn3_z1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z2",
+      "b": "legArmor_xn3_yn5_z2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z2",
+      "b": "supportLeg_xn4_yn4_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z2",
+      "b": "legArmor_xn5_yn3_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn5_z3",
+      "b": "supportLeg_xn4_yn5_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn4_z3",
+      "b": "supportLeg_xn5_yn4_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z4",
+      "b": "legArmor_xn4_yn6_z4",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z4",
+      "b": "supportLeg_xn5_yn5_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn4_z4",
+      "b": "legArmor_xn6_yn4_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn6_z5",
+      "b": "legArmor_xn5_yn6_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn5_z5",
+      "b": "legArmor_xn6_yn5_z5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z1",
+      "b": "legArmor_xn3_yn4",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z1",
+      "b": "legArmor_xn4_yn3",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z1",
+      "b": "legArmor_xn3_yn5_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4_z1",
+      "b": "supportLeg_xn4_yn4_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3_z1",
+      "b": "legArmor_xn5_yn3_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn5_z2",
+      "b": "supportLeg_xn4_yn5_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn4_z2",
+      "b": "supportLeg_xn5_yn4_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z3",
+      "b": "legArmor_xn4_yn6_z3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z3",
+      "b": "supportLeg_xn5_yn5_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn4_z3",
+      "b": "legArmor_xn6_yn4_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn6_z4",
+      "b": "legArmor_xn5_yn6_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn5_z4",
+      "b": "legArmor_xn6_yn5_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4",
+      "b": "legArmor_xn3_yn5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn4",
+      "b": "supportLeg_xn4_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn3",
+      "b": "legArmor_xn5_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn5_z1",
+      "b": "supportLeg_xn4_yn5_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn4_z1",
+      "b": "supportLeg_xn5_yn4_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z2",
+      "b": "legArmor_xn4_yn6_z2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z2",
+      "b": "supportLeg_xn5_yn5_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn4_z2",
+      "b": "legArmor_xn6_yn4_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn6_z3",
+      "b": "legArmor_xn5_yn6_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn5_z3",
+      "b": "legArmor_xn6_yn5_z3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn5",
+      "b": "supportLeg_xn4_yn5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn4",
+      "b": "supportLeg_xn5_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z1",
+      "b": "legArmor_xn4_yn6_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z1",
+      "b": "supportLeg_xn5_yn5_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn4_z1",
+      "b": "legArmor_xn6_yn4_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn6_z2",
+      "b": "legArmor_xn5_yn6_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn5_z2",
+      "b": "legArmor_xn6_yn5_z2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5",
+      "b": "legArmor_xn4_yn6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5",
+      "b": "supportLeg_xn5_yn5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn4",
+      "b": "legArmor_xn6_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn6_z1",
+      "b": "legArmor_xn5_yn6_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn5_z1",
+      "b": "legArmor_xn6_yn5_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_yn6",
+      "b": "legArmor_xn5_yn6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn5_yn5",
+      "b": "legArmor_xn6_yn5",
+      "aSide": "left",
+      "bSide": "right",
       "type": "structural"
     }
   ],

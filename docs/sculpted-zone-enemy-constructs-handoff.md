@@ -19,13 +19,24 @@ Added constructs:
 - `example.construct.ghost_phaser_sculpted` - 38 cells
 - `example.construct.tractor_frog_sculpted` - 34 cells
 - `example.construct.heavy_mortar_boat_sculpted` - 33 cells
-- `example.construct.spider_walker_sculpted` - 35 cells
+- `example.construct.spider_walker_sculpted` - 418 layered cells
 - `example.construct.scrap_buzzard_sculpted` - 32 cells
 - `example.construct.inchworm_head_sculpted` - 89 layered cells
 - `example.construct.inchworm_body_segment_sculpted` - 48 layered cells
 - `example.construct.moth_bomber_sculpted` - 20 cells
 
 Each construct keeps exactly one `core` cell and uses explicit structural connections. The non-core footprint is deliberately larger than the prior placeholder `basic_turret` references so these enemies can remain visually substantial after the module-size change.
+
+The walker construct now uses vertical cell layers for its support anatomy. Four leg towers extend through `gridZ` levels `0` through `5`; each layer uses this footprint, with the inner cells authored as `wheel` cells and tagged `supportLeg`:
+
+```text
+-AA-
+AWWA
+AWWA
+-AA-
+```
+
+The main body begins at `gridZ: 6`. The cells joining each leg tower to the elevated body are authored as `engine` cells and tagged `legJoint`, so gameplay can distinguish destructible wheel-leg regions from the body attachment/drive joints. The body armor is tagged `elevatedBody`, and the top guns are tagged `turretGun`.
 
 The zone enemy example pack now references these constructs in:
 

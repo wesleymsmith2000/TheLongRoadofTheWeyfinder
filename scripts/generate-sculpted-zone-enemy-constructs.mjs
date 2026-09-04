@@ -70,17 +70,7 @@ const SHAPES = [
     assetId: 'example.construct.spider_walker_sculpted',
     displayName: 'Sculpted Eight Leg Walker Construct',
     tags: ['walker', 'spider', 'starlight-road', 'twilight-crossroads'],
-    x0: -4,
-    y0: -3,
-    rows: [
-      'w...a...w',
-      '.a.aaa.a.',
-      '..waaaw..',
-      'aaaacaaaa',
-      '..waaaw..',
-      '.a.aaa.a.',
-      'w...g...w',
-    ],
+    layers: walkerLayers(),
   },
   {
     assetId: 'example.construct.scrap_buzzard_sculpted',
@@ -223,7 +213,7 @@ function constructFromShape(shape) {
       const row = layer.rows[rowIndex];
       for (let columnIndex = 0; columnIndex < row.length; columnIndex += 1) {
         const mark = row[columnIndex];
-        if (mark === '.') continue;
+        if (mark === '.' || mark === '-') continue;
         const type = TYPE_FOR_MARK[mark];
         if (!type) throw new Error(`Unknown mark "${mark}" in ${shape.assetId}.`);
         const gridX = layer.x0 + columnIndex;
@@ -270,6 +260,69 @@ function constructFromShape(shape) {
 
 function shapeLayers(shape) {
   return shape.layers ?? [{ z: 0, x0: shape.x0, y0: shape.y0, rows: shape.rows }];
+}
+
+function walkerLayers() {
+  const layers = [];
+  const legOrigins = [
+    { id: 'frontLeft', x0: -6, y0: -6 },
+    { id: 'frontRight', x0: 3, y0: -6 },
+    { id: 'rearLeft', x0: -6, y0: 3 },
+    { id: 'rearRight', x0: 3, y0: 3 },
+  ];
+  const legRows = [
+    '-aa-',
+    'awwa',
+    'awwa',
+    '-aa-',
+  ];
+  for (let z = 0; z < 6; z += 1) {
+    for (const origin of legOrigins) {
+      layers.push({ ...origin, z, rows: legRows, layerRole: 'walkerLegStack' });
+    }
+  }
+  const jointRows = [
+    '....',
+    '.ee.',
+    '.ee.',
+    '....',
+  ];
+  for (const origin of legOrigins) {
+    layers.push({ ...origin, z: 6, rows: jointRows, layerRole: 'walkerLegJoint' });
+  }
+  layers.push({
+    z: 6,
+    x0: -4,
+    y0: -4,
+    layerRole: 'walkerLowerBody',
+    rows: [
+      '.aaaaaaa.',
+      'aaaaaaaaa',
+      'aaaaaaaaa',
+      'aaaagaaaa',
+      'aaaaaaaaa',
+      'aaaagaaaa',
+      'aaaaaaaaa',
+      'aaaaaaaaa',
+      '.aaaaaaa.',
+    ],
+  });
+  layers.push({
+    z: 7,
+    x0: -3,
+    y0: -3,
+    layerRole: 'walkerUpperBody',
+    rows: [
+      '..aaa..',
+      '.aaaaa.',
+      'aaaaaaa',
+      'aaacaaa',
+      'aaaaaaa',
+      '.aaaaa.',
+      '..aaa..',
+    ],
+  });
+  return layers;
 }
 
 function connectionTree(cells, byPosition) {
@@ -340,6 +393,10 @@ function roleFor(shape, type, gridX, gridY, gridZ = 0) {
   if (shape.assetId.includes('frog') && type === 'gun') return 'eyeGun';
   if (shape.assetId.includes('frog') && type === 'wheel') return 'leg';
   if (shape.assetId.includes('walker') && type === 'wheel') return 'supportLeg';
+  if (shape.assetId.includes('walker') && type === 'engine') return 'legJoint';
+  if (shape.assetId.includes('walker') && type === 'gun') return 'turretGun';
+  if (shape.assetId.includes('walker') && gridZ < 6) return 'legArmor';
+  if (shape.assetId.includes('walker') && gridZ >= 6 && type === 'armor') return 'elevatedBody';
   if (shape.assetId.includes('walker') && Math.abs(gridX) <= 2 && gridY <= 1) return 'elevatedBody';
   if (shape.assetId.includes('mortar') && type === 'gun' && gridY <= -5) return 'mortar';
   if (shape.assetId.includes('mortar') && type === 'gun') return 'broadsideGun';
@@ -357,6 +414,9 @@ function roleFor(shape, type, gridX, gridY, gridZ = 0) {
 }
 
 function appearanceFor(shape, cell) {
+  if (shape.assetId.includes('walker') && cell.role === 'supportLeg') return { tint: '#9fc8ff', label: 'wheel leg' };
+  if (shape.assetId.includes('walker') && cell.role === 'legJoint') return { tint: '#6fe0bf', label: 'engine joint' };
+  if (shape.assetId.includes('walker') && cell.role === 'legArmor') return { tint: '#506181', label: 'leg armor' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'eyeGun' && cell.slot === 'leftEye') return { tint: '#ff2d1a', emissive: true, label: 'red eye' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'eyeGun' && cell.slot === 'rightEye') return { tint: '#ff8a1f', emissive: true, label: 'orange eye' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'mandible') return { tint: '#8ba866', label: 'pinser mandible' };
