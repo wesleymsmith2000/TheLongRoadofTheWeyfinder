@@ -376,7 +376,7 @@ test('new secondary weapons are live runtime choices', () => {
   assert.equal(orbGame.playerProjectiles[0].emitsProjectiles.kind, 'sequentialRadial');
   assert.equal(orbGame.playerProjectiles[0].emitsProjectiles.continuous, true);
   assert.equal(orbGame.playerProjectiles[0].detonateAtTarget, true);
-  assert.equal(orbGame.secondary.ammo.orb_of_blades, 11);
+  assert.equal(orbGame.secondary.ammo.orb_of_blades, 5);
   for (let index = 0; index < 5; index += 1) stepGame(orbGame, { secondarySelect: 'orb_of_blades', gunnerEnabled: false }, 1 / 60);
   const blade = orbGame.playerProjectiles.find((projectile) => projectile.weapon === 'orb_flechette');
   assert.equal(Boolean(blade), true);

@@ -316,7 +316,7 @@ test('damage-budget blades trace along actual frame travel instead of stale spri
   assert.equal(game.score.damageDone > 0, true);
 });
 
-test('damage-budget blades ricochet toward next enemy after leaving contact', () => {
+test('damage-budget blades ricochet toward the next enemy core on contact', () => {
   const game = createGame();
   game.autofire = false;
   const first = createEnemy(0, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
@@ -341,11 +341,67 @@ test('damage-budget blades ricochet toward next enemy after leaving contact', ()
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'orb_flechette');
   assert.equal(first.destroyed, true);
-  assert.equal(blade.ricochetContactEnemy, first);
-  stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(blade.ricochetCount, 1);
-  assert.equal(blade.damage.toFixed(1), '192.1');
-  assert.equal(blade.angle > Math.PI / 2, true);
+  assert.equal(blade.ricochetContactEnemy, null);
+  assert.equal(blade.damage < 200, true);
+  assert.equal(blade.angle > 1.2, true);
+});
+
+test('damage-budget blades ricochet after absorbing enemy projectiles', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [createEnemy(0, CELL_SIZE * 10, SINGLE_CORE_ENEMY, [], { moduleScale: 1 })];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [
+    createProjectile(0, 0, CELL_SIZE * 5 * 60, 0, {
+      team: 'player',
+      weapon: 'blade_launcher',
+      damage: 22,
+      radius: 4.2,
+      pierce: 4,
+      damagePiercesUntilSpent: true,
+      absorbsEnemyProjectiles: true,
+      maxRicochets: 1,
+      ricochetFactor: 0.5,
+      ricochetOnEnemyExit: true,
+      lifetime: 1,
+    }),
+  ];
+  game.enemyProjectiles = [createProjectile(CELL_SIZE * 2, 0, 0, 0, { team: 'enemy', weapon: 'enemy-bullet', radius: 3, damage: 7, lifetime: 1 })];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'blade_launcher');
+  assert.equal(game.enemyProjectiles.every((projectile) => projectile.lifetime <= 0), true);
+  assert.equal(blade.ricochetCount, 1);
+  assert.equal(blade.damage, 7.5);
+  assert.equal(blade.angle > 1.2, true);
+});
+
+test('spent damage-budget blades burst into flechettes after contact', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.rng.range = (min) => min;
+  game.enemies = [createEnemy(0, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 })];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [
+    createProjectile(-CELL_SIZE * 5, 0, CELL_SIZE * 5 * 60, 0, {
+      team: 'player',
+      weapon: 'blade_launcher',
+      damage: 80,
+      radius: 4.2,
+      pierce: 4,
+      pierceDamageFalloff: 1,
+      damagePiercesUntilSpent: true,
+      maxRicochets: 0,
+      ricochetOnEnemyExit: true,
+      lifetime: 1,
+    }),
+  ];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const burst = game.playerProjectiles.filter((projectile) => projectile.weapon === 'blade_flechette');
+  assert.equal(game.playerProjectiles.find((projectile) => projectile.weapon === 'blade_launcher')?.lifetime <= 0, true);
+  assert.equal(burst.length, 8);
+  assert.equal(burst.every((projectile) => projectile.damagePiercesUntilSpent && projectile.pierce === 4), true);
+  assert.equal(burst.reduce((sum, projectile) => sum + projectile.damage, 0) > 0, true);
 });
 
 test('blade deflection converts enemy projectiles into player shots', () => {

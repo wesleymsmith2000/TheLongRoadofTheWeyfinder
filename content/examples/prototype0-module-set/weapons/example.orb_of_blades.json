@@ -14,7 +14,7 @@
     "example",
     "module-set"
   ],
-  "ammo": 12,
+  "ammo": 6,
   "heat": 34,
   "cooldown": 1.44,
   "projectile": {

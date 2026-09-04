@@ -202,8 +202,8 @@ test('new secondary ammo capacity upgrades expand their reserves', () => {
   orbGame.account = createPrototypePlayerAccountData();
   orbGame.scrap = upgradeCost(orbGame, 'orbOfBladesAmmo');
   assert.equal(buyUpgradeWithScrap(orbGame, 'orbOfBladesAmmo'), true);
-  assert.equal(ammoCapacityWithUpgrades(orbGame, 'orb_of_blades'), 19);
-  assert.equal(orbGame.secondary.ammo.orb_of_blades, 19);
+  assert.equal(ammoCapacityWithUpgrades(orbGame, 'orb_of_blades'), 10);
+  assert.equal(orbGame.secondary.ammo.orb_of_blades, 10);
 });
 
 test('upgrade purchases allow installed weapons even before unlock state is checked', () => {

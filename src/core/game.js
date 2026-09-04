@@ -1162,7 +1162,7 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
       cooldown: base.cooldown / upgradeMultiplier(game, 'mortarFireRate'),
       damage: base.damage * upgradeMultiplier(game, 'mortarImpactDamage'),
       blastDamage: base.blastDamage * upgradeMultiplier(game, 'mortarBlastDamage'),
-      blastRadius: base.blastRadius * upgradeMultiplier(game, 'mortarBlastRadius'),
+      blastRadius: base.blastRadius * upgradeMultiplier(game, 'mortarBlastRadius', Math.sqrt(1.05) - 1),
     };
   }
   if (weaponId === 'blade_launcher') {
@@ -2037,7 +2037,10 @@ function handleCollisions(game) {
       projectile.lifetime = 0;
       continue;
     }
-    playerProjectileAbsorbsEnemyProjectile(game, projectile);
+    const projectileAbsorb = playerProjectileAbsorbsEnemyProjectile(game, projectile);
+    if (projectileAbsorb.damageLost > 0) {
+      handleDamageBudgetProjectileRicochet(game, projectile, null);
+    }
     if (projectile.lifetime <= 0) continue;
     if (projectileReachedDetonationTarget(projectile)) {
       projectile.lifetime = 0;
@@ -2103,20 +2106,42 @@ function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
   );
   if (!pierce.hit) return maybeRicochetDamageBudgetProjectile(game, projectile);
   game.score.damageDone += Math.round((pierce.damage ?? projectile.damage) + pierce.removed * 3);
+  const previousDamage = projectile.damage;
   for (const hitEnemy of pierce.hitEnemies ?? []) {
     hitEnemy.vx += Math.cos(travelAngle) * (projectile.impulse ?? 0) * 0.004;
     hitEnemy.vy += Math.sin(travelAngle) * (projectile.impulse ?? 0) * 0.004;
   }
   for (const piercedEnemy of pierce.destroyedEnemies) explodeEnemy(game, piercedEnemy);
   projectile.damage = pierce.remainingDamage ?? 0;
-  updateDamageBudgetProjectileRicochetContact(projectile, pierce.hitEnemies);
+  const previousEnemy = pierce.hitEnemies?.[pierce.hitEnemies.length - 1] ?? null;
+  if (previousDamage - projectile.damage > 0.05) handleDamageBudgetProjectileRicochet(game, projectile, previousEnemy);
   if (projectile.damage <= 0.05) projectile.lifetime = 0;
   return true;
 }
 
-function updateDamageBudgetProjectileRicochetContact(projectile, hitEnemies = []) {
-  if (!projectile.ricochetOnEnemyExit || hitEnemies.length === 0) return;
-  projectile.ricochetContactEnemy = hitEnemies[hitEnemies.length - 1];
+function handleDamageBudgetProjectileRicochet(game, projectile, previousEnemy = null) {
+  if (!projectile.damagePiercesUntilSpent || !projectile.ricochetOnEnemyExit || projectile.lifetime <= 0 || projectile.damage <= 0.05) return false;
+  if ((projectile.ricochetCount ?? 0) >= (projectile.maxRicochets ?? 0)) {
+    burstSpentBladeIntoFlechettes(game, projectile);
+    projectile.lifetime = 0;
+    return true;
+  }
+  const target = nearestRicochetTarget(game, projectile, previousEnemy);
+  if (!target) return false;
+  projectile.ricochetCount = (projectile.ricochetCount ?? 0) + 1;
+  projectile.damage *= projectile.ricochetFactor ?? 0.5;
+  if (projectile.damage <= 0.05) {
+    projectile.lifetime = 0;
+    return true;
+  }
+  const speed = Math.max(1, Math.hypot(projectile.vx, projectile.vy));
+  projectile.angle = Math.atan2(target.point.y - projectile.y, target.point.x - projectile.x);
+  projectile.vx = Math.cos(projectile.angle) * speed;
+  projectile.vy = Math.sin(projectile.angle) * speed;
+  projectile.previousX = projectile.x;
+  projectile.previousY = projectile.y;
+  projectile.ricochetContactEnemy = null;
+  return true;
 }
 
 function maybeRicochetDamageBudgetProjectile(game, projectile) {
@@ -2133,7 +2158,7 @@ function maybeRicochetDamageBudgetProjectile(game, projectile) {
     return true;
   }
   const speed = Math.max(1, Math.hypot(projectile.vx, projectile.vy));
-  projectile.angle = Math.atan2(target.y - projectile.y, target.x - projectile.x);
+  projectile.angle = Math.atan2(target.point.y - projectile.y, target.point.x - projectile.x);
   projectile.vx = Math.cos(projectile.angle) * speed;
   projectile.vy = Math.sin(projectile.angle) * speed;
   projectile.previousX = projectile.x;
@@ -2144,9 +2169,57 @@ function maybeRicochetDamageBudgetProjectile(game, projectile) {
 function nearestRicochetTarget(game, projectile, previousEnemy = null) {
   return activeEnemies(game).reduce((nearest, enemy) => {
     if (enemy === previousEnemy) return nearest;
-    if (!nearest) return enemy;
-    return distanceSquared(projectile, enemy) < distanceSquared(projectile, nearest) ? enemy : nearest;
+    const point = enemyCoreWorldPoint(enemy);
+    if (!nearest) return { enemy, point };
+    return distanceSquared(projectile, point) < distanceSquared(projectile, nearest.point) ? { enemy, point } : nearest;
   }, null);
+}
+
+function enemyCoreWorldPoint(enemy) {
+  const core = enemy.cells?.find((cell) => cell.type === 'core' && !cell.state?.destroyed) ?? enemy.cells?.find((cell) => !cell.state?.destroyed);
+  if (!core) return { x: enemy.x, y: enemy.y };
+  const scale = Math.max(0.001, enemy.visualScale ?? 1);
+  const localX = core.gridX * CELL_SIZE;
+  const localY = core.gridY * CELL_SIZE;
+  const rotation = Number.isFinite(enemy.collisionRotation) ? enemy.collisionRotation : 0;
+  if (Math.abs(rotation) <= 0.000001) {
+    return { x: enemy.x + localX * scale, y: enemy.y + localY * scale };
+  }
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: enemy.x + (localX * cos - localY * sin) * scale,
+    y: enemy.y + (localX * sin + localY * cos) * scale,
+  };
+}
+
+function burstSpentBladeIntoFlechettes(game, projectile) {
+  const count = Math.max(8, Math.min(16, Math.floor(game.rng.range(8, 17))));
+  const damage = projectile.damage / count;
+  if (damage <= 0.05) return;
+  const baseAngle = projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
+  const speed = Math.max(120, Math.hypot(projectile.vx, projectile.vy) * 0.72);
+  for (let index = 0; index < count; index += 1) {
+    const angle = baseAngle + (Math.PI * 2 * index) / count + game.rng.range(-0.12, 0.12);
+    game.playerProjectiles.push(
+      createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+        team: 'player',
+        weapon: 'blade_flechette',
+        behavior: 'ballistic',
+        radius: Math.max(1, (projectile.radius ?? 2) * 0.42),
+        damage,
+        impulse: (projectile.impulse ?? 0) * 0.25,
+        lifetime: 0.55,
+        angle,
+        pierce: projectile.pierce ?? 0,
+        pierceDamageScale: 1,
+        pierceDamageFalloff: projectile.pierceDamageFalloff ?? 0.72,
+        damagePiercesUntilSpent: true,
+        sprite: projectile.sprite,
+        color: projectile.color ?? '#9be5ff',
+      }),
+    );
+  }
 }
 
 function detonatePlayerProjectile(game, projectile, enemy) {
@@ -2315,8 +2388,11 @@ function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
 
 function playerProjectileAbsorbsEnemyProjectile(game, playerProjectile) {
   const deflectionChance = playerProjectile.projectileDeflectionProbability ?? 0;
-  if ((!playerProjectile.absorbsEnemyProjectiles && deflectionChance <= 0) || playerProjectile.lifetime <= 0 || playerProjectile.damage <= 0) return false;
+  if ((!playerProjectile.absorbsEnemyProjectiles && deflectionChance <= 0) || playerProjectile.lifetime <= 0 || playerProjectile.damage <= 0) {
+    return { absorbed: false, damageLost: 0 };
+  }
   let absorbed = false;
+  let damageLost = 0;
   for (const enemyProjectile of game.enemyProjectiles) {
     if (enemyProjectile.lifetime <= 0 || enemyProjectile.behavior === 'beam' || enemyProjectile.behavior === 'blast') continue;
     if (enemyProjectile.behavior === 'arc' && !enemyProjectile.arcLanded) continue;
@@ -2328,13 +2404,15 @@ function playerProjectileAbsorbsEnemyProjectile(game, playerProjectile) {
       continue;
     }
     if (playerProjectile.absorbsEnemyProjectiles) {
+      const loss = Math.max(0, enemyProjectile.damage ?? 0);
       enemyProjectile.lifetime = 0;
-      playerProjectile.damage = Math.max(0, playerProjectile.damage - (enemyProjectile.damage ?? 0));
+      playerProjectile.damage = Math.max(0, playerProjectile.damage - loss);
+      damageLost += loss;
       if (playerProjectile.damage <= 0.05) playerProjectile.lifetime = 0;
       absorbed = true;
     }
   }
-  return absorbed;
+  return { absorbed, damageLost };
 }
 
 function deflectEnemyProjectile(game, enemyProjectile, playerProjectile) {

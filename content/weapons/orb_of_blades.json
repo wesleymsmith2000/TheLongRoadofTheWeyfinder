@@ -6,7 +6,7 @@
   "provenance": "Prototype secondary moving emitter contract.",
   "canonStatus": "CANON",
   "tags": ["secondary", "orb", "flechette", "radial", "prototype"],
-  "ammo": 12,
+  "ammo": 6,
   "heat": 34,
   "cooldown": 1.44,
   "projectile": {

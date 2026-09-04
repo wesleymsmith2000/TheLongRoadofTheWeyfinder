@@ -139,7 +139,7 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   stepGame(mortarGame, {}, 1 / 60);
   const mortar = mortarGame.playerProjectiles.find((projectile) => projectile.weapon === 'mortar');
   assert.equal(mortar.behavior, 'arc');
-  assert.equal(mortar.blastRadius.toFixed(3), (19.125 * CELL_SIZE).toFixed(3));
+  assert.equal(mortar.blastRadius.toFixed(3), (10.2 * CELL_SIZE).toFixed(3));
 
   const flechetteDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'tracking_flechette').definition;
   const flechetteGame = createGame(1147, { vehicleDefinition: flechetteDefinition });
@@ -228,7 +228,7 @@ test('mortar upgrades scale impact and blast stats', () => {
   const mortar = game.playerProjectiles.find((projectile) => projectile.weapon === 'mortar');
   assert.equal(mortar.damage.toFixed(2), (24 * 1.05).toFixed(2));
   assert.equal(mortar.blastDamage.toFixed(2), (90 * 1.05 ** 2).toFixed(2));
-  assert.equal(mortar.blastRadius.toFixed(3), (19.125 * CELL_SIZE * 1.05).toFixed(3));
+  assert.equal(mortar.blastRadius.toFixed(3), (10.2 * CELL_SIZE * Math.sqrt(1.05)).toFixed(3));
   assert.equal(game.playerFireTimer.toFixed(3), (((1.8666666667 / 1.05 ** 2) / Math.sqrt(2)) * 1.25).toFixed(3));
 });
 
