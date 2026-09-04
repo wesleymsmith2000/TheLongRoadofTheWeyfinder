@@ -68,9 +68,15 @@ const SHAPES = [
   },
   {
     assetId: 'example.construct.spider_walker_sculpted',
-    displayName: 'Sculpted Eight Leg Walker Construct',
-    tags: ['walker', 'spider', 'starlight-road', 'twilight-crossroads'],
+    displayName: 'Sculpted Burly Four Leg Walker Construct',
+    tags: ['walker', 'burly-four-leg', 'starlight-road', 'twilight-crossroads', 'runtime-hook:walkerLegs', 'dev-lookup:walker-burly-four-leg'],
     layers: walkerLayers(),
+  },
+  {
+    assetId: 'example.construct.spidery_walker_sculpted',
+    displayName: 'Sculpted Spidery Eight Leg Walker Construct',
+    tags: ['walker', 'spider', 'eight-leg', 'starlight-road', 'twilight-crossroads', 'runtime-hook:walkerLegs', 'dev-lookup:walker-spidery-eight-leg'],
+    layers: spideryWalkerLayers(),
   },
   {
     assetId: 'example.construct.scrap_buzzard_sculpted',
@@ -320,6 +326,66 @@ function walkerLayers() {
       'aaaaaaa',
       '.aaaaa.',
       '..aaa..',
+    ],
+  });
+  return layers;
+}
+
+function spideryWalkerLayers() {
+  const layers = [];
+  const legCenters = [
+    { id: 'leftFrontOuter', x: -4, y: -5 },
+    { id: 'leftFrontInner', x: -4, y: -2 },
+    { id: 'leftRearInner', x: -4, y: 1 },
+    { id: 'leftRearOuter', x: -4, y: 4 },
+    { id: 'rightFrontOuter', x: 4, y: -5 },
+    { id: 'rightFrontInner', x: 4, y: -2 },
+    { id: 'rightRearInner', x: 4, y: 1 },
+    { id: 'rightRearOuter', x: 4, y: 4 },
+  ];
+  const legRows = [
+    '-a-',
+    'awa',
+    '-a-',
+  ];
+  for (let z = 0; z < 6; z += 1) {
+    for (const center of legCenters) {
+      layers.push({ id: center.id, z, x0: center.x - 1, y0: center.y - 1, rows: legRows, layerRole: 'spideryWalkerLegStack' });
+    }
+  }
+  for (const center of legCenters) {
+    layers.push({ id: center.id, z: 6, x0: center.x, y0: center.y, rows: ['e'], layerRole: 'spideryWalkerLegJoint' });
+  }
+  layers.push({
+    z: 6,
+    x0: -3,
+    y0: -4,
+    layerRole: 'spideryWalkerLowerBody',
+    rows: [
+      '.aaaaa.',
+      'aaaaaaa',
+      'aaaaaaa',
+      'aaagaaa',
+      'aaaaaaa',
+      'aaagaaa',
+      'aaaaaaa',
+      'aaaaaaa',
+      '.aaaaa.',
+    ],
+  });
+  layers.push({
+    z: 7,
+    x0: -2,
+    y0: -3,
+    layerRole: 'spideryWalkerUpperBody',
+    rows: [
+      '.aaa.',
+      'aaaaa',
+      'aaaaa',
+      'aacaa',
+      'aaaaa',
+      'aaaaa',
+      '.aaa.',
     ],
   });
   return layers;

@@ -42,6 +42,7 @@ const copyJsonButton = document.querySelector('#copyJsonButton');
 const applyJsonButton = document.querySelector('#applyJsonButton');
 const jsonOutput = document.querySelector('#jsonOutput');
 const statusPanel = document.querySelector('#statusPanel');
+const lookupPanel = document.querySelector('#lookupPanel');
 const cellList = document.querySelector('#cellList');
 const connectionList = document.querySelector('#connectionList');
 const loadoutSelects = [
@@ -287,6 +288,7 @@ function render() {
   syncLoadoutControls();
   renderJson();
   renderStatus();
+  renderLookupPanel();
 }
 
 function syncFieldsToDefinitionSilently() {
@@ -462,6 +464,20 @@ function renderStatus() {
   lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
   lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));
   statusPanel.innerHTML = lines.join('');
+}
+
+function renderLookupPanel() {
+  if (!lookupPanel) return;
+  const tags = definition.tags ?? [];
+  const finderTags = tags.filter((tag) => tag.startsWith('dev-lookup:') || tag.startsWith('runtime-hook:'));
+  const shownTags = finderTags.length ? finderTags : tags.slice(0, 4);
+  lookupPanel.innerHTML = [
+    `<span><strong>Dev lookup</strong></span>`,
+    `<span>Asset: <code>${escapeHtml(definition.assetId || 'untitled')}</code></span>`,
+    shownTags.length ? `<span>Tags: ${shownTags.map((tag) => `<code>${escapeHtml(tag)}</code>`).join(' ')}</span>` : null,
+  ]
+    .filter(Boolean)
+    .join('');
 }
 
 function constructModuleSummary(construct) {

@@ -12,6 +12,7 @@ import ghostPhaserConstruct from '../content/examples/prototype0-zone-enemy-set/
 import tractorFrogConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
 import heavyMortarBoatConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
 import spiderWalkerConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
+import spideryWalkerConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import scrapBuzzardConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
 import inchwormHeadConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json' with { type: 'json' };
 import inchwormBodySegmentConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json' with { type: 'json' };
@@ -37,6 +38,7 @@ const constructs = [
   tractorFrogConstruct,
   heavyMortarBoatConstruct,
   spiderWalkerConstruct,
+  spideryWalkerConstruct,
   scrapBuzzardConstruct,
   inchwormHeadConstruct,
   inchwormBodySegmentConstruct,
@@ -93,6 +95,7 @@ test('zone enemy examples preserve requested advanced behavior descriptors', () 
 test('zone enemy sculpted constructs use enlarged editable module counts', () => {
   const byId = new Map(constructs.map((construct) => [construct.assetId, construct]));
   const spiderWalker = byId.get('example.construct.spider_walker_sculpted');
+  const spideryWalker = byId.get('example.construct.spidery_walker_sculpted');
   const walkerSupportLegs = spiderWalker.cells.filter((cell) => cell.role === 'supportLeg');
   const walkerLegJoints = spiderWalker.cells.filter((cell) => cell.role === 'legJoint');
   const walkerLegArmor = spiderWalker.cells.filter((cell) => cell.role === 'legArmor');
@@ -113,6 +116,13 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   assert.equal(walkerLegJoints.every((cell) => cell.type === 'engine' && cell.gridZ === 6), true);
   assert.equal(walkerElevatedBody.every((cell) => cell.gridZ >= 6), true);
   assert.equal(walkerVerticalConnections.length > 0, true);
+  assert.equal(spiderWalker.tags.includes('dev-lookup:walker-burly-four-leg'), true);
+  assert.equal(spiderWalker.tags.includes('runtime-hook:walkerLegs'), true);
+  assert.equal(spideryWalker.cells.filter((cell) => cell.role === 'supportLeg' && cell.type === 'wheel').length, 48);
+  assert.equal(spideryWalker.cells.filter((cell) => cell.role === 'legArmor' && cell.type === 'armor' && (cell.gridZ ?? 0) < 6).length, 192);
+  assert.equal(spideryWalker.cells.filter((cell) => cell.role === 'legJoint' && cell.type === 'engine' && cell.gridZ === 6).length, 8);
+  assert.equal(spideryWalker.tags.includes('dev-lookup:walker-spidery-eight-leg'), true);
+  assert.equal(spideryWalker.tags.includes('runtime-hook:walkerLegs'), true);
   assert.equal(byId.get('example.construct.scrap_buzzard_sculpted').cells.filter((cell) => cell.role === 'wing').length >= 8, true);
   assert.equal(byId.get('example.construct.inchworm_head_sculpted').cells.length >= 55, true);
   assert.equal(byId.get('example.construct.inchworm_body_segment_sculpted').cells.length >= 35, true);
