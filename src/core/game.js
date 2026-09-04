@@ -2092,15 +2092,16 @@ function enemyCanBeHitByProjectile(enemy, projectile) {
 function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
   const travel = Math.hypot(projectile.x - projectile.previousX, projectile.y - projectile.previousY);
   const travelAngle = travel > 0.001 ? Math.atan2(projectile.y - projectile.previousY, projectile.x - projectile.previousX) : (projectile.angle ?? Math.atan2(projectile.vy, projectile.vx));
+  const contactRadius = playerProjectileContactRadius(projectile);
   const pierce = applyEnemyProjectilePierceDamage(
     activeEnemies(game).filter((enemy) => enemyCanBeHitByProjectile(enemy, projectile)),
     projectile,
     {
       start: { x: projectile.previousX, y: projectile.previousY },
       angle: travelAngle,
-      maxLength: Math.max(VOXEL_SIZE, travel + (projectile.radius ?? 0) * 2),
+      maxLength: Math.max(VOXEL_SIZE, travel + contactRadius * 2),
       maxHits: 48,
-      halfWidth: Math.max(projectile.radius ?? 0, VOXEL_SIZE),
+      halfWidth: Math.max(contactRadius, VOXEL_SIZE),
       damageScale: 1,
     },
   );
@@ -2377,7 +2378,7 @@ function remainingArcFlightTime(projectile) {
 function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
   for (const enemyProjectile of game.enemyProjectiles) {
     if (!enemyProjectile.absorbsPlayerProjectiles || enemyProjectile.lifetime <= 0) continue;
-    const hitRange = enemyProjectile.radius + playerProjectile.radius;
+    const hitRange = enemyProjectile.radius + playerProjectileContactRadius(playerProjectile);
     if (distanceSquared(enemyProjectile, playerProjectile) > hitRange * hitRange) continue;
     enemyProjectile.absorbHp -= playerProjectile.damage;
     if (enemyProjectile.absorbHp <= 0) enemyProjectile.lifetime = 0;
@@ -2393,10 +2394,11 @@ function playerProjectileAbsorbsEnemyProjectile(game, playerProjectile) {
   }
   let absorbed = false;
   let damageLost = 0;
+  const playerContactRadius = playerProjectileContactRadius(playerProjectile);
   for (const enemyProjectile of game.enemyProjectiles) {
     if (enemyProjectile.lifetime <= 0 || enemyProjectile.behavior === 'beam' || enemyProjectile.behavior === 'blast') continue;
     if (enemyProjectile.behavior === 'arc' && !enemyProjectile.arcLanded) continue;
-    const hitRange = enemyProjectile.radius + playerProjectile.radius;
+    const hitRange = enemyProjectile.radius + playerContactRadius;
     if (!projectileSegmentsIntersectRange(playerProjectile, enemyProjectile, hitRange)) continue;
     if (deflectionChance > 0 && game.rng.next() < deflectionChance) {
       deflectEnemyProjectile(game, enemyProjectile, playerProjectile);
@@ -2413,6 +2415,18 @@ function playerProjectileAbsorbsEnemyProjectile(game, playerProjectile) {
     }
   }
   return { absorbed, damageLost };
+}
+
+function playerProjectileContactRadius(projectile) {
+  const radius = projectile.radius ?? 0;
+  return isBladeProjectile(projectile) ? radius * 1.25 : radius;
+}
+
+function isBladeProjectile(projectile) {
+  return projectile.weapon === 'orb_flechette'
+    || projectile.weapon === 'blade_launcher'
+    || projectile.weapon === 'blade_flechette'
+    || projectile.sprite?.assetId === 'sprite.weapon.orb_blade_shard';
 }
 
 function deflectEnemyProjectile(game, enemyProjectile, playerProjectile) {

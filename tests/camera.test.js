@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 import { stepVehicle } from '../src/core/physics.js';
 import {
+  cameraViewScale,
   configureRoadLaneForViewport,
   containVehicleInRoadFrame,
   createRoadCamera,
@@ -92,6 +93,14 @@ test('screen aiming uses a fixed view plane even when road camera heading change
   const camera = { x: 100, y: 200, heading: Math.PI / 2 };
   const world = screenToWorld({ x: 430, y: 280 }, camera, { width: 800, height: 500 });
   assert.deepEqual(world, { x: 130, y: 190 });
+});
+
+test('mobile view scale zooms the world out while preserving screen aim mapping', () => {
+  const camera = { x: 100, y: 200, heading: 0 };
+  const viewport = { width: 390, height: 844 };
+  assert.equal(cameraViewScale(viewport), 0.5);
+  const world = screenToWorld({ x: 245, y: 489.52 }, camera, viewport);
+  assert.deepEqual(world, { x: 200, y: 200 });
 });
 
 test('vehicle is contained inside the road play lane', () => {

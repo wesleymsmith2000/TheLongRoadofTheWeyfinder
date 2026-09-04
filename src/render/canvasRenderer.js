@@ -1,4 +1,5 @@
 import { CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
+import { cameraViewScale } from '../core/camera.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
 import { TerrainRenderer } from './terrainRenderer.js';
@@ -109,7 +110,8 @@ export class CanvasRenderer {
     ctx.fillRect(0, 0, w, h);
     ctx.save();
     applyCameraTransform(ctx, game.camera, w, h);
-    this.terrainRenderer.drawWorld(ctx, game.terrain, game.camera, w, h, debug);
+    const viewScale = cameraViewScale({ width: w, height: h });
+    this.terrainRenderer.drawWorld(ctx, game.terrain, game.camera, w / viewScale, h / viewScale, debug);
     drawRoadLane(ctx, game.road);
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
@@ -188,7 +190,9 @@ function drawScrapPickups(ctx, pickups) {
 }
 
 function applyCameraTransform(ctx, camera, w, h) {
+  const scale = cameraViewScale({ width: w, height: h });
   ctx.translate(w / 2, h * 0.58);
+  ctx.scale(scale, scale);
   ctx.translate(-camera.x, -camera.y);
 }
 

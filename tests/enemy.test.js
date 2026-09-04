@@ -376,6 +376,33 @@ test('damage-budget blades ricochet after absorbing enemy projectiles', () => {
   assert.equal(blade.angle > 1.2, true);
 });
 
+test('blade contact radius is enlarged for enemy projectile absorption', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [
+    createProjectile(game.vehicle.x + CELL_SIZE * 8, game.vehicle.y, 0, 0, {
+      team: 'player',
+      weapon: 'blade_launcher',
+      damage: 22,
+      radius: 4,
+      pierce: 4,
+      damagePiercesUntilSpent: true,
+      absorbsEnemyProjectiles: true,
+      maxRicochets: 1,
+      ricochetFactor: 0.5,
+      ricochetOnEnemyExit: true,
+      lifetime: 1,
+    }),
+  ];
+  game.enemyProjectiles = [createProjectile(game.vehicle.x + CELL_SIZE * 8 + 6.8, game.vehicle.y, 0, 0, { team: 'enemy', weapon: 'enemy-bullet', radius: 2, damage: 7, lifetime: 1 })];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'blade_launcher');
+  assert.equal(game.enemyProjectiles.every((projectile) => projectile.lifetime <= 0), true);
+  assert.equal(blade.damage, 15);
+});
+
 test('spent damage-budget blades burst into flechettes after contact', () => {
   const game = createGame();
   game.autofire = false;

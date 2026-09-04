@@ -1,6 +1,10 @@
 import { angleDelta, clamp, lerp, rotatePoint } from './math.js';
 import { DEFAULT_ROAD_ROUTE, isRouteTurnSegment, sampleRoadRoute } from './roadRoute.js';
 
+export const MOBILE_VIEW_SCALE = 0.5;
+const MOBILE_VIEWPORT_MAX_SHORT_EDGE = 480;
+const MOBILE_VIEWPORT_MAX_LONG_EDGE = 1024;
+
 export function createRoadFrame(vehicle, options = {}) {
   const route = options.route ?? DEFAULT_ROAD_ROUTE;
   const pose = sampleRoadRoute(route, 0);
@@ -103,8 +107,17 @@ export function roadOffsetToWorld(offset, road) {
   return { x: road.x + world.x, y: road.y + world.y };
 }
 
+export function cameraViewScale(viewport) {
+  const width = viewport?.width ?? 0;
+  const height = viewport?.height ?? 0;
+  const shortEdge = Math.min(width, height);
+  const longEdge = Math.max(width, height);
+  return shortEdge <= MOBILE_VIEWPORT_MAX_SHORT_EDGE && longEdge <= MOBILE_VIEWPORT_MAX_LONG_EDGE ? MOBILE_VIEW_SCALE : 1;
+}
+
 export function screenToWorld(screen, camera, viewport) {
+  const scale = cameraViewScale(viewport);
   const dx = screen.x - viewport.width / 2;
   const dy = screen.y - viewport.height * 0.58;
-  return { x: camera.x + dx, y: camera.y + dy };
+  return { x: camera.x + dx / scale, y: camera.y + dy / scale };
 }
