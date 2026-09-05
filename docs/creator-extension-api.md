@@ -204,6 +204,40 @@ Grid adjacency is not structural truth. Structural connectivity is defined by ex
 
 Constructs may also include optional `presentation.sprite` metadata for renderer overlays and editor previews. Runtime damage, connectivity, hit checks, and repair continue to use `cells` and `connections`; sprites are presentation only and should always fall back to voxel rendering.
 
+Constructs may include optional pose rig metadata for linked cell-group animation:
+
+```json
+{
+  "poseRig": {
+    "groups": [
+      { "id": "frontLeftLeg", "selector": "role:supportLeg", "pivot": [-18, -24, 0] },
+      { "id": "mainCannon", "cells": ["cannon-core", "cannon-barrel"], "pivot": [0, 0, 0] }
+    ],
+    "joints": [
+      { "id": "frontLeftLegSlide", "group": "frontLeftLeg", "kind": "slider", "axis": [0, 1, 0] },
+      { "id": "mainCannonYaw", "group": "mainCannon", "kind": "hinge", "axis": [0, 0, 1] }
+    ],
+    "poses": [
+      { "id": "strideA", "transforms": [{ "target": "group:frontLeftLeg", "translate": [0, -8, 0] }] },
+      { "id": "strideB", "transforms": [{ "target": "group:frontLeftLeg", "translate": [0, 8, 0] }] }
+    ],
+    "animations": [
+      { "id": "walk", "kind": "poseCycle", "driver": "phase", "frequency": 1, "keyframes": [{ "at": 0, "pose": "strideA" }, { "at": 0.5, "pose": "strideB" }] },
+      { "id": "trackPlayer", "kind": "aimAtTarget", "target": "group:mainCannon", "driver": "target" }
+    ]
+  }
+}
+```
+
+For editor convenience, construct assets may also use top-level aliases:
+
+- `cellGroups` -> `poseRig.groups`
+- `joints` -> `poseRig.joints`
+- `poses` -> `poseRig.poses`
+- `poseAnimations` -> `poseRig.animations`
+
+Supported pose targets/selectors are `group:<id>`, `cell:<id>`, `role:<role>`, `type:<type>`, `slot:<slot>`, `tag:<tag>`, and `all`. Supported animation kinds are `oscillate`, `poseCycle`, and `aimAtTarget`. Runtime rendering evaluates pose rigs visually; simulation collision still uses the unposed cell grid until pose-aware collision is added.
+
 ## Current Player Vehicle Contract
 
 The default player vehicle is now a construct asset:

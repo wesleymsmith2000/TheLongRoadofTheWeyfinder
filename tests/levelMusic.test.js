@@ -54,6 +54,7 @@ test('zone soundtrack names route standard spawns to zone archetypes', () => {
   assert.equal(starlight.archetypeId, 'starlight_walker.prototype0');
   assert.equal(starlight.assetId, 'example.construct.spidery_walker_sculpted');
   assert.equal(starlight.elevation.layeredExposure, true);
+  assert.equal(starlight.poseRig.groups.some((group) => group.role === 'legAssembly'), true);
   const twilight = createLevelEnemies(road, 1, ['TwilightCrossroads'])[0];
   assert.equal(twilight.archetypeId, 'twilight_walker.prototype0');
   assert.equal(twilight.assetId, 'example.construct.spider_walker_sculpted');

@@ -1,5 +1,6 @@
 import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { cameraViewScale } from '../core/camera.js';
+import { applyCellPoseTransform, evaluatePoseRig } from '../core/poseAnimation.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
 import { TerrainRenderer } from './terrainRenderer.js';
@@ -118,7 +119,7 @@ export class CanvasRenderer {
     drawRoadLane(ctx, game.road);
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
-    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time);
+    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game);
     drawSmokeParticles(ctx, game.smokeParticles);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
     drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
@@ -245,9 +246,11 @@ function drawVehicle(ctx, vehicle, boost, time, imageAssets) {
     .filter((cell) => cell.attached && !cell.state.destroyed)
     .sort((a, b) => cellLayer(a) - cellLayer(b) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id));
   const baseLayer = lowestRenderableLayer(attached);
+  const poseTransforms = evaluatePoseRig(vehicle, { time, phase: time, movementSpeed: Math.hypot(vehicle.vx ?? 0, vehicle.vy ?? 0) });
   for (const cell of attached) {
+    const posed = applyCellPoseTransform(cell, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE }, poseTransforms);
     const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
-    drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE - projectHeight(layerLift), 1);
+    drawCell(ctx, { ...cell, renderRotation: posed.rotation }, posed.x, posed.y - projectHeight(layerLift + (posed.z ?? 0)), 1);
   }
   drawTurret(ctx, vehicle);
   drawComMarker(ctx, vehicle.centerOfMass);
@@ -314,15 +317,17 @@ function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
   const gap = unit <= 1.25 ? 0 : Math.min(0.5, unit * 0.11);
   ctx.save();
   ctx.globalAlpha *= alpha;
+  ctx.translate(x, y);
+  if (Number.isFinite(cell.renderRotation) && Math.abs(cell.renderRotation) > 0.000001) ctx.rotate(cell.renderRotation);
   ctx.fillStyle = palette.shadow ?? COLORS.shadow;
-  ctx.fillRect(x - CELL_SIZE / 2 + shadowOffset, y - CELL_SIZE / 2 + shadowOffset * 1.6, CELL_SIZE, CELL_SIZE);
+  ctx.fillRect(-CELL_SIZE / 2 + shadowOffset, -CELL_SIZE / 2 + shadowOffset * 1.6, CELL_SIZE, CELL_SIZE);
   for (let vy = VOXELS - 1; vy >= 0; vy -= 1) {
     for (let vx = 0; vx < VOXELS; vx += 1) {
       const voxel = cell.mask[vy][vx];
       if (voxel.hp <= 0) continue;
       const fraction = voxel.hp / voxel.maxHp;
-      const px = x - CELL_SIZE / 2 + vx * unit;
-      const py = y - CELL_SIZE / 2 + vy * unit;
+      const px = -CELL_SIZE / 2 + vx * unit;
+      const py = -CELL_SIZE / 2 + vy * unit;
       const lift = depth + fraction * depth;
       const width = Math.max(1, unit - gap * 2);
       ctx.fillStyle = shade(base, ROLE_SHADE[voxel.role] ?? 0);
@@ -335,7 +340,7 @@ function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
   }
   ctx.strokeStyle = cell.type === 'core' ? '#fff4a8' : 'rgb(255 255 255 / 0.16)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2 - depth, CELL_SIZE, CELL_SIZE);
+  ctx.strokeRect(-CELL_SIZE / 2, -CELL_SIZE / 2 - depth, CELL_SIZE, CELL_SIZE);
   ctx.restore();
 }
 
@@ -365,7 +370,7 @@ function drawComMarker(ctx, com) {
   ctx.stroke();
 }
 
-function drawEnemy(ctx, enemy, time) {
+function drawEnemy(ctx, enemy, time, game = null) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
@@ -381,6 +386,12 @@ function drawEnemy(ctx, enemy, time) {
   if (visualScale !== 1) ctx.scale(visualScale, visualScale);
   drawEnemyPresentationUnderlay(ctx, enemy, time);
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
+  const poseTransforms = evaluatePoseRig(enemy, {
+    time,
+    phase: enemy.walkPhase ?? time,
+    movementSpeed: Math.hypot(enemy.vx ?? 0, enemy.vy ?? 0),
+    target: game?.vehicle ?? enemy.poseTarget ?? null,
+  });
   const liveCells = enemy.cells
     .filter((cell) => !cell.state.destroyed)
     .sort((a, b) => cellLayer(a) - cellLayer(b) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id));
@@ -388,8 +399,16 @@ function drawEnemy(ctx, enemy, time) {
   for (const cell of liveCells) {
     if (!cell.state.destroyed) {
       const position = bossCellVisualPosition(enemy, cell, time);
+      const posed = applyCellPoseTransform(cell, position, poseTransforms);
       const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
-      drawCell(ctx, cell, position.x, position.y - projectHeight(layerLift), enemy.destroyed ? 0.35 : 1, palette);
+      drawCell(
+        ctx,
+        { ...cell, renderRotation: posed.rotation },
+        posed.x,
+        posed.y - projectHeight(layerLift + (posed.z ?? 0)),
+        enemy.destroyed ? 0.35 : 1,
+        palette,
+      );
     }
   }
   drawEnemyPresentationOverlay(ctx, enemy, palette, time);

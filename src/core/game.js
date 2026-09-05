@@ -60,6 +60,7 @@ import { normalizeGunLoadouts } from './weaponLoadout.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, validateSandboxDefinition } from './sandboxMode.js';
 import { createProceduralRoadRoute } from './roadRoute.js';
+import { createWalkerStridePoseRig } from './poseAnimation.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
@@ -744,6 +745,14 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   if (archetype.phase) enemy.phase = structuredClone(archetype.phase);
   if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);
   if (archetype.artillery) enemy.artillery = structuredClone(archetype.artillery);
+  if (archetype.poseRig) enemy.poseRig = structuredClone(archetype.poseRig);
+  if ((archetype.movementProfiles ?? []).some((profile) => profile.kind === 'walkerLegs')) {
+    const animation = archetype.cellAnimations?.find((entry) => entry.kind === 'legStride') ?? {};
+    enemy.poseRig ??= createWalkerStridePoseRig(enemy, {
+      amplitude: animation.amplitude ?? CELL_SIZE * 1.6,
+      frequency: animation.frequency ?? 0.9,
+    });
+  }
   if (archetype.id === 'heavy_mortar_boat.pirates_road') enemy.silhouette = 'pirateShip';
   if (archetype.id === 'hopping_stream_mob.digitized_stream') {
     enemy.hopperVisualBias = HOPPER_FROG_VISUAL_SCALE;

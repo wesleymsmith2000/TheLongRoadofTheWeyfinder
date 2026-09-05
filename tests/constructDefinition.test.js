@@ -101,3 +101,45 @@ test('construct validation treats matching x and y on different z layers as sepa
   });
   assert.equal(report.valid, true);
 });
+
+test('construct definitions preserve pose rig groups joints poses and animations', () => {
+  const definition = {
+    ...startingVehicleDefinition,
+    poseRig: {
+      groups: [{ id: 'turret', selector: 'type:gun', pivot: [0, -6, 0] }],
+      joints: [{ id: 'turret-hinge', group: 'turret', kind: 'hinge', axis: [0, 0, 1] }],
+      poses: [
+        { id: 'left', transforms: [{ target: 'group:turret', rotation: -0.5 }] },
+        { id: 'right', transforms: [{ target: 'group:turret', rotation: 0.5 }] },
+      ],
+      animations: [
+        {
+          id: 'sweep',
+          kind: 'poseCycle',
+          driver: 'time',
+          frequency: 1,
+          keyframes: [
+            { at: 0, pose: 'left' },
+            { at: 0.5, pose: 'right' },
+          ],
+        },
+      ],
+    },
+  };
+  const report = validateConstructDefinition(definition);
+  assert.equal(report.valid, true);
+  const construct = instantiateConstruct(definition);
+  assert.equal(construct.poseRig.groups[0].id, 'turret');
+  assert.equal(construct.poseRig.animations[0].kind, 'poseCycle');
+});
+
+test('construct validation rejects pose rigs that reference unknown groups or cells', () => {
+  const report = validateConstructDefinition({
+    ...startingVehicleDefinition,
+    cellGroups: [{ id: 'missing-cell-group', cells: ['nope'] }],
+    poseAnimations: [{ id: 'bad-aim', kind: 'aimAtTarget', target: 'group:missing' }],
+  });
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('unknown cell "nope"')), true);
+  assert.equal(report.errors.some((error) => error.includes('unknown group "missing"')), true);
+});

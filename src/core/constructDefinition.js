@@ -1,6 +1,7 @@
 import { createCell } from './cell.js';
 import { createConnection, OPPOSITE } from './connections.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
+import { normalizePoseRig, validatePoseRig } from './poseAnimation.js';
 
 export const CONSTRUCT_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export { CANON_STATUSES };
@@ -73,6 +74,7 @@ export function validateConstructDefinition(definition) {
   }
 
   if (cells.length > 0 && connections.length === 0) warnings.push('Construct has no explicit connections; only the core will be structurally connected.');
+  validatePoseRig(constructPoseRigDefinition(definition), 'poseRig', cellIds, errors, warnings);
 
   return { valid: errors.length === 0, errors, warnings };
 }
@@ -91,6 +93,7 @@ export function instantiateConstruct(definition) {
     return runtimeCell;
   });
   const connections = (definition.connections ?? []).map((edge) => createConnection(edge.a, edge.b, edge.aSide, edge.bSide ?? OPPOSITE[edge.aSide], edge.type ?? 'structural'));
+  const poseRig = normalizePoseRig(constructPoseRigDefinition(definition));
   return {
     assetId: definition.assetId,
     schemaVersion: definition.schemaVersion,
@@ -98,7 +101,21 @@ export function instantiateConstruct(definition) {
     tags: [...(definition.tags ?? [])],
     presentation: definition.presentation ? structuredClone(definition.presentation) : null,
     modules: structuredClone(definition.modules ?? []),
+    poseRig,
     cells,
     connections,
   };
+}
+
+function constructPoseRigDefinition(definition) {
+  if (definition?.poseRig) return definition.poseRig;
+  if (definition?.cellGroups || definition?.joints || definition?.poses || definition?.poseAnimations) {
+    return {
+      groups: definition.cellGroups,
+      joints: definition.joints,
+      poses: definition.poses,
+      animations: definition.poseAnimations,
+    };
+  }
+  return null;
 }
