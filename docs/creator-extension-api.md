@@ -209,6 +209,7 @@ Constructs may include optional pose rig metadata for linked cell-group animatio
 ```json
 {
   "poseRig": {
+    "schemaVersion": "0.2",
     "groups": [
       { "id": "frontLeftLeg", "selector": "role:supportLeg", "pivot": [-18, -24, 0] },
       { "id": "mainCannon", "cells": ["cannon-core", "cannon-barrel"], "pivot": [0, 0, 0] }
@@ -224,6 +225,23 @@ Constructs may include optional pose rig metadata for linked cell-group animatio
     "animations": [
       { "id": "walk", "kind": "poseCycle", "driver": "phase", "frequency": 1, "keyframes": [{ "at": 0, "pose": "strideA" }, { "at": 0.5, "pose": "strideB" }] },
       { "id": "trackPlayer", "kind": "aimAtTarget", "target": "group:mainCannon", "driver": "target" }
+    ],
+    "cellBindings": {
+      "elbow-cell": [
+        { "joint": "upperArm", "weight": 0.45 },
+        { "joint": "forearm", "weight": 0.55 }
+      ]
+    },
+    "dynamics": {
+      "enabled": false,
+      "iterations": 2,
+      "topologyStiffness": 0.5,
+      "overlapStiffness": 0.35,
+      "minimumSpacing": 6,
+      "maxCorrection": 2
+    },
+    "imports": [
+      { "source": "blockbench", "mode": "rigidHierarchy", "assetId": "creator.walker.blockbench" }
     ]
   }
 }
@@ -235,8 +253,17 @@ For editor convenience, construct assets may also use top-level aliases:
 - `joints` -> `poseRig.joints`
 - `poses` -> `poseRig.poses`
 - `poseAnimations` -> `poseRig.animations`
+- `cellBindings` -> `poseRig.cellBindings`
+- `poseDynamics` -> `poseRig.dynamics`
+- `poseRigImports` -> `poseRig.imports`
 
-Supported pose targets/selectors are `group:<id>`, `cell:<id>`, `role:<role>`, `type:<type>`, `slot:<slot>`, `tag:<tag>`, and `all`. Supported animation kinds are `oscillate`, `poseCycle`, and `aimAtTarget`. Runtime rendering evaluates pose rigs visually; simulation collision still uses the unposed cell grid until pose-aware collision is added.
+Supported pose targets/selectors are `group:<id>`, `joint:<id>`, `cell:<id>`, `role:<role>`, `type:<type>`, `slot:<slot>`, `tag:<tag>`, and `all`. Supported animation kinds are `oscillate`, `poseCycle`, and `aimAtTarget`. Runtime rendering evaluates pose rigs visually; simulation collision still uses the unposed cell grid until pose-aware collision is added.
+
+`poseRig.cellBindings` is optional and opt-in. Without it, existing rigs remain rigid group/cell transforms. With it, each bound cell may reference one or two joint ids; finite positive weights normalize to `1.0`. Weighted posing blends cell centers and orientation while keeping each cell drawn as a crisp rigid block. This is not vertex skinning and does not replace the gameplay physics, damage, or structural graph.
+
+`poseRig.dynamics` is reserved validated metadata for the next relaxation pass. Runtime v0.2 preserves it and validates numeric settings, but does not yet run topology or overlap relaxation.
+
+External importers should emit native `poseRig` data. Blockbench, glTF, Spine, and Spriter imports should start as rigid `1.0` cell bindings unless the source has reliable weighted data and the creator explicitly enables experimental weighted import.
 
 ## Current Player Vehicle Contract
 

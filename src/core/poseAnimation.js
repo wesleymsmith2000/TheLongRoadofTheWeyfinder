@@ -1,17 +1,22 @@
 import { CELL_LAYER_HEIGHT, CELL_SIZE } from './voxelMask.js';
+import { normalizeCellWeights, POSE_RIG_SCHEMA_VERSION, validateCellBindings } from './poseWeights.js';
 
 const TAU = Math.PI * 2;
 
 export const POSE_RIG_ANIMATION_KINDS = ['oscillate', 'poseCycle', 'aimAtTarget'];
-export const POSE_RIG_TARGET_PREFIXES = ['group:', 'cell:', 'role:', 'type:', 'slot:', 'tag:'];
+export const POSE_RIG_TARGET_PREFIXES = ['group:', 'joint:', 'cell:', 'role:', 'type:', 'slot:', 'tag:'];
 
 export function normalizePoseRig(rig = {}) {
   if (!rig || typeof rig !== 'object') return null;
   return {
+    schemaVersion: rig.schemaVersion ?? rig.version ?? POSE_RIG_SCHEMA_VERSION,
     groups: Array.isArray(rig.groups) ? structuredClone(rig.groups) : [],
     joints: Array.isArray(rig.joints) ? structuredClone(rig.joints) : [],
     poses: Array.isArray(rig.poses) ? structuredClone(rig.poses) : [],
     animations: Array.isArray(rig.animations) ? structuredClone(rig.animations) : [],
+    cellBindings: normalizeCellWeights(rig.cellBindings),
+    dynamics: isPlainObject(rig.dynamics) ? structuredClone(rig.dynamics) : null,
+    imports: Array.isArray(rig.imports) ? structuredClone(rig.imports) : [],
   };
 }
 
@@ -23,9 +28,12 @@ export function validatePoseRig(rig, path, cellIds, errors, warnings) {
   }
   validateGroups(rig.groups, `${path}.groups`, cellIds, errors);
   const groupIds = new Set((rig.groups ?? []).map((group) => group?.id).filter(Boolean));
-  validateJoints(rig.joints, `${path}.joints`, groupIds, errors);
-  const poseIds = validatePoses(rig.poses, `${path}.poses`, groupIds, cellIds, errors);
-  validateAnimations(rig.animations, `${path}.animations`, groupIds, poseIds, cellIds, errors, warnings);
+  const jointIds = validateJoints(rig.joints, `${path}.joints`, groupIds, errors);
+  const poseIds = validatePoses(rig.poses, `${path}.poses`, groupIds, jointIds, cellIds, errors);
+  validateAnimations(rig.animations, `${path}.animations`, groupIds, jointIds, poseIds, cellIds, errors, warnings);
+  validateCellBindings(rig.cellBindings, `${path}.cellBindings`, cellIds, jointIds, errors, warnings);
+  validateDynamics(rig.dynamics, `${path}.dynamics`, errors);
+  validateImports(rig.imports, `${path}.imports`, errors);
 }
 
 export function createWalkerStridePoseRig(entity, options = {}) {
@@ -92,9 +100,12 @@ export function evaluatePoseRig(entity, context = {}) {
   const transforms = new Map();
   if (!rig) return transforms;
   const groupMap = buildGroupMap(entity, rig);
+  const jointMap = buildJointMap(rig, groupMap);
+  const jointTransforms = new Map();
   const poseMap = new Map(rig.poses.map((pose) => [pose.id, pose]));
   const addToTarget = (target, transform) => {
-    for (const cell of cellsForTarget(entity, groupMap, target)) {
+    addToJointsForTarget(target, transform, jointMap, jointTransforms);
+    for (const cell of cellsForTarget(entity, groupMap, jointMap, target)) {
       const previous = transforms.get(cell.id) ?? baseTransform();
       transforms.set(cell.id, combineTransforms(previous, transform));
     }
@@ -114,6 +125,7 @@ export function evaluatePoseRig(entity, context = {}) {
       addToTarget(animation.target, aimAtTargetTransform(entity, animation, context, groupMap));
     }
   }
+  applyWeightedCellBindings(entity, rig, jointMap, jointTransforms, transforms);
   return transforms;
 }
 
@@ -170,11 +182,13 @@ function validateGroups(groups, path, cellIds, errors) {
 }
 
 function validateJoints(joints, path, groupIds, errors) {
-  if (joints == null) return;
+  const jointIds = new Set();
+  if (joints == null) return jointIds;
   if (!Array.isArray(joints)) {
     errors.push(`${path} must be an array when provided.`);
-    return;
+    return jointIds;
   }
+  const parentByJoint = new Map();
   for (const [index, joint] of joints.entries()) {
     const label = `${path}[${index}]`;
     if (!isPlainObject(joint)) {
@@ -182,14 +196,26 @@ function validateJoints(joints, path, groupIds, errors) {
       continue;
     }
     if (!isNonEmptyString(joint.id)) errors.push(`${label}.id must be a non-empty string.`);
+    else if (jointIds.has(joint.id)) errors.push(`${label}.id "${joint.id}" is duplicated.`);
+    else jointIds.add(joint.id);
     if (joint.group != null && !groupIds.has(joint.group)) errors.push(`${label}.group references unknown group "${joint.group}".`);
+    if (joint.parent != null && !isNonEmptyString(joint.parent)) errors.push(`${label}.parent must be a non-empty string when provided.`);
+    if (isNonEmptyString(joint.id) && isNonEmptyString(joint.parent)) parentByJoint.set(joint.id, joint.parent);
     if (joint.kind != null && !['fixed', 'slider', 'hinge'].includes(joint.kind)) errors.push(`${label}.kind must be fixed, slider, or hinge.`);
     validateVector(joint.axis, `${label}.axis`, errors);
+    validateVector(joint.pivot, `${label}.pivot`, errors);
+    validateTransform(joint.bindTransform, `${label}.bindTransform`, errors);
     validateTransform(joint.defaultTransform, `${label}.defaultTransform`, errors);
   }
+  for (const [index, joint] of joints.entries()) {
+    if (!isPlainObject(joint) || !isNonEmptyString(joint.parent)) continue;
+    if (!jointIds.has(joint.parent)) errors.push(`${path}[${index}].parent references unknown joint "${joint.parent}".`);
+  }
+  validateAcyclicJointHierarchy(parentByJoint, path, errors);
+  return jointIds;
 }
 
-function validatePoses(poses, path, groupIds, cellIds, errors) {
+function validatePoses(poses, path, groupIds, jointIds, cellIds, errors) {
   const poseIds = new Set();
   if (poses == null) return poseIds;
   if (!Array.isArray(poses)) {
@@ -205,12 +231,12 @@ function validatePoses(poses, path, groupIds, cellIds, errors) {
     if (!isNonEmptyString(pose.id)) errors.push(`${label}.id must be a non-empty string.`);
     else poseIds.add(pose.id);
     if (!Array.isArray(pose.transforms)) errors.push(`${label}.transforms must be an array.`);
-    else validateTargetedTransforms(pose.transforms, `${label}.transforms`, groupIds, cellIds, errors);
+    else validateTargetedTransforms(pose.transforms, `${label}.transforms`, groupIds, jointIds, cellIds, errors);
   }
   return poseIds;
 }
 
-function validateAnimations(animations, path, groupIds, poseIds, cellIds, errors, warnings) {
+function validateAnimations(animations, path, groupIds, jointIds, poseIds, cellIds, errors, warnings) {
   if (animations == null) return;
   if (!Array.isArray(animations)) {
     errors.push(`${path} must be an array when provided.`);
@@ -224,7 +250,7 @@ function validateAnimations(animations, path, groupIds, poseIds, cellIds, errors
     }
     if (!isNonEmptyString(animation.id)) errors.push(`${label}.id must be a non-empty string.`);
     if (!POSE_RIG_ANIMATION_KINDS.includes(animation.kind)) errors.push(`${label}.kind must be one of: ${POSE_RIG_ANIMATION_KINDS.join(', ')}.`);
-    if (animation.target != null) validateTarget(animation.target, `${label}.target`, groupIds, cellIds, errors);
+    if (animation.target != null) validateTarget(animation.target, `${label}.target`, groupIds, jointIds, cellIds, errors);
     if (animation.keyframes != null) validateKeyframes(animation.keyframes, `${label}.keyframes`, poseIds, errors);
     if (animation.driver != null && !isNonEmptyString(animation.driver)) errors.push(`${label}.driver must be a non-empty string when provided.`);
     if (animation.kind === 'poseCycle' && !Array.isArray(animation.keyframes)) errors.push(`${label}.keyframes must be an array for poseCycle animations.`);
@@ -232,14 +258,14 @@ function validateAnimations(animations, path, groupIds, poseIds, cellIds, errors
   }
 }
 
-function validateTargetedTransforms(transforms, path, groupIds, cellIds, errors) {
+function validateTargetedTransforms(transforms, path, groupIds, jointIds, cellIds, errors) {
   for (const [index, transform] of transforms.entries()) {
     const label = `${path}[${index}]`;
     if (!isPlainObject(transform)) {
       errors.push(`${label} must be an object.`);
       continue;
     }
-    validateTarget(transform.target, `${label}.target`, groupIds, cellIds, errors);
+    validateTarget(transform.target, `${label}.target`, groupIds, jointIds, cellIds, errors);
     validateTransform(transform, label, errors);
   }
 }
@@ -260,12 +286,13 @@ function validateKeyframes(keyframes, path, poseIds, errors) {
   }
 }
 
-function validateTarget(target, path, groupIds, cellIds, errors) {
+function validateTarget(target, path, groupIds, jointIds, cellIds, errors) {
   if (!isValidSelector(target)) {
     errors.push(`${path} must start with one of: ${POSE_RIG_TARGET_PREFIXES.join(', ')}.`);
     return;
   }
   if (target.startsWith('group:') && !groupIds.has(target.slice(6))) errors.push(`${path} references unknown group "${target.slice(6)}".`);
+  if (target.startsWith('joint:') && !jointIds.has(target.slice(6))) errors.push(`${path} references unknown joint "${target.slice(6)}".`);
   if (target.startsWith('cell:') && !cellIds.has(target.slice(5))) errors.push(`${path} references unknown cell "${target.slice(5)}".`);
 }
 
@@ -279,6 +306,56 @@ function validateTransform(transform, path, errors) {
   validateVector(transform.pivot, `${path}.pivot`, errors);
   for (const key of ['rotation', 'x', 'y', 'z', 'translateX', 'translateY', 'translateZ', 'amplitude', 'frequency', 'phase']) {
     if (transform[key] != null && !Number.isFinite(transform[key])) errors.push(`${path}.${key} must be a finite number.`);
+  }
+}
+
+function validateDynamics(dynamics, path, errors) {
+  if (dynamics == null) return;
+  if (!isPlainObject(dynamics)) {
+    errors.push(`${path} must be an object when provided.`);
+    return;
+  }
+  for (const key of ['iterations', 'topologyStiffness', 'overlapStiffness', 'minimumSpacing', 'maxCorrection']) {
+    if (dynamics[key] != null && !Number.isFinite(dynamics[key])) errors.push(`${path}.${key} must be a finite number.`);
+  }
+}
+
+function validateImports(imports, path, errors) {
+  if (imports == null) return;
+  if (!Array.isArray(imports)) {
+    errors.push(`${path} must be an array when provided.`);
+    return;
+  }
+  for (const [index, entry] of imports.entries()) {
+    const label = `${path}[${index}]`;
+    if (!isPlainObject(entry)) {
+      errors.push(`${label} must be an object.`);
+      continue;
+    }
+    if (entry.source != null && !isNonEmptyString(entry.source)) errors.push(`${label}.source must be a non-empty string when provided.`);
+    if (entry.mode != null && !isNonEmptyString(entry.mode)) errors.push(`${label}.mode must be a non-empty string when provided.`);
+    if (entry.assetId != null && !isNonEmptyString(entry.assetId)) errors.push(`${label}.assetId must be a non-empty string when provided.`);
+  }
+}
+
+function validateAcyclicJointHierarchy(parentByJoint, path, errors) {
+  const visited = new Set();
+  const visiting = new Set();
+  const visit = (jointId) => {
+    if (visited.has(jointId)) return false;
+    if (visiting.has(jointId)) return true;
+    visiting.add(jointId);
+    const parent = parentByJoint.get(jointId);
+    const cyclic = parent ? visit(parent) : false;
+    visiting.delete(jointId);
+    visited.add(jointId);
+    return cyclic;
+  };
+  for (const jointId of parentByJoint.keys()) {
+    if (visit(jointId)) {
+      errors.push(`${path} contains a cyclic joint parent hierarchy involving "${jointId}".`);
+      return;
+    }
   }
 }
 
@@ -309,12 +386,123 @@ function buildGroupMap(entity, rig) {
   return groups;
 }
 
-function cellsForTarget(entity, groupMap, target) {
+function buildJointMap(rig, groupMap) {
+  const joints = new Map();
+  for (const joint of rig.joints) {
+    if (!joint?.id) continue;
+    const group = joint.group ? groupMap.get(joint.group) : null;
+    joints.set(joint.id, {
+      ...joint,
+      group,
+      pivot: joint.pivot ?? joint.bindTransform?.pivot ?? joint.defaultTransform?.pivot ?? group?.pivot ?? [0, 0, 0],
+    });
+  }
+  return joints;
+}
+
+function cellsForTarget(entity, groupMap, jointMap, target) {
   if (!target) return [];
   const cells = entity?.cells ?? [];
   if (target.startsWith('group:')) return groupMap.get(target.slice(6))?.cells ?? [];
+  if (target.startsWith('joint:')) return jointMap.get(target.slice(6))?.group?.cells ?? [];
   if (target.startsWith('cell:')) return cells.filter((cell) => cell.id === target.slice(5));
   return selectCells(cells, target);
+}
+
+function addToJointsForTarget(target, transform, jointMap, jointTransforms) {
+  if (!target) return;
+  if (target.startsWith('joint:')) {
+    addToJoint(target.slice(6), transform, jointTransforms);
+    return;
+  }
+  if (target.startsWith('group:')) {
+    const groupId = target.slice(6);
+    for (const joint of jointMap.values()) {
+      if (joint.group?.id === groupId) addToJoint(joint.id, transform, jointTransforms);
+    }
+  }
+}
+
+function addToJoint(jointId, transform, jointTransforms) {
+  const previous = jointTransforms.get(jointId) ?? baseTransform(transform?.pivot ?? null);
+  jointTransforms.set(jointId, combineTransforms(previous, transform));
+}
+
+function applyWeightedCellBindings(entity, rig, jointMap, jointTransforms, cellTransforms) {
+  const bindings = rig.cellBindings ?? {};
+  if (Object.keys(bindings).length === 0) return;
+  const cellsById = new Map((entity?.cells ?? []).map((cell) => [cell.id, cell]));
+  for (const [cellId, influences] of Object.entries(bindings)) {
+    const cell = cellsById.get(cellId);
+    if (!cell || !Array.isArray(influences) || influences.length === 0) continue;
+    const rest = cellRestPoint(cell);
+    const blended = blendInfluencedCellPose(rest, influences, jointMap, jointTransforms);
+    cellTransforms.set(cellId, {
+      x: blended.x - rest.x,
+      y: blended.y - rest.y,
+      z: blended.z - rest.z,
+      rotation: blended.rotation,
+      pivot: [rest.x, rest.y, rest.z],
+    });
+  }
+}
+
+function blendInfluencedCellPose(rest, influences, jointMap, jointTransforms) {
+  let x = 0;
+  let y = 0;
+  let z = 0;
+  let sin = 0;
+  let cos = 0;
+  let weightSum = 0;
+  for (const influence of influences) {
+    const joint = jointMap.get(influence.joint);
+    const transform = jointTransforms.get(influence.joint) ?? baseTransform(joint?.pivot ?? null);
+    const weight = Number(influence.weight);
+    if (!joint || !Number.isFinite(weight) || weight <= 0) continue;
+    const target = transformPoint(rest, transform, joint.pivot);
+    x += target.x * weight;
+    y += target.y * weight;
+    z += target.z * weight;
+    sin += Math.sin(target.rotation) * weight;
+    cos += Math.cos(target.rotation) * weight;
+    weightSum += weight;
+  }
+  if (weightSum <= 0) return { ...rest, rotation: 0 };
+  return {
+    x: x / weightSum,
+    y: y / weightSum,
+    z: z / weightSum,
+    rotation: Math.atan2(sin / weightSum, cos / weightSum),
+  };
+}
+
+function transformPoint(point, transform, fallbackPivot) {
+  const pivot = transform.pivot ?? fallbackPivot ?? [point.x, point.y, point.z ?? 0];
+  const angle = transform.rotation ?? 0;
+  let x = point.x;
+  let y = point.y;
+  if (Math.abs(angle) > 0.000001) {
+    const dx = point.x - pivot[0];
+    const dy = point.y - pivot[1];
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    x = pivot[0] + dx * cos - dy * sin;
+    y = pivot[1] + dx * sin + dy * cos;
+  }
+  return {
+    x: x + (transform.x ?? 0),
+    y: y + (transform.y ?? 0),
+    z: (point.z ?? 0) + (transform.z ?? 0),
+    rotation: angle,
+  };
+}
+
+function cellRestPoint(cell) {
+  return {
+    x: cell.gridX * CELL_SIZE,
+    y: cell.gridY * CELL_SIZE,
+    z: (cell.gridZ ?? cell.layer ?? 0) * CELL_LAYER_HEIGHT,
+  };
 }
 
 function selectCells(cells, selector) {

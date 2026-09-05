@@ -1,12 +1,14 @@
 import { CELL_SIZE } from '../core/voxelMask.js';
 import { POSE_RIG_ANIMATION_KINDS, normalizePoseRig, createWalkerStridePoseRig } from '../core/poseAnimation.js';
+import { MAX_CELL_BINDING_INFLUENCES, POSE_RIG_SCHEMA_VERSION, normalizeCellWeights } from '../core/poseWeights.js';
 
 export const POSE_RIG_JOINT_KINDS = ['fixed', 'slider', 'hinge'];
 export const POSE_RIG_TRANSFORM_PROPERTIES = ['translateY', 'translateX', 'translateZ'];
 export const POSE_RIG_DRIVERS = ['time', 'phase', 'movementSpeed'];
+export { MAX_CELL_BINDING_INFLUENCES };
 
 export function emptyPoseRig() {
-  return { groups: [], joints: [], poses: [], animations: [] };
+  return { schemaVersion: POSE_RIG_SCHEMA_VERSION, groups: [], joints: [], poses: [], animations: [], cellBindings: {} };
 }
 
 export function poseRigFromConstructDefinition(definition = {}) {
@@ -26,12 +28,21 @@ export function normalizePoseRigDraft(rig = {}) {
 
 export function hasPoseRigContent(rig) {
   const normalized = normalizePoseRigDraft(rig);
-  return Boolean(normalized.groups.length || normalized.joints.length || normalized.poses.length || normalized.animations.length);
+  return Boolean(normalized.groups.length || normalized.joints.length || normalized.poses.length || normalized.animations.length || Object.keys(normalized.cellBindings ?? {}).length);
 }
 
 export function poseRigSummary(rig) {
   const normalized = normalizePoseRigDraft(rig);
-  return `${normalized.groups.length} groups, ${normalized.joints.length} joints, ${normalized.poses.length} poses, ${normalized.animations.length} animations`;
+  return `${normalized.groups.length} groups, ${normalized.joints.length} joints, ${normalized.poses.length} poses, ${normalized.animations.length} animations, ${Object.keys(normalized.cellBindings ?? {}).length} weighted cells`;
+}
+
+export function createCellBindingDescriptor({ cellId, influences } = {}) {
+  const id = cleanText(cellId);
+  if (!id) return null;
+  return {
+    cellId: id,
+    influences: normalizeCellWeights({ [id]: influences })[id] ?? [],
+  };
 }
 
 export function createGroupDescriptor({ id, selector, cells, pivot, role } = {}) {

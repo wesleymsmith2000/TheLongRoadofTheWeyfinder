@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCell } from '../src/core/cell.js';
 import { applyCellPoseTransform, createWalkerStridePoseRig, evaluatePoseRig } from '../src/core/poseAnimation.js';
+import { deriveRigidCellBindings, normalizeCellWeights } from '../src/core/poseWeights.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('pose rig oscillation moves every cell in a linked group together', () => {
@@ -89,4 +90,72 @@ test('cell pose transform rotates local cell positions around a group pivot', ()
   const posed = applyCellPoseTransform(arm, { x: CELL_SIZE, y: 0 }, transforms);
   assert.equal(posed.x.toFixed(3), '0.000');
   assert.equal(posed.y.toFixed(3), CELL_SIZE.toFixed(3));
+});
+
+test('weighted cell binding with one joint matches legacy rigid group transform', () => {
+  const cell = createCell('upper-arm-cell', 'armor', 1, 0);
+  const baseRig = {
+    groups: [{ id: 'upperArm', cells: [cell.id], pivot: [0, 0, 0] }],
+    joints: [{ id: 'upperArmJoint', group: 'upperArm', kind: 'hinge', axis: [0, 0, 1] }],
+    animations: [{ id: 'raise', kind: 'oscillate', target: 'group:upperArm', property: 'translateY', amplitude: 6, frequency: 0.25, driver: 'time' }],
+  };
+  const legacy = applyCellPoseTransform(cell, { x: CELL_SIZE, y: 0 }, evaluatePoseRig({ cells: [cell], poseRig: baseRig }, { time: 1 }));
+  const weighted = applyCellPoseTransform(
+    cell,
+    { x: CELL_SIZE, y: 0 },
+    evaluatePoseRig({ cells: [cell], poseRig: { ...baseRig, cellBindings: { [cell.id]: [{ joint: 'upperArmJoint', weight: 1 }] } } }, { time: 1 }),
+  );
+  assert.deepEqual({ x: weighted.x, y: weighted.y, rotation: weighted.rotation }, { x: legacy.x, y: legacy.y, rotation: legacy.rotation });
+});
+
+test('weighted cell bindings blend cell centers between two joints', () => {
+  const elbow = createCell('elbow-cell', 'armor', 0, 0);
+  const entity = {
+    cells: [elbow],
+    poseRig: {
+      groups: [
+        { id: 'upperArm', cells: [elbow.id], pivot: [0, 0, 0] },
+        { id: 'forearm', cells: [elbow.id], pivot: [0, 0, 0] },
+      ],
+      joints: [
+        { id: 'upperArmJoint', group: 'upperArm', defaultTransform: { translate: [10, 0, 0] } },
+        { id: 'forearmJoint', group: 'forearm', defaultTransform: { translate: [0, 10, 0] } },
+      ],
+      cellBindings: { [elbow.id]: [{ joint: 'upperArmJoint', weight: 0.5 }, { joint: 'forearmJoint', weight: 0.5 }] },
+    },
+  };
+  const posed = applyCellPoseTransform(elbow, { x: 0, y: 0 }, evaluatePoseRig(entity, { time: 0 }));
+  assert.equal(posed.x.toFixed(3), '5.000');
+  assert.equal(posed.y.toFixed(3), '5.000');
+});
+
+test('weighted orientation blend handles angle wrapping', () => {
+  const blade = createCell('blade-cell', 'gun', 1, 0);
+  const rig = {
+    groups: [
+      { id: 'leftSwing', cells: [blade.id], pivot: [0, 0, 0] },
+      { id: 'rightSwing', cells: [blade.id], pivot: [0, 0, 0] },
+    ],
+    joints: [
+      { id: 'leftJoint', group: 'leftSwing', defaultTransform: { rotation: Math.PI - 0.1, pivot: [0, 0, 0] } },
+      { id: 'rightJoint', group: 'rightSwing', defaultTransform: { rotation: -Math.PI + 0.1, pivot: [0, 0, 0] } },
+    ],
+    cellBindings: { [blade.id]: [{ joint: 'leftJoint', weight: 0.5 }, { joint: 'rightJoint', weight: 0.5 }] },
+  };
+  const transform = evaluatePoseRig({ cells: [blade], poseRig: rig }, { time: 0 }).get(blade.id);
+  assert.equal(Math.abs(transform.rotation) > 3, true);
+});
+
+test('weight helpers normalize bindings and derive rigid defaults from groups', () => {
+  const core = createCell('core', 'core', 0, 0);
+  const gun = createCell('gun', 'gun', 0, -1);
+  const normalized = normalizeCellWeights({ gun: { shoulder: 2, elbow: 2 } });
+  assert.deepEqual(normalized.gun, [{ joint: 'shoulder', weight: 0.5 }, { joint: 'elbow', weight: 0.5 }]);
+  assert.deepEqual(
+    deriveRigidCellBindings(
+      { cells: [core, gun] },
+      { groups: [{ id: 'guns', selector: 'type:gun' }], joints: [{ id: 'gunJoint', group: 'guns' }] },
+    ),
+    { gun: [{ joint: 'gunJoint', weight: 1 }] },
+  );
 });

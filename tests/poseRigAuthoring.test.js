@@ -5,6 +5,7 @@ import rotatableBossCannonConstruct from '../content/examples/prototype0-zone-en
 import { validateConstructDefinition } from '../src/core/constructDefinition.js';
 import {
   createAnimationDescriptor,
+  createCellBindingDescriptor,
   createCannonAimRigForConstruct,
   createGroupDescriptor,
   createPoseTransformDescriptor,
@@ -24,7 +25,7 @@ test('pose rig authoring normalizes construct aliases into nested runtime shape'
 
   assert.equal(rig.groups[0].id, 'turret');
   assert.equal(rig.animations[0].id, 'sweep');
-  assert.equal(poseRigSummary(rig), '1 groups, 1 joints, 1 poses, 1 animations');
+  assert.equal(poseRigSummary(rig), '1 groups, 1 joints, 1 poses, 1 animations, 0 weighted cells');
 });
 
 test('pose rig authoring creates compact descriptors from form-friendly values', () => {
@@ -58,6 +59,16 @@ test('pose rig authoring creates compact descriptors from form-friendly values',
   assert.equal(transform.rotation, 0.25);
   assert.equal(animation.id, 'leg-bob');
   assert.equal(animation.driver, 'phase');
+});
+
+test('pose rig authoring creates normalized weighted binding descriptors', () => {
+  const binding = createCellBindingDescriptor({
+    cellId: 'elbow',
+    influences: { upperArmJoint: 2, forearmJoint: 2 },
+  });
+
+  assert.equal(binding.cellId, 'elbow');
+  assert.deepEqual(binding.influences, [{ joint: 'upperArmJoint', weight: 0.5 }, { joint: 'forearmJoint', weight: 0.5 }]);
 });
 
 test('walker stride preset emits a valid construct pose rig for sculpted walkers', () => {

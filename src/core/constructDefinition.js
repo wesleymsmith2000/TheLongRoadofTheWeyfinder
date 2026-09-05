@@ -109,12 +109,15 @@ export function instantiateConstruct(definition) {
 
 function constructPoseRigDefinition(definition) {
   if (definition?.poseRig) return definition.poseRig;
-  if (definition?.cellGroups || definition?.joints || definition?.poses || definition?.poseAnimations) {
+  if (definition?.cellGroups || definition?.joints || definition?.poses || definition?.poseAnimations || definition?.cellBindings || definition?.poseDynamics || definition?.poseRigImports) {
     return {
       groups: definition.cellGroups,
       joints: definition.joints,
       poses: definition.poses,
       animations: definition.poseAnimations,
+      cellBindings: definition.cellBindings,
+      dynamics: definition.poseDynamics,
+      imports: definition.poseRigImports,
     };
   }
   return null;

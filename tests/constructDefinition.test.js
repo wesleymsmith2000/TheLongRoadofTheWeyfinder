@@ -133,6 +133,35 @@ test('construct definitions preserve pose rig groups joints poses and animations
   assert.equal(construct.poseRig.animations[0].kind, 'poseCycle');
 });
 
+test('construct pose rig aliases preserve weighted bindings dynamics and import metadata', () => {
+  const definition = {
+    ...startingVehicleDefinition,
+    cellGroups: [{ id: 'gunGroup', selector: 'type:gun' }],
+    joints: [{ id: 'gunJoint', group: 'gunGroup' }],
+    cellBindings: { gun: [{ joint: 'gunJoint', weight: 2 }] },
+    poseDynamics: { enabled: false, iterations: 2 },
+    poseRigImports: [{ source: 'blockbench', mode: 'rigidHierarchy', assetId: 'creator.walker.blockbench' }],
+  };
+  const report = validateConstructDefinition(definition);
+  assert.equal(report.valid, true);
+  const construct = instantiateConstruct(definition);
+  assert.deepEqual(construct.poseRig.cellBindings.gun, [{ joint: 'gunJoint', weight: 1 }]);
+  assert.equal(construct.poseRig.dynamics.iterations, 2);
+  assert.equal(construct.poseRig.imports[0].source, 'blockbench');
+});
+
+test('construct validation rejects invalid pose rig import metadata', () => {
+  const report = validateConstructDefinition({
+    ...startingVehicleDefinition,
+    poseRig: {
+      imports: [{ source: '', mode: 7 }],
+    },
+  });
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('imports[0].source')), true);
+  assert.equal(report.errors.some((error) => error.includes('imports[0].mode')), true);
+});
+
 test('construct validation rejects pose rigs that reference unknown groups or cells', () => {
   const report = validateConstructDefinition({
     ...startingVehicleDefinition,
@@ -142,4 +171,26 @@ test('construct validation rejects pose rigs that reference unknown groups or ce
   assert.equal(report.valid, false);
   assert.equal(report.errors.some((error) => error.includes('unknown cell "nope"')), true);
   assert.equal(report.errors.some((error) => error.includes('unknown group "missing"')), true);
+});
+
+test('construct validation reports invalid weighted cell bindings clearly', () => {
+  const report = validateConstructDefinition({
+    ...startingVehicleDefinition,
+    poseRig: {
+      groups: [{ id: 'gunGroup', selector: 'type:gun' }],
+      joints: [{ id: 'gunJoint', group: 'gunGroup' }],
+      cellBindings: {
+        gun: [
+          { joint: 'gunJoint', weight: 0.5 },
+          { joint: 'gunJoint', weight: 0.5 },
+          { joint: 'missingJoint', weight: -1 },
+        ],
+      },
+    },
+  });
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('maximum is 2')), true);
+  assert.equal(report.errors.some((error) => error.includes('duplicated')), true);
+  assert.equal(report.errors.some((error) => error.includes('unknown joint "missingJoint"')), true);
+  assert.equal(report.errors.some((error) => error.includes('finite positive number')), true);
 });

@@ -77,7 +77,7 @@ It contains advanced enemy archetypes, firing patterns, sprite descriptors, and 
 
 Constructs may now include stacked `gridZ` cells and vertical `above` / `below` connections. The browser Mesh Voxelizer emits this same construct JSON shape from imported OBJ or STL meshes.
 
-Constructs may also include pose rig metadata through `poseRig`, or the equivalent top-level aliases `cellGroups`, `joints`, `poses`, and `poseAnimations`. Runtime validation accepts linked cell groups, slider/hinge/fixed joint descriptors, pose keyframes, and the first visual animation drivers: `oscillate`, `poseCycle`, and `aimAtTarget`. See `docs/pose-rig-animation-editor-handoff.md` for the editor-facing authoring contract.
+Constructs may also include pose rig metadata through `poseRig`, or the equivalent top-level aliases `cellGroups`, `joints`, `poses`, `poseAnimations`, `cellBindings`, `poseDynamics`, and `poseRigImports`. Runtime validation accepts linked cell groups, slider/hinge/fixed joint descriptors, pose keyframes, one- or two-joint weighted cell bindings, import provenance metadata, reserved pose-dynamics settings, and the first visual animation drivers: `oscillate`, `poseCycle`, and `aimAtTarget`. See `docs/pose-rig-animation-editor-handoff.md` and `docs/cell-skinning-pose-dynamics-editor-handoff.md` for the editor-facing authoring contracts.
 
 ## Supported Asset Kinds
 

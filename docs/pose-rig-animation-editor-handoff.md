@@ -1,6 +1,6 @@
 # Pose Rig / Linked Cell Animation Editor Handoff
 
-Runtime checkpoint: `v1.0.7.8`
+Runtime checkpoint: `v1.0.7.9`
 
 This handoff describes the new runtime infrastructure for editor-authored linked cell groups, joints, poses, and simple pose animations.
 
@@ -27,10 +27,12 @@ Preferred nested form:
 ```json
 {
   "poseRig": {
+    "schemaVersion": "0.2",
     "groups": [],
     "joints": [],
     "poses": [],
-    "animations": []
+    "animations": [],
+    "cellBindings": {}
   }
 }
 ```
@@ -42,7 +44,8 @@ Editor-friendly top-level aliases are also accepted:
   "cellGroups": [],
   "joints": [],
   "poses": [],
-  "poseAnimations": []
+  "poseAnimations": [],
+  "cellBindings": {}
 }
 ```
 
@@ -71,11 +74,13 @@ Supported selectors:
 - `slot:<slotName>`
 - `tag:<tagName>`
 
+Animation and pose transform targets may also use `joint:<jointId>`, which is useful for weighted cells that bind to a joint rather than a whole rigid group.
+
 `cells` and `selector` may both be present. The runtime unions them. `pivot` is local construct space `[x, y, z]`, in pixels.
 
 ## Joints
 
-Joints are declarative metadata for the editor and future simulation. Runtime currently preserves them and applies `defaultTransform` if supplied.
+Joints are declarative metadata for the editor and future simulation. Runtime currently preserves them, applies `defaultTransform` if supplied, and uses them as targets for weighted cell bindings.
 
 ```json
 {
@@ -83,6 +88,7 @@ Joints are declarative metadata for the editor and future simulation. Runtime cu
   "group": "frontLeftLeg",
   "kind": "slider",
   "axis": [0, 1, 0],
+  "parent": "bodyRoot",
   "defaultTransform": { "translate": [0, 0, 0] }
 }
 ```
@@ -92,6 +98,34 @@ Supported `kind` values:
 - `fixed`
 - `slider`
 - `hinge`
+
+Optional `parent` links are validated for unknown ids and cycles.
+
+## Weighted Cell Bindings
+
+Cells can opt into weighted cell-center posing through `poseRig.cellBindings`.
+
+```json
+{
+  "cellBindings": {
+    "kneeBlend": [
+      { "joint": "upperLegJoint", "weight": 0.45 },
+      { "joint": "lowerLegJoint", "weight": 0.55 }
+    ],
+    "foot": [{ "joint": "lowerLegJoint", "weight": 1 }]
+  }
+}
+```
+
+Rules:
+
+- one or two influences per cell
+- finite positive weights
+- unique joint ids per cell
+- all referenced cells and joints must exist
+- weights normalize to `1.0`
+
+No `cellBindings` means the construct uses the legacy rigid group/cell transform path. Imported rigid hierarchies should generate one `1.0` binding for each controlled cell.
 
 ## Poses
 
@@ -160,6 +194,37 @@ Current renderer contexts provide:
 - `phase` for walkers, currently `enemy.walkPhase`
 - `movementSpeed`
 - `target`, currently the player vehicle for enemies
+
+## Dynamics And Import Metadata
+
+`poseRig.dynamics` is validated and preserved for a future relaxation pass:
+
+```json
+{
+  "dynamics": {
+    "enabled": false,
+    "iterations": 2,
+    "topologyStiffness": 0.5,
+    "overlapStiffness": 0.35,
+    "minimumSpacing": 6,
+    "maxCorrection": 2
+  }
+}
+```
+
+Runtime v0.2 does not run topology or overlap relaxation yet.
+
+`poseRig.imports` can record external rig provenance:
+
+```json
+{
+  "imports": [
+    { "source": "blockbench", "mode": "rigidHierarchy", "assetId": "creator.walker.blockbench" }
+  ]
+}
+```
+
+Blockbench/glTF/Spine/Spriter adapters should emit native groups, joints, poses, animations, and rigid `1.0` bindings first. Weighted import should stay opt-in until source piece to cell mapping is reliable.
 
 ## Current Runtime Fallbacks
 
