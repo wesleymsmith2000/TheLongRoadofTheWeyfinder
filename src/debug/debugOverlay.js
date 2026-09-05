@@ -30,6 +30,7 @@ export function drawDebugOverlay(ctx, game) {
     `secondary ${game.secondary.selected} ${game.secondary.ammo[game.secondary.selected] ?? '-'} heat ${game.secondary.heat.toFixed(0)}`,
     `damage ${game.score.damageDone}`,
     `level ${game.level} enemies ${game.enemies.filter((enemy) => !enemy.destroyed).length}`,
+    ...performanceLines(game.performance),
   ].filter(Boolean);
 
   ctx.save();
@@ -41,4 +42,24 @@ export function drawDebugOverlay(ctx, game) {
   ctx.fillStyle = '#e9f2df';
   lines.forEach((line, index) => ctx.fillText(line, 24, 102 + index * 18));
   ctx.restore();
+}
+
+function performanceLines(performance) {
+  if (!performance?.sampleCount) return [];
+  const frame = performance.frame;
+  const slices = performance.slices ?? {};
+  const counters = performance.counters ?? {};
+  const slow = performance.slowFrames ?? {};
+  return [
+    `perf samples ${performance.sampleCount}/${performance.windowSize}`,
+    `frame avg ${formatMs(frame.avg)} p95 ${formatMs(frame.p95)} max ${formatMs(frame.max)}`,
+    `sim ${formatMs(slices.simulation?.avg)} ui ${formatMs(slices.ui?.avg)} render ${formatMs(slices.render?.avg)}`,
+    `slow >33 ${slow.over33ms ?? 0} >50 ${slow.over50ms ?? 0} >100 ${slow.over100ms ?? 0}`,
+    `proj p/e ${counters.playerProjectiles ?? 0}/${counters.enemyProjectiles ?? 0} smoke ${counters.smokeParticles ?? 0}`,
+    `cells enemy ${counters.liveEnemyCells ?? 0}/${counters.enemyCells ?? 0} vehicle ${counters.vehicleCells ?? 0}`,
+  ];
+}
+
+function formatMs(value = 0) {
+  return `${value.toFixed(1)}ms`;
 }

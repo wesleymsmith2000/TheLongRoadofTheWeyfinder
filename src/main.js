@@ -16,6 +16,7 @@ import {
 } from './input/controlBindings.js';
 import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
+import { createPerformanceMonitor } from './debug/performanceMonitor.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
 import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
 import { applySaveStateToGame, createSaveState, validateSaveState } from './core/saveState.js';
@@ -264,6 +265,7 @@ const touchSecondaryCycle = createPointerButtonInput(secondaryTouchCycle);
 const touchSecondaryFloating = createPointerButtonInput(secondaryTouchFire);
 const pauseSecondaryPress = createPointerButtonInput(pauseSecondaryFire);
 const debug = createDebugOverlay();
+const perfMonitor = createPerformanceMonitor();
 
 const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
 
@@ -338,6 +340,7 @@ syncLaunchScreen();
 syncAiLeadToggle();
 
 function frame(now) {
+  perfMonitor.beginFrame(now);
   const dt = (now - previous) / 1000;
   previous = now;
   const keyInput = keyboard.read();
@@ -402,6 +405,7 @@ function frame(now) {
     targetCycle,
     aiShotLeading,
   };
+  perfMonitor.mark('input');
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) toggleDebug();
   if (input.controlsTogglePressed) toggleControls();
@@ -418,6 +422,7 @@ function frame(now) {
   } else if (input.resetPressed) {
     game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
   }
+  perfMonitor.mark('simulation');
   game.fps = game.fps * 0.9 + (1 / Math.max(dt, 0.001)) * 0.1;
   syncLaunchScreen();
   gameOver.classList.toggle('hidden', !game.gameOver);
@@ -442,9 +447,13 @@ function frame(now) {
   syncAiLeadToggle();
   scrapCount.textContent = game.scrap;
   scoreDamage.textContent = game.score.damageDone;
+  perfMonitor.mark('ui');
   renderer.draw(game, debug);
+  perfMonitor.mark('render');
   syncMusic();
   playSoundEvents(game);
+  perfMonitor.mark('audio');
+  game.performance = perfMonitor.endFrame(performanceCounters(game));
   requestAnimationFrame(frame);
 }
 
@@ -1318,6 +1327,32 @@ function scrollableAncestor(element) {
 
 function viewport() {
   return { width: window.innerWidth, height: window.innerHeight };
+}
+
+function performanceCounters(game) {
+  const enemies = game.enemies ?? [];
+  let activeEnemies = 0;
+  let enemyCells = 0;
+  let liveEnemyCells = 0;
+  for (const enemy of enemies) {
+    if (!enemy.destroyed) activeEnemies += 1;
+    const cells = enemy.cells ?? [];
+    enemyCells += cells.length;
+    for (const cell of cells) {
+      if (!cell.state?.destroyed) liveEnemyCells += 1;
+    }
+  }
+  return {
+    playerProjectiles: game.playerProjectiles?.length ?? 0,
+    enemyProjectiles: game.enemyProjectiles?.length ?? 0,
+    smokeParticles: game.smokeParticles?.length ?? 0,
+    scrapPickups: game.scrapPickups?.length ?? 0,
+    enemies: activeEnemies,
+    enemyCells,
+    liveEnemyCells,
+    vehicleCells: game.vehicle?.cells?.length ?? 0,
+    terrainChunks: game.terrain?.chunks?.size ?? 0,
+  };
 }
 
 function populateUpgradeSelect() {

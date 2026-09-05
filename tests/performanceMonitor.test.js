@@ -1,0 +1,43 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createPerformanceMonitor, summarizePerformanceSamples } from '../src/debug/performanceMonitor.js';
+
+test('performance monitor records frame slices counters and slow frame buckets', () => {
+  let time = 0;
+  const monitor = createPerformanceMonitor({ windowSize: 30, now: () => time });
+
+  monitor.beginFrame(time);
+  time += 2;
+  monitor.mark('input');
+  time += 12;
+  monitor.mark('simulation');
+  time += 7;
+  monitor.mark('render');
+  time += 15;
+  const summary = monitor.endFrame({ enemyProjectiles: 120, liveEnemyCells: 80 });
+
+  assert.equal(summary.sampleCount, 1);
+  assert.equal(summary.frame.max, 36);
+  assert.equal(summary.slices.input.avg, 2);
+  assert.equal(summary.slices.simulation.avg, 12);
+  assert.equal(summary.slices.render.avg, 7);
+  assert.equal(summary.slowFrames.over33ms, 1);
+  assert.equal(summary.slowFrames.over50ms, 0);
+  assert.equal(summary.counters.enemyProjectiles, 120);
+  assert.equal(summary.counters.liveEnemyCells, 80);
+});
+
+test('performance sample summaries report p95 and max deterministically', () => {
+  const samples = Array.from({ length: 20 }, (_, index) => ({
+    frameMs: index + 1,
+    slices: { simulation: index % 2 === 0 ? 4 : 8 },
+    counters: { enemyProjectiles: index * 10 },
+  }));
+  const summary = summarizePerformanceSamples(samples);
+
+  assert.equal(summary.frame.avg, 10.5);
+  assert.equal(summary.frame.p95, 20);
+  assert.equal(summary.frame.max, 20);
+  assert.equal(summary.slices.simulation.avg, 6);
+  assert.equal(summary.counters.enemyProjectiles, 190);
+});
