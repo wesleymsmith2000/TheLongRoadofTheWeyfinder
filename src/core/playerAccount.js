@@ -73,7 +73,7 @@ export function validatePlayerAccountData(account) {
     if (!Number.isInteger(entry.quantity) || entry.quantity < 0) errors.push(`equipment.${type}.quantity must be a non-negative integer.`);
   }
 
-  if (account.equipment?.core) warnings.push('Core equipment is ignored; player vehicles may only contain one core.');
+  if (account.equipment?.core) warnings.push('Core equipment is ignored; player vehicle cores come from the base construct.');
   if (account.achievements != null && !Array.isArray(account.achievements?.unlocked)) errors.push('achievements.unlocked must be an array when provided.');
   if (account.weaponUnlocks != null) {
     if (!Array.isArray(account.weaponUnlocks?.primary)) errors.push('weaponUnlocks.primary must be an array when provided.');

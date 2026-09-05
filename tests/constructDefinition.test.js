@@ -102,6 +102,42 @@ test('construct validation treats matching x and y on different z layers as sepa
   assert.equal(report.valid, true);
 });
 
+test('construct validation accepts adjacent explicitly connected multi-cell core clusters', () => {
+  const definition = {
+    ...startingVehicleDefinition,
+    cells: [
+      { id: 'core-a', type: 'core', gridX: 0, gridY: 0 },
+      { id: 'core-b', type: 'core', gridX: 1, gridY: 0 },
+      { id: 'gun', type: 'gun', gridX: 2, gridY: 0 },
+    ],
+    connections: [
+      { a: 'core-a', b: 'core-b', aSide: 'right', bSide: 'left' },
+      { a: 'core-b', b: 'gun', aSide: 'right', bSide: 'left' },
+    ],
+  };
+  const report = validateConstructDefinition(definition);
+  assert.equal(report.valid, true);
+  assert.deepEqual(report.errors, []);
+});
+
+test('construct validation rejects multi-core clusters without adjacency and explicit core links', () => {
+  const report = validateConstructDefinition({
+    ...startingVehicleDefinition,
+    cells: [
+      { id: 'core-a', type: 'core', gridX: 0, gridY: 0 },
+      { id: 'core-b', type: 'core', gridX: 2, gridY: 0 },
+      { id: 'armor', type: 'armor', gridX: 1, gridY: 0 },
+    ],
+    connections: [
+      { a: 'core-a', b: 'armor', aSide: 'right', bSide: 'left' },
+      { a: 'armor', b: 'core-b', aSide: 'right', bSide: 'left' },
+    ],
+  });
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('directly adjacent core cluster')), true);
+  assert.equal(report.errors.some((error) => error.includes('explicit structural core-to-core connections')), true);
+});
+
 test('construct definitions preserve pose rig groups joints poses and animations', () => {
   const definition = {
     ...startingVehicleDefinition,

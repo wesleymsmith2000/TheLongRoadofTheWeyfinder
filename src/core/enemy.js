@@ -987,9 +987,7 @@ export function updateEnemyDestroyed(enemy) {
     enemy.destroyed = centralCores.length > 0 && centralCores.every((cell) => cell.state.destroyed);
     return enemy.destroyed;
   }
-  const core = enemy.cells.find((cell) => cell.type === 'core');
-  const surviving = enemy.cells.filter((cell) => !cell.state.destroyed);
-  enemy.destroyed = Boolean(core?.state.destroyed || surviving.length <= 2);
+  enemy.destroyed = !enemy.cells.some((cell) => cell.type === 'core' && !cell.state.destroyed);
   return enemy.destroyed;
 }
 

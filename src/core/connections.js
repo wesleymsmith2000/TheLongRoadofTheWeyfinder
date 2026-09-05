@@ -29,9 +29,9 @@ function connectionIntegrity(cell, side) {
 }
 
 export function connectedFromCore(cells, connections) {
-  const core = cells.find((cell) => cell.type === 'core' && !cell.state.destroyed);
-  if (!core) return new Set();
-  const connected = new Set([core.id]);
+  const roots = cells.filter((cell) => cell.type === 'core' && !cell.state.destroyed);
+  if (roots.length === 0) return new Set();
+  const connected = new Set(roots.map((cell) => cell.id));
   let changed = true;
   while (changed) {
     changed = false;

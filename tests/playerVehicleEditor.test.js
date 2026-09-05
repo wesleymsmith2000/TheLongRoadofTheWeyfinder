@@ -14,7 +14,22 @@ import {
 } from '../src/core/playerVehicleEditor.js';
 import { weaponStackMultiplier } from '../src/core/weaponLoadout.js';
 import { availablePrimaryWeaponIds, availableSecondaryWeaponIds } from '../src/core/weaponLoadout.js';
-import { createStartingVehicle } from '../src/core/vehicle.js';
+import { recalculateCell } from '../src/core/cell.js';
+import { createStartingVehicle, recalculateVehicle } from '../src/core/vehicle.js';
+
+const MULTI_CORE_PLAYER_VEHICLE = {
+  schemaVersion: '0.1',
+  assetId: 'test.multi_core_player_vehicle',
+  cells: [
+    { id: 'core-a', type: 'core', gridX: 0, gridY: 0 },
+    { id: 'core-b', type: 'core', gridX: 1, gridY: 0 },
+    { id: 'engine', type: 'engine', gridX: 0, gridY: 1 },
+  ],
+  connections: [
+    { a: 'core-a', b: 'core-b', aSide: 'right', bSide: 'left' },
+    { a: 'core-a', b: 'engine', aSide: 'bottom', bSide: 'top' },
+  ],
+};
 
 test('prototype player account exposes non-core equipment quantities', () => {
   const account = createPrototypePlayerAccountData();
@@ -50,6 +65,20 @@ test('starting player vehicle content creates the default runtime vehicle', () =
   assert.equal(vehicle.cells.some((cell) => cell.type === 'core'), true);
   assert.equal(vehicle.cells.some((cell) => cell.type === 'utility'), true);
   assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet']);
+});
+
+test('player vehicle definitions can use adjacent connected multi-cell cores', () => {
+  const account = createPrototypePlayerAccountData();
+  const report = editableVehicleReport(MULTI_CORE_PLAYER_VEHICLE, account);
+  const vehicle = createStartingVehicle(MULTI_CORE_PLAYER_VEHICLE);
+  const coreA = vehicle.cells.find((cell) => cell.id === 'core-a');
+
+  for (const voxel of coreA.mask.flat()) voxel.hp = 0;
+  recalculateCell(coreA);
+  recalculateVehicle(vehicle);
+
+  assert.equal(report.valid, true);
+  assert.equal(vehicle.alive, true);
 });
 
 test('player vehicle editor can add additional unlocked equipment copies', () => {

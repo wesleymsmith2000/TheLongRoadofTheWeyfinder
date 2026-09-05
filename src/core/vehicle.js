@@ -33,8 +33,7 @@ export function recalculateVehicle(vehicle) {
     inertia += cell.state.mass * (x * x + y * y + CELL_SIZE * CELL_SIZE * 0.16);
   }
   vehicle.momentOfInertia = Math.max(inertia, 1200);
-  const core = vehicle.cells.find((cell) => cell.id === 'core');
-  vehicle.alive = Boolean(core?.attached && !core.state.destroyed && core.state.deviceIntegrity > 0.05);
+  vehicle.alive = vehicle.cells.some((cell) => cell.type === 'core' && cell.attached && !cell.state.destroyed && cell.state.deviceIntegrity > 0.05);
   return vehicle;
 }
 

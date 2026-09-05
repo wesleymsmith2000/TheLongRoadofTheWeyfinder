@@ -104,10 +104,6 @@ export function editableVehicleReport(definition, account) {
       return [type, { used, limit: equipmentLimit(account, type), remaining: Math.max(0, equipmentLimit(account, type) - used) }];
     }),
   );
-  if (definition.cells.filter((cell) => cell.type === 'core').length !== 1) {
-    report.errors.push('Player vehicle must contain exactly one core.');
-    report.valid = false;
-  }
   return { ...report, usage };
 }
 

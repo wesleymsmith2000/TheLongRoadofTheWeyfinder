@@ -1,6 +1,6 @@
 # Performance / Spatial Broadphase / GPU Research Results
 
-Runtime checkpoint: `v1.0.8.0`
+Runtime checkpoint: `v1.0.8.1`
 
 Source handoff: `GOOGLE_AI_HANDOFF_JS_PERFORMANCE_GPU_RESEARCH.md`
 
@@ -82,6 +82,15 @@ src/main.js
 The debug overlay now shows rolling frame avg/p95/max, simulation/UI/render slice averages, slow-frame buckets, projectile counts, particle counts, terrain chunks, and live/total enemy cell counts.
 
 ### Phase 1: Custom Spatial Grid
+
+Added in `v1.0.8.1`:
+
+```text
+src/core/spatialHash.js
+tests/spatialHash.test.js
+```
+
+The first pass provides a deterministic, allocation-light uniform grid with circle, swept-circle, AABB, category-mask, reusable-output-array, and query stats support. It is ready for adaptive collision integration in Phase 2.
 
 Add a small reusable grid:
 

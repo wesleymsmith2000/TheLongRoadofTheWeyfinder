@@ -288,8 +288,9 @@ The launch-screen vehicle editor edits a construct definition before deployment.
 - `gun`
 - `wheel`
 - `engine`
+- `utility`
 
-The editor does not allow adding or removing `core`. Player vehicles must contain exactly one core.
+The launch editor does not allow adding or removing `core`. Player vehicles may contain a multi-cell core cluster if the starting construct provides it. Multiple core cells must form one directly adjacent cluster in the initial grid and must also be connected to each other by explicit structural core-to-core connections. The vehicle remains alive while at least one original core cell survives.
 
 Player/construct definitions may carry per-gun weapon loadouts:
 

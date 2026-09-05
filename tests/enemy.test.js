@@ -13,6 +13,7 @@ import {
   createPirateShipEnemy,
   harvestEnemyScrap,
   traceEnemyVoxelRay,
+  updateEnemyDestroyed,
 } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, createLevelEnemies, stepGame } from '../src/core/game.js';
@@ -55,6 +56,20 @@ const LAYERED_WALKER_ENEMY = {
   ],
 };
 
+const MULTI_CORE_ENEMY = {
+  schemaVersion: '0.1',
+  assetId: 'test.multi_core_enemy',
+  cells: [
+    { id: 'core-a', type: 'core', gridX: 0, gridY: 0 },
+    { id: 'core-b', type: 'core', gridX: 1, gridY: 0 },
+    { id: 'gun', type: 'gun', gridX: 2, gridY: 0 },
+  ],
+  connections: [
+    { a: 'core-a', b: 'core-b', aSide: 'right', bSide: 'left' },
+    { a: 'core-b', b: 'gun', aSide: 'right', bSide: 'left' },
+  ],
+};
+
 test('enemy takes voxel damage and records score damage', () => {
   const enemy = createEnemy(0, 0);
   const projectile = createProjectile(0, 0, 0, 0, { damage: 20, radius: 8, team: 'player' });
@@ -81,6 +96,22 @@ test('enemy destruction is detected when core is shredded', () => {
   for (let i = 0; i < 6; i += 1) {
     applyEnemyDamage(enemy, createProjectile(0, 0, 0, 0, { damage: 100, radius: 12, team: 'player' }));
   }
+  assert.equal(enemy.destroyed, true);
+});
+
+test('standard enemies survive until every original core is destroyed', () => {
+  const enemy = createEnemy(0, 0, MULTI_CORE_ENEMY, [], { moduleScale: 1 });
+  const coreA = enemy.cells.find((cell) => cell.id === 'core-a');
+  const coreB = enemy.cells.find((cell) => cell.id === 'core-b');
+
+  for (const voxel of coreA.mask.flat()) voxel.hp = 0;
+  recalculateCell(coreA);
+  updateEnemyDestroyed(enemy);
+  assert.equal(enemy.destroyed, false);
+
+  for (const voxel of coreB.mask.flat()) voxel.hp = 0;
+  recalculateCell(coreB);
+  updateEnemyDestroyed(enemy);
   assert.equal(enemy.destroyed, true);
 });
 
@@ -479,7 +510,7 @@ test('blade contact radius is enlarged for enemy projectile absorption', () => {
   assert.equal(blade.damage, 15);
 });
 
-test('spent damage-budget blades burst into flechettes after contact', () => {
+test('over-penetrating damage-budget blades burst into flechettes after contact with no ricochets left', () => {
   const game = createGame();
   game.autofire = false;
   game.rng.range = (min) => min;
@@ -489,7 +520,7 @@ test('spent damage-budget blades burst into flechettes after contact', () => {
     createProjectile(-CELL_SIZE * 5, 0, CELL_SIZE * 5 * 60, 0, {
       team: 'player',
       weapon: 'blade_launcher',
-      damage: 80,
+      damage: 300,
       radius: 4.2,
       pierce: 4,
       pierceDamageFalloff: 1,

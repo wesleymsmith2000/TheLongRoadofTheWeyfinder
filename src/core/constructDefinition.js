@@ -55,7 +55,6 @@ export function validateConstructDefinition(definition) {
 
   const coreCount = cells.filter((cell) => cell?.type === 'core').length;
   if (coreCount === 0) errors.push('Construct must include at least one core cell.');
-  if (coreCount > 1) warnings.push('Construct has more than one core cell; current runtime uses the first surviving core.');
 
   const connections = Array.isArray(definition.connections) ? definition.connections : [];
   for (const [index, edge] of connections.entries()) {
@@ -73,6 +72,7 @@ export function validateConstructDefinition(definition) {
     if (edge.type != null && !isNonEmptyString(edge.type)) errors.push(`${label}.type must be a non-empty string when provided.`);
   }
 
+  validateCoreCluster(cells, connections, errors);
   if (cells.length > 0 && connections.length === 0) warnings.push('Construct has no explicit connections; only the core will be structurally connected.');
   validatePoseRig(constructPoseRigDefinition(definition), 'poseRig', cellIds, errors, warnings);
 
@@ -121,4 +121,50 @@ function constructPoseRigDefinition(definition) {
     };
   }
   return null;
+}
+
+function validateCoreCluster(cells, connections, errors) {
+  const cores = cells.filter((cell) => cell?.type === 'core');
+  if (cores.length <= 1) return;
+  const coreIds = new Set(cores.map((cell) => cell.id));
+  if (!connectedCoreGraph(cores, (a, b) => coreCellsAreAdjacent(a, b))) {
+    errors.push('Multiple core cells must form one directly adjacent core cluster in the initial grid.');
+  }
+  if (!connectedCoreGraph(cores, (a, b) => coreCellsAreStructurallyConnected(a, b, coreIds, connections))) {
+    errors.push('Multiple core cells must be connected to each other by explicit structural core-to-core connections.');
+  }
+}
+
+function connectedCoreGraph(cores, hasEdge) {
+  const connected = new Set([cores[0].id]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const a of cores) {
+      if (!connected.has(a.id)) continue;
+      for (const b of cores) {
+        if (connected.has(b.id) || a.id === b.id) continue;
+        if (hasEdge(a, b)) {
+          connected.add(b.id);
+          changed = true;
+        }
+      }
+    }
+  }
+  return connected.size === cores.length;
+}
+
+function coreCellsAreAdjacent(a, b) {
+  const dx = Math.abs(a.gridX - b.gridX);
+  const dy = Math.abs(a.gridY - b.gridY);
+  const dz = Math.abs((a.gridZ ?? 0) - (b.gridZ ?? 0));
+  return dx + dy + dz === 1;
+}
+
+function coreCellsAreStructurallyConnected(a, b, coreIds, connections) {
+  return connections.some((edge) => {
+    if (edge?.type != null && edge.type !== 'structural') return false;
+    if (!coreIds.has(edge?.a) || !coreIds.has(edge?.b)) return false;
+    return (edge.a === a.id && edge.b === b.id) || (edge.a === b.id && edge.b === a.id);
+  });
 }
