@@ -67,7 +67,10 @@ test('enemy archetype helpers expose editor-facing enemy models', () => {
   assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').targeting.preferConditions.includes('targetIsDistracted'), true);
   assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').artillery.weapon, 'mortar');
   assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').presentation.variant, 'heavyMortarBoat');
-  assert.equal(getEnemyArchetype('starlight_walker.prototype0').fallWhenSupportsDestroyed.landedBehavior, 'stationaryTurret');
+  assert.equal(getEnemyArchetype('starlight_walker.prototype0').construct, 'example.construct.spidery_walker_sculpted');
+  assert.equal(getEnemyArchetype('starlight_walker.prototype0').aggregate.parts.find((part) => part.id === 'legs').count, 8);
+  assert.equal(getEnemyArchetype('starlight_walker.prototype0').elevation.layeredExposure, true);
+  assert.equal(getEnemyArchetype('twilight_walker.prototype0').construct, 'example.construct.spider_walker_sculpted');
   assert.equal(getEnemyArchetype('starlight_walker.prototype0').presentation.variant, 'spiderWalker');
   assert.equal(getEnemyArchetype('scrap_buzzard.shadowed_desert').elevation.arcCollision, true);
   assert.equal(getEnemyArchetype('scrap_buzzard.shadowed_desert').presentation.variant, 'scrapBuzzard');

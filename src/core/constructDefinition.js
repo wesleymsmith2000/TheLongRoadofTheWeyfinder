@@ -82,7 +82,14 @@ export function instantiateConstruct(definition) {
   if (!report.valid) {
     throw new Error(`Invalid construct "${definition?.assetId ?? 'unknown'}": ${report.errors.join(' ')}`);
   }
-  const cells = definition.cells.map((cell) => createCell(cell.id, cell.type, cell.gridX, cell.gridY, cell.gridZ ?? cell.layer ?? 0));
+  const cells = definition.cells.map((cell) => {
+    const runtimeCell = createCell(cell.id, cell.type, cell.gridX, cell.gridY, cell.gridZ ?? cell.layer ?? 0);
+    for (const [key, value] of Object.entries(cell)) {
+      if (['id', 'type', 'gridX', 'gridY', 'gridZ', 'layer'].includes(key)) continue;
+      runtimeCell[key] = structuredClone(value);
+    }
+    return runtimeCell;
+  });
   const connections = (definition.connections ?? []).map((edge) => createConnection(edge.a, edge.b, edge.aSide, edge.bSide ?? OPPOSITE[edge.aSide], edge.type ?? 'structural'));
   return {
     assetId: definition.assetId,

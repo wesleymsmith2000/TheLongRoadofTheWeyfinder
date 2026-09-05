@@ -270,7 +270,7 @@
       "displayName": "Starlight Walker",
       "runtimeFactory": "createEnemy",
       "baseArchetype": "standard",
-      "construct": "basic_turret",
+      "construct": "example.construct.spidery_walker_sculpted",
       "patterns": ["enemy_aimed_shot"],
       "zone": "StarlightRoad",
       "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 28 },
@@ -283,20 +283,21 @@
         "kind": "limbArray",
         "parts": [
           { "id": "body", "role": "elevatedBody", "attachment": "legs", "count": 1 },
-          { "id": "legs", "role": "supportLeg", "movementProfile": "legged-body", "count": 4 }
+          { "id": "legs", "role": "supportLeg", "movementProfile": "legged-body", "count": 8 }
         ]
       },
-      "elevation": { "bodyRole": "elevatedBody", "z": 52, "canBeHitByGroundFire": false, "canBeHitByArcProjectiles": true },
-      "fallWhenSupportsDestroyed": { "supportRole": "supportLeg", "requiredDestroyedCount": 4, "landedBehavior": "stationaryTurret", "canBeHitByGroundFireAfterFall": true },
+      "elevation": { "bodyRole": "elevatedBody", "z": 0, "canBeHitByGroundFire": true, "canBeHitByArcProjectiles": true, "layeredExposure": true },
+      "layerCollapse": { "armorOnlyLowestLayerFallsAway": true },
+      "fallWhenSupportsDestroyed": { "supportRole": "supportLeg", "requiredDestroyedCount": 8, "landedBehavior": "stationaryTurret", "canBeHitByGroundFireAfterFall": true },
       "cellAnimations": [{ "selector": "role:supportLeg", "kind": "legStride", "frequency": 0.9, "amplitude": 16 }],
-      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "elevation", "fallWhenSupportsDestroyed", "cellAnimations"]
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "elevation", "layerCollapse", "fallWhenSupportsDestroyed", "cellAnimations"]
     },
     {
       "id": "twilight_walker.prototype0",
       "displayName": "Twilight Crossroads Walker",
       "runtimeFactory": "createEnemy",
       "baseArchetype": "starlight_walker.prototype0",
-      "construct": "basic_turret",
+      "construct": "example.construct.spider_walker_sculpted",
       "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
       "zone": "TwilightCrossroads",
       "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 22 },
@@ -306,9 +307,10 @@
       },
       "movementProfiles": [{ "id": "heavy-leg-cycle", "kind": "walkerLegs", "target": "player", "speed": 24, "z": 64 }],
       "aggregate": { "kind": "limbArray", "parts": [{ "id": "body", "role": "elevatedBody", "count": 1 }, { "id": "legs", "role": "supportLeg", "count": 4 }] },
-      "elevation": { "bodyRole": "elevatedBody", "z": 64, "canBeHitByGroundFire": false, "canBeHitByArcProjectiles": true },
+      "elevation": { "bodyRole": "elevatedBody", "z": 0, "canBeHitByGroundFire": true, "canBeHitByArcProjectiles": true, "layeredExposure": true },
+      "layerCollapse": { "armorOnlyLowestLayerFallsAway": true },
       "fallWhenSupportsDestroyed": { "supportRole": "supportLeg", "requiredDestroyedCount": 4, "landedBehavior": "sproutMiniLegs", "canBeHitByGroundFireAfterFall": true },
-      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "elevation", "fallWhenSupportsDestroyed"]
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "elevation", "layerCollapse", "fallWhenSupportsDestroyed"]
     },
     {
       "id": "scrap_buzzard.shadowed_desert",

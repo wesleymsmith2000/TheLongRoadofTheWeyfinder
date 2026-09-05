@@ -17,7 +17,7 @@ import {
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, createLevelEnemies, stepGame } from '../src/core/game.js';
 import { recalculateCell } from '../src/core/cell.js';
-import { CELL_SIZE, VOXELS } from '../src/core/voxelMask.js';
+import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 const SINGLE_CORE_ENEMY = {
@@ -35,6 +35,24 @@ const SHELL_FALLBACK_ENEMY = {
     { id: 'shell', type: 'armor', gridX: -1, gridY: -1 },
   ],
   connections: [{ a: 'core', b: 'shell', aSide: 'top', bSide: 'bottom' }],
+};
+
+const LAYERED_WALKER_ENEMY = {
+  schemaVersion: '0.1',
+  assetId: 'test.layered_walker_enemy',
+  cells: [
+    { id: 'lower-wheel', type: 'wheel', gridX: 0, gridY: 0, gridZ: 0 },
+    { id: 'lower-armor', type: 'armor', gridX: 1, gridY: 0, gridZ: 0 },
+    { id: 'middle-wheel', type: 'wheel', gridX: 0, gridY: 0, gridZ: 1 },
+    { id: 'middle-armor', type: 'armor', gridX: 1, gridY: 0, gridZ: 1 },
+    { id: 'raised-core', type: 'core', gridX: 0, gridY: 0, gridZ: 2 },
+  ],
+  connections: [
+    { a: 'lower-wheel', b: 'middle-wheel', aSide: 'above', bSide: 'below' },
+    { a: 'middle-wheel', b: 'raised-core', aSide: 'above', bSide: 'below' },
+    { a: 'lower-wheel', b: 'lower-armor', aSide: 'right', bSide: 'left' },
+    { a: 'middle-wheel', b: 'middle-armor', aSide: 'right', bSide: 'left' },
+  ],
 };
 
 test('enemy takes voxel damage and records score damage', () => {
@@ -176,6 +194,64 @@ test('close mortar blast destroys a stripped standard enemy core', () => {
   });
   assert.equal(result.hit, true);
   assert.equal(enemy.destroyed, true);
+});
+
+test('layered walkers expose only the lowest live layer to ground projectile damage', () => {
+  const enemy = createEnemy(0, 0, LAYERED_WALKER_ENEMY, [], { moduleScale: 1 });
+  enemy.elevation = { z: 0, canBeHitByGroundFire: true, layeredExposure: true };
+  const lower = enemy.cells.find((cell) => cell.id === 'lower-wheel');
+  const middle = enemy.cells.find((cell) => cell.id === 'middle-wheel');
+  const core = enemy.cells.find((cell) => cell.id === 'raised-core');
+  const middleBefore = middle.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const coreBefore = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const hit = applyEnemyDamage(enemy, createProjectile(0, 0, 0, 0, { damage: 20, radius: 3, team: 'player' }));
+  const lowerAfter = lower.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const middleAfter = middle.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const coreAfter = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(hit.cell.id, 'lower-wheel');
+  assert.equal(lowerAfter < middleBefore, true);
+  assert.equal(middleAfter, middleBefore);
+  assert.equal(coreAfter, coreBefore);
+});
+
+test('armor-only lowest walker layers fall away and expose the next layer', () => {
+  const enemy = createEnemy(0, 0, LAYERED_WALKER_ENEMY, [], { moduleScale: 1 });
+  enemy.elevation = { z: 0, canBeHitByGroundFire: true, layeredExposure: true };
+  const lowerArmor = enemy.cells.find((cell) => cell.id === 'lower-armor');
+  const middle = enemy.cells.find((cell) => cell.id === 'middle-wheel');
+  const middleBefore = middle.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const first = applyEnemyDamage(enemy, createProjectile(0, 0, 0, 0, { damage: 200, radius: 5, team: 'player' }));
+  assert.equal(first.cell.id, 'lower-wheel');
+  assert.equal(lowerArmor.state.destroyed, true);
+  const second = applyEnemyDamage(enemy, createProjectile(0, 0, 0, 0, { damage: 4, radius: 1, team: 'player' }));
+  const middleAfter = middle.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(second.cell.id, 'middle-wheel');
+  assert.equal(middleAfter < middleBefore, true);
+});
+
+test('blast radius includes walker layer height when damaging raised cells', () => {
+  const enemy = createEnemy(0, 0, LAYERED_WALKER_ENEMY, [], { moduleScale: 1 });
+  enemy.elevation = { z: 0, canBeHitByGroundFire: true, layeredExposure: true };
+  const core = enemy.cells.find((cell) => cell.id === 'raised-core');
+  const coreBefore = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  applyEnemyBlastDamage(enemy, { x: 0, y: 0, z: 0 }, {
+    damage: 80,
+    maxVoxelDistance: CELL_LAYER_HEIGHT / 3,
+    closeVoxelDistance: 1,
+    closePenetration: 3,
+    farPenetration: 3,
+  });
+  const coreAfterSmallBlast = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(coreAfterSmallBlast, coreBefore);
+  applyEnemyBlastDamage(enemy, { x: 0, y: 0, z: 0 }, {
+    damage: 80,
+    maxVoxelDistance: (CELL_LAYER_HEIGHT * 3) / (CELL_SIZE / VOXELS),
+    closeVoxelDistance: 20,
+    closePenetration: 3,
+    farPenetration: 3,
+  });
+  const coreAfterLargeBlast = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(coreAfterLargeBlast < coreBefore, true);
 });
 
 test('projectile pierce carries damage into voxels behind the first struck module', () => {

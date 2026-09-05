@@ -50,8 +50,13 @@ test('zone soundtrack names route standard spawns to zone archetypes', () => {
   assert.equal(frog.presentation.sprite, undefined);
   assert.equal(createLevelEnemies(road, 1, ['PiratesRoad_1'])[0].archetypeId, 'heavy_mortar_boat.pirates_road');
   assert.equal(createLevelEnemies(road, 2, ['PiratesRoad_1']).some((enemy) => enemy.archetypeId === 'mortar_skiff.prototype0'), true);
-  assert.equal(createLevelEnemies(road, 1, ['StarlightRoad_1'])[0].archetypeId, 'starlight_walker.prototype0');
-  assert.equal(createLevelEnemies(road, 1, ['TwilightCrossroads'])[0].archetypeId, 'twilight_walker.prototype0');
+  const starlight = createLevelEnemies(road, 1, ['StarlightRoad_1'])[0];
+  assert.equal(starlight.archetypeId, 'starlight_walker.prototype0');
+  assert.equal(starlight.assetId, 'example.construct.spidery_walker_sculpted');
+  assert.equal(starlight.elevation.layeredExposure, true);
+  const twilight = createLevelEnemies(road, 1, ['TwilightCrossroads'])[0];
+  assert.equal(twilight.archetypeId, 'twilight_walker.prototype0');
+  assert.equal(twilight.assetId, 'example.construct.spider_walker_sculpted');
   assert.equal(createLevelEnemies(road, 1, ['ShadowedDesert_Journey'])[0].archetypeId, 'scrap_buzzard.shadowed_desert');
   assert.equal(createLevelEnemies(road, 1, ['FreedomsPass_Journey'])[0].archetypeId, 'inchworm_carrier.freedoms_pass');
 });

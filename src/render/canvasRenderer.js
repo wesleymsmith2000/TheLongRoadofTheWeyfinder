@@ -1,4 +1,4 @@
-import { CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
+import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { cameraViewScale } from '../core/camera.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
@@ -39,6 +39,9 @@ const ROLE_SHADE = {
   [Roles.WIRE]: 42,
   [Roles.DEVICE]: 64,
 };
+
+const VIEW_ANGLE_DEGREES = 35;
+const HEIGHT_SCREEN_Y_SCALE = Math.cos((VIEW_ANGLE_DEGREES * Math.PI) / 180) / Math.cos(Math.PI / 4);
 
 const CANON_IMAGE_URLS = new Map([
   ['sprite.weapon.tracking_flechette', trackingFlechetteUrl],
@@ -238,8 +241,14 @@ function drawVehicle(ctx, vehicle, boost, time, imageAssets) {
   drawBoostShield(ctx, boost, time);
   drawConstructPresentation(ctx, vehicle, imageAssets);
   drawVehicleEdges(ctx, vehicle);
-  const attached = vehicle.cells.filter((cell) => cell.attached && !cell.state.destroyed);
-  for (const cell of attached) drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE, 1);
+  const attached = vehicle.cells
+    .filter((cell) => cell.attached && !cell.state.destroyed)
+    .sort((a, b) => cellLayer(a) - cellLayer(b) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id));
+  const baseLayer = lowestRenderableLayer(attached);
+  for (const cell of attached) {
+    const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
+    drawCell(ctx, cell, cell.gridX * CELL_SIZE, cell.gridY * CELL_SIZE - projectHeight(layerLift), 1);
+  }
   drawTurret(ctx, vehicle);
   drawComMarker(ctx, vehicle.centerOfMass);
   ctx.restore();
@@ -300,7 +309,7 @@ function drawDetachedPiece(ctx, piece) {
 function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
   const unit = CELL_SIZE / VOXELS;
   const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
-  const depth = CELL_SIZE * 0.11;
+  const depth = projectHeight(CELL_SIZE * 0.11);
   const shadowOffset = CELL_SIZE * 0.15;
   const gap = unit <= 1.25 ? 0 : Math.min(0.5, unit * 0.11);
   ctx.save();
@@ -360,8 +369,8 @@ function drawEnemy(ctx, enemy, time) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
-  if ((enemy.elevation?.z ?? 0) > 0) drawEnemyElevationShadow(ctx, enemy);
-  ctx.translate(0, -(enemy.elevation?.z ?? 0));
+  if ((enemy.elevation?.z ?? 0) > 0 || enemyHasRenderableLayers(enemy)) drawEnemyElevationShadow(ctx, enemy);
+  ctx.translate(0, -projectHeight(enemyBaseElevation(enemy)));
   if (enemy.kind === 'boss') {
     drawBossLaserTelegraphs(ctx, enemy, time);
     drawBossTentacleWiggle(ctx, enemy, time);
@@ -372,10 +381,15 @@ function drawEnemy(ctx, enemy, time) {
   if (visualScale !== 1) ctx.scale(visualScale, visualScale);
   drawEnemyPresentationUnderlay(ctx, enemy, time);
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
-  for (const cell of enemy.cells) {
+  const liveCells = enemy.cells
+    .filter((cell) => !cell.state.destroyed)
+    .sort((a, b) => cellLayer(a) - cellLayer(b) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id));
+  const baseLayer = lowestRenderableLayer(liveCells);
+  for (const cell of liveCells) {
     if (!cell.state.destroyed) {
       const position = bossCellVisualPosition(enemy, cell, time);
-      drawCell(ctx, cell, position.x, position.y, enemy.destroyed ? 0.35 : 1, palette);
+      const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
+      drawCell(ctx, cell, position.x, position.y - projectHeight(layerLift), enemy.destroyed ? 0.35 : 1, palette);
     }
   }
   drawEnemyPresentationOverlay(ctx, enemy, palette, time);
@@ -536,7 +550,7 @@ function drawMothFlicker(ctx, time, palette) {
 }
 
 function drawEnemyElevationShadow(ctx, enemy) {
-  const z = enemy.elevation?.z ?? 0;
+  const z = enemyBaseElevation(enemy) + enemyMaxLayerLift(enemy);
   const alpha = Math.max(0.08, 0.24 - z / 900);
   ctx.save();
   ctx.globalAlpha *= alpha;
@@ -841,7 +855,7 @@ function drawOrbFlechette(ctx, projectile) {
 function drawArcProjectile(ctx, projectile, color, imageAssets) {
   const heightRatio = Math.max(0, Math.min(1, projectile.z / Math.max(1, projectile.maxArcHeight ?? 1)));
   const visualX = projectile.x;
-  const visualY = projectile.y - projectile.z;
+  const visualY = projectile.y - projectHeight(projectile.z);
   const scale = 1 + heightRatio * 0.55;
   const marker = projectile.detonateAtTarget && projectile.targetHint ? projectile.targetHint : projectile;
   ctx.save();
@@ -945,6 +959,35 @@ function drawSpriteDescriptor(ctx, imageAssets, sprite, x, y, angle = 0, scale =
 
 function imageReady(image) {
   return Boolean(image?.complete && image.naturalWidth > 0);
+}
+
+function projectHeight(z = 0) {
+  return z * HEIGHT_SCREEN_Y_SCALE;
+}
+
+function cellLayer(cell) {
+  return Number.isFinite(cell?.gridZ) ? cell.gridZ : Number.isFinite(cell?.layer) ? cell.layer : 0;
+}
+
+function lowestRenderableLayer(cells) {
+  if (!cells?.length) return 0;
+  return Math.min(...cells.map(cellLayer));
+}
+
+function enemyBaseElevation(enemy) {
+  return enemy.elevation?.layeredExposure ? 0 : enemy.elevation?.z ?? 0;
+}
+
+function enemyHasRenderableLayers(enemy) {
+  const liveCells = enemy.cells?.filter((cell) => !cell.state?.destroyed) ?? [];
+  return enemyMaxLayerLift({ ...enemy, cells: liveCells }) > 0;
+}
+
+function enemyMaxLayerLift(enemy) {
+  const liveCells = enemy.cells?.filter((cell) => !cell.state?.destroyed) ?? [];
+  if (liveCells.length === 0) return 0;
+  const lowest = lowestRenderableLayer(liveCells);
+  return Math.max(...liveCells.map((cell) => Math.max(0, cellLayer(cell) - lowest) * CELL_LAYER_HEIGHT));
 }
 
 function drawBossMissile(ctx, projectile) {

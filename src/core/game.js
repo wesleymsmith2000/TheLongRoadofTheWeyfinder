@@ -70,6 +70,7 @@ import ghostPhaserSculptedDefinition from '../../content/examples/prototype0-zon
 import tractorFrogSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
 import heavyMortarBoatSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
 import spiderWalkerSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
+import spideryWalkerSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import scrapBuzzardSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
 import inchwormHeadSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json' with { type: 'json' };
 import inchwormSegmentSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json' with { type: 'json' };
@@ -109,7 +110,7 @@ const RUNTIME_SCULPTED_CONSTRUCTS = {
   'ghost_phaser.ghost_forrest': ghostPhaserSculptedDefinition,
   'hopping_stream_mob.digitized_stream': tractorFrogSculptedDefinition,
   'heavy_mortar_boat.pirates_road': heavyMortarBoatSculptedDefinition,
-  'starlight_walker.prototype0': spiderWalkerSculptedDefinition,
+  'starlight_walker.prototype0': spideryWalkerSculptedDefinition,
   'twilight_walker.prototype0': spiderWalkerSculptedDefinition,
   'scrap_buzzard.shadowed_desert': scrapBuzzardSculptedDefinition,
   'moth_bomber.freedoms_pass': mothBomberSculptedDefinition,
@@ -1560,7 +1561,10 @@ function inaccuratePlayerMortarTarget(game, radius) {
 }
 
 function stepWalkerEnemy(game, enemy, dt) {
-  enemy.elevation ??= { z: enemy.archetypeId === 'twilight_walker.prototype0' ? 64 : 52, canBeHitByGroundFire: false, arcCollision: true };
+  enemy.elevation ??= { z: 0, canBeHitByGroundFire: true, arcCollision: true, layeredExposure: true };
+  enemy.elevation.z = 0;
+  enemy.elevation.canBeHitByGroundFire = true;
+  enemy.elevation.layeredExposure = true;
   enemy.walkPhase = (enemy.walkPhase ?? 0) + dt * 4.4 * enemyMovementUpgradeScale(enemy);
   enemy.vx += Math.sin(enemy.walkPhase) * 6 * dt;
 }
@@ -2276,8 +2280,13 @@ function handleCollisions(game) {
 
 function enemyCanBeHitByProjectile(enemy, projectile) {
   if (enemy.phasedOut && projectile.behavior !== 'arc') return false;
+  if (enemyUsesLayeredCellExposure(enemy)) return true;
   if (enemy.elevation?.canBeHitByGroundFire === false && projectile.behavior !== 'arc') return false;
   return true;
+}
+
+function enemyUsesLayeredCellExposure(enemy) {
+  return Boolean(enemy.elevation?.layeredExposure) || enemy.cells?.some((cell) => (cell.gridZ ?? cell.layer ?? 0) > 0);
 }
 
 function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
@@ -2850,7 +2859,15 @@ function hitEnemiesWithBeam(game, projectile) {
     if (shieldTrace.projectile.absorbHp <= 0) shieldTrace.projectile.lifetime = 0;
     return;
   }
-  const trace = traceEnemyVoxelBeam(activeEnemies(game).filter((enemy) => enemyCanBeHitByProjectile(enemy, projectile)), projectile, projectile.angle, projectile.length, halfWidth, projectile.pierce ?? 0);
+  const trace = traceEnemyVoxelBeam(
+    activeEnemies(game).filter((enemy) => enemyCanBeHitByProjectile(enemy, projectile)),
+    projectile,
+    projectile.angle,
+    projectile.length,
+    halfWidth,
+    projectile.pierce ?? 0,
+    { groundOnly: projectile.behavior !== 'arc' },
+  );
   projectile.renderEndX = trace.x;
   projectile.renderEndY = trace.y;
   if (trace.hits.length === 0) return;

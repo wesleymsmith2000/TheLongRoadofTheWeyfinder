@@ -79,7 +79,10 @@ test('zone enemy examples preserve requested advanced behavior descriptors', () 
   assert.equal(byId.get('example.ghost_phase_mob.ghost_forrest').fireSequence.shots, 16);
   assert.equal(byId.get('example.tractor_frog.digitized_stream').tractorBeam.scrapHealPerPiece, 8);
   assert.equal(byId.get('example.heavy_mortar_boat.pirates_road').artillery.shots, 7);
-  assert.equal(byId.get('example.elevated_walker.starlight_road').fallWhenSupportsDestroyed.requiredDestroyedCount, 4);
+  assert.equal(byId.get('example.elevated_walker.starlight_road').construct, 'example.construct.spidery_walker_sculpted');
+  assert.equal(byId.get('example.elevated_walker.starlight_road').aggregate.parts.find((part) => part.id === 'legs').count, 8);
+  assert.equal(byId.get('example.elevated_walker.starlight_road').fallWhenSupportsDestroyed.requiredDestroyedCount, 8);
+  assert.equal(byId.get('example.elevated_walker.starlight_road').elevation.layeredExposure, true);
   assert.equal(byId.get('example.scrap_buzzard.shadowed_desert').scrapFeeding.landWhenScrapPresent, true);
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').segments.maxCount, 12);
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').segments.destroyedSegmentRelease.kind, 'scrapSpray');

@@ -3,6 +3,7 @@ import { clamp } from './math.js';
 export const CELL_SIZE = 6;
 export const VOXELS = 4;
 export const VOXEL_SIZE = CELL_SIZE / VOXELS;
+export const CELL_LAYER_HEIGHT = CELL_SIZE;
 
 export const Roles = {
   EMPTY: 'empty',
