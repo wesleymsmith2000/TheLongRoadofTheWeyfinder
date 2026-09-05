@@ -178,6 +178,27 @@
         padding: 12px;
       }
 
+      .rig-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .rig-grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .rig-label {
+        margin: 6px 0 -2px;
+        color: #f4eee4;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .compact-textarea {
+        min-height: 86px;
+      }
+
       .canvas-panel {
         display: grid;
         grid-template-rows: auto auto 1fr;
@@ -237,6 +258,14 @@
 
       .lookup-panel code {
         overflow-wrap: anywhere;
+        color: #f7c06a;
+      }
+
+      .lookup-panel .error {
+        color: #ff9b89;
+      }
+
+      .lookup-panel .warning {
         color: #f7c06a;
       }
 
@@ -366,6 +395,123 @@
               <button id="connectButton" type="button" aria-pressed="false">Connect</button>
               <button id="connectAboveButton" type="button">Connect Above</button>
               <button id="connectBelowButton" type="button">Connect Below</button>
+            </div>
+          </div>
+          <h2>Pose Rig</h2>
+          <div class="form">
+            <div id="poseRigStatus" class="lookup-panel"></div>
+            <div class="tool-row">
+              <button id="walkerStridePresetButton" type="button">Walker Stride Preset</button>
+              <button id="cannonAimPresetButton" type="button">Cannon Aim Preset</button>
+              <button id="clearPoseRigButton" type="button" class="danger">Clear Rig</button>
+            </div>
+
+            <p class="rig-label">Groups</p>
+            <label>
+              Load Group
+              <select id="poseGroupSelect"></select>
+            </label>
+            <div class="rig-grid two">
+              <label>ID <input id="poseGroupIdInput" autocomplete="off" /></label>
+              <label>Role <input id="poseGroupRoleInput" autocomplete="off" /></label>
+            </div>
+            <label>Selector <input id="poseGroupSelectorInput" autocomplete="off" placeholder="role:supportLeg" /></label>
+            <label>Cells <input id="poseGroupCellsInput" autocomplete="off" placeholder="cell-a, cell-b" /></label>
+            <div class="rig-grid">
+              <label>Pivot X <input id="poseGroupPivotXInput" type="number" step="1" /></label>
+              <label>Pivot Y <input id="poseGroupPivotYInput" type="number" step="1" /></label>
+              <label>Pivot Z <input id="poseGroupPivotZInput" type="number" step="1" /></label>
+            </div>
+            <div class="tool-row">
+              <button id="savePoseGroupButton" type="button">Save Group</button>
+              <button id="removePoseGroupButton" type="button" class="danger">Remove Group</button>
+            </div>
+
+            <p class="rig-label">Joints</p>
+            <label>
+              Load Joint
+              <select id="poseJointSelect"></select>
+            </label>
+            <div class="rig-grid two">
+              <label>ID <input id="poseJointIdInput" autocomplete="off" /></label>
+              <label>Group <input id="poseJointGroupInput" autocomplete="off" /></label>
+            </div>
+            <div class="rig-grid">
+              <label>Kind <select id="poseJointKindSelect"></select></label>
+              <label>Axis X <input id="poseJointAxisXInput" type="number" step="0.1" /></label>
+              <label>Axis Y <input id="poseJointAxisYInput" type="number" step="0.1" /></label>
+            </div>
+            <div class="rig-grid">
+              <label>Axis Z <input id="poseJointAxisZInput" type="number" step="0.1" /></label>
+              <label>Default X <input id="poseJointTranslateXInput" type="number" step="1" /></label>
+              <label>Default Y <input id="poseJointTranslateYInput" type="number" step="1" /></label>
+            </div>
+            <label>Default Z <input id="poseJointTranslateZInput" type="number" step="1" /></label>
+            <div class="tool-row">
+              <button id="savePoseJointButton" type="button">Save Joint</button>
+              <button id="removePoseJointButton" type="button" class="danger">Remove Joint</button>
+            </div>
+
+            <p class="rig-label">Poses</p>
+            <label>
+              Load Pose
+              <select id="poseSelect"></select>
+            </label>
+            <div class="rig-grid two">
+              <label>Pose ID <input id="poseIdInput" autocomplete="off" /></label>
+              <label>Target <input id="poseTransformTargetInput" autocomplete="off" placeholder="group:frontLeftLeg" /></label>
+            </div>
+            <div class="rig-grid">
+              <label>Move X <input id="poseTransformXInput" type="number" step="1" /></label>
+              <label>Move Y <input id="poseTransformYInput" type="number" step="1" /></label>
+              <label>Move Z <input id="poseTransformZInput" type="number" step="1" /></label>
+            </div>
+            <div class="rig-grid">
+              <label>Rotation <input id="poseTransformRotationInput" type="number" step="0.01" /></label>
+              <label>Pivot X <input id="poseTransformPivotXInput" type="number" step="1" /></label>
+              <label>Pivot Y <input id="poseTransformPivotYInput" type="number" step="1" /></label>
+            </div>
+            <label>Pivot Z <input id="poseTransformPivotZInput" type="number" step="1" /></label>
+            <div class="tool-row">
+              <button id="savePoseButton" type="button">Save Pose Transform</button>
+              <button id="removePoseButton" type="button" class="danger">Remove Pose</button>
+            </div>
+
+            <p class="rig-label">Animations</p>
+            <label>
+              Load Animation
+              <select id="poseAnimationSelect"></select>
+            </label>
+            <div class="rig-grid two">
+              <label>ID <input id="poseAnimationIdInput" autocomplete="off" /></label>
+              <label>Kind <select id="poseAnimationKindSelect"></select></label>
+            </div>
+            <div class="rig-grid two">
+              <label>Target <input id="poseAnimationTargetInput" autocomplete="off" placeholder="group:mainCannon" /></label>
+              <label>Property <select id="poseAnimationPropertySelect"></select></label>
+            </div>
+            <div class="rig-grid">
+              <label>Amplitude <input id="poseAnimationAmplitudeInput" type="number" step="1" /></label>
+              <label>Frequency <input id="poseAnimationFrequencyInput" type="number" step="0.1" /></label>
+              <label>Phase <input id="poseAnimationPhaseInput" type="number" step="0.1" /></label>
+            </div>
+            <div class="rig-grid two">
+              <label>Driver <select id="poseAnimationDriverSelect"></select></label>
+              <label>Rotation Offset <input id="poseAnimationRotationOffsetInput" type="number" step="0.01" /></label>
+            </div>
+            <label>
+              Keyframes
+              <textarea id="poseAnimationKeyframesInput" class="compact-textarea" spellcheck="false" placeholder='[{"at":0,"pose":"strideForward"},{"at":0.5,"pose":"strideBack"}]'></textarea>
+            </label>
+            <div class="tool-row">
+              <button id="savePoseAnimationButton" type="button">Save Animation</button>
+              <button id="removePoseAnimationButton" type="button" class="danger">Remove Animation</button>
+            </div>
+
+            <p class="rig-label">Raw Rig JSON</p>
+            <textarea id="poseRigJsonOutput" class="compact-textarea" spellcheck="false"></textarea>
+            <div class="tool-row">
+              <button id="applyPoseRigJsonButton" type="button">Apply Rig JSON</button>
             </div>
           </div>
           <h2>Cells</h2>

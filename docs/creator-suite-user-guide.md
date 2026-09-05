@@ -45,6 +45,19 @@ Construct cells can now carry `gridZ`. The workshop edits one layer at a time, w
 
 The Mesh Voxelizer accepts text OBJ files plus ASCII and binary STL files. It samples mesh surfaces into layered construct cells, chooses one centroid-adjacent core, and creates explicit adjacency connections. The first pass is best for low-poly silhouettes; open the generated JSON in the Construct Workshop to assign more meaningful cell types and loadouts.
 
+## Pose Rigs
+
+The Construct Workshop can now author construct `poseRig` metadata.
+
+- `groups` collect linked cells by direct cell ids or selectors like `role:supportLeg`, `type:gun`, `slot:topCannonMount`, and `tag:name`.
+- `joints` describe how groups attach. Current runtime accepts `fixed`, `slider`, and `hinge`; `defaultTransform` is applied visually.
+- `poses` store named target transforms. The compact UI edits the first transform for a pose, and the raw rig JSON field can be used for multi-target pose keyframes.
+- `animations` support `oscillate`, `poseCycle`, and `aimAtTarget`.
+- `Walker Stride Preset` uses the runtime walker grouping helper for constructs whose leg cells are marked with `supportLeg`, `legArmor`, or `legJoint`.
+- `Cannon Aim Preset` creates a rotating `mainCannon` group, hinge joint, and `aimAtTarget` animation.
+
+Downloaded constructs emit the preferred nested `poseRig` shape. Imported alias fields (`cellGroups`, `joints`, `poses`, `poseAnimations`) are normalized into that shape when loaded.
+
 ## Current Limits
 
 Editor-authored constructs, enemy archetypes, patterns, weapons, levels, and resources can be validated and packaged now. The gameplay runner still needs small runtime adapters before every advanced descriptor field becomes active behavior.

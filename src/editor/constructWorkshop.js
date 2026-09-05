@@ -16,6 +16,24 @@ import {
 import { secondaryAmmoCapacity } from '../core/secondaryWeapon.js';
 import { loadLocalContentLibrary } from '../core/localContentLibrary.js';
 import { BUILTIN_CONSTRUCT_DEFINITIONS } from './constructCatalog.js';
+import {
+  POSE_RIG_DRIVERS,
+  POSE_RIG_JOINT_KINDS,
+  POSE_RIG_TRANSFORM_PROPERTIES,
+  createAnimationDescriptor,
+  createCannonAimRigForConstruct,
+  createGroupDescriptor,
+  createJointDescriptor,
+  createPoseDescriptor,
+  createPoseTransformDescriptor,
+  createWalkerStrideRigForConstruct,
+  emptyPoseRig,
+  hasPoseRigContent,
+  normalizePoseRigDraft,
+  parseVector,
+  poseRigFromConstructDefinition,
+  poseRigSummary,
+} from './poseRigAuthoring.js';
 import { bindBuildVersion } from './versionBadge.js';
 
 const canvas = document.querySelector('#constructCanvas');
@@ -52,6 +70,69 @@ const loadoutSelects = [
   document.querySelector('#secondarySlot1Select'),
   document.querySelector('#secondarySlot2Select'),
 ];
+const poseRigStatus = document.querySelector('#poseRigStatus');
+const walkerStridePresetButton = document.querySelector('#walkerStridePresetButton');
+const cannonAimPresetButton = document.querySelector('#cannonAimPresetButton');
+const clearPoseRigButton = document.querySelector('#clearPoseRigButton');
+const poseGroupSelect = document.querySelector('#poseGroupSelect');
+const poseGroupIdInput = document.querySelector('#poseGroupIdInput');
+const poseGroupRoleInput = document.querySelector('#poseGroupRoleInput');
+const poseGroupSelectorInput = document.querySelector('#poseGroupSelectorInput');
+const poseGroupCellsInput = document.querySelector('#poseGroupCellsInput');
+const poseGroupPivotInputs = [
+  document.querySelector('#poseGroupPivotXInput'),
+  document.querySelector('#poseGroupPivotYInput'),
+  document.querySelector('#poseGroupPivotZInput'),
+];
+const poseJointSelect = document.querySelector('#poseJointSelect');
+const poseJointIdInput = document.querySelector('#poseJointIdInput');
+const poseJointGroupInput = document.querySelector('#poseJointGroupInput');
+const poseJointKindSelect = document.querySelector('#poseJointKindSelect');
+const poseJointAxisInputs = [
+  document.querySelector('#poseJointAxisXInput'),
+  document.querySelector('#poseJointAxisYInput'),
+  document.querySelector('#poseJointAxisZInput'),
+];
+const poseJointTranslateInputs = [
+  document.querySelector('#poseJointTranslateXInput'),
+  document.querySelector('#poseJointTranslateYInput'),
+  document.querySelector('#poseJointTranslateZInput'),
+];
+const poseSelect = document.querySelector('#poseSelect');
+const poseIdInput = document.querySelector('#poseIdInput');
+const poseTransformTargetInput = document.querySelector('#poseTransformTargetInput');
+const poseTransformInputs = [
+  document.querySelector('#poseTransformXInput'),
+  document.querySelector('#poseTransformYInput'),
+  document.querySelector('#poseTransformZInput'),
+];
+const poseTransformRotationInput = document.querySelector('#poseTransformRotationInput');
+const poseTransformPivotInputs = [
+  document.querySelector('#poseTransformPivotXInput'),
+  document.querySelector('#poseTransformPivotYInput'),
+  document.querySelector('#poseTransformPivotZInput'),
+];
+const poseAnimationSelect = document.querySelector('#poseAnimationSelect');
+const poseAnimationIdInput = document.querySelector('#poseAnimationIdInput');
+const poseAnimationKindSelect = document.querySelector('#poseAnimationKindSelect');
+const poseAnimationTargetInput = document.querySelector('#poseAnimationTargetInput');
+const poseAnimationPropertySelect = document.querySelector('#poseAnimationPropertySelect');
+const poseAnimationAmplitudeInput = document.querySelector('#poseAnimationAmplitudeInput');
+const poseAnimationFrequencyInput = document.querySelector('#poseAnimationFrequencyInput');
+const poseAnimationPhaseInput = document.querySelector('#poseAnimationPhaseInput');
+const poseAnimationDriverSelect = document.querySelector('#poseAnimationDriverSelect');
+const poseAnimationRotationOffsetInput = document.querySelector('#poseAnimationRotationOffsetInput');
+const poseAnimationKeyframesInput = document.querySelector('#poseAnimationKeyframesInput');
+const savePoseGroupButton = document.querySelector('#savePoseGroupButton');
+const removePoseGroupButton = document.querySelector('#removePoseGroupButton');
+const savePoseJointButton = document.querySelector('#savePoseJointButton');
+const removePoseJointButton = document.querySelector('#removePoseJointButton');
+const savePoseButton = document.querySelector('#savePoseButton');
+const removePoseButton = document.querySelector('#removePoseButton');
+const savePoseAnimationButton = document.querySelector('#savePoseAnimationButton');
+const removePoseAnimationButton = document.querySelector('#removePoseAnimationButton');
+const poseRigJsonOutput = document.querySelector('#poseRigJsonOutput');
+const applyPoseRigJsonButton = document.querySelector('#applyPoseRigJsonButton');
 
 bindBuildVersion();
 
@@ -72,6 +153,10 @@ const maxEditorLayer = 31;
 
 let tool = 'paint';
 let selectedCellId = null;
+let selectedPoseGroupId = null;
+let selectedPoseJointId = null;
+let selectedPoseId = null;
+let selectedPoseAnimationId = null;
 let constructCatalog = [];
 let currentLayer = 0;
 let definition = cloneDefinition(BUILTIN_CONSTRUCT_DEFINITIONS[0]);
@@ -81,6 +166,18 @@ for (const status of CANON_STATUSES) {
 }
 for (const type of CELL_TYPES) {
   cellTypeSelect.append(new Option(type, type));
+}
+for (const kind of POSE_RIG_JOINT_KINDS) {
+  poseJointKindSelect.append(new Option(kind, kind));
+}
+for (const kind of ['oscillate', 'poseCycle', 'aimAtTarget']) {
+  poseAnimationKindSelect.append(new Option(kind, kind));
+}
+for (const property of POSE_RIG_TRANSFORM_PROPERTIES) {
+  poseAnimationPropertySelect.append(new Option(property, property));
+}
+for (const driver of POSE_RIG_DRIVERS) {
+  poseAnimationDriverSelect.append(new Option(driver, driver));
 }
 populateLoadoutSelects();
 refreshConstructCatalog();
@@ -119,6 +216,38 @@ for (const select of loadoutSelects) {
     render();
   });
 }
+walkerStridePresetButton.addEventListener('click', applyWalkerStridePreset);
+cannonAimPresetButton.addEventListener('click', applyCannonAimPreset);
+clearPoseRigButton.addEventListener('click', () => {
+  definition.poseRig = emptyPoseRig();
+  clearPoseSelections();
+  render();
+});
+poseGroupSelect.addEventListener('change', () => {
+  selectedPoseGroupId = poseGroupSelect.value;
+  syncPoseGroupFields();
+});
+poseJointSelect.addEventListener('change', () => {
+  selectedPoseJointId = poseJointSelect.value;
+  syncPoseJointFields();
+});
+poseSelect.addEventListener('change', () => {
+  selectedPoseId = poseSelect.value;
+  syncPoseFields();
+});
+poseAnimationSelect.addEventListener('change', () => {
+  selectedPoseAnimationId = poseAnimationSelect.value;
+  syncPoseAnimationFields();
+});
+savePoseGroupButton.addEventListener('click', savePoseGroup);
+removePoseGroupButton.addEventListener('click', removePoseGroup);
+savePoseJointButton.addEventListener('click', savePoseJoint);
+removePoseJointButton.addEventListener('click', removePoseJoint);
+savePoseButton.addEventListener('click', savePose);
+removePoseButton.addEventListener('click', removePose);
+savePoseAnimationButton.addEventListener('click', savePoseAnimation);
+removePoseAnimationButton.addEventListener('click', removePoseAnimation);
+applyPoseRigJsonButton.addEventListener('click', applyPoseRigJson);
 
 loadDefinition(definition);
 
@@ -183,7 +312,11 @@ function loadDefinition(nextDefinition) {
   definition.modules ??= [];
   definition.cells = definition.cells.map((cell) => ({ ...cell, gridZ: normalizedLayer(cell) }));
   definition.gunLoadouts = normalizeGunLoadouts(definition);
+  definition.poseRig = poseRigFromConstructDefinition(definition);
+  delete definition.cellGroups;
+  delete definition.poseAnimations;
   selectedCellId = null;
+  clearPoseSelections();
   currentLayer = clampLayer(layerForInitialView(definition));
   syncDefinitionToFields();
   populateConstructSelect();
@@ -286,6 +419,7 @@ function render() {
   drawCanvas();
   renderLists();
   syncLoadoutControls();
+  renderPoseRigControls();
   renderJson();
   renderStatus();
   renderLookupPanel();
@@ -449,6 +583,7 @@ function renderStatus() {
     `<span>${moduleSummary.guns} firing points, main-gun rate x${moduleSummary.gunRateMultiplier}</span>`,
     `<span>${moduleSummary.engines} engines, acceleration/top speed x${moduleSummary.engineMultiplier}</span>`,
     `<span>${moduleSummary.wheels} wheels, braking/control x${moduleSummary.wheelMultiplier}${moduleSummary.wheelAsymmetry ? ', asymmetric pull likely' : ''}</span>`,
+    `<span>Pose rig: ${escapeHtml(poseRigSummary(definition.poseRig))}</span>`,
   ].filter(Boolean);
   const selectedLoadout = normalizeGunLoadouts(definition).find((loadout) => loadout.cellId === selectedCellId);
   if (selectedLoadout) lines.push(`<span>Selected gun loadout: ${escapeHtml(loadoutLabel(selectedLoadout))}</span>`);
@@ -480,6 +615,213 @@ function renderLookupPanel() {
     .join('');
 }
 
+function renderPoseRigControls() {
+  definition.poseRig = normalizePoseRigDraft(definition.poseRig);
+  poseRigStatus.innerHTML = [
+    `<span><strong>Pose rig</strong></span>`,
+    `<span>${escapeHtml(poseRigSummary(definition.poseRig))}</span>`,
+  ].join('');
+  populateRigSelect(poseGroupSelect, definition.poseRig.groups, 'New group', selectedPoseGroupId);
+  populateRigSelect(poseJointSelect, definition.poseRig.joints, 'New joint', selectedPoseJointId);
+  populateRigSelect(poseSelect, definition.poseRig.poses, 'New pose', selectedPoseId);
+  populateRigSelect(poseAnimationSelect, definition.poseRig.animations, 'New animation', selectedPoseAnimationId);
+  syncPoseGroupFields();
+  syncPoseJointFields();
+  syncPoseFields();
+  syncPoseAnimationFields();
+  poseRigJsonOutput.value = `${JSON.stringify(definition.poseRig, null, 2)}\n`;
+}
+
+function populateRigSelect(select, items, blankLabel, selectedId) {
+  const previous = selectedId && items.some((item) => item.id === selectedId) ? selectedId : '';
+  select.replaceChildren(new Option(blankLabel, ''));
+  for (const item of items) select.append(new Option(item.id, item.id));
+  select.value = previous;
+}
+
+function syncPoseGroupFields() {
+  const group = definition.poseRig.groups.find((entry) => entry.id === selectedPoseGroupId);
+  poseGroupIdInput.value = group?.id ?? '';
+  poseGroupRoleInput.value = group?.role ?? '';
+  poseGroupSelectorInput.value = group?.selector ?? '';
+  poseGroupCellsInput.value = (group?.cells ?? []).join(', ');
+  setVectorInputs(poseGroupPivotInputs, group?.pivot ?? [0, 0, 0]);
+}
+
+function syncPoseJointFields() {
+  const joint = definition.poseRig.joints.find((entry) => entry.id === selectedPoseJointId);
+  poseJointIdInput.value = joint?.id ?? '';
+  poseJointGroupInput.value = joint?.group ?? '';
+  poseJointKindSelect.value = joint?.kind ?? 'fixed';
+  setVectorInputs(poseJointAxisInputs, joint?.axis ?? [0, 0, 1]);
+  setVectorInputs(poseJointTranslateInputs, joint?.defaultTransform?.translate ?? [0, 0, 0]);
+}
+
+function syncPoseFields() {
+  const pose = definition.poseRig.poses.find((entry) => entry.id === selectedPoseId);
+  const transform = pose?.transforms?.[0];
+  poseIdInput.value = pose?.id ?? '';
+  poseTransformTargetInput.value = transform?.target ?? '';
+  setVectorInputs(poseTransformInputs, transform?.translate ?? [transform?.x ?? 0, transform?.y ?? 0, transform?.z ?? 0]);
+  poseTransformRotationInput.value = String(transform?.rotation ?? 0);
+  setVectorInputs(poseTransformPivotInputs, transform?.pivot ?? [0, 0, 0]);
+}
+
+function syncPoseAnimationFields() {
+  const animation = definition.poseRig.animations.find((entry) => entry.id === selectedPoseAnimationId);
+  poseAnimationIdInput.value = animation?.id ?? '';
+  poseAnimationKindSelect.value = animation?.kind ?? 'oscillate';
+  poseAnimationTargetInput.value = animation?.target ?? '';
+  poseAnimationPropertySelect.value = animation?.property ?? 'translateY';
+  poseAnimationAmplitudeInput.value = String(animation?.amplitude ?? 12);
+  poseAnimationFrequencyInput.value = String(animation?.frequency ?? 1);
+  poseAnimationPhaseInput.value = String(animation?.phase ?? 0);
+  poseAnimationDriverSelect.value = animation?.driver ?? 'time';
+  poseAnimationRotationOffsetInput.value = String(animation?.rotationOffset ?? 0);
+  poseAnimationKeyframesInput.value = animation?.keyframes ? JSON.stringify(animation.keyframes, null, 2) : '';
+}
+
+function savePoseGroup() {
+  const group = createGroupDescriptor({
+    id: poseGroupIdInput.value,
+    role: poseGroupRoleInput.value,
+    selector: poseGroupSelectorInput.value,
+    cells: poseGroupCellsInput.value,
+    pivot: vectorFromInputs(poseGroupPivotInputs),
+  });
+  definition.poseRig.groups = upsertById(definition.poseRig.groups, group);
+  selectedPoseGroupId = group.id;
+  render();
+}
+
+function removePoseGroup() {
+  if (!selectedPoseGroupId) return;
+  definition.poseRig.groups = definition.poseRig.groups.filter((group) => group.id !== selectedPoseGroupId);
+  definition.poseRig.joints = definition.poseRig.joints.filter((joint) => joint.group !== selectedPoseGroupId);
+  definition.poseRig.animations = definition.poseRig.animations.filter((animation) => animation.target !== `group:${selectedPoseGroupId}`);
+  for (const pose of definition.poseRig.poses) {
+    pose.transforms = (pose.transforms ?? []).filter((transform) => transform.target !== `group:${selectedPoseGroupId}`);
+  }
+  selectedPoseGroupId = null;
+  render();
+}
+
+function savePoseJoint() {
+  const joint = createJointDescriptor({
+    id: poseJointIdInput.value,
+    group: poseJointGroupInput.value,
+    kind: poseJointKindSelect.value,
+    axis: vectorFromInputs(poseJointAxisInputs),
+    defaultTranslate: vectorFromInputs(poseJointTranslateInputs),
+  });
+  definition.poseRig.joints = upsertById(definition.poseRig.joints, joint);
+  selectedPoseJointId = joint.id;
+  render();
+}
+
+function removePoseJoint() {
+  if (!selectedPoseJointId) return;
+  definition.poseRig.joints = definition.poseRig.joints.filter((joint) => joint.id !== selectedPoseJointId);
+  selectedPoseJointId = null;
+  render();
+}
+
+function savePose() {
+  const transform = createPoseTransformDescriptor({
+    target: poseTransformTargetInput.value,
+    translate: vectorFromInputs(poseTransformInputs),
+    rotation: poseTransformRotationInput.value,
+    pivot: vectorFromInputs(poseTransformPivotInputs),
+  });
+  const pose = createPoseDescriptor({ id: poseIdInput.value, transforms: transform.target ? [transform] : [] });
+  definition.poseRig.poses = upsertById(definition.poseRig.poses, pose);
+  selectedPoseId = pose.id;
+  render();
+}
+
+function removePose() {
+  if (!selectedPoseId) return;
+  definition.poseRig.poses = definition.poseRig.poses.filter((pose) => pose.id !== selectedPoseId);
+  for (const animation of definition.poseRig.animations) {
+    if (animation.keyframes) animation.keyframes = animation.keyframes.filter((keyframe) => keyframe.pose !== selectedPoseId);
+  }
+  selectedPoseId = null;
+  render();
+}
+
+function savePoseAnimation() {
+  const animation = createAnimationDescriptor({
+    id: poseAnimationIdInput.value,
+    kind: poseAnimationKindSelect.value,
+    target: poseAnimationTargetInput.value,
+    property: poseAnimationPropertySelect.value,
+    amplitude: poseAnimationAmplitudeInput.value,
+    frequency: poseAnimationFrequencyInput.value,
+    phase: poseAnimationPhaseInput.value,
+    driver: poseAnimationDriverSelect.value,
+    rotationOffset: poseAnimationRotationOffsetInput.value,
+    keyframes: poseAnimationKeyframesInput.value,
+  });
+  definition.poseRig.animations = upsertById(definition.poseRig.animations, animation);
+  selectedPoseAnimationId = animation.id;
+  render();
+}
+
+function removePoseAnimation() {
+  if (!selectedPoseAnimationId) return;
+  definition.poseRig.animations = definition.poseRig.animations.filter((animation) => animation.id !== selectedPoseAnimationId);
+  selectedPoseAnimationId = null;
+  render();
+}
+
+function applyPoseRigJson() {
+  try {
+    definition.poseRig = normalizePoseRigDraft(JSON.parse(poseRigJsonOutput.value));
+    clearPoseSelections();
+    render();
+  } catch (error) {
+    poseRigStatus.innerHTML = `<span class="error">Error: ${escapeHtml(error.message)}</span>`;
+  }
+}
+
+function applyWalkerStridePreset() {
+  const rig = createWalkerStrideRigForConstruct(definition);
+  if (!hasPoseRigContent(rig)) {
+    poseRigStatus.innerHTML = '<span class="warning">Walker preset needs cells tagged with role supportLeg, legArmor, or legJoint.</span>';
+    return;
+  }
+  definition.poseRig = rig;
+  clearPoseSelections();
+  render();
+}
+
+function applyCannonAimPreset() {
+  definition.poseRig = createCannonAimRigForConstruct(definition);
+  clearPoseSelections();
+  render();
+}
+
+function clearPoseSelections() {
+  selectedPoseGroupId = null;
+  selectedPoseJointId = null;
+  selectedPoseId = null;
+  selectedPoseAnimationId = null;
+}
+
+function upsertById(items, item) {
+  return [...items.filter((entry) => entry.id !== item.id), item];
+}
+
+function vectorFromInputs(inputs) {
+  return parseVector(inputs.map((input) => input.value));
+}
+
+function setVectorInputs(inputs, vector) {
+  inputs.forEach((input, index) => {
+    input.value = String(vector[index] ?? 0);
+  });
+}
+
 function constructModuleSummary(construct) {
   const cells = construct.cells ?? [];
   const guns = countCells(cells, 'gun');
@@ -507,7 +849,8 @@ function multiplierText(value) {
 }
 
 function normalizedDefinition() {
-  return {
+  const poseRig = normalizePoseRigDraft(definition.poseRig);
+  const normalized = {
     schemaVersion: definition.schemaVersion ?? CONSTRUCT_SCHEMA_VERSION,
     assetId: definition.assetId ?? '',
     displayName: definition.displayName,
@@ -522,6 +865,8 @@ function normalizedDefinition() {
     modules: definition.modules ?? [],
     gunLoadouts: normalizeGunLoadouts(definition),
   };
+  if (hasPoseRigContent(poseRig)) normalized.poseRig = poseRig;
+  return normalized;
 }
 
 function populateLoadoutSelects() {

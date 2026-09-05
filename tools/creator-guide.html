@@ -235,6 +235,18 @@
           </div>
         </section>
         <section class="section">
+          <h2>Pose Rigs</h2>
+          <div class="body">
+            <ul>
+              <li>Pose rigs live on construct JSON as <code>poseRig</code> with <code>groups</code>, <code>joints</code>, <code>poses</code>, and <code>animations</code>.</li>
+              <li>Groups collect linked cells. Use direct cell ids or selectors like <code>role:supportLeg</code>, <code>type:gun</code>, <code>slot:topCannonMount</code>, and <code>tag:name</code>.</li>
+              <li>Joints attach groups for editor and future runtime logic. Current runtime preserves <code>fixed</code>, <code>slider</code>, and <code>hinge</code> joints, and applies any default transform.</li>
+              <li>Poses store named transforms. The current workshop edits the first transform in each pose; use raw rig JSON for multi-target pose keyframes.</li>
+              <li>Animations can <code>oscillate</code>, run a <code>poseCycle</code>, or <code>aimAtTarget</code>. The walker and cannon preset buttons create valid starting rigs for sculpted walkers and rotating boss cannons.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
           <h2>Enemy Editor</h2>
           <div class="body">
             <ul>
