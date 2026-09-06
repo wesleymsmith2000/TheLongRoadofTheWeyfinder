@@ -393,6 +393,8 @@
               <button id="paintButton" type="button" aria-pressed="true">Paint</button>
               <button id="eraseButton" type="button" aria-pressed="false">Erase</button>
               <button id="connectButton" type="button" aria-pressed="false">Connect</button>
+              <button id="weightPaintButton" type="button" aria-pressed="false">Paint Weight</button>
+              <button id="weightEraseButton" type="button" aria-pressed="false">Erase Weight</button>
               <button id="connectAboveButton" type="button">Connect Above</button>
               <button id="connectBelowButton" type="button">Connect Below</button>
             </div>
@@ -450,6 +452,26 @@
             <div class="tool-row">
               <button id="savePoseJointButton" type="button">Save Joint</button>
               <button id="removePoseJointButton" type="button" class="danger">Remove Joint</button>
+            </div>
+
+            <p class="rig-label">Weights</p>
+            <div class="rig-grid two">
+              <label>
+                Joint
+                <select id="weightJointSelect"></select>
+              </label>
+              <label>
+                Blend Joint
+                <select id="weightBlendJointSelect"></select>
+              </label>
+            </div>
+            <label>Exact Weight <input id="weightValueInput" type="number" min="0.001" max="1" step="0.05" value="1" /></label>
+            <div id="weightBindingPanel" class="lookup-panel"></div>
+            <div class="tool-row">
+              <button id="fillSelectedWeightButton" type="button">Fill Selected</button>
+              <button id="normalizeSelectedWeightButton" type="button">Normalize Cell</button>
+              <button id="blendSelectedWeightButton" type="button">50/50 Blend</button>
+              <button id="smoothSelectedWeightButton" type="button">Smooth Cell</button>
             </div>
 
             <p class="rig-label">Poses</p>

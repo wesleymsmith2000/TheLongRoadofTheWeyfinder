@@ -21,11 +21,17 @@ test('pose rig authoring normalizes construct aliases into nested runtime shape'
     joints: [{ id: 'turret-hinge', group: 'turret', kind: 'hinge' }],
     poses: [{ id: 'left', transforms: [{ target: 'group:turret', rotation: -0.5 }] }],
     poseAnimations: [{ id: 'sweep', kind: 'poseCycle', keyframes: [{ at: 0, pose: 'left' }] }],
+    cellBindings: { barrel: [{ joint: 'turret-hinge', weight: 2 }] },
+    poseDynamics: { enabled: false, iterations: 2 },
+    poseRigImports: [{ source: 'blockbench', mode: 'rigidHierarchy' }],
   });
 
   assert.equal(rig.groups[0].id, 'turret');
   assert.equal(rig.animations[0].id, 'sweep');
-  assert.equal(poseRigSummary(rig), '1 groups, 1 joints, 1 poses, 1 animations, 0 weighted cells');
+  assert.deepEqual(rig.cellBindings.barrel, [{ joint: 'turret-hinge', weight: 1 }]);
+  assert.equal(rig.dynamics.iterations, 2);
+  assert.equal(rig.imports[0].source, 'blockbench');
+  assert.equal(poseRigSummary(rig), '1 groups, 1 joints, 1 poses, 1 animations, 1 weighted cells');
 });
 
 test('pose rig authoring creates compact descriptors from form-friendly values', () => {
@@ -64,7 +70,7 @@ test('pose rig authoring creates compact descriptors from form-friendly values',
 test('pose rig authoring creates normalized weighted binding descriptors', () => {
   const binding = createCellBindingDescriptor({
     cellId: 'elbow',
-    influences: { upperArmJoint: 2, forearmJoint: 2 },
+    influences: { upperArmJoint: 2, forearmJoint: 2, ignoredJoint: 1 },
   });
 
   assert.equal(binding.cellId, 'elbow');

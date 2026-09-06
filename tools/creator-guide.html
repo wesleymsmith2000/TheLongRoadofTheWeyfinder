@@ -243,6 +243,8 @@
               <li>Joints attach groups for editor and future runtime logic. Current runtime preserves <code>fixed</code>, <code>slider</code>, and <code>hinge</code> joints, and applies any default transform.</li>
               <li>Poses store named transforms. The current workshop edits the first transform in each pose; use raw rig JSON for multi-target pose keyframes.</li>
               <li>Animations can <code>oscillate</code>, run a <code>poseCycle</code>, or <code>aimAtTarget</code>. The walker and cannon preset buttons create valid starting rigs for sculpted walkers and rotating boss cannons.</li>
+              <li>Weighted cells use <code>cellBindings</code>. Select a joint, choose <code>Paint Weight</code>, then click cells to add influence for that joint.</li>
+              <li><code>50/50 Blend</code> binds the selected cell between two joints, while <code>Smooth Cell</code> averages weights from connected neighbors.</li>
             </ul>
           </div>
         </section>

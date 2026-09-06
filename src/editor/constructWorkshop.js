@@ -20,7 +20,9 @@ import {
   POSE_RIG_DRIVERS,
   POSE_RIG_JOINT_KINDS,
   POSE_RIG_TRANSFORM_PROPERTIES,
+  MAX_CELL_BINDING_INFLUENCES,
   createAnimationDescriptor,
+  createCellBindingDescriptor,
   createCannonAimRigForConstruct,
   createGroupDescriptor,
   createJointDescriptor,
@@ -52,6 +54,8 @@ const layerViewSelect = document.querySelector('#layerViewSelect');
 const paintButton = document.querySelector('#paintButton');
 const eraseButton = document.querySelector('#eraseButton');
 const connectButton = document.querySelector('#connectButton');
+const weightPaintButton = document.querySelector('#weightPaintButton');
+const weightEraseButton = document.querySelector('#weightEraseButton');
 const connectAboveButton = document.querySelector('#connectAboveButton');
 const connectBelowButton = document.querySelector('#connectBelowButton');
 const resetButton = document.querySelector('#resetButton');
@@ -127,6 +131,14 @@ const savePoseGroupButton = document.querySelector('#savePoseGroupButton');
 const removePoseGroupButton = document.querySelector('#removePoseGroupButton');
 const savePoseJointButton = document.querySelector('#savePoseJointButton');
 const removePoseJointButton = document.querySelector('#removePoseJointButton');
+const weightJointSelect = document.querySelector('#weightJointSelect');
+const weightBlendJointSelect = document.querySelector('#weightBlendJointSelect');
+const weightValueInput = document.querySelector('#weightValueInput');
+const weightBindingPanel = document.querySelector('#weightBindingPanel');
+const fillSelectedWeightButton = document.querySelector('#fillSelectedWeightButton');
+const normalizeSelectedWeightButton = document.querySelector('#normalizeSelectedWeightButton');
+const blendSelectedWeightButton = document.querySelector('#blendSelectedWeightButton');
+const smoothSelectedWeightButton = document.querySelector('#smoothSelectedWeightButton');
 const savePoseButton = document.querySelector('#savePoseButton');
 const removePoseButton = document.querySelector('#removePoseButton');
 const savePoseAnimationButton = document.querySelector('#savePoseAnimationButton');
@@ -157,6 +169,8 @@ let selectedPoseGroupId = null;
 let selectedPoseJointId = null;
 let selectedPoseId = null;
 let selectedPoseAnimationId = null;
+let selectedWeightJointId = null;
+let selectedBlendJointId = null;
 let constructCatalog = [];
 let currentLayer = 0;
 let definition = cloneDefinition(BUILTIN_CONSTRUCT_DEFINITIONS[0]);
@@ -203,6 +217,8 @@ layerViewSelect.addEventListener('change', render);
 paintButton.addEventListener('click', () => setTool('paint'));
 eraseButton.addEventListener('click', () => setTool('erase'));
 connectButton.addEventListener('click', () => setTool('connect'));
+weightPaintButton.addEventListener('click', () => setTool('weightPaint'));
+weightEraseButton.addEventListener('click', () => setTool('weightErase'));
 connectAboveButton.addEventListener('click', () => connectVertical(1));
 connectBelowButton.addEventListener('click', () => connectVertical(-1));
 resetButton.addEventListener('click', () => loadDefinition(BUILTIN_CONSTRUCT_DEFINITIONS[0]));
@@ -231,6 +247,14 @@ poseJointSelect.addEventListener('change', () => {
   selectedPoseJointId = poseJointSelect.value;
   syncPoseJointFields();
 });
+weightJointSelect.addEventListener('change', () => {
+  selectedWeightJointId = weightJointSelect.value;
+  render();
+});
+weightBlendJointSelect.addEventListener('change', () => {
+  selectedBlendJointId = weightBlendJointSelect.value;
+  renderWeightBindingPanel();
+});
 poseSelect.addEventListener('change', () => {
   selectedPoseId = poseSelect.value;
   syncPoseFields();
@@ -243,6 +267,10 @@ savePoseGroupButton.addEventListener('click', savePoseGroup);
 removePoseGroupButton.addEventListener('click', removePoseGroup);
 savePoseJointButton.addEventListener('click', savePoseJoint);
 removePoseJointButton.addEventListener('click', removePoseJoint);
+fillSelectedWeightButton.addEventListener('click', fillSelectedWeight);
+normalizeSelectedWeightButton.addEventListener('click', normalizeSelectedWeight);
+blendSelectedWeightButton.addEventListener('click', blendSelectedWeight);
+smoothSelectedWeightButton.addEventListener('click', smoothSelectedWeight);
 savePoseButton.addEventListener('click', savePose);
 removePoseButton.addEventListener('click', removePose);
 savePoseAnimationButton.addEventListener('click', savePoseAnimation);
@@ -315,6 +343,9 @@ function loadDefinition(nextDefinition) {
   definition.poseRig = poseRigFromConstructDefinition(definition);
   delete definition.cellGroups;
   delete definition.poseAnimations;
+  delete definition.cellBindings;
+  delete definition.poseDynamics;
+  delete definition.poseRigImports;
   selectedCellId = null;
   clearPoseSelections();
   currentLayer = clampLayer(layerForInitialView(definition));
@@ -349,6 +380,15 @@ function handleCanvasClick(event) {
   const grid = pointToGrid(point);
   if (!grid) return;
   const existing = cellAt(grid.x, grid.y, currentLayer);
+  if (tool === 'weightPaint' || tool === 'weightErase') {
+    if (existing) {
+      selectedCellId = existing.id;
+      if (tool === 'weightPaint') applyWeightToCell(existing.id);
+      else eraseWeightFromCell(existing.id);
+    }
+    render();
+    return;
+  }
   if (tool === 'erase') {
     if (existing) removeCell(existing.id);
     render();
@@ -408,6 +448,7 @@ function connectVertical(direction) {
 function removeCell(id) {
   definition.cells = definition.cells.filter((cell) => cell.id !== id);
   definition.connections = definition.connections.filter((edge) => edge.a !== id && edge.b !== id);
+  if (definition.poseRig?.cellBindings) delete definition.poseRig.cellBindings[id];
   if (selectedCellId === id) selectedCellId = null;
 }
 
@@ -498,12 +539,26 @@ function drawCell(cell) {
   context.beginPath();
   context.roundRect(center.x - size / 2, center.y - size / 2, size, size, 7);
   context.fill();
+  drawWeightHeatmap(cell, center, size, visibility);
   context.stroke();
   context.fillStyle = '#101313';
   context.font = '700 13px Inter, sans-serif';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   context.fillText(`${cell.type.toUpperCase().slice(0, 2)}${normalizedLayer(cell) === currentLayer ? '' : normalizedLayer(cell)}`, center.x, center.y);
+  context.restore();
+}
+
+function drawWeightHeatmap(cell, center, size, visibility) {
+  if (!selectedWeightJointId || !tool.startsWith('weight')) return;
+  const influence = weightForJoint(cell.id, selectedWeightJointId);
+  if (influence <= 0) return;
+  context.save();
+  context.globalAlpha = visibility.alpha * Math.min(0.82, 0.18 + influence * 0.64);
+  context.fillStyle = '#f7c06a';
+  context.beginPath();
+  context.roundRect(center.x - size / 2, center.y - size / 2, size, size, 7);
+  context.fill();
   context.restore();
 }
 
@@ -623,10 +678,13 @@ function renderPoseRigControls() {
   ].join('');
   populateRigSelect(poseGroupSelect, definition.poseRig.groups, 'New group', selectedPoseGroupId);
   populateRigSelect(poseJointSelect, definition.poseRig.joints, 'New joint', selectedPoseJointId);
+  populateRigSelect(weightJointSelect, definition.poseRig.joints, 'Select joint', selectedWeightJointId);
+  populateRigSelect(weightBlendJointSelect, definition.poseRig.joints, 'Blend joint', selectedBlendJointId);
   populateRigSelect(poseSelect, definition.poseRig.poses, 'New pose', selectedPoseId);
   populateRigSelect(poseAnimationSelect, definition.poseRig.animations, 'New animation', selectedPoseAnimationId);
   syncPoseGroupFields();
   syncPoseJointFields();
+  renderWeightBindingPanel();
   syncPoseFields();
   syncPoseAnimationFields();
   poseRigJsonOutput.value = `${JSON.stringify(definition.poseRig, null, 2)}\n`;
@@ -716,14 +774,117 @@ function savePoseJoint() {
   });
   definition.poseRig.joints = upsertById(definition.poseRig.joints, joint);
   selectedPoseJointId = joint.id;
+  if (!selectedWeightJointId) selectedWeightJointId = joint.id;
   render();
 }
 
 function removePoseJoint() {
   if (!selectedPoseJointId) return;
   definition.poseRig.joints = definition.poseRig.joints.filter((joint) => joint.id !== selectedPoseJointId);
+  for (const cellId of Object.keys(definition.poseRig.cellBindings ?? {})) {
+    eraseWeightFromCell(cellId, selectedPoseJointId);
+  }
+  if (selectedWeightJointId === selectedPoseJointId) selectedWeightJointId = null;
+  if (selectedBlendJointId === selectedPoseJointId) selectedBlendJointId = null;
   selectedPoseJointId = null;
   render();
+}
+
+function renderWeightBindingPanel() {
+  const selectedCell = definition.cells.find((cell) => cell.id === selectedCellId);
+  const influences = selectedCell ? definition.poseRig.cellBindings?.[selectedCell.id] ?? [] : [];
+  weightBindingPanel.innerHTML = [
+    `<span><strong>Selected cell weights</strong></span>`,
+    selectedCell ? `<span>Cell: <code>${escapeHtml(selectedCell.id)}</code></span>` : '<span>No cell selected</span>',
+    selectedWeightJointId ? `<span>Heatmap joint: <code>${escapeHtml(selectedWeightJointId)}</code></span>` : '<span>No heatmap joint selected</span>',
+    influences.length
+      ? `<span>${influences.map((influence) => `${escapeHtml(influence.joint)} ${multiplierText(influence.weight)}`).join(', ')}</span>`
+      : '<span>No explicit weighted binding</span>',
+  ].join('');
+}
+
+function fillSelectedWeight() {
+  if (!selectedCellId) return;
+  applyWeightToCell(selectedCellId);
+  render();
+}
+
+function normalizeSelectedWeight() {
+  if (!selectedCellId) return;
+  setCellBinding(selectedCellId, definition.poseRig.cellBindings?.[selectedCellId] ?? []);
+  render();
+}
+
+function blendSelectedWeight() {
+  if (!selectedCellId || !selectedWeightJointId || !selectedBlendJointId || selectedWeightJointId === selectedBlendJointId) return;
+  setCellBinding(selectedCellId, [
+    { joint: selectedWeightJointId, weight: 0.5 },
+    { joint: selectedBlendJointId, weight: 0.5 },
+  ]);
+  render();
+}
+
+function smoothSelectedWeight() {
+  if (!selectedCellId) return;
+  const neighbors = connectedCellIds(selectedCellId);
+  const sampleBindings = [definition.poseRig.cellBindings?.[selectedCellId] ?? [], ...neighbors.map((id) => definition.poseRig.cellBindings?.[id] ?? [])].filter(
+    (entries) => entries.length > 0,
+  );
+  if (sampleBindings.length === 0) return;
+  const totals = new Map();
+  for (const entries of sampleBindings) {
+    for (const influence of entries) totals.set(influence.joint, (totals.get(influence.joint) ?? 0) + influence.weight / sampleBindings.length);
+  }
+  const smoothed = [...totals.entries()]
+    .map(([joint, weight]) => ({ joint, weight }))
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, MAX_CELL_BINDING_INFLUENCES);
+  setCellBinding(selectedCellId, smoothed);
+  render();
+}
+
+function applyWeightToCell(cellId) {
+  if (!selectedWeightJointId) return;
+  const weight = Math.max(0.001, Math.min(1, Number(weightValueInput.value) || 1));
+  const previous = definition.poseRig.cellBindings?.[cellId] ?? [];
+  const retained = previous
+    .filter((influence) => influence.joint !== selectedWeightJointId)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, MAX_CELL_BINDING_INFLUENCES - 1);
+  setCellBinding(cellId, [...retained, { joint: selectedWeightJointId, weight }]);
+}
+
+function eraseWeightFromCell(cellId, jointId = selectedWeightJointId) {
+  if (!jointId) return;
+  const previous = definition.poseRig.cellBindings?.[cellId] ?? [];
+  setCellBinding(
+    cellId,
+    previous.filter((influence) => influence.joint !== jointId),
+  );
+}
+
+function setCellBinding(cellId, influences) {
+  definition.poseRig.cellBindings ??= {};
+  const descriptor = createCellBindingDescriptor({ cellId, influences });
+  if (!descriptor || descriptor.influences.length === 0) {
+    delete definition.poseRig.cellBindings[cellId];
+    return;
+  }
+  definition.poseRig.cellBindings[cellId] = descriptor.influences;
+}
+
+function weightForJoint(cellId, jointId) {
+  return definition.poseRig?.cellBindings?.[cellId]?.find((influence) => influence.joint === jointId)?.weight ?? 0;
+}
+
+function connectedCellIds(cellId) {
+  return [
+    ...new Set(
+      (definition.connections ?? [])
+        .filter((edge) => edge.a === cellId || edge.b === cellId)
+        .map((edge) => (edge.a === cellId ? edge.b : edge.a)),
+    ),
+  ];
 }
 
 function savePose() {
@@ -806,6 +967,8 @@ function clearPoseSelections() {
   selectedPoseJointId = null;
   selectedPoseId = null;
   selectedPoseAnimationId = null;
+  selectedWeightJointId = null;
+  selectedBlendJointId = null;
 }
 
 function upsertById(items, item) {
@@ -964,6 +1127,8 @@ function setTool(nextTool) {
   paintButton.setAttribute('aria-pressed', String(tool === 'paint'));
   eraseButton.setAttribute('aria-pressed', String(tool === 'erase'));
   connectButton.setAttribute('aria-pressed', String(tool === 'connect'));
+  weightPaintButton.setAttribute('aria-pressed', String(tool === 'weightPaint'));
+  weightEraseButton.setAttribute('aria-pressed', String(tool === 'weightErase'));
 }
 
 function canvasPoint(event) {

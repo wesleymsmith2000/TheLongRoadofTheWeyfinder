@@ -2,6 +2,8 @@
 
 Runtime checkpoint: `v1.0.7.9`
 
+Editor checkpoint: weighted cell binding controls added in Construct Workshop on 2026-09-05.
+
 This extends the existing pose rig contract from rigid linked cell groups into optional weighted cell-center posing. Rigid remains the default. Weighted deformation is opt-in and still draws each cell as a crisp block.
 
 ## Runtime Surface
@@ -102,11 +104,11 @@ No `cellBindings` means legacy rigid behavior. A rigid imported hierarchy should
 
 Build the first editor pass around weighted cell rigs only:
 
-- Add a Weights mode in Construct Workshop.
-- Select a joint, then paint or erase its influence on cells.
-- Show selected-joint heatmap and selected-cell influence list.
-- Add Normalize and 50/50 Blend actions.
-- Preserve `poseRig.cellBindings` during save/load and JSON paste.
+- Add a Weights mode in Construct Workshop. Done.
+- Select a joint, then paint or erase its influence on cells. Done.
+- Show selected-joint heatmap and selected-cell influence list. Done.
+- Add Normalize and 50/50 Blend actions. Done.
+- Preserve `poseRig.cellBindings` during save/load and JSON paste. Done.
 - Generate rigid `1.0` bindings from external rigid hierarchies.
 - Keep weighted import behind an experimental opt-in.
 

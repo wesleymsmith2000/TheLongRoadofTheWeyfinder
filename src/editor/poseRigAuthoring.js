@@ -12,12 +12,22 @@ export function emptyPoseRig() {
 }
 
 export function poseRigFromConstructDefinition(definition = {}) {
-  const aliases = definition.cellGroups || definition.joints || definition.poses || definition.poseAnimations;
+  const aliases =
+    definition.cellGroups ||
+    definition.joints ||
+    definition.poses ||
+    definition.poseAnimations ||
+    definition.cellBindings ||
+    definition.poseDynamics ||
+    definition.poseRigImports;
   const source = definition.poseRig ?? (aliases ? {
     groups: definition.cellGroups,
     joints: definition.joints,
     poses: definition.poses,
     animations: definition.poseAnimations,
+    cellBindings: definition.cellBindings,
+    dynamics: definition.poseDynamics,
+    imports: definition.poseRigImports,
   } : null);
   return normalizePoseRigDraft(source);
 }
@@ -28,7 +38,15 @@ export function normalizePoseRigDraft(rig = {}) {
 
 export function hasPoseRigContent(rig) {
   const normalized = normalizePoseRigDraft(rig);
-  return Boolean(normalized.groups.length || normalized.joints.length || normalized.poses.length || normalized.animations.length || Object.keys(normalized.cellBindings ?? {}).length);
+  return Boolean(
+    normalized.groups.length ||
+      normalized.joints.length ||
+      normalized.poses.length ||
+      normalized.animations.length ||
+      Object.keys(normalized.cellBindings ?? {}).length ||
+      normalized.dynamics ||
+      normalized.imports.length,
+  );
 }
 
 export function poseRigSummary(rig) {
@@ -39,9 +57,13 @@ export function poseRigSummary(rig) {
 export function createCellBindingDescriptor({ cellId, influences } = {}) {
   const id = cleanText(cellId);
   if (!id) return null;
+  const normalizedInfluences = normalizeCellWeights({ [id]: influences })[id] ?? [];
+  const limitedInfluences = normalizedInfluences
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, MAX_CELL_BINDING_INFLUENCES);
   return {
     cellId: id,
-    influences: normalizeCellWeights({ [id]: influences })[id] ?? [],
+    influences: normalizeCellWeights({ [id]: limitedInfluences })[id] ?? [],
   };
 }
 

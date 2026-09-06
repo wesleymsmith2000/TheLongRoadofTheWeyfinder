@@ -246,6 +246,7 @@ function constructFromShape(shape) {
           gridY,
           role,
         };
+        if (layer.id && shape.assetId.includes('walker')) cell.legId = layer.id;
         if (gridZ !== 0) cell.gridZ = gridZ;
         const metadata = metadataFor(shape, cell);
         if (metadata) Object.assign(cell, metadata);
@@ -356,14 +357,17 @@ function spideryWalkerLayers() {
     { id: 'rightRearInner', x: 4, y: 1 },
     { id: 'rightRearOuter', x: 4, y: 4 },
   ];
-  const legRows = [
+  const legArmorRows = [
     '-a-',
-    'awa',
+    'aaa',
     '-a-',
   ];
-  for (let z = 0; z < 6; z += 1) {
+  for (const center of legCenters) {
+    layers.push({ id: center.id, z: 0, x0: center.x, y0: center.y, rows: ['w'], layerRole: 'spideryWalkerGroundFoot' });
+  }
+  for (let z = 1; z < 6; z += 1) {
     for (const center of legCenters) {
-      layers.push({ id: center.id, z, x0: center.x - 1, y0: center.y - 1, rows: legRows, layerRole: 'spideryWalkerLegStack' });
+      layers.push({ id: center.id, z, x0: center.x - 1, y0: center.y - 1, rows: legArmorRows, layerRole: 'spideryWalkerLegStack' });
     }
   }
   for (const center of legCenters) {

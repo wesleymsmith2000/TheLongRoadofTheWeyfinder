@@ -121,6 +121,12 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   const walkerLegArmor = spiderWalker.cells.filter((cell) => cell.role === 'legArmor');
   const walkerElevatedBody = spiderWalker.cells.filter((cell) => cell.role === 'elevatedBody');
   const walkerSupportLegLayers = [...new Set(walkerSupportLegs.map((cell) => cell.gridZ ?? 0))].sort((a, b) => a - b);
+  const spideryWalkerSupportLegs = spideryWalker.cells.filter((cell) => cell.role === 'supportLeg');
+  const spideryWalkerLegArmor = spideryWalker.cells.filter((cell) => cell.role === 'legArmor');
+  const spideryWalkerLegJoints = spideryWalker.cells.filter((cell) => cell.role === 'legJoint');
+  const spideryWalkerSupportLegLayers = [...new Set(spideryWalkerSupportLegs.map((cell) => cell.gridZ ?? 0))].sort((a, b) => a - b);
+  const spideryWalkerLegArmorLayers = [...new Set(spideryWalkerLegArmor.map((cell) => cell.gridZ ?? 0))].sort((a, b) => a - b);
+  const spideryWalkerLegIds = [...new Set(spideryWalkerSupportLegs.map((cell) => cell.legId))].sort();
   const walkerVerticalConnections = spiderWalker.connections.filter(
     (connection) => connection.aSide === 'above' || connection.aSide === 'below' || connection.bSide === 'above' || connection.bSide === 'below',
   );
@@ -138,9 +144,16 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   assert.equal(walkerVerticalConnections.length > 0, true);
   assert.equal(spiderWalker.tags.includes('dev-lookup:walker-burly-four-leg'), true);
   assert.equal(spiderWalker.tags.includes('runtime-hook:walkerLegs'), true);
-  assert.equal(spideryWalker.cells.filter((cell) => cell.role === 'supportLeg' && cell.type === 'wheel').length, 48);
-  assert.equal(spideryWalker.cells.filter((cell) => cell.role === 'legArmor' && cell.type === 'armor' && (cell.gridZ ?? 0) < 6).length, 192);
-  assert.equal(spideryWalker.cells.filter((cell) => cell.role === 'legJoint' && cell.type === 'engine' && cell.gridZ === 6).length, 8);
+  assert.equal(spideryWalkerSupportLegs.length, 8);
+  assert.equal(spideryWalkerSupportLegs.every((cell) => cell.type === 'wheel'), true);
+  assert.deepEqual(spideryWalkerSupportLegLayers, [0]);
+  assert.equal(spideryWalkerLegArmor.length, 200);
+  assert.equal(spideryWalkerLegArmor.every((cell) => cell.type === 'armor'), true);
+  assert.deepEqual(spideryWalkerLegArmorLayers, [1, 2, 3, 4, 5]);
+  assert.equal(spideryWalkerLegJoints.length, 8);
+  assert.equal(spideryWalkerLegJoints.every((cell) => cell.type === 'engine' && cell.gridZ === 6), true);
+  assert.equal(spideryWalkerLegIds.length, 8);
+  assert.equal(spideryWalkerLegJoints.every((cell) => spideryWalkerLegIds.includes(cell.legId)), true);
   assert.equal(spideryWalker.tags.includes('dev-lookup:walker-spidery-eight-leg'), true);
   assert.equal(spideryWalker.tags.includes('runtime-hook:walkerLegs'), true);
   assert.equal(bossWalkerBody.cells.filter((cell) => cell.role === 'supportLeg' && cell.type === 'wheel').length, 120);

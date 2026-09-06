@@ -55,8 +55,10 @@ The Construct Workshop can now author construct `poseRig` metadata.
 - `animations` support `oscillate`, `poseCycle`, and `aimAtTarget`.
 - `Walker Stride Preset` uses the runtime walker grouping helper for constructs whose leg cells are marked with `supportLeg`, `legArmor`, or `legJoint`.
 - `Cannon Aim Preset` creates a rotating `mainCannon` group, hinge joint, and `aimAtTarget` animation.
+- `cellBindings` opt cells into weighted posing. Select a joint, choose `Paint Weight`, then click cells to bind them to that joint.
+- `50/50 Blend` binds the selected cell equally between the active joint and the blend joint. `Smooth Cell` averages the selected cell from connected neighbors.
 
-Downloaded constructs emit the preferred nested `poseRig` shape. Imported alias fields (`cellGroups`, `joints`, `poses`, `poseAnimations`) are normalized into that shape when loaded.
+Downloaded constructs emit the preferred nested `poseRig` shape. Imported alias fields (`cellGroups`, `joints`, `poses`, `poseAnimations`, `cellBindings`, `poseDynamics`, `poseRigImports`) are normalized into that shape when loaded.
 
 ## Current Limits
 
