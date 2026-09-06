@@ -108,15 +108,19 @@ const WALKER_SWEEP_BEAM_FIRE_SECONDS = 4;
 const WALKER_SWEEP_BEAM_LENGTH = CELL_SIZE * 48;
 const WALKER_SWEEP_BEAM_COOLDOWN = [5.2, 7.4];
 const WALKER_STA_MISSILE_COOLDOWN = [3.8, 5.8];
-const WALKER_STA_DESCENT_LOCK_SECONDS = 0.8;
-const WALKER_STA_GRAVITY = 96;
-const WALKER_STA_VERTICAL_VELOCITY = 220;
+const WALKER_STA_GRAVITY = 330;
+const WALKER_STA_VERTICAL_VELOCITY = 245;
+const WALKER_STA_DIRECT_DESCENT_SECONDS = 0.78;
 const WALKER_STA_BLAST_RADIUS = CELL_SIZE * 4.5;
 const WALKER_STA_MISSILE_SPRITE = {
   ...staMissileDefinition.projectile.sprite,
   tint: '#ff334f',
   tintAlpha: 0.9,
 };
+const WALKER_GROUNDED_SPIRAL_INTERVAL = 0.24;
+const WALKER_GROUNDED_SPIRAL_COUNT = 12;
+const WALKER_GROUNDED_SPIRAL_REST = 1.2;
+const WALKER_GROUNDED_REPULSOR_COOLDOWN = [0.9, 1.25];
 const BROODABLE_ARCHETYPES = new Set([
   'ghost_phaser.ghost_forrest',
   'hopping_stream_mob.digitized_stream',
@@ -145,6 +149,7 @@ const TARGETING_AI_BASE_SPEED = 145;
 const TARGETING_AI_SPEED_PER_RANK = 12;
 const TARGETING_AI_XP_PER_RANK = 45;
 const TARGETING_AI_BASE_WOBBLE = 18;
+const MAX_SMOKE_PARTICLES = 180;
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
@@ -1475,7 +1480,7 @@ function stepEnemy(game, enemy, dt) {
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
   if (enemy.destroyed) return;
-  if (!walkerUsesElevatedSpecialWeapon(enemy)) stepEnemyPatterns(game, enemy, dt);
+  if (!walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
   updateEnemyCollisionRotation(enemy, game.time);
   enemy.x += enemy.vx * dt;
@@ -1637,6 +1642,8 @@ function stepWalkerEnemy(game, enemy, dt) {
     stepWalkerSweepBeam(game, enemy, dt);
   } else {
     enemy.walkerSweepWarning = null;
+    if (walkerUsesGroundedSpiralMissiles(enemy)) stepGroundedWalkerSpiralMissiles(game, enemy, dt);
+    if (walkerUsesGroundedRepulsor(enemy)) stepGroundedWalkerRepulsor(game, enemy, dt);
   }
 }
 
@@ -1671,7 +1678,8 @@ function fireWalkerStaMissile(game, enemy, source) {
     shadowRadius: 3.5,
     targetHint: null,
     detonateAtTarget: false,
-    descentLockDelay: WALKER_STA_DESCENT_LOCK_SECONDS,
+    descentMode: 'direct',
+    directDescentDuration: WALKER_STA_DIRECT_DESCENT_SECONDS,
     hideLandingMarkerUntilTargetHint: true,
     blastOnExpire: {
       radius: WALKER_STA_BLAST_RADIUS,
@@ -1690,6 +1698,89 @@ function fireWalkerStaMissile(game, enemy, source) {
   shell.angle = -Math.PI / 2;
   game.enemyProjectiles.push(shell);
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function stepGroundedWalkerSpiralMissiles(game, enemy, dt) {
+  const source = walkerBeamSource(enemy);
+  const fireScale = walkerSweepFireScale(enemy, source);
+  if (!source || fireScale <= 0) return;
+
+  enemy.walkerGroundedSpiralCooldown = Math.max(0, (enemy.walkerGroundedSpiralCooldown ?? game.rng.range(0.25, 0.8)) - dt * fireScale);
+  if (enemy.walkerGroundedSpiralCooldown > 0) return;
+
+  fireGroundedWalkerSpiralMissile(game, enemy, source);
+  enemy.walkerGroundedSpiralIndex = ((enemy.walkerGroundedSpiralIndex ?? 0) + 1) % WALKER_GROUNDED_SPIRAL_COUNT;
+  enemy.walkerGroundedSpiralCooldown =
+    enemy.walkerGroundedSpiralIndex === 0
+      ? WALKER_GROUNDED_SPIRAL_REST
+      : WALKER_GROUNDED_SPIRAL_INTERVAL;
+}
+
+function fireGroundedWalkerSpiralMissile(game, enemy, source) {
+  const index = enemy.walkerGroundedSpiralIndex ?? 0;
+  enemy.walkerGroundedSpiralOffset ??= game.rng.range(0, Math.PI * 2);
+  const angle = enemy.walkerGroundedSpiralOffset + (Math.PI * 2 * index) / WALKER_GROUNDED_SPIRAL_COUNT;
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, Math.cos(angle) * 27.5, Math.sin(angle) * 27.5, {
+      team: 'enemy',
+      weapon: 'boss-missile',
+      radius: 3,
+      color: '#ff5b72',
+      sprite: WALKER_STA_MISSILE_SPRITE,
+      damage: 9 * enemyDamageUpgradeScale(enemy),
+      impulse: 57.5,
+      lifetime: 7,
+      angle,
+      delayBeforeAcceleration: 3,
+      stopBeforeAcceleration: true,
+      acceleration: 202.5 * enemyMovementUpgradeScale(enemy),
+      accelerationDuration: 10,
+      accelerationTarget: game.vehicle,
+      accelerationJitter: 0,
+      maxSpeed: 840 * enemyMovementUpgradeScale(enemy),
+      vanishOffscreen: true,
+    }),
+  );
+  enemy.lastFiredAt = game.time;
+  enemy.attackHeading = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function stepGroundedWalkerRepulsor(game, enemy, dt) {
+  const source = walkerBeamSource(enemy);
+  const fireScale = walkerSweepFireScale(enemy, source);
+  if (!source || fireScale <= 0 || enemyBeamIsActive(game, enemy, 'walker-repulsor-beam')) return;
+
+  enemy.walkerRepulsorCooldown = Math.max(0, (enemy.walkerRepulsorCooldown ?? game.rng.range(0.35, 1)) - dt * fireScale);
+  if (enemy.walkerRepulsorCooldown > 0) return;
+
+  const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'walker-repulsor-beam',
+      behavior: 'beam',
+      radius: repulsorBeamDefinition.projectile.radius,
+      damage: repulsorBeamDefinition.projectile.damage * enemyDamageUpgradeScale(enemy),
+      impulse: repulsorBeamDefinition.projectile.impulse,
+      lifetime: Math.max(1, repulsorBeamDefinition.projectile.frames) / 60,
+      maxLifetime: Math.max(1, repulsorBeamDefinition.projectile.frames) / 60,
+      length: repulsorBeamDefinition.projectile.length,
+      frames: repulsorBeamDefinition.projectile.frames,
+      angle,
+      color: '#dff75d',
+      alpha: 0.55,
+      pierce: repulsorBeamDefinition.projectile.pierce,
+      forceMode: 'push',
+      affects: ['player', 'projectile'],
+      sourceEnemy: enemy,
+      sourceCellId: source.cellId,
+      sourceOffset: { x: source.localX, y: source.localY },
+      sourceZ: source.z,
+    }),
+  );
+  enemy.walkerRepulsorCooldown = game.rng.range(WALKER_GROUNDED_REPULSOR_COOLDOWN[0], WALKER_GROUNDED_REPULSOR_COOLDOWN[1]);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BEAM);
 }
 
 function stepWalkerSweepBeam(game, enemy, dt) {
@@ -1785,6 +1876,17 @@ function walkerUsesElevatedStaMissile(enemy) {
   if (!walkerUsesElevatedSpecialWeapon(enemy)) return false;
   const id = String(enemy.archetypeId ?? '');
   return id.startsWith('starlight_walker.prototype0') || enemy.assetId === spideryWalkerSculptedDefinition.assetId;
+}
+
+function walkerUsesGroundedSpiralMissiles(enemy) {
+  if (!isWalkerEnemy(enemy) || !walkerBodyIsGrounded(enemy)) return false;
+  const id = String(enemy.archetypeId ?? '');
+  return id.startsWith('starlight_walker.prototype0') || enemy.assetId === spideryWalkerSculptedDefinition.assetId;
+}
+
+function walkerUsesGroundedRepulsor(enemy) {
+  if (!isWalkerEnemy(enemy) || !walkerBodyIsGrounded(enemy)) return false;
+  return !walkerUsesGroundedSpiralMissiles(enemy);
 }
 
 function walkerUsesElevatedSpecialWeapon(enemy) {
@@ -2852,13 +2954,17 @@ function trackReticleProjectiles(game) {
 function lockEnemyStaMissileDescents(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.weapon !== 'walker-sta-missile' || projectile.descentLocked || projectile.arcLanded) continue;
-    if ((projectile.arcAge ?? 0) < (projectile.descentLockDelay ?? 0)) continue;
+    if (projectile.vz > 0) continue;
     projectile.descentLocked = true;
     projectile.targetHint = { x: game.vehicle.x, y: game.vehicle.y };
     projectile.detonateAtTarget = true;
-    const flightTime = remainingArcFlightTime(projectile);
+    projectile.directDescentStartZ = Math.max(1, projectile.z);
+    projectile.directDescentElapsed = 0;
+    const flightTime = Math.max(0.001, projectile.directDescentDuration ?? remainingArcFlightTime(projectile));
     projectile.vx = (projectile.targetHint.x - projectile.x) / flightTime;
     projectile.vy = (projectile.targetHint.y - projectile.y) / flightTime;
+    projectile.vz = -projectile.directDescentStartZ / flightTime;
+    projectile.gravity = 0;
     projectile.angle = Math.atan2(projectile.vy, projectile.vx);
   }
 }
@@ -3154,16 +3260,33 @@ function hitVehicleWithEnemyBeam(game, projectile) {
   const dy = Math.sin(projectile.angle);
   projectile.renderEndX = projectile.x + dx * projectile.length;
   projectile.renderEndY = projectile.y + dy * projectile.length;
+  if (projectile.forceMode === 'push') repelPlayerProjectilesWithEnemyBeam(game, projectile, dx, dy);
   for (let distance = 0; distance <= projectile.length; distance += step) {
     const point = { x: projectile.x + dx * distance, y: projectile.y + dy * distance };
     if (distanceSquared(point, game.vehicle) > (CELL_SIZE * 4.2) ** 2) continue;
-    const hit = hitVehicleWithProjectile(game.vehicle, { ...projectile, x: point.x, y: point.y });
+    const hit = hitVehicleWithProjectile(game.vehicle, { ...projectile, x: point.x, y: point.y, vx: dx, vy: dy });
     if (!hit.hit) continue;
     projectile.renderEndX = point.x;
     projectile.renderEndY = point.y;
     return true;
   }
   return false;
+}
+
+function repelPlayerProjectilesWithEnemyBeam(game, projectile, dx = Math.cos(projectile.angle), dy = Math.sin(projectile.angle)) {
+  const halfWidth = beamHalfWidth(projectile);
+  for (const target of game.playerProjectiles) {
+    if (target.lifetime <= 0 || target.behavior === 'beam' || target.behavior === 'blast') continue;
+    const along = (target.x - projectile.x) * dx + (target.y - projectile.y) * dy;
+    if (along < 0 || along > projectile.length) continue;
+    const closest = { x: projectile.x + dx * along, y: projectile.y + dy * along };
+    if (distanceSquared(target, closest) > (halfWidth + target.radius) ** 2) continue;
+    const speed = Math.max(70, Math.hypot(target.vx, target.vy));
+    target.vx = dx * (speed + projectile.impulse * 0.55);
+    target.vy = dy * (speed + projectile.impulse * 0.55);
+    target.angle = projectile.angle;
+    target.lifetime = Math.min(target.lifetime, 1.4);
+  }
 }
 
 function hitEnemiesWithBeam(game, projectile) {
@@ -3416,7 +3539,7 @@ function spawnBoostSmokeParticle(game, scale = 1) {
   const nx = -direction.y;
   const ny = direction.x;
   const lifetime = game.rng.range(7, 12) / 60;
-  game.smokeParticles.push({
+  pushSmokeParticle(game, {
     x: game.vehicle.x - direction.x * backOffset + nx * sideOffset,
     y: game.vehicle.y - direction.y * backOffset + ny * sideOffset,
     vx: Math.cos(exhaustAngle) * speed + game.vehicle.vx * 0.08,
@@ -3462,7 +3585,7 @@ function spawnRocketSmokeParticle(game, projectile) {
   const lifetimeRange = projectile.contrail.particleLifetimeFrames;
   const lifetimeFrames = Array.isArray(lifetimeRange) ? game.rng.range(lifetimeRange[0], lifetimeRange[1]) : game.rng.chance(0.5) ? 4 : 5;
   const radiusScale = projectile.contrail.particleRadiusScale ?? 1;
-  game.smokeParticles.push({
+  pushSmokeParticle(game, {
     x: projectile.x - cos * backOffset - sin * sideOffset,
     y: projectile.y - sin * backOffset + cos * sideOffset,
     vx: Math.cos(angle) * speed + projectile.vx * 0.05,
@@ -3472,6 +3595,12 @@ function spawnRocketSmokeParticle(game, projectile) {
     lifetime: lifetimeFrames / 60,
     maxLifetime: lifetimeFrames / 60,
   });
+}
+
+function pushSmokeParticle(game, particle) {
+  game.smokeParticles.push(particle);
+  const excess = game.smokeParticles.length - MAX_SMOKE_PARTICLES;
+  if (excess > 0) game.smokeParticles.splice(0, excess);
 }
 
 function stepSmokeParticles(game, dt) {

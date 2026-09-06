@@ -816,6 +816,7 @@ test('multileg walkers fire red STA missiles that lock a descent point without t
   assert.equal(Boolean(missile), true);
   assert.equal(missile.sprite.tint, '#ff334f');
   assert.equal(missile.targetHint, null);
+  assert.equal(missile.descentMode, 'direct');
   assert.equal(missile.hideLandingMarkerUntilTargetHint, true);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), false);
 
@@ -827,6 +828,8 @@ test('multileg walkers fire red STA missiles that lock a descent point without t
     if (missile.descentLocked) playerAtLock = { x: game.vehicle.x, y: game.vehicle.y };
   }
   assert.equal(missile.descentLocked, true);
+  assert.equal(missile.vz <= 0, true);
+  assert.equal(missile.gravity, 0);
   assert.equal(pointDistanceSquared(missile.targetHint, playerAtLock) < CELL_SIZE * CELL_SIZE, true);
   assert.equal(missile.detonateAtTarget, true);
 
@@ -875,6 +878,7 @@ test('grounded walkers stop sweep beams and resume standard turret patterns', ()
   game.autofire = false;
   const walker = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [enemyAimedShotDefinition], { moduleScale: 1 });
   walker.archetypeId = 'twilight_walker.prototype0';
+  walker.walkerRepulsorCooldown = 0;
   for (const cell of walker.cells.filter((candidate) => candidate.role === 'supportLeg')) {
     for (const voxel of cell.mask.flat()) voxel.hp = 0;
     recalculateCell(cell);
@@ -889,14 +893,19 @@ test('grounded walkers stop sweep beams and resume standard turret patterns', ()
   assert.equal(Boolean(walker.walkerSweepWarning), false);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'walker-ground-sweep'), false);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
+  const repulsor = game.enemyProjectiles.find((projectile) => projectile.weapon === 'walker-repulsor-beam');
+  assert.equal(Boolean(repulsor), true);
+  assert.equal(repulsor.forceMode, 'push');
+  assert.equal(repulsor.length, 105);
 });
 
-test('grounded multileg walkers stop STA missiles and resume standard turret patterns', () => {
+test('grounded multileg walkers stop STA missiles and fire slower spiral tracking missiles', () => {
   const game = createGame();
   game.autofire = false;
   const walker = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [enemyAimedShotDefinition], { moduleScale: 1 });
   walker.archetypeId = 'starlight_walker.prototype0';
   walker.walkerStaCooldown = 0;
+  walker.walkerGroundedSpiralCooldown = 0;
   for (const cell of walker.cells.filter((candidate) => candidate.role === 'supportLeg')) {
     for (const voxel of cell.mask.flat()) voxel.hp = 0;
     recalculateCell(cell);
@@ -909,7 +918,14 @@ test('grounded multileg walkers stop STA missiles and resume standard turret pat
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'walker-sta-missile'), false);
-  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), false);
+  const missile = game.enemyProjectiles.find((projectile) => projectile.weapon === 'boss-missile');
+  assert.equal(Boolean(missile), true);
+  assert.equal(missile.behavior, 'ballistic');
+  assert.equal(missile.delayedAcceleration, true);
+  assert.equal(missile.stopBeforeAcceleration, true);
+  assert.equal(missile.accelerationTarget, game.vehicle);
+  assert.equal(walker.walkerGroundedSpiralCooldown, 0.24);
 });
 
 test('boss accelerates back toward the view area after being knocked away', () => {

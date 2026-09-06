@@ -12,20 +12,27 @@ const MATERIAL_COLORS = Object.freeze({
 });
 
 export class TerrainRenderer {
-  constructor(atlasLibrary = null) {
+  constructor(atlasLibrary = null, options = {}) {
     this.atlasLibrary = atlasLibrary;
+    this.cacheBuildsPerFrame = Math.max(1, Math.floor(options.cacheBuildsPerFrame ?? 1));
   }
 
   drawWorld(ctx, terrain, camera, viewportWidth, viewportHeight, debug = {}) {
     if (!terrain?.chunks) return;
     const range = Math.max(viewportWidth, viewportHeight) * 1.55;
     const atlasReady = this.atlasLibrary?.ready() ?? false;
+    let cacheBuilds = 0;
     for (const chunk of terrain.chunks.values()) {
       if (!chunkNearCamera(chunk, camera, range)) continue;
-      const cache = !chunk.cache || chunk.cache.atlasReady !== atlasReady ? this.createChunkCache(chunk, terrain.generator.config, atlasReady) : chunk.cache;
+      const needsCache = !chunk.cache || chunk.cache.atlasReady !== atlasReady;
+      const canBuildCache = needsCache && cacheBuilds < this.cacheBuildsPerFrame;
+      const cache = canBuildCache ? this.createChunkCache(chunk, terrain.generator.config, atlasReady) : chunk.cache;
+      if (canBuildCache) cacheBuilds += 1;
       chunk.cache = cache;
-      ctx.drawImage(cache.canvas, chunk.originX, chunk.originY, chunk.size, chunk.size);
+      if (cache) ctx.drawImage(cache.canvas, chunk.originX, chunk.originY, chunk.size, chunk.size);
+      else drawChunkFallback(ctx, chunk);
     }
+    if (terrain.stats) terrain.stats.cacheBuildsLastDraw = cacheBuilds;
     if (debug.visible) drawTerrainDebug(ctx, terrain, camera, range);
   }
 
@@ -44,6 +51,11 @@ export class TerrainRenderer {
     }
     return { canvas, createdAt: performance.now?.() ?? Date.now(), atlasReady };
   }
+}
+
+function drawChunkFallback(ctx, chunk) {
+  ctx.fillStyle = '#17201c';
+  ctx.fillRect(chunk.originX, chunk.originY, chunk.size, chunk.size);
 }
 
 function drawTile(ctx, tile, x, y, size, atlasLibrary) {

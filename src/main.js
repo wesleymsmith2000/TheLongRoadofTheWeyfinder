@@ -1352,6 +1352,8 @@ function performanceCounters(game) {
     liveEnemyCells,
     vehicleCells: game.vehicle?.cells?.length ?? 0,
     terrainChunks: game.terrain?.chunks?.size ?? 0,
+    terrainCacheBuilds: game.terrain?.stats?.cacheBuildsLastDraw ?? 0,
+    terrainPendingChunks: game.terrain?.stats?.pendingChunks ?? 0,
   };
 }
 

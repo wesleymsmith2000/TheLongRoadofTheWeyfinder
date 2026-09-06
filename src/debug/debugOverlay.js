@@ -57,6 +57,7 @@ function performanceLines(performance) {
     `slow >33 ${slow.over33ms ?? 0} >50 ${slow.over50ms ?? 0} >100 ${slow.over100ms ?? 0}`,
     `proj p/e ${counters.playerProjectiles ?? 0}/${counters.enemyProjectiles ?? 0} smoke ${counters.smokeParticles ?? 0}`,
     `cells enemy ${counters.liveEnemyCells ?? 0}/${counters.enemyCells ?? 0} vehicle ${counters.vehicleCells ?? 0}`,
+    `terrain cache ${counters.terrainCacheBuilds ?? 0} pending ${counters.terrainPendingChunks ?? 0}`,
   ];
 }
 

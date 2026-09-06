@@ -40,6 +40,10 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     tracksReticleInHoming: Boolean(options.tracksReticleInHoming),
     descentLockDelay: options.descentLockDelay ?? null,
     descentLocked: Boolean(options.descentLocked),
+    descentMode: options.descentMode ?? null,
+    directDescentDuration: options.directDescentDuration ?? 0,
+    directDescentElapsed: options.directDescentElapsed ?? 0,
+    directDescentStartZ: options.directDescentStartZ ?? null,
     hideLandingMarkerUntilTargetHint: Boolean(options.hideLandingMarkerUntilTargetHint),
     detonateDistance: options.detonateDistance ?? null,
     detonateAtTarget: Boolean(options.detonateAtTarget),
@@ -124,6 +128,24 @@ export function stepProjectiles(projectiles, dt, targets = []) {
 function stepArcProjectile(projectile, dt) {
   if (projectile.arcLanded) return;
   projectile.arcAge = (projectile.arcAge ?? 0) + dt;
+  if (projectile.descentMode === 'direct' && projectile.descentLocked) {
+    projectile.directDescentStartZ ??= Math.max(0, projectile.z);
+    projectile.directDescentElapsed = (projectile.directDescentElapsed ?? 0) + dt;
+    const duration = Math.max(0.001, projectile.directDescentDuration ?? 0);
+    const progress = Math.min(1, projectile.directDescentElapsed / duration);
+    projectile.z = Math.max(0, projectile.directDescentStartZ * (1 - progress));
+    projectile.maxArcHeight = Math.max(projectile.maxArcHeight, projectile.directDescentStartZ, 1);
+    if (progress < 1) return;
+    projectile.z = 0;
+    projectile.vz = 0;
+    if (projectile.detonateAtTarget && projectile.targetHint) {
+      projectile.x = projectile.targetHint.x;
+      projectile.y = projectile.targetHint.y;
+    }
+    projectile.arcLanded = true;
+    projectile.readyToExplode = true;
+    return;
+  }
   projectile.z += projectile.vz * dt - 0.5 * projectile.gravity * dt * dt;
   projectile.vz -= projectile.gravity * dt;
   projectile.maxArcHeight = Math.max(projectile.maxArcHeight, projectile.z, 1);
