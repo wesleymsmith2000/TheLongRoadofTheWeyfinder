@@ -143,6 +143,18 @@ test('streamed chunks retire and regenerate identically', () => {
   assert.deepEqual(tileIds(regenerated), firstIds);
 });
 
+test('terrain streaming can throttle generated chunks per update', () => {
+  const terrain = createTerrainState(createTerrainGenerator({ seed: 44 }), { maxGeneratedChunksPerUpdate: 2 });
+  updateTerrainStreaming(terrain, { x: 0, y: 0, heading: 0 });
+  assert.equal(terrain.stats.generatedLastUpdate, 2);
+  assert.equal(terrain.stats.pendingChunks > 0, true);
+  assert.equal(terrain.chunks.size, 2);
+
+  updateTerrainStreaming(terrain, { x: 0, y: 0, heading: 0 });
+  assert.equal(terrain.stats.generatedLastUpdate, 2);
+  assert.equal(terrain.chunks.size, 4);
+});
+
 function tileIds(chunk) {
   return chunk.tiles.map((row) => row.map((tile) => `${tile.sourceAssetId}:${tile.rotation}:${tile.fallback ? 'fallback' : 'authored'}`));
 }

@@ -13,7 +13,7 @@ import {
   stepRoadFrame,
   worldToRoadOffset,
 } from './camera.js';
-import { CELL_SIZE, VOXEL_SIZE } from './voxelMask.js';
+import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXEL_SIZE } from './voxelMask.js';
 import { recalculateCell as recalculateEnemyCell } from './cell.js';
 import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
@@ -101,6 +101,11 @@ const ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS = 1.55;
 const PLAYER_MORTAR_BASE_BLAST_RADIUS_CELLS = mortarDefinition.projectile.blastRadiusCells ?? 7.5;
 const ENEMY_MORTAR_BASE_BLAST_RADIUS = CELL_SIZE * PLAYER_MORTAR_BASE_BLAST_RADIUS_CELLS;
 const ENEMY_SINGLE_MORTAR_BLAST_RADIUS = ENEMY_MORTAR_BASE_BLAST_RADIUS * 1.5;
+const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 2;
+const WALKER_SWEEP_BEAM_CHARGE_SECONDS = 1.35;
+const WALKER_SWEEP_BEAM_FIRE_SECONDS = 4;
+const WALKER_SWEEP_BEAM_LENGTH = CELL_SIZE * 48;
+const WALKER_SWEEP_BEAM_COOLDOWN = [5.2, 7.4];
 const BROODABLE_ARCHETYPES = new Set([
   'ghost_phaser.ghost_forrest',
   'hopping_stream_mob.digitized_stream',
@@ -167,6 +172,7 @@ export function createGame(seed = 1147, options = {}) {
   const terrainGenerator = createTerrainGenerator({ seed: options.terrainSeed ?? seed, route: terrainRoute });
   const terrain = createTerrainState(terrainGenerator);
   updateTerrainStreaming(terrain, road);
+  terrain.maxGeneratedChunksPerUpdate = options.terrainChunkBudget ?? LIVE_TERRAIN_CHUNK_GENERATION_BUDGET;
   const terrainSample = sampleTerrain(terrain, vehicle.x, vehicle.y);
   const levelMusic = options.levelMusic ?? DEFAULT_LEVEL_MUSIC;
   const startLevel = Math.max(1, Math.floor(options.startLevel ?? options.level ?? 1));
@@ -1425,7 +1431,7 @@ function stepEnemy(game, enemy, dt) {
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
   if (enemy.destroyed) return;
-  stepEnemyPatterns(game, enemy, dt);
+  if (!walkerUsesElevatedSweepBeam(enemy)) stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
   updateEnemyCollisionRotation(enemy, game.time);
   enemy.x += enemy.vx * dt;
@@ -1580,6 +1586,155 @@ function stepWalkerEnemy(game, enemy, dt) {
   enemy.elevation.layeredExposure = true;
   enemy.walkPhase = (enemy.walkPhase ?? 0) + dt * 4.4 * enemyMovementUpgradeScale(enemy);
   enemy.vx += Math.sin(enemy.walkPhase) * 6 * dt;
+  if (walkerUsesElevatedSweepBeam(enemy)) {
+    stepWalkerSweepBeam(game, enemy, dt);
+  } else {
+    enemy.walkerSweepWarning = null;
+  }
+}
+
+function stepWalkerSweepBeam(game, enemy, dt) {
+  const source = walkerBeamSource(enemy);
+  const fireScale = walkerSweepFireScale(enemy, source);
+  if (!source || fireScale <= 0) {
+    enemy.walkerSweepWarning = null;
+    return;
+  }
+  if (enemyBeamIsActive(game, enemy, 'walker-ground-sweep')) return;
+
+  enemy.walkerBeamCooldown = Math.max(0, (enemy.walkerBeamCooldown ?? game.rng.range(0.45, 1.4)) - dt * fireScale);
+  if (enemy.walkerBeamCooldown > 0) return;
+
+  const warning = enemy.walkerSweepWarning ?? createWalkerSweepWarning(game, enemy, source);
+  enemy.walkerSweepWarning = warning;
+  warning.timer -= dt * fireScale;
+  warning.source = source;
+  warning.source.z = source.z;
+  if (warning.timer > 0.45) {
+    const targetAngle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+    warning.angle = targetAngle;
+    warning.target = {
+      x: source.x + Math.cos(targetAngle) * warning.length,
+      y: source.y + Math.sin(targetAngle) * warning.length,
+    };
+  }
+  if (warning.timer > 0) return;
+
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'walker-ground-sweep',
+      behavior: 'beam',
+      radius: 0.75,
+      damage: 3.75 * enemyDamageUpgradeScale(enemy),
+      impulse: 40,
+      lifetime: WALKER_SWEEP_BEAM_FIRE_SECONDS,
+      length: Math.max(1, Math.hypot(enemy.x - source.x, enemy.y - source.y)),
+      frames: 60,
+      angle: Math.atan2(enemy.y - source.y, enemy.x - source.x),
+      color: '#ffe36a',
+      alpha: 0.86,
+      pierce: 1,
+      sourceEnemy: enemy,
+      sourceCellId: source.cellId,
+      sourceOffset: { x: source.localX, y: source.localY },
+      sourceZ: source.z,
+      endZ: 0,
+      widthEnvelopeScale: 0.5,
+      sweepBeam: true,
+      sweepStart: { x: enemy.x, y: enemy.y },
+      sweepTarget: { ...warning.target },
+    }),
+  );
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BEAM);
+  enemy.walkerSweepWarning = null;
+  enemy.walkerBeamCooldown = game.rng.range(WALKER_SWEEP_BEAM_COOLDOWN[0], WALKER_SWEEP_BEAM_COOLDOWN[1]);
+}
+
+function createWalkerSweepWarning(game, enemy, source) {
+  const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  const length = WALKER_SWEEP_BEAM_LENGTH;
+  return {
+    source,
+    angle,
+    length,
+    target: {
+      x: source.x + Math.cos(angle) * length,
+      y: source.y + Math.sin(angle) * length,
+    },
+    timer: WALKER_SWEEP_BEAM_CHARGE_SECONDS,
+    duration: WALKER_SWEEP_BEAM_CHARGE_SECONDS,
+  };
+}
+
+function enemyBeamIsActive(game, enemy, weapon) {
+  return game.enemyProjectiles.some((projectile) => projectile.weapon === weapon && projectile.sourceEnemy === enemy && projectile.lifetime > 0);
+}
+
+function walkerSweepFireScale(enemy, source) {
+  if (!source) return 0;
+  if (source.fromGun) return enemyFireTimerScale(enemy);
+  return enemy.cells.some((cell) => cell.type === 'gun') ? 0 : enemyCoreTimerScale(enemy);
+}
+
+function walkerUsesElevatedSweepBeam(enemy) {
+  if (!isWalkerEnemy(enemy)) return false;
+  if (!enemy.cells?.some((cell) => !cell.state?.destroyed && (cell.type === 'core' || cell.type === 'gun' || cell.role === 'elevatedBody' || cell.role === 'turretGun'))) return false;
+  return !walkerBodyIsGrounded(enemy);
+}
+
+function isWalkerEnemy(enemy) {
+  return enemy?.archetypeId === 'starlight_walker.prototype0' || enemy?.archetypeId === 'twilight_walker.prototype0';
+}
+
+function walkerBodyIsGrounded(enemy) {
+  const live = enemy.cells?.filter((cell) => !cell.state?.destroyed) ?? [];
+  if (live.length === 0) return true;
+  const bodyLayers = live
+    .filter((cell) => cell.type === 'core' || cell.type === 'gun' || cell.role === 'elevatedBody' || cell.role === 'turretGun')
+    .map(cellLayer);
+  if (bodyLayers.length === 0) return true;
+  return Math.min(...live.map(cellLayer)) >= Math.min(...bodyLayers);
+}
+
+function walkerBeamSource(enemy) {
+  const live = enemy.cells?.filter((cell) => !cell.state?.destroyed) ?? [];
+  const guns = live.filter((cell) => cell.type === 'gun' || cell.role === 'turretGun');
+  const candidates = guns.length > 0 ? guns : live.filter((cell) => cell.type === 'core');
+  const sourceCell = candidates.sort((a, b) => cellLayer(b) - cellLayer(a) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id))[0];
+  if (!sourceCell) return null;
+  const localX = sourceCell.gridX * CELL_SIZE;
+  const localY = sourceCell.gridY * CELL_SIZE;
+  const world = enemyLocalToWorldPoint(enemy, { x: localX, y: localY });
+  return {
+    ...world,
+    z: enemyCellWorldHeight(enemy, sourceCell),
+    cellId: sourceCell.id,
+    localX,
+    localY,
+    fromGun: guns.includes(sourceCell),
+  };
+}
+
+function enemyCellWorldHeight(enemy, cell) {
+  const live = enemy.cells?.filter((candidate) => !candidate.state?.destroyed) ?? [];
+  const lowest = live.length > 0 ? Math.min(...live.map(cellLayer)) : 0;
+  return Math.max(0, cellLayer(cell) - lowest) * CELL_LAYER_HEIGHT * (enemy.visualScale ?? 1);
+}
+
+function cellLayer(cell) {
+  return Number.isFinite(cell?.gridZ) ? cell.gridZ : Number.isFinite(cell?.layer) ? cell.layer : 0;
+}
+
+function enemyLocalToWorldPoint(enemy, point) {
+  const scale = enemy.visualScale ?? 1;
+  const rotation = Number.isFinite(enemy.collisionRotation) ? enemy.collisionRotation : 0;
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: enemy.x + (point.x * cos - point.y * sin) * scale,
+    y: enemy.y + (point.x * sin + point.y * cos) * scale,
+  };
 }
 
 function stepScrapBuzzard(game, enemy, dt) {
@@ -2718,13 +2873,34 @@ function syncEnemyBeamProjectiles(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.behavior !== 'beam' || !projectile.sourceEnemy || !projectile.sourceCellId) continue;
     const sourceCell = projectile.sourceEnemy.cells.find((cell) => cell.id === projectile.sourceCellId);
-    if (!sourceCell || sourceCell.state.destroyed || projectile.sourceEnemy.destroyed) {
+    if (!sourceCell || sourceCell.state.destroyed || projectile.sourceEnemy.destroyed || (projectile.weapon === 'walker-ground-sweep' && !walkerUsesElevatedSweepBeam(projectile.sourceEnemy))) {
       projectile.lifetime = 0;
       continue;
     }
-    projectile.x = projectile.sourceEnemy.x + (projectile.sourceOffset?.x ?? sourceCell.gridX * CELL_SIZE);
-    projectile.y = projectile.sourceEnemy.y + (projectile.sourceOffset?.y ?? sourceCell.gridY * CELL_SIZE);
+    const source = enemyLocalToWorldPoint(projectile.sourceEnemy, {
+      x: projectile.sourceOffset?.x ?? sourceCell.gridX * CELL_SIZE,
+      y: projectile.sourceOffset?.y ?? sourceCell.gridY * CELL_SIZE,
+    });
+    projectile.x = source.x;
+    projectile.y = source.y;
+    projectile.sourceZ = enemyCellWorldHeight(projectile.sourceEnemy, sourceCell);
+    if (projectile.sweepBeam && projectile.sweepTarget) {
+      const progress = easeOutCubic(1 - Math.max(0, projectile.lifetime / Math.max(0.001, projectile.maxLifetime)));
+      const start = projectile.sweepStart ?? { x: projectile.sourceEnemy.x, y: projectile.sourceEnemy.y };
+      const groundStart = { x: projectile.sourceEnemy.x, y: projectile.sourceEnemy.y };
+      const end = {
+        x: groundStart.x + (projectile.sweepTarget.x - start.x) * progress,
+        y: groundStart.y + (projectile.sweepTarget.y - start.y) * progress,
+      };
+      projectile.angle = Math.atan2(end.y - projectile.y, end.x - projectile.x);
+      projectile.length = Math.max(1, Math.hypot(end.x - projectile.x, end.y - projectile.y));
+    }
   }
+}
+
+function easeOutCubic(t) {
+  const clamped = clamp(t, 0, 1);
+  return 1 - (1 - clamped) ** 3;
 }
 
 function spawnEnemyPulseBlast(game, projectile) {
@@ -2981,7 +3157,7 @@ function beamHalfWidth(projectile) {
   const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
   const frame = Math.max(0, Math.min(frames - 1, Math.floor(age * frames)));
   const envelope = Math.sin(((frame + 0.5) / frames) * Math.PI);
-  const voxelWidth = (projectile.radius ?? 1) + envelope * 2.8;
+  const voxelWidth = (projectile.radius ?? 1) + envelope * 2.8 * (projectile.widthEnvelopeScale ?? 1);
   return (VOXEL_SIZE * voxelWidth) / 2;
 }
 

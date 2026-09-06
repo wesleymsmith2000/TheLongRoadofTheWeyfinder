@@ -20,6 +20,7 @@ import { createGame, createLevelEnemies, stepGame } from '../src/core/game.js';
 import { recalculateCell } from '../src/core/cell.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
+import enemyAimedShotDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 
 const SINGLE_CORE_ENEMY = {
   schemaVersion: '0.1',
@@ -67,6 +68,24 @@ const MULTI_CORE_ENEMY = {
   connections: [
     { a: 'core-a', b: 'core-b', aSide: 'right', bSide: 'left' },
     { a: 'core-b', b: 'gun', aSide: 'right', bSide: 'left' },
+  ],
+};
+
+const WALKER_SWEEP_TEST_ENEMY = {
+  schemaVersion: '0.1',
+  assetId: 'test.walker_sweep_enemy',
+  cells: [
+    { id: 'lower-wheel', type: 'wheel', gridX: 0, gridY: 0, gridZ: 0, role: 'supportLeg' },
+    { id: 'middle-wheel', type: 'wheel', gridX: 0, gridY: 0, gridZ: 1, role: 'supportLeg' },
+    { id: 'body', type: 'armor', gridX: 0, gridY: 0, gridZ: 2, role: 'elevatedBody' },
+    { id: 'gun', type: 'gun', gridX: 0, gridY: -1, gridZ: 2, role: 'turretGun' },
+    { id: 'core', type: 'core', gridX: 0, gridY: 1, gridZ: 2, role: 'core' },
+  ],
+  connections: [
+    { a: 'lower-wheel', b: 'middle-wheel', aSide: 'above', bSide: 'below' },
+    { a: 'middle-wheel', b: 'body', aSide: 'above', bSide: 'below' },
+    { a: 'body', b: 'gun', aSide: 'top', bSide: 'bottom' },
+    { a: 'body', b: 'core', aSide: 'bottom', bSide: 'top' },
   ],
 };
 
@@ -779,6 +798,59 @@ test('boss arm attack mix can schedule and fire a tracking laser', () => {
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'boss-laser' && projectile.behavior === 'beam'), true);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.ENEMY_BEAM), true);
   assert.notDeepEqual(initialTarget, lockedTarget);
+});
+
+test('elevated walkers charge a yellow ground sweep beam from a raised gun', () => {
+  const game = createGame();
+  game.autofire = false;
+  const walker = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [enemyAimedShotDefinition], { moduleScale: 1 });
+  walker.archetypeId = 'starlight_walker.prototype0';
+  walker.walkerBeamCooldown = 0;
+  for (const pattern of walker.patterns) pattern.timer = 0;
+  game.enemies = [walker];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(Boolean(walker.walkerSweepWarning), true);
+  assert.equal(game.enemyProjectiles.length, 0);
+
+  for (let index = 0; index < 90; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const beam = game.enemyProjectiles.find((projectile) => projectile.weapon === 'walker-ground-sweep');
+  assert.equal(Boolean(beam), true);
+  assert.equal(beam.color, '#ffe36a');
+  assert.equal(beam.maxLifetime, 4);
+  assert.equal(beam.pierce, 1);
+  assert.equal(beam.radius, 0.75);
+  assert.equal(beam.widthEnvelopeScale, 0.5);
+  assert.equal(beam.sourceCellId, 'gun');
+  assert.equal(beam.sourceZ > 0, true);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.ENEMY_BEAM), true);
+
+  const earlyLength = beam.length;
+  for (let index = 0; index < 30; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(beam.length > earlyLength, true);
+});
+
+test('grounded walkers stop sweep beams and resume standard turret patterns', () => {
+  const game = createGame();
+  game.autofire = false;
+  const walker = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [enemyAimedShotDefinition], { moduleScale: 1 });
+  walker.archetypeId = 'twilight_walker.prototype0';
+  for (const cell of walker.cells.filter((candidate) => candidate.role === 'supportLeg')) {
+    for (const voxel of cell.mask.flat()) voxel.hp = 0;
+    recalculateCell(cell);
+  }
+  for (const pattern of walker.patterns) pattern.timer = 0;
+  game.enemies = [walker];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(Boolean(walker.walkerSweepWarning), false);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'walker-ground-sweep'), false);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
 });
 
 test('boss accelerates back toward the view area after being knocked away', () => {

@@ -376,6 +376,7 @@ function drawEnemy(ctx, enemy, time, game = null) {
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
   if ((enemy.elevation?.z ?? 0) > 0 || enemyHasRenderableLayers(enemy)) drawEnemyElevationShadow(ctx, enemy);
   ctx.translate(0, -projectHeight(enemyBaseElevation(enemy)));
+  drawWalkerSweepTelegraph(ctx, enemy, time);
   if (enemy.kind === 'boss') {
     drawBossLaserTelegraphs(ctx, enemy, time);
     drawBossTentacleWiggle(ctx, enemy, time);
@@ -707,6 +708,24 @@ function drawBossLaserTelegraphs(ctx, enemy, time) {
     ctx.stroke();
     ctx.restore();
   }
+}
+
+function drawWalkerSweepTelegraph(ctx, enemy, time) {
+  const warning = enemy.walkerSweepWarning;
+  if (!warning?.target) return;
+  const progress = 1 - Math.max(0, warning.timer / Math.max(0.001, warning.duration));
+  const flash = Math.sin(time * (8 + progress * 18)) * 0.5 + 0.5;
+  const source = warning.source ?? { x: enemy.x, y: enemy.y, z: 0 };
+  ctx.save();
+  ctx.globalAlpha = 0.22 + progress * 0.24 + flash * 0.18;
+  ctx.strokeStyle = '#ffe36a';
+  ctx.lineWidth = 1.1 + progress * 1.2;
+  ctx.setLineDash([CELL_SIZE * 0.9, CELL_SIZE * 0.48]);
+  ctx.beginPath();
+  ctx.moveTo(source.x - enemy.x, source.y - enemy.y - projectHeight(source.z ?? 0));
+  ctx.lineTo(warning.target.x - enemy.x, warning.target.y - enemy.y);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawBossTentacleWiggle(ctx, enemy, time) {
@@ -1130,17 +1149,19 @@ function drawBeam(ctx, projectile) {
   const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
   const widthEnvelope = Math.sin(age * Math.PI);
   const baseVoxelWidth = projectile.radius ?? 1;
-  const voxelWidth = baseVoxelWidth + widthEnvelope * 2.8;
+  const voxelWidth = baseVoxelWidth + widthEnvelope * 2.8 * (projectile.widthEnvelopeScale ?? 1);
   const endX = projectile.renderEndX ?? projectile.x + Math.cos(projectile.angle) * projectile.length;
   const endY = projectile.renderEndY ?? projectile.y + Math.sin(projectile.angle) * projectile.length;
+  const sourceY = projectile.y - projectHeight(projectile.sourceZ ?? 0);
+  const visualEndY = endY - projectHeight(projectile.endZ ?? 0);
   ctx.save();
   ctx.globalAlpha = (projectile.alpha ?? 1) * (0.35 + widthEnvelope * 0.65);
   ctx.strokeStyle = projectile.color ?? '#83f7ff';
   ctx.lineWidth = (CELL_SIZE / VOXELS) * voxelWidth;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(projectile.x, projectile.y);
-  ctx.lineTo(endX, endY);
+  ctx.moveTo(projectile.x, sourceY);
+  ctx.lineTo(endX, visualEndY);
   ctx.stroke();
   ctx.strokeStyle = '#f4fffb';
   ctx.lineWidth = Math.max(1, (CELL_SIZE / VOXELS) * Math.min(1.5, voxelWidth * 0.35));
