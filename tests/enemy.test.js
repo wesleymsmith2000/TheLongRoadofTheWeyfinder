@@ -800,11 +800,49 @@ test('boss arm attack mix can schedule and fire a tracking laser', () => {
   assert.notDeepEqual(initialTarget, lockedTarget);
 });
 
-test('elevated walkers charge a yellow ground sweep beam from a raised gun', () => {
+test('multileg walkers fire red STA missiles that lock a descent point without tracking', () => {
   const game = createGame();
   game.autofire = false;
   const walker = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [enemyAimedShotDefinition], { moduleScale: 1 });
   walker.archetypeId = 'starlight_walker.prototype0';
+  walker.walkerStaCooldown = 0;
+  for (const pattern of walker.patterns) pattern.timer = 0;
+  game.enemies = [walker];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const missile = game.enemyProjectiles.find((projectile) => projectile.weapon === 'walker-sta-missile');
+  assert.equal(Boolean(missile), true);
+  assert.equal(missile.sprite.tint, '#ff334f');
+  assert.equal(missile.targetHint, null);
+  assert.equal(missile.hideLandingMarkerUntilTargetHint, true);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), false);
+
+  game.vehicle.x += CELL_SIZE * 5;
+  game.vehicle.y += CELL_SIZE * 2;
+  let playerAtLock = null;
+  for (let index = 0; index < 70 && !missile.descentLocked; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+    if (missile.descentLocked) playerAtLock = { x: game.vehicle.x, y: game.vehicle.y };
+  }
+  assert.equal(missile.descentLocked, true);
+  assert.equal(pointDistanceSquared(missile.targetHint, playerAtLock) < CELL_SIZE * CELL_SIZE, true);
+  assert.equal(missile.detonateAtTarget, true);
+
+  const lockedAngle = missile.angle;
+  const lockedTarget = { ...missile.targetHint };
+  game.vehicle.x -= CELL_SIZE * 5;
+  for (let index = 0; index < 8; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.deepEqual(missile.targetHint, lockedTarget);
+  assert.equal(missile.angle, lockedAngle);
+});
+
+test('large armored walkers charge a yellow ground sweep beam from a raised gun', () => {
+  const game = createGame();
+  game.autofire = false;
+  const walker = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [enemyAimedShotDefinition], { moduleScale: 1 });
+  walker.archetypeId = 'twilight_walker.prototype0';
   walker.walkerBeamCooldown = 0;
   for (const pattern of walker.patterns) pattern.timer = 0;
   game.enemies = [walker];
@@ -850,6 +888,27 @@ test('grounded walkers stop sweep beams and resume standard turret patterns', ()
 
   assert.equal(Boolean(walker.walkerSweepWarning), false);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'walker-ground-sweep'), false);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
+});
+
+test('grounded multileg walkers stop STA missiles and resume standard turret patterns', () => {
+  const game = createGame();
+  game.autofire = false;
+  const walker = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [enemyAimedShotDefinition], { moduleScale: 1 });
+  walker.archetypeId = 'starlight_walker.prototype0';
+  walker.walkerStaCooldown = 0;
+  for (const cell of walker.cells.filter((candidate) => candidate.role === 'supportLeg')) {
+    for (const voxel of cell.mask.flat()) voxel.hp = 0;
+    recalculateCell(cell);
+  }
+  for (const pattern of walker.patterns) pattern.timer = 0;
+  game.enemies = [walker];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'walker-sta-missile'), false);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
 });
 

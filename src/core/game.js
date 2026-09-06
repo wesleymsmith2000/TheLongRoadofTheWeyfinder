@@ -66,6 +66,7 @@ import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'j
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
 import miniBeamDefinition from '../../content/weapons/mini_beam.json' with { type: 'json' };
 import repulsorBeamDefinition from '../../content/weapons/repulsor_beam.json' with { type: 'json' };
+import staMissileDefinition from '../../content/weapons/sta_missile.json' with { type: 'json' };
 import startingVehicleDefinition from '../../content/constructs/starting_vehicle.json' with { type: 'json' };
 import ghostPhaserSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json' with { type: 'json' };
 import tractorFrogSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
@@ -106,6 +107,16 @@ const WALKER_SWEEP_BEAM_CHARGE_SECONDS = 1.35;
 const WALKER_SWEEP_BEAM_FIRE_SECONDS = 4;
 const WALKER_SWEEP_BEAM_LENGTH = CELL_SIZE * 48;
 const WALKER_SWEEP_BEAM_COOLDOWN = [5.2, 7.4];
+const WALKER_STA_MISSILE_COOLDOWN = [3.8, 5.8];
+const WALKER_STA_DESCENT_LOCK_SECONDS = 0.8;
+const WALKER_STA_GRAVITY = 96;
+const WALKER_STA_VERTICAL_VELOCITY = 220;
+const WALKER_STA_BLAST_RADIUS = CELL_SIZE * 4.5;
+const WALKER_STA_MISSILE_SPRITE = {
+  ...staMissileDefinition.projectile.sprite,
+  tint: '#ff334f',
+  tintAlpha: 0.9,
+};
 const BROODABLE_ARCHETYPES = new Set([
   'ghost_phaser.ghost_forrest',
   'hopping_stream_mob.digitized_stream',
@@ -124,6 +135,9 @@ const RUNTIME_SCULPTED_CONSTRUCTS = {
   'scrap_buzzard.shadowed_desert': scrapBuzzardSculptedDefinition,
   'moth_bomber.freedoms_pass': mothBomberSculptedDefinition,
 };
+const RUNTIME_CONSTRUCT_DEFINITIONS = new Map(
+  Object.values(RUNTIME_SCULPTED_CONSTRUCTS).map((definition) => [definition.assetId, definition]),
+);
 const INCHWORM_HEAD_CONSTRUCT = inchwormHeadSculptedDefinition;
 const INCHWORM_SEGMENT_CONSTRUCT = inchwormSegmentSculptedDefinition;
 const ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS = 0.22;
@@ -285,6 +299,7 @@ export function stepGame(game, input, dt) {
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   stepPlayerProjectileEmitters(game, dt);
   syncBeamProjectiles(game);
+  lockEnemyStaMissileDescents(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   syncEnemyBeamProjectiles(game);
   handleEnemyProjectileSpecials(game);
@@ -650,7 +665,7 @@ function zoneNameFromTrack(trackName = '') {
 }
 
 function createEnemyForArchetype(archetype, x, y, kind) {
-  const runtimeConstruct = RUNTIME_SCULPTED_CONSTRUCTS[archetype.id];
+  const runtimeConstruct = RUNTIME_CONSTRUCT_DEFINITIONS.get(archetype.construct) ?? RUNTIME_SCULPTED_CONSTRUCTS[archetype.id];
   if (runtimeConstruct) {
     const enemy = createEnemy(x, y, runtimeConstruct, undefined, { moduleScale: 1 });
     if (archetype.id === 'heavy_mortar_boat.pirates_road') enemy.silhouette = 'pirateShip';
@@ -673,6 +688,7 @@ function isBroodableArchetype(archetype) {
 
 function createBroodTurretsForEnemy(archetype, road, offset, level, index, kind) {
   if (kind !== 'standard') return [];
+  if (isWalkerEnemy(archetype)) return createWalkerBroodEscorts(archetype, road, offset, level, index);
   const count = 1 + ((level + index + archetype.id.length) % 3);
   const velocity = roadDirectionToWorld(0, 1, road);
   const sideDirection = roadDirectionToWorld(1, 0, road);
@@ -691,6 +707,34 @@ function createBroodTurretsForEnemy(archetype, road, offset, level, index, kind)
     escort.palette = archetype.palette ? { ...archetype.palette } : escort.palette;
     escort.vx = velocity.x * 17.5 + sideDirection.x * side * 8;
     escort.vy = velocity.y * 17.5 + sideDirection.y * side * 8;
+    applyEnemyLevelUpgrades(escort, level);
+    escorts.push(escort);
+  }
+  return escorts;
+}
+
+function createWalkerBroodEscorts(archetype, road, offset, level, index) {
+  const alternate = getEnemyArchetype('starlight_walker.prototype0') ?? RUNTIME_ENEMY_ARCHETYPES['starlight_walker.prototype0'];
+  if (!alternate) return [];
+  const count = 1 + ((level + index + archetype.id.length) % 3);
+  const velocity = roadDirectionToWorld(0, 1, road);
+  const sideDirection = roadDirectionToWorld(1, 0, road);
+  const escorts = [];
+  for (let i = 0; i < count; i += 1) {
+    const side = i - (count - 1) / 2;
+    const stagger = CELL_SIZE * (6.2 + i * 1.2);
+    const world = roadOffsetToWorld({
+      x: offset.x + side * CELL_SIZE * 6.2,
+      y: offset.y - stagger,
+    }, road);
+    const escort = createEnemyForArchetype(alternate, world.x, world.y, 'standard');
+    applyArchetypeRuntimeMetadata(escort, alternate);
+    escort.archetypeId = `${archetype.id}.brood_walker`;
+    escort.displayName = `${archetype.displayName ?? 'Walker'} Brood Walker`;
+    escort.zone = archetype.zone;
+    escort.palette = archetype.palette ? { ...archetype.palette } : escort.palette;
+    escort.vx = velocity.x * 18 + sideDirection.x * side * 8;
+    escort.vy = velocity.y * 18 + sideDirection.y * side * 8;
     applyEnemyLevelUpgrades(escort, level);
     escorts.push(escort);
   }
@@ -1431,7 +1475,7 @@ function stepEnemy(game, enemy, dt) {
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
   if (enemy.destroyed) return;
-  if (!walkerUsesElevatedSweepBeam(enemy)) stepEnemyPatterns(game, enemy, dt);
+  if (!walkerUsesElevatedSpecialWeapon(enemy)) stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
   updateEnemyCollisionRotation(enemy, game.time);
   enemy.x += enemy.vx * dt;
@@ -1445,7 +1489,7 @@ function stepArchetypeEnemy(game, enemy, dt) {
   if (enemy.archetypeId === 'hopping_stream_mob.digitized_stream') stepHopperFrog(game, enemy, dt);
   if (enemy.archetypeId === 'heavy_mortar_boat.pirates_road') stepMortarBoat(game, enemy, dt);
   if (enemy.archetypeId === 'mortar_skiff.prototype0') stepMortarSkiff(game, enemy, dt);
-  if (enemy.archetypeId === 'starlight_walker.prototype0' || enemy.archetypeId === 'twilight_walker.prototype0') stepWalkerEnemy(game, enemy, dt);
+  if (isWalkerEnemy(enemy)) stepWalkerEnemy(game, enemy, dt);
   if (enemy.archetypeId === 'scrap_buzzard.shadowed_desert') stepScrapBuzzard(game, enemy, dt);
   if (enemy.archetypeId === 'inchworm_carrier.freedoms_pass') stepInchwormCarrier(game, enemy, dt);
   if (enemy.archetypeId === 'inchworm_segment.freedoms_pass') stepInchwormSegment(enemy, dt);
@@ -1586,11 +1630,66 @@ function stepWalkerEnemy(game, enemy, dt) {
   enemy.elevation.layeredExposure = true;
   enemy.walkPhase = (enemy.walkPhase ?? 0) + dt * 4.4 * enemyMovementUpgradeScale(enemy);
   enemy.vx += Math.sin(enemy.walkPhase) * 6 * dt;
-  if (walkerUsesElevatedSweepBeam(enemy)) {
+  if (walkerUsesElevatedStaMissile(enemy)) {
+    stepWalkerStaMissile(game, enemy, dt);
+    enemy.walkerSweepWarning = null;
+  } else if (walkerUsesElevatedSweepBeam(enemy)) {
     stepWalkerSweepBeam(game, enemy, dt);
   } else {
     enemy.walkerSweepWarning = null;
   }
+}
+
+function stepWalkerStaMissile(game, enemy, dt) {
+  const source = walkerBeamSource(enemy);
+  const fireScale = walkerSweepFireScale(enemy, source);
+  if (!source || fireScale <= 0) return;
+
+  enemy.walkerStaCooldown = Math.max(0, (enemy.walkerStaCooldown ?? game.rng.range(0.7, 1.8)) - dt * fireScale);
+  if (enemy.walkerStaCooldown > 0) return;
+
+  fireWalkerStaMissile(game, enemy, source);
+  enemy.walkerStaCooldown = game.rng.range(WALKER_STA_MISSILE_COOLDOWN[0], WALKER_STA_MISSILE_COOLDOWN[1]);
+}
+
+function fireWalkerStaMissile(game, enemy, source) {
+  const shell = createProjectile(source.x, source.y, 0, 0, {
+    team: 'enemy',
+    weapon: 'walker-sta-missile',
+    behavior: 'arc',
+    radius: 3,
+    color: '#ff334f',
+    sprite: WALKER_STA_MISSILE_SPRITE,
+    landingMarkerSprite: MORTAR_ENEMY_MARKER_SPRITE,
+    damage: 10 * enemyDamageUpgradeScale(enemy),
+    impulse: 82,
+    lifetime: 5.2,
+    z: source.z,
+    verticalVelocity: WALKER_STA_VERTICAL_VELOCITY,
+    gravity: WALKER_STA_GRAVITY,
+    maxArcHeight: 230,
+    shadowRadius: 3.5,
+    targetHint: null,
+    detonateAtTarget: false,
+    descentLockDelay: WALKER_STA_DESCENT_LOCK_SECONDS,
+    hideLandingMarkerUntilTargetHint: true,
+    blastOnExpire: {
+      radius: WALKER_STA_BLAST_RADIUS,
+      damage: 5.5 * enemyDamageUpgradeScale(enemy),
+      impulse: 46,
+    },
+    contrail: {
+      emissionMeanPerSevenFrames: 2,
+      maxParticlesPerStep: 5,
+      particleLifetimeFrames: [4, 6],
+      particleRadiusScale: 1.25,
+      colors: ['#ff9aa8', '#d94d5f', '#6d6568', '#c9c3c5'],
+    },
+    zCollision: true,
+  });
+  shell.angle = -Math.PI / 2;
+  game.enemyProjectiles.push(shell);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
 function stepWalkerSweepBeam(game, enemy, dt) {
@@ -1678,13 +1777,25 @@ function walkerSweepFireScale(enemy, source) {
 }
 
 function walkerUsesElevatedSweepBeam(enemy) {
+  if (walkerUsesElevatedStaMissile(enemy)) return false;
+  return walkerUsesElevatedSpecialWeapon(enemy);
+}
+
+function walkerUsesElevatedStaMissile(enemy) {
+  if (!walkerUsesElevatedSpecialWeapon(enemy)) return false;
+  const id = String(enemy.archetypeId ?? '');
+  return id.startsWith('starlight_walker.prototype0') || enemy.assetId === spideryWalkerSculptedDefinition.assetId;
+}
+
+function walkerUsesElevatedSpecialWeapon(enemy) {
   if (!isWalkerEnemy(enemy)) return false;
   if (!enemy.cells?.some((cell) => !cell.state?.destroyed && (cell.type === 'core' || cell.type === 'gun' || cell.role === 'elevatedBody' || cell.role === 'turretGun'))) return false;
   return !walkerBodyIsGrounded(enemy);
 }
 
 function isWalkerEnemy(enemy) {
-  return enemy?.archetypeId === 'starlight_walker.prototype0' || enemy?.archetypeId === 'twilight_walker.prototype0';
+  const id = String(enemy?.archetypeId ?? enemy?.id ?? '');
+  return id.startsWith('starlight_walker.prototype0') || id.startsWith('twilight_walker.prototype0');
 }
 
 function walkerBodyIsGrounded(enemy) {
@@ -2738,6 +2849,20 @@ function trackReticleProjectiles(game) {
   }
 }
 
+function lockEnemyStaMissileDescents(game) {
+  for (const projectile of game.enemyProjectiles) {
+    if (projectile.weapon !== 'walker-sta-missile' || projectile.descentLocked || projectile.arcLanded) continue;
+    if ((projectile.arcAge ?? 0) < (projectile.descentLockDelay ?? 0)) continue;
+    projectile.descentLocked = true;
+    projectile.targetHint = { x: game.vehicle.x, y: game.vehicle.y };
+    projectile.detonateAtTarget = true;
+    const flightTime = remainingArcFlightTime(projectile);
+    projectile.vx = (projectile.targetHint.x - projectile.x) / flightTime;
+    projectile.vy = (projectile.targetHint.y - projectile.y) / flightTime;
+    projectile.angle = Math.atan2(projectile.vy, projectile.vx);
+  }
+}
+
 function remainingArcFlightTime(projectile) {
   const gravity = projectile.gravity ?? 0;
   if (gravity <= 0) return Math.max(0.001, projectile.lifetime ?? 1);
@@ -3252,7 +3377,12 @@ function spawnRocketImpact(game, projectile, enemy) {
 
 function stepRocketContrails(game, dt) {
   const frameCount = Math.max(0, dt * 60);
-  for (const projectile of game.playerProjectiles) {
+  stepProjectileContrails(game, game.playerProjectiles, frameCount);
+  stepProjectileContrails(game, game.enemyProjectiles, frameCount);
+}
+
+function stepProjectileContrails(game, projectiles, frameCount) {
+  for (const projectile of projectiles) {
     if (projectile.lifetime <= 0 || !projectile.contrail) continue;
     const meanPerSevenFrames = projectile.contrail.emissionMeanPerSevenFrames ?? 2;
     const mean = (meanPerSevenFrames / 7) * frameCount;

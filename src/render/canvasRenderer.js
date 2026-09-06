@@ -896,6 +896,7 @@ function drawArcProjectile(ctx, projectile, color, imageAssets) {
   const visualY = projectile.y - projectHeight(projectile.z);
   const scale = 1 + heightRatio * 0.55;
   const marker = projectile.detonateAtTarget && projectile.targetHint ? projectile.targetHint : projectile;
+  const showMarker = !projectile.hideLandingMarkerUntilTargetHint || Boolean(projectile.targetHint);
   ctx.save();
   ctx.globalAlpha = 0.18 + (1 - heightRatio) * 0.26;
   ctx.fillStyle = '#050506';
@@ -903,7 +904,7 @@ function drawArcProjectile(ctx, projectile, color, imageAssets) {
   ctx.ellipse(projectile.x, projectile.y, projectile.shadowRadius * (1 - heightRatio * 0.45), projectile.shadowRadius * 0.45, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
-  drawArcLandingMarker(ctx, projectile, marker, color, imageAssets);
+  if (showMarker) drawArcLandingMarker(ctx, projectile, marker, color, imageAssets);
   if (drawProjectileSprite(ctx, projectile, imageAssets, { x: visualX, y: visualY, scale })) {
     ctx.restore();
     return;
@@ -990,7 +991,15 @@ function drawSpriteDescriptor(ctx, imageAssets, sprite, x, y, angle = 0, scale =
   ctx.globalAlpha *= sprite.opacity ?? 1;
   ctx.translate(x, y);
   if (angle) ctx.rotate(angle);
-  ctx.drawImage(image, -anchor[0] * width, -anchor[1] * height, width, height);
+  const drawX = -anchor[0] * width;
+  const drawY = -anchor[1] * height;
+  ctx.drawImage(image, drawX, drawY, width, height);
+  if (sprite.tint) {
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.globalAlpha *= sprite.tintAlpha ?? 0.85;
+    ctx.fillStyle = sprite.tint;
+    ctx.fillRect(drawX, drawY, width, height);
+  }
   ctx.restore();
   return true;
 }

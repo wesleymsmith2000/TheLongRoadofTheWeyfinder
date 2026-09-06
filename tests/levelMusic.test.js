@@ -73,6 +73,18 @@ test('zone archetype spawns include sculpted leaders and basic brood turrets', (
   assert.equal(enemies.slice(1).every((enemy) => enemy.assetId === 'basic_turret'), true);
 });
 
+test('walker brood escorts use the smaller multileg walker instead of raised turrets', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const enemies = createLevelEnemies(road, 1, ['TwilightCrossroads']);
+  const escorts = enemies.slice(1);
+  assert.equal(enemies[0].assetId, 'example.construct.spider_walker_sculpted');
+  assert.equal(escorts.length >= 1, true);
+  assert.equal(escorts.length <= 3, true);
+  assert.equal(escorts.every((enemy) => enemy.archetypeId === 'twilight_walker.prototype0.brood_walker'), true);
+  assert.equal(escorts.every((enemy) => enemy.assetId === 'example.construct.spidery_walker_sculpted'), true);
+  assert.equal(escorts.every((enemy) => enemy.poseRig.groups.some((group) => group.role === 'legAssembly')), true);
+});
+
 test('freedoms pass inchworm spawns as linked head and body segment enemies', () => {
   const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
   const enemies = createLevelEnemies(road, 1, ['FreedomsPass_Journey']);
