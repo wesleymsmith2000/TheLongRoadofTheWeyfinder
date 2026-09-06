@@ -357,17 +357,14 @@ function spideryWalkerLayers() {
     { id: 'rightRearInner', x: 4, y: 1 },
     { id: 'rightRearOuter', x: 4, y: 4 },
   ];
-  const legArmorRows = [
+  const legRows = [
     '-a-',
-    'aaa',
+    'awa',
     '-a-',
   ];
-  for (const center of legCenters) {
-    layers.push({ id: center.id, z: 0, x0: center.x, y0: center.y, rows: ['w'], layerRole: 'spideryWalkerGroundFoot' });
-  }
-  for (let z = 1; z < 6; z += 1) {
+  for (let z = 0; z < 6; z += 1) {
     for (const center of legCenters) {
-      layers.push({ id: center.id, z, x0: center.x - 1, y0: center.y - 1, rows: legArmorRows, layerRole: 'spideryWalkerLegStack' });
+      layers.push({ id: center.id, z, x0: center.x - 1, y0: center.y - 1, rows: legRows, layerRole: 'spideryWalkerLegStack' });
     }
   }
   for (const center of legCenters) {

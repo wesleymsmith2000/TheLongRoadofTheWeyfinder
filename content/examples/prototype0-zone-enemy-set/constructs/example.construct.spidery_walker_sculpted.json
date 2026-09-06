@@ -19,6 +19,30 @@
   ],
   "cells": [
     {
+      "id": "legArmor_xn4_yn6",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -6,
+      "role": "legArmor",
+      "legId": "leftFrontOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn5",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -5,
+      "role": "legArmor",
+      "legId": "leftFrontOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
       "id": "supportLeg_xn4_yn5",
       "type": "wheel",
       "gridX": -4,
@@ -28,6 +52,54 @@
       "appearance": {
         "tint": "#9fc8ff",
         "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_yn5",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -5,
+      "role": "legArmor",
+      "legId": "leftFrontOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn4",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "legArmor",
+      "legId": "leftFrontOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn3",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "legArmor",
+      "legId": "leftFrontInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_yn2",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -2,
+      "role": "legArmor",
+      "legId": "leftFrontInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
       }
     },
     {
@@ -43,6 +115,54 @@
       }
     },
     {
+      "id": "legArmor_xn3_yn2",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -2,
+      "role": "legArmor",
+      "legId": "leftFrontInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_yn1",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -1,
+      "role": "legArmor",
+      "legId": "leftFrontInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y0",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 0,
+      "role": "legArmor",
+      "legId": "leftRearInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y1",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 1,
+      "role": "legArmor",
+      "legId": "leftRearInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
       "id": "supportLeg_xn4_y1",
       "type": "wheel",
       "gridX": -4,
@@ -52,6 +172,54 @@
       "appearance": {
         "tint": "#9fc8ff",
         "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_xn3_y1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 1,
+      "role": "legArmor",
+      "legId": "leftRearInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y2",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 2,
+      "role": "legArmor",
+      "legId": "leftRearInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y3",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "legArmor",
+      "legId": "leftRearOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn5_y4",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "legArmor",
+      "legId": "leftRearOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
       }
     },
     {
@@ -67,6 +235,54 @@
       }
     },
     {
+      "id": "legArmor_xn3_y4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "legArmor",
+      "legId": "leftRearOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_xn4_y5",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 5,
+      "role": "legArmor",
+      "legId": "leftRearOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn6",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -6,
+      "role": "legArmor",
+      "legId": "rightFrontOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn5",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -5,
+      "role": "legArmor",
+      "legId": "rightFrontOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
       "id": "supportLeg_x4_yn5",
       "type": "wheel",
       "gridX": 4,
@@ -76,6 +292,54 @@
       "appearance": {
         "tint": "#9fc8ff",
         "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x5_yn5",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -5,
+      "role": "legArmor",
+      "legId": "rightFrontOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn4",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "legArmor",
+      "legId": "rightFrontOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn3",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "legArmor",
+      "legId": "rightFrontInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_yn2",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -2,
+      "role": "legArmor",
+      "legId": "rightFrontInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
       }
     },
     {
@@ -91,6 +355,54 @@
       }
     },
     {
+      "id": "legArmor_x5_yn2",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -2,
+      "role": "legArmor",
+      "legId": "rightFrontInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_yn1",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -1,
+      "role": "legArmor",
+      "legId": "rightFrontInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y0",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 0,
+      "role": "legArmor",
+      "legId": "rightRearInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 1,
+      "role": "legArmor",
+      "legId": "rightRearInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
       "id": "supportLeg_x4_y1",
       "type": "wheel",
       "gridX": 4,
@@ -103,6 +415,54 @@
       }
     },
     {
+      "id": "legArmor_x5_y1",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 1,
+      "role": "legArmor",
+      "legId": "rightRearInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y2",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 2,
+      "role": "legArmor",
+      "legId": "rightRearInner",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y3",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "legArmor",
+      "legId": "rightRearOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x3_y4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "legArmor",
+      "legId": "rightRearOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
       "id": "supportLeg_x4_y4",
       "type": "wheel",
       "gridX": 4,
@@ -112,6 +472,30 @@
       "appearance": {
         "tint": "#9fc8ff",
         "label": "wheel leg"
+      }
+    },
+    {
+      "id": "legArmor_x5_y4",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "legArmor",
+      "legId": "rightRearOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
+      }
+    },
+    {
+      "id": "legArmor_x4_y5",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 5,
+      "role": "legArmor",
+      "legId": "rightRearOuter",
+      "appearance": {
+        "tint": "#506181",
+        "label": "leg armor"
       }
     },
     {
@@ -141,16 +525,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn5_z1",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn5_z1",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontOuter",
       "gridZ": 1,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -206,16 +590,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn2_z1",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn2_z1",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontInner",
       "gridZ": 1,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -271,16 +655,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y1_z1",
-      "type": "armor",
+      "id": "supportLeg_xn4_y1_z1",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearInner",
       "gridZ": 1,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -336,16 +720,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y4_z1",
-      "type": "armor",
+      "id": "supportLeg_xn4_y4_z1",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearOuter",
       "gridZ": 1,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -401,16 +785,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn5_z1",
-      "type": "armor",
+      "id": "supportLeg_x4_yn5_z1",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontOuter",
       "gridZ": 1,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -466,16 +850,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn2_z1",
-      "type": "armor",
+      "id": "supportLeg_x4_yn2_z1",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontInner",
       "gridZ": 1,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -531,16 +915,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y1_z1",
-      "type": "armor",
+      "id": "supportLeg_x4_y1_z1",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearInner",
       "gridZ": 1,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -596,16 +980,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y4_z1",
-      "type": "armor",
+      "id": "supportLeg_x4_y4_z1",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearOuter",
       "gridZ": 1,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -661,16 +1045,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn5_z2",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn5_z2",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontOuter",
       "gridZ": 2,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -726,16 +1110,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn2_z2",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn2_z2",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontInner",
       "gridZ": 2,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -791,16 +1175,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y1_z2",
-      "type": "armor",
+      "id": "supportLeg_xn4_y1_z2",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearInner",
       "gridZ": 2,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -856,16 +1240,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y4_z2",
-      "type": "armor",
+      "id": "supportLeg_xn4_y4_z2",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearOuter",
       "gridZ": 2,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -921,16 +1305,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn5_z2",
-      "type": "armor",
+      "id": "supportLeg_x4_yn5_z2",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontOuter",
       "gridZ": 2,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -986,16 +1370,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn2_z2",
-      "type": "armor",
+      "id": "supportLeg_x4_yn2_z2",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontInner",
       "gridZ": 2,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1051,16 +1435,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y1_z2",
-      "type": "armor",
+      "id": "supportLeg_x4_y1_z2",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearInner",
       "gridZ": 2,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1116,16 +1500,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y4_z2",
-      "type": "armor",
+      "id": "supportLeg_x4_y4_z2",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearOuter",
       "gridZ": 2,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1181,16 +1565,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn5_z3",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn5_z3",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontOuter",
       "gridZ": 3,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1246,16 +1630,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn2_z3",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn2_z3",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontInner",
       "gridZ": 3,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1311,16 +1695,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y1_z3",
-      "type": "armor",
+      "id": "supportLeg_xn4_y1_z3",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearInner",
       "gridZ": 3,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1376,16 +1760,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y4_z3",
-      "type": "armor",
+      "id": "supportLeg_xn4_y4_z3",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearOuter",
       "gridZ": 3,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1441,16 +1825,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn5_z3",
-      "type": "armor",
+      "id": "supportLeg_x4_yn5_z3",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontOuter",
       "gridZ": 3,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1506,16 +1890,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn2_z3",
-      "type": "armor",
+      "id": "supportLeg_x4_yn2_z3",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontInner",
       "gridZ": 3,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1571,16 +1955,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y1_z3",
-      "type": "armor",
+      "id": "supportLeg_x4_y1_z3",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearInner",
       "gridZ": 3,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1636,16 +2020,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y4_z3",
-      "type": "armor",
+      "id": "supportLeg_x4_y4_z3",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearOuter",
       "gridZ": 3,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1701,16 +2085,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn5_z4",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn5_z4",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontOuter",
       "gridZ": 4,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1766,16 +2150,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn2_z4",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn2_z4",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontInner",
       "gridZ": 4,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1831,16 +2215,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y1_z4",
-      "type": "armor",
+      "id": "supportLeg_xn4_y1_z4",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearInner",
       "gridZ": 4,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1896,16 +2280,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y4_z4",
-      "type": "armor",
+      "id": "supportLeg_xn4_y4_z4",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearOuter",
       "gridZ": 4,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -1961,16 +2345,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn5_z4",
-      "type": "armor",
+      "id": "supportLeg_x4_yn5_z4",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontOuter",
       "gridZ": 4,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2026,16 +2410,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn2_z4",
-      "type": "armor",
+      "id": "supportLeg_x4_yn2_z4",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontInner",
       "gridZ": 4,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2091,16 +2475,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y1_z4",
-      "type": "armor",
+      "id": "supportLeg_x4_y1_z4",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearInner",
       "gridZ": 4,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2156,16 +2540,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y4_z4",
-      "type": "armor",
+      "id": "supportLeg_x4_y4_z4",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearOuter",
       "gridZ": 4,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2221,16 +2605,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn5_z5",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn5_z5",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontOuter",
       "gridZ": 5,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2286,16 +2670,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_yn2_z5",
-      "type": "armor",
+      "id": "supportLeg_xn4_yn2_z5",
+      "type": "wheel",
       "gridX": -4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftFrontInner",
       "gridZ": 5,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2351,16 +2735,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y1_z5",
-      "type": "armor",
+      "id": "supportLeg_xn4_y1_z5",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearInner",
       "gridZ": 5,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2416,16 +2800,16 @@
       }
     },
     {
-      "id": "legArmor_xn4_y4_z5",
-      "type": "armor",
+      "id": "supportLeg_xn4_y4_z5",
+      "type": "wheel",
       "gridX": -4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "leftRearOuter",
       "gridZ": 5,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2481,16 +2865,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn5_z5",
-      "type": "armor",
+      "id": "supportLeg_x4_yn5_z5",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -5,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontOuter",
       "gridZ": 5,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2546,16 +2930,16 @@
       }
     },
     {
-      "id": "legArmor_x4_yn2_z5",
-      "type": "armor",
+      "id": "supportLeg_x4_yn2_z5",
+      "type": "wheel",
       "gridX": 4,
       "gridY": -2,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightFrontInner",
       "gridZ": 5,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2611,16 +2995,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y1_z5",
-      "type": "armor",
+      "id": "supportLeg_x4_y1_z5",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 1,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearInner",
       "gridZ": 5,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -2676,16 +3060,16 @@
       }
     },
     {
-      "id": "legArmor_x4_y4_z5",
-      "type": "armor",
+      "id": "supportLeg_x4_y4_z5",
+      "type": "wheel",
       "gridX": 4,
       "gridY": 4,
-      "role": "legArmor",
+      "role": "supportLeg",
       "legId": "rightRearOuter",
       "gridZ": 5,
       "appearance": {
-        "tint": "#506181",
-        "label": "leg armor"
+        "tint": "#9fc8ff",
+        "label": "wheel leg"
       }
     },
     {
@@ -3801,20 +4185,20 @@
     },
     {
       "a": "legArmor_x3_y1_z5",
-      "b": "legArmor_x4_y1_z5",
+      "b": "supportLeg_x4_y1_z5",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z5",
+      "a": "supportLeg_x4_y1_z5",
       "b": "legArmor_x5_y1_z5",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z5",
+      "a": "supportLeg_x4_y1_z5",
       "b": "legArmor_x4_y2_z5",
       "aSide": "bottom",
       "bSide": "top",
@@ -3829,20 +4213,20 @@
     },
     {
       "a": "legArmor_x4_y3_z5",
-      "b": "legArmor_x4_y4_z5",
+      "b": "supportLeg_x4_y4_z5",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z5",
+      "a": "supportLeg_x4_y4_z5",
       "b": "legArmor_x5_y4_z5",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z5",
+      "a": "supportLeg_x4_y4_z5",
       "b": "legArmor_x4_y5_z5",
       "aSide": "bottom",
       "bSide": "top",
@@ -3856,7 +4240,7 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z5",
+      "a": "supportLeg_x4_y4_z5",
       "b": "legJoint_x4_y4_z6",
       "aSide": "above",
       "bSide": "below",
@@ -3983,20 +4367,20 @@
     },
     {
       "a": "legArmor_x3_y1_z4",
-      "b": "legArmor_x4_y1_z4",
+      "b": "supportLeg_x4_y1_z4",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z4",
+      "a": "supportLeg_x4_y1_z4",
       "b": "legArmor_x5_y1_z4",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z4",
+      "a": "supportLeg_x4_y1_z4",
       "b": "legArmor_x4_y2_z4",
       "aSide": "bottom",
       "bSide": "top",
@@ -4011,34 +4395,34 @@
     },
     {
       "a": "legArmor_x4_y3_z4",
-      "b": "legArmor_x4_y4_z4",
+      "b": "supportLeg_x4_y4_z4",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z4",
+      "a": "supportLeg_x4_y4_z4",
       "b": "legArmor_x5_y4_z4",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z4",
+      "a": "supportLeg_x4_y4_z4",
       "b": "legArmor_x4_y5_z4",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z5",
+      "a": "supportLeg_x4_y1_z5",
       "b": "legArmor_x4_y0_z5",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z5",
+      "a": "supportLeg_x4_y4_z5",
       "b": "legArmor_x3_y4_z5",
       "aSide": "left",
       "bSide": "right",
@@ -4151,20 +4535,20 @@
     },
     {
       "a": "legArmor_x3_y1_z3",
-      "b": "legArmor_x4_y1_z3",
+      "b": "supportLeg_x4_y1_z3",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z3",
+      "a": "supportLeg_x4_y1_z3",
       "b": "legArmor_x5_y1_z3",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z3",
+      "a": "supportLeg_x4_y1_z3",
       "b": "legArmor_x4_y2_z3",
       "aSide": "bottom",
       "bSide": "top",
@@ -4179,34 +4563,34 @@
     },
     {
       "a": "legArmor_x4_y3_z3",
-      "b": "legArmor_x4_y4_z3",
+      "b": "supportLeg_x4_y4_z3",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z3",
+      "a": "supportLeg_x4_y4_z3",
       "b": "legArmor_x5_y4_z3",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z3",
+      "a": "supportLeg_x4_y4_z3",
       "b": "legArmor_x4_y5_z3",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z4",
+      "a": "supportLeg_x4_y1_z4",
       "b": "legArmor_x4_y0_z4",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z4",
+      "a": "supportLeg_x4_y4_z4",
       "b": "legArmor_x3_y4_z4",
       "aSide": "left",
       "bSide": "right",
@@ -4221,20 +4605,20 @@
     },
     {
       "a": "legArmor_x3_yn2_z5",
-      "b": "legArmor_x4_yn2_z5",
+      "b": "supportLeg_x4_yn2_z5",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z5",
+      "a": "supportLeg_x4_yn2_z5",
       "b": "legArmor_x5_yn2_z5",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z5",
+      "a": "supportLeg_x4_yn2_z5",
       "b": "legArmor_x4_yn1_z5",
       "aSide": "bottom",
       "bSide": "top",
@@ -4340,20 +4724,20 @@
     },
     {
       "a": "legArmor_x3_y1_z2",
-      "b": "legArmor_x4_y1_z2",
+      "b": "supportLeg_x4_y1_z2",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z2",
+      "a": "supportLeg_x4_y1_z2",
       "b": "legArmor_x5_y1_z2",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z2",
+      "a": "supportLeg_x4_y1_z2",
       "b": "legArmor_x4_y2_z2",
       "aSide": "bottom",
       "bSide": "top",
@@ -4368,34 +4752,34 @@
     },
     {
       "a": "legArmor_x4_y3_z2",
-      "b": "legArmor_x4_y4_z2",
+      "b": "supportLeg_x4_y4_z2",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z2",
+      "a": "supportLeg_x4_y4_z2",
       "b": "legArmor_x5_y4_z2",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z2",
+      "a": "supportLeg_x4_y4_z2",
       "b": "legArmor_x4_y5_z2",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z3",
+      "a": "supportLeg_x4_y1_z3",
       "b": "legArmor_x4_y0_z3",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z3",
+      "a": "supportLeg_x4_y4_z3",
       "b": "legArmor_x3_y4_z3",
       "aSide": "left",
       "bSide": "right",
@@ -4410,20 +4794,20 @@
     },
     {
       "a": "legArmor_x3_yn2_z4",
-      "b": "legArmor_x4_yn2_z4",
+      "b": "supportLeg_x4_yn2_z4",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z4",
+      "a": "supportLeg_x4_yn2_z4",
       "b": "legArmor_x5_yn2_z4",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z4",
+      "a": "supportLeg_x4_yn2_z4",
       "b": "legArmor_x4_yn1_z4",
       "aSide": "bottom",
       "bSide": "top",
@@ -4437,7 +4821,7 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z5",
+      "a": "supportLeg_x4_yn2_z5",
       "b": "legArmor_x4_yn3_z5",
       "aSide": "top",
       "bSide": "bottom",
@@ -4501,20 +4885,20 @@
     },
     {
       "a": "legArmor_x3_y1_z1",
-      "b": "legArmor_x4_y1_z1",
+      "b": "supportLeg_x4_y1_z1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z1",
+      "a": "supportLeg_x4_y1_z1",
       "b": "legArmor_x5_y1_z1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z1",
+      "a": "supportLeg_x4_y1_z1",
       "b": "legArmor_x4_y2_z1",
       "aSide": "bottom",
       "bSide": "top",
@@ -4529,34 +4913,34 @@
     },
     {
       "a": "legArmor_x4_y3_z1",
-      "b": "legArmor_x4_y4_z1",
+      "b": "supportLeg_x4_y4_z1",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z1",
+      "a": "supportLeg_x4_y4_z1",
       "b": "legArmor_x5_y4_z1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z1",
+      "a": "supportLeg_x4_y4_z1",
       "b": "legArmor_x4_y5_z1",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z2",
+      "a": "supportLeg_x4_y1_z2",
       "b": "legArmor_x4_y0_z2",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z2",
+      "a": "supportLeg_x4_y4_z2",
       "b": "legArmor_x3_y4_z2",
       "aSide": "left",
       "bSide": "right",
@@ -4571,20 +4955,20 @@
     },
     {
       "a": "legArmor_x3_yn2_z3",
-      "b": "legArmor_x4_yn2_z3",
+      "b": "supportLeg_x4_yn2_z3",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z3",
+      "a": "supportLeg_x4_yn2_z3",
       "b": "legArmor_x5_yn2_z3",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z3",
+      "a": "supportLeg_x4_yn2_z3",
       "b": "legArmor_x4_yn1_z3",
       "aSide": "bottom",
       "bSide": "top",
@@ -4598,7 +4982,7 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z4",
+      "a": "supportLeg_x4_yn2_z4",
       "b": "legArmor_x4_yn3_z4",
       "aSide": "top",
       "bSide": "bottom",
@@ -4606,13 +4990,13 @@
     },
     {
       "a": "legArmor_xn3_y1_z5",
-      "b": "legArmor_xn4_y1_z5",
+      "b": "supportLeg_xn4_y1_z5",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z5",
+      "a": "supportLeg_xn4_y1_z5",
       "b": "legArmor_xn4_y2_z5",
       "aSide": "bottom",
       "bSide": "top",
@@ -4627,20 +5011,20 @@
     },
     {
       "a": "legArmor_xn4_y3_z5",
-      "b": "legArmor_xn4_y4_z5",
+      "b": "supportLeg_xn4_y4_z5",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z5",
+      "a": "supportLeg_xn4_y4_z5",
       "b": "legArmor_xn3_y4_z5",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z5",
+      "a": "supportLeg_xn4_y4_z5",
       "b": "legArmor_xn4_y5_z5",
       "aSide": "bottom",
       "bSide": "top",
@@ -4654,7 +5038,7 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z5",
+      "a": "supportLeg_xn4_y4_z5",
       "b": "legJoint_xn4_y4_z6",
       "aSide": "above",
       "bSide": "below",
@@ -4682,28 +5066,70 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z1",
+      "a": "legArmor_x3_y1_z1",
+      "b": "legArmor_x3_y1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_y1",
       "b": "supportLeg_x4_y1",
-      "aSide": "below",
-      "bSide": "above",
+      "aSide": "right",
+      "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z1",
+      "a": "supportLeg_x4_y1",
+      "b": "legArmor_x5_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y1",
+      "b": "legArmor_x4_y2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y2",
+      "b": "legArmor_x4_y3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_y3",
       "b": "supportLeg_x4_y4",
-      "aSide": "below",
-      "bSide": "above",
+      "aSide": "bottom",
+      "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y1_z1",
+      "a": "supportLeg_x4_y4",
+      "b": "legArmor_x5_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y4",
+      "b": "legArmor_x4_y5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y1_z1",
       "b": "legArmor_x4_y0_z1",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_y4_z1",
+      "a": "supportLeg_x4_y4_z1",
       "b": "legArmor_x3_y4_z1",
       "aSide": "left",
       "bSide": "right",
@@ -4718,20 +5144,20 @@
     },
     {
       "a": "legArmor_x3_yn2_z2",
-      "b": "legArmor_x4_yn2_z2",
+      "b": "supportLeg_x4_yn2_z2",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z2",
+      "a": "supportLeg_x4_yn2_z2",
       "b": "legArmor_x5_yn2_z2",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z2",
+      "a": "supportLeg_x4_yn2_z2",
       "b": "legArmor_x4_yn1_z2",
       "aSide": "bottom",
       "bSide": "top",
@@ -4745,7 +5171,7 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z3",
+      "a": "supportLeg_x4_yn2_z3",
       "b": "legArmor_x4_yn3_z3",
       "aSide": "top",
       "bSide": "bottom",
@@ -4753,13 +5179,13 @@
     },
     {
       "a": "legArmor_xn3_y1_z4",
-      "b": "legArmor_xn4_y1_z4",
+      "b": "supportLeg_xn4_y1_z4",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z4",
+      "a": "supportLeg_xn4_y1_z4",
       "b": "legArmor_xn4_y2_z4",
       "aSide": "bottom",
       "bSide": "top",
@@ -4774,20 +5200,20 @@
     },
     {
       "a": "legArmor_xn4_y3_z4",
-      "b": "legArmor_xn4_y4_z4",
+      "b": "supportLeg_xn4_y4_z4",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z4",
+      "a": "supportLeg_xn4_y4_z4",
       "b": "legArmor_xn3_y4_z4",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z4",
+      "a": "supportLeg_xn4_y4_z4",
       "b": "legArmor_xn4_y5_z4",
       "aSide": "bottom",
       "bSide": "top",
@@ -4808,21 +5234,21 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z5",
+      "a": "supportLeg_xn4_y1_z5",
       "b": "legArmor_xn4_y0_z5",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z5",
+      "a": "supportLeg_xn4_y1_z5",
       "b": "legArmor_xn5_y1_z5",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z5",
+      "a": "supportLeg_xn4_y4_z5",
       "b": "legArmor_xn5_y4_z5",
       "aSide": "left",
       "bSide": "right",
@@ -4830,13 +5256,13 @@
     },
     {
       "a": "legArmor_x4_yn4_z5",
-      "b": "legArmor_x4_yn5_z5",
+      "b": "supportLeg_x4_yn5_z5",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z5",
+      "a": "supportLeg_x4_yn5_z5",
       "b": "legArmor_x5_yn5_z5",
       "aSide": "right",
       "bSide": "left",
@@ -4850,7 +5276,7 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z5",
+      "a": "supportLeg_x4_yn5_z5",
       "b": "legJoint_x4_yn5_z6",
       "aSide": "above",
       "bSide": "below",
@@ -4871,6 +5297,20 @@
       "type": "structural"
     },
     {
+      "a": "supportLeg_x4_y1",
+      "b": "legArmor_x4_y0",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_y4",
+      "b": "legArmor_x3_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
       "a": "legArmor_x3_yn2_z2",
       "b": "legArmor_x3_yn2_z1",
       "aSide": "below",
@@ -4879,20 +5319,20 @@
     },
     {
       "a": "legArmor_x3_yn2_z1",
-      "b": "legArmor_x4_yn2_z1",
+      "b": "supportLeg_x4_yn2_z1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z1",
+      "a": "supportLeg_x4_yn2_z1",
       "b": "legArmor_x5_yn2_z1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z1",
+      "a": "supportLeg_x4_yn2_z1",
       "b": "legArmor_x4_yn1_z1",
       "aSide": "bottom",
       "bSide": "top",
@@ -4906,7 +5346,7 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z2",
+      "a": "supportLeg_x4_yn2_z2",
       "b": "legArmor_x4_yn3_z2",
       "aSide": "top",
       "bSide": "bottom",
@@ -4914,13 +5354,13 @@
     },
     {
       "a": "legArmor_xn3_y1_z3",
-      "b": "legArmor_xn4_y1_z3",
+      "b": "supportLeg_xn4_y1_z3",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z3",
+      "a": "supportLeg_xn4_y1_z3",
       "b": "legArmor_xn4_y2_z3",
       "aSide": "bottom",
       "bSide": "top",
@@ -4935,20 +5375,20 @@
     },
     {
       "a": "legArmor_xn4_y3_z3",
-      "b": "legArmor_xn4_y4_z3",
+      "b": "supportLeg_xn4_y4_z3",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z3",
+      "a": "supportLeg_xn4_y4_z3",
       "b": "legArmor_xn3_y4_z3",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z3",
+      "a": "supportLeg_xn4_y4_z3",
       "b": "legArmor_xn4_y5_z3",
       "aSide": "bottom",
       "bSide": "top",
@@ -4969,21 +5409,21 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z4",
+      "a": "supportLeg_xn4_y1_z4",
       "b": "legArmor_xn4_y0_z4",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z4",
+      "a": "supportLeg_xn4_y1_z4",
       "b": "legArmor_xn5_y1_z4",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z4",
+      "a": "supportLeg_xn4_y4_z4",
       "b": "legArmor_xn5_y4_z4",
       "aSide": "left",
       "bSide": "right",
@@ -4991,13 +5431,13 @@
     },
     {
       "a": "legArmor_x4_yn4_z4",
-      "b": "legArmor_x4_yn5_z4",
+      "b": "supportLeg_x4_yn5_z4",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z4",
+      "a": "supportLeg_x4_yn5_z4",
       "b": "legArmor_x5_yn5_z4",
       "aSide": "right",
       "bSide": "left",
@@ -5005,37 +5445,58 @@
     },
     {
       "a": "legArmor_xn3_yn2_z5",
-      "b": "legArmor_xn4_yn2_z5",
+      "b": "supportLeg_xn4_yn2_z5",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z5",
+      "a": "supportLeg_xn4_yn2_z5",
       "b": "legArmor_xn4_yn1_z5",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z5",
+      "a": "supportLeg_x4_yn5_z5",
       "b": "legArmor_x4_yn6_z5",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z5",
+      "a": "supportLeg_x4_yn5_z5",
       "b": "legArmor_x3_yn5_z5",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z1",
-      "b": "supportLeg_x4_yn2",
+      "a": "legArmor_x3_yn2_z1",
+      "b": "legArmor_x3_yn2",
       "aSide": "below",
       "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x3_yn2",
+      "b": "supportLeg_x4_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn2",
+      "b": "legArmor_x5_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn2",
+      "b": "legArmor_x4_yn1",
+      "aSide": "bottom",
+      "bSide": "top",
       "type": "structural"
     },
     {
@@ -5046,7 +5507,7 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn2_z1",
+      "a": "supportLeg_x4_yn2_z1",
       "b": "legArmor_x4_yn3_z1",
       "aSide": "top",
       "bSide": "bottom",
@@ -5054,13 +5515,13 @@
     },
     {
       "a": "legArmor_xn3_y1_z2",
-      "b": "legArmor_xn4_y1_z2",
+      "b": "supportLeg_xn4_y1_z2",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z2",
+      "a": "supportLeg_xn4_y1_z2",
       "b": "legArmor_xn4_y2_z2",
       "aSide": "bottom",
       "bSide": "top",
@@ -5075,20 +5536,20 @@
     },
     {
       "a": "legArmor_xn4_y3_z2",
-      "b": "legArmor_xn4_y4_z2",
+      "b": "supportLeg_xn4_y4_z2",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z2",
+      "a": "supportLeg_xn4_y4_z2",
       "b": "legArmor_xn3_y4_z2",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z2",
+      "a": "supportLeg_xn4_y4_z2",
       "b": "legArmor_xn4_y5_z2",
       "aSide": "bottom",
       "bSide": "top",
@@ -5109,21 +5570,21 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z3",
+      "a": "supportLeg_xn4_y1_z3",
       "b": "legArmor_xn4_y0_z3",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z3",
+      "a": "supportLeg_xn4_y1_z3",
       "b": "legArmor_xn5_y1_z3",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z3",
+      "a": "supportLeg_xn4_y4_z3",
       "b": "legArmor_xn5_y4_z3",
       "aSide": "left",
       "bSide": "right",
@@ -5131,13 +5592,13 @@
     },
     {
       "a": "legArmor_x4_yn4_z3",
-      "b": "legArmor_x4_yn5_z3",
+      "b": "supportLeg_x4_yn5_z3",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z3",
+      "a": "supportLeg_x4_yn5_z3",
       "b": "legArmor_x5_yn5_z3",
       "aSide": "right",
       "bSide": "left",
@@ -5145,41 +5606,41 @@
     },
     {
       "a": "legArmor_xn3_yn2_z4",
-      "b": "legArmor_xn4_yn2_z4",
+      "b": "supportLeg_xn4_yn2_z4",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z4",
+      "a": "supportLeg_xn4_yn2_z4",
       "b": "legArmor_xn4_yn1_z4",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z4",
+      "a": "supportLeg_x4_yn5_z4",
       "b": "legArmor_x4_yn6_z4",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z4",
+      "a": "supportLeg_x4_yn5_z4",
       "b": "legArmor_x3_yn5_z4",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z5",
+      "a": "supportLeg_xn4_yn2_z5",
       "b": "legArmor_xn4_yn3_z5",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z5",
+      "a": "supportLeg_xn4_yn2_z5",
       "b": "legArmor_xn5_yn2_z5",
       "aSide": "left",
       "bSide": "right",
@@ -5187,13 +5648,27 @@
     },
     {
       "a": "legArmor_xn3_y1_z1",
-      "b": "legArmor_xn4_y1_z1",
+      "b": "legArmor_xn3_y1",
+      "aSide": "below",
+      "bSide": "above",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn2",
+      "b": "legArmor_x4_yn3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_y1_z1",
+      "b": "supportLeg_xn4_y1_z1",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z1",
+      "a": "supportLeg_xn4_y1_z1",
       "b": "legArmor_xn4_y2_z1",
       "aSide": "bottom",
       "bSide": "top",
@@ -5208,20 +5683,20 @@
     },
     {
       "a": "legArmor_xn4_y3_z1",
-      "b": "legArmor_xn4_y4_z1",
+      "b": "supportLeg_xn4_y4_z1",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z1",
+      "a": "supportLeg_xn4_y4_z1",
       "b": "legArmor_xn3_y4_z1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z1",
+      "a": "supportLeg_xn4_y4_z1",
       "b": "legArmor_xn4_y5_z1",
       "aSide": "bottom",
       "bSide": "top",
@@ -5242,21 +5717,21 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z2",
+      "a": "supportLeg_xn4_y1_z2",
       "b": "legArmor_xn4_y0_z2",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z2",
+      "a": "supportLeg_xn4_y1_z2",
       "b": "legArmor_xn5_y1_z2",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z2",
+      "a": "supportLeg_xn4_y4_z2",
       "b": "legArmor_xn5_y4_z2",
       "aSide": "left",
       "bSide": "right",
@@ -5264,13 +5739,13 @@
     },
     {
       "a": "legArmor_x4_yn4_z2",
-      "b": "legArmor_x4_yn5_z2",
+      "b": "supportLeg_x4_yn5_z2",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z2",
+      "a": "supportLeg_x4_yn5_z2",
       "b": "legArmor_x5_yn5_z2",
       "aSide": "right",
       "bSide": "left",
@@ -5278,41 +5753,41 @@
     },
     {
       "a": "legArmor_xn3_yn2_z3",
-      "b": "legArmor_xn4_yn2_z3",
+      "b": "supportLeg_xn4_yn2_z3",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z3",
+      "a": "supportLeg_xn4_yn2_z3",
       "b": "legArmor_xn4_yn1_z3",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z3",
+      "a": "supportLeg_x4_yn5_z3",
       "b": "legArmor_x4_yn6_z3",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z3",
+      "a": "supportLeg_x4_yn5_z3",
       "b": "legArmor_x3_yn5_z3",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z4",
+      "a": "supportLeg_xn4_yn2_z4",
       "b": "legArmor_xn4_yn3_z4",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z4",
+      "a": "supportLeg_xn4_yn2_z4",
       "b": "legArmor_xn5_yn2_z4",
       "aSide": "left",
       "bSide": "right",
@@ -5326,17 +5801,52 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z1",
+      "a": "legArmor_xn3_y1",
       "b": "supportLeg_xn4_y1",
-      "aSide": "below",
-      "bSide": "above",
+      "aSide": "left",
+      "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z1",
+      "a": "supportLeg_xn4_y1",
+      "b": "legArmor_xn4_y2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y2",
+      "b": "legArmor_xn4_y3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn4_y3",
       "b": "supportLeg_xn4_y4",
-      "aSide": "below",
-      "bSide": "above",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y4",
+      "b": "legArmor_xn3_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y4",
+      "b": "legArmor_xn4_y5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn3",
+      "b": "legArmor_x4_yn4",
+      "aSide": "top",
+      "bSide": "bottom",
       "type": "structural"
     },
     {
@@ -5347,21 +5857,21 @@
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z1",
+      "a": "supportLeg_xn4_y1_z1",
       "b": "legArmor_xn4_y0_z1",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y1_z1",
+      "a": "supportLeg_xn4_y1_z1",
       "b": "legArmor_xn5_y1_z1",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_y4_z1",
+      "a": "supportLeg_xn4_y4_z1",
       "b": "legArmor_xn5_y4_z1",
       "aSide": "left",
       "bSide": "right",
@@ -5369,13 +5879,13 @@
     },
     {
       "a": "legArmor_x4_yn4_z1",
-      "b": "legArmor_x4_yn5_z1",
+      "b": "supportLeg_x4_yn5_z1",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z1",
+      "a": "supportLeg_x4_yn5_z1",
       "b": "legArmor_x5_yn5_z1",
       "aSide": "right",
       "bSide": "left",
@@ -5383,41 +5893,41 @@
     },
     {
       "a": "legArmor_xn3_yn2_z2",
-      "b": "legArmor_xn4_yn2_z2",
+      "b": "supportLeg_xn4_yn2_z2",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z2",
+      "a": "supportLeg_xn4_yn2_z2",
       "b": "legArmor_xn4_yn1_z2",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z2",
+      "a": "supportLeg_x4_yn5_z2",
       "b": "legArmor_x4_yn6_z2",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z2",
+      "a": "supportLeg_x4_yn5_z2",
       "b": "legArmor_x3_yn5_z2",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z3",
+      "a": "supportLeg_xn4_yn2_z3",
       "b": "legArmor_xn4_yn3_z3",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z3",
+      "a": "supportLeg_xn4_yn2_z3",
       "b": "legArmor_xn5_yn2_z3",
       "aSide": "left",
       "bSide": "right",
@@ -5432,69 +5942,104 @@
     },
     {
       "a": "legArmor_xn4_yn4_z5",
-      "b": "legArmor_xn4_yn5_z5",
+      "b": "supportLeg_xn4_yn5_z5",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z5",
+      "a": "supportLeg_xn4_yn5_z5",
       "b": "legArmor_xn3_yn5_z5",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z5",
+      "a": "supportLeg_xn4_yn5_z5",
       "b": "legJoint_xn4_yn5_z6",
       "aSide": "above",
       "bSide": "below",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z1",
-      "b": "supportLeg_x4_yn5",
+      "a": "legArmor_xn3_yn2_z1",
+      "b": "legArmor_xn3_yn2",
       "aSide": "below",
       "bSide": "above",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn3_yn2_z1",
-      "b": "legArmor_xn4_yn2_z1",
+      "a": "supportLeg_xn4_y1",
+      "b": "legArmor_xn4_y0",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_y1",
+      "b": "legArmor_xn5_y1",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z1",
+      "a": "supportLeg_xn4_y4",
+      "b": "legArmor_xn5_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_x4_yn4",
+      "b": "supportLeg_x4_yn5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5",
+      "b": "legArmor_x5_yn5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "legArmor_xn3_yn2_z1",
+      "b": "supportLeg_xn4_yn2_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn2_z1",
       "b": "legArmor_xn4_yn1_z1",
       "aSide": "bottom",
       "bSide": "top",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z1",
+      "a": "supportLeg_x4_yn5_z1",
       "b": "legArmor_x4_yn6_z1",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_x4_yn5_z1",
+      "a": "supportLeg_x4_yn5_z1",
       "b": "legArmor_x3_yn5_z1",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z2",
+      "a": "supportLeg_xn4_yn2_z2",
       "b": "legArmor_xn4_yn3_z2",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z2",
+      "a": "supportLeg_xn4_yn2_z2",
       "b": "legArmor_xn5_yn2_z2",
       "aSide": "left",
       "bSide": "right",
@@ -5509,48 +6054,69 @@
     },
     {
       "a": "legArmor_xn4_yn4_z4",
-      "b": "legArmor_xn4_yn5_z4",
+      "b": "supportLeg_xn4_yn5_z4",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z4",
+      "a": "supportLeg_xn4_yn5_z4",
       "b": "legArmor_xn3_yn5_z4",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z5",
+      "a": "supportLeg_xn4_yn5_z5",
       "b": "legArmor_xn4_yn6_z5",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z5",
+      "a": "supportLeg_xn4_yn5_z5",
       "b": "legArmor_xn5_yn5_z5",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z1",
+      "a": "legArmor_xn3_yn2",
       "b": "supportLeg_xn4_yn2",
-      "aSide": "below",
-      "bSide": "above",
+      "aSide": "left",
+      "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z1",
+      "a": "supportLeg_xn4_yn2",
+      "b": "legArmor_xn4_yn1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5",
+      "b": "legArmor_x4_yn6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_x4_yn5",
+      "b": "legArmor_x3_yn5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn2_z1",
       "b": "legArmor_xn4_yn3_z1",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn2_z1",
+      "a": "supportLeg_xn4_yn2_z1",
       "b": "legArmor_xn5_yn2_z1",
       "aSide": "left",
       "bSide": "right",
@@ -5565,28 +6131,42 @@
     },
     {
       "a": "legArmor_xn4_yn4_z3",
-      "b": "legArmor_xn4_yn5_z3",
+      "b": "supportLeg_xn4_yn5_z3",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z3",
+      "a": "supportLeg_xn4_yn5_z3",
       "b": "legArmor_xn3_yn5_z3",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z4",
+      "a": "supportLeg_xn4_yn5_z4",
       "b": "legArmor_xn4_yn6_z4",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z4",
+      "a": "supportLeg_xn4_yn5_z4",
       "b": "legArmor_xn5_yn5_z4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn2",
+      "b": "legArmor_xn4_yn3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn2",
+      "b": "legArmor_xn5_yn2",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
@@ -5600,77 +6180,105 @@
     },
     {
       "a": "legArmor_xn4_yn4_z2",
-      "b": "legArmor_xn4_yn5_z2",
+      "b": "supportLeg_xn4_yn5_z2",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z2",
+      "a": "supportLeg_xn4_yn5_z2",
       "b": "legArmor_xn3_yn5_z2",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z3",
+      "a": "supportLeg_xn4_yn5_z3",
       "b": "legArmor_xn4_yn6_z3",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z3",
+      "a": "supportLeg_xn4_yn5_z3",
       "b": "legArmor_xn5_yn5_z3",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn4_z1",
-      "b": "legArmor_xn4_yn5_z1",
+      "a": "legArmor_xn4_yn3",
+      "b": "legArmor_xn4_yn4",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z1",
+      "a": "legArmor_xn4_yn4_z1",
+      "b": "supportLeg_xn4_yn5_z1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z1",
       "b": "legArmor_xn3_yn5_z1",
       "aSide": "right",
       "bSide": "left",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z2",
+      "a": "supportLeg_xn4_yn5_z2",
       "b": "legArmor_xn4_yn6_z2",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z2",
+      "a": "supportLeg_xn4_yn5_z2",
       "b": "legArmor_xn5_yn5_z2",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z1",
+      "a": "legArmor_xn4_yn4",
       "b": "supportLeg_xn4_yn5",
-      "aSide": "below",
-      "bSide": "above",
+      "aSide": "top",
+      "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z1",
+      "a": "supportLeg_xn4_yn5",
+      "b": "legArmor_xn3_yn5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5_z1",
       "b": "legArmor_xn4_yn6_z1",
       "aSide": "top",
       "bSide": "bottom",
       "type": "structural"
     },
     {
-      "a": "legArmor_xn4_yn5_z1",
+      "a": "supportLeg_xn4_yn5_z1",
       "b": "legArmor_xn5_yn5_z1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5",
+      "b": "legArmor_xn4_yn6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "supportLeg_xn4_yn5",
+      "b": "legArmor_xn5_yn5",
       "aSide": "left",
       "bSide": "right",
       "type": "structural"

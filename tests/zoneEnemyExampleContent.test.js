@@ -144,12 +144,12 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   assert.equal(walkerVerticalConnections.length > 0, true);
   assert.equal(spiderWalker.tags.includes('dev-lookup:walker-burly-four-leg'), true);
   assert.equal(spiderWalker.tags.includes('runtime-hook:walkerLegs'), true);
-  assert.equal(spideryWalkerSupportLegs.length, 8);
+  assert.equal(spideryWalkerSupportLegs.length, 48);
   assert.equal(spideryWalkerSupportLegs.every((cell) => cell.type === 'wheel'), true);
-  assert.deepEqual(spideryWalkerSupportLegLayers, [0]);
-  assert.equal(spideryWalkerLegArmor.length, 200);
+  assert.deepEqual(spideryWalkerSupportLegLayers, [0, 1, 2, 3, 4, 5]);
+  assert.equal(spideryWalkerLegArmor.length, 192);
   assert.equal(spideryWalkerLegArmor.every((cell) => cell.type === 'armor'), true);
-  assert.deepEqual(spideryWalkerLegArmorLayers, [1, 2, 3, 4, 5]);
+  assert.deepEqual(spideryWalkerLegArmorLayers, [0, 1, 2, 3, 4, 5]);
   assert.equal(spideryWalkerLegJoints.length, 8);
   assert.equal(spideryWalkerLegJoints.every((cell) => cell.type === 'engine' && cell.gridZ === 6), true);
   assert.equal(spideryWalkerLegIds.length, 8);

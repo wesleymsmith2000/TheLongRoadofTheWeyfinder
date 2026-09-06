@@ -34,15 +34,15 @@ This model has eight individual support assemblies. Each assembly carries a stab
 
 Per leg:
 
-- `gridZ: 0`: one `type: "wheel"` cell with `role: "supportLeg"`.
-- `gridZ: 1..5`: thin armor stack with `role: "legArmor"`.
+- `gridZ: 0..5`: one `type: "wheel"` cell with `role: "supportLeg"` on every layer.
+- `gridZ: 0..5`: four surrounding armor cells per layer with `role: "legArmor"`.
 - `gridZ: 6`: one `type: "engine"` cell with `role: "legJoint"`.
 
-Upper leg-stack layer footprint:
+Lower leg-stack layer footprint:
 
 ```text
 -A-
-AAA
+AWA
 -A-
 ```
 
@@ -58,6 +58,7 @@ For damage gating:
 - Keep the elevated body resistant to normal direct fire while support structure remains.
 - Once the support structure for the walker is destroyed/collapsed, let normal weapons hit the body.
 - Preserve mortar/STA missile ability to hit elevated body cells while the legs are still standing.
+- Do not rely on armor-only layer collapse for this construct; every lower layer intentionally has a non-armor wheel support cell so it remains targetable by normal direct fire.
 
 For animation:
 
@@ -68,7 +69,7 @@ For animation:
 
 The editor-side content test now asserts:
 
-- 8 wheel `supportLeg` cells at `gridZ: 0`.
-- 200 armor `legArmor` cells across `gridZ: 1..5`.
+- 48 wheel `supportLeg` cells across `gridZ: 0..5`.
+- 192 armor `legArmor` cells across `gridZ: 0..5`.
 - 8 engine `legJoint` cells at `gridZ: 6`.
-- 8 unique `legId` values shared by the support feet and leg joints.
+- 8 unique `legId` values shared by the support cells and leg joints.

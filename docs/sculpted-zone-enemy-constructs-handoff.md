@@ -20,7 +20,7 @@ Added constructs:
 - `example.construct.tractor_frog_sculpted` - 34 cells
 - `example.construct.heavy_mortar_boat_sculpted` - 33 cells
 - `example.construct.spider_walker_sculpted` - 418 layered cells, burly four-leg walker
-- `example.construct.spidery_walker_sculpted` - 306 layered cells, spidery eight-leg walker
+- `example.construct.spidery_walker_sculpted` - 338 layered cells, spidery eight-leg walker
 - `example.construct.burly_walker_boss_body_sculpted` - 859 layered cells, larger four-leg walker boss body
 - `example.construct.rotatable_boss_cannon_sculpted` - 76 layered cells, reusable rotatable boss cannon
 - `example.construct.scrap_buzzard_sculpted` - 32 cells
@@ -41,15 +41,15 @@ AWWA
 
 The main body begins at `gridZ: 6`. The cells joining each leg tower to the elevated body are authored as `engine` cells and tagged `legJoint`, so gameplay can distinguish destructible wheel-leg regions from the body attachment/drive joints. The body armor is tagged `elevatedBody`, and the top guns are tagged `turretGun`.
 
-The spidery walker is a separate construct, not a replacement. It uses eight thinner legs, four per side. Each leg has a single exposed ground foot at `gridZ: 0` authored as a `wheel` cell tagged `supportLeg`. The upper support stack runs from `gridZ: 1` through `gridZ: 5` with this armor footprint:
+The spidery walker is a separate construct, not a replacement. It uses eight thinner legs, four per side. Each leg stack runs from `gridZ: 0` through `gridZ: 5` with one `wheel` support cell per layer so the layer is not treated as armor-only plating. The per-layer footprint is:
 
 ```text
 -A-
-AAA
+AWA
 -A-
 ```
 
-It uses one `engine`/`legJoint` attachment cell for each of the eight legs at `gridZ: 6`. Every spidery leg foot, armor-stack cell, and joint carries a `legId` such as `leftFrontOuter` or `rightRearInner` so gameplay and debugging tools can track each leg as an individual support assembly.
+The center `W` cells are tagged `supportLeg`, and the surrounding `A` cells are tagged `legArmor`. It uses one `engine`/`legJoint` attachment cell for each of the eight legs at `gridZ: 6`. Every spidery support, armor-stack, and joint cell carries a `legId` such as `leftFrontOuter` or `rightRearInner` so gameplay and debugging tools can track each leg as an individual support assembly.
 
 Quick lookup tags for runtime/editor coordination:
 
