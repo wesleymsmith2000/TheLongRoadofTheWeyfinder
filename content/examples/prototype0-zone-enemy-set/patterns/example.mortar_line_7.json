@@ -48,7 +48,7 @@
       "targetHint": "playerLine",
       "detonateAtTarget": true,
       "blastOnExpire": {
-        "radius": 38,
+        "radius": 45,
         "damage": 28,
         "impulse": 85
       }

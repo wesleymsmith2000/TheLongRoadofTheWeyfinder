@@ -588,6 +588,7 @@ test('mortar skiff roams, fires inaccurate arcing mortars, and gets dizzy on roa
   assert.equal(Boolean(shell), true);
   assert.equal(shell.behavior, 'arc');
   assert.equal(shell.detonateAtTarget, true);
+  assert.equal(shell.blastOnExpire.radius.toFixed(3), (CELL_SIZE * 7.5 * 1.5).toFixed(3));
   assert.equal(Boolean(shell.targetHint?.x), true);
   assert.equal(Boolean(shell.landingMarkerSprite), true);
 
@@ -617,6 +618,7 @@ test('heavy mortar boats fire one shell per warning marker with nearest impacts 
 
   const shells = game.enemyProjectiles.filter((projectile) => projectile.weapon === 'enemy-mortar');
   assert.equal(shells.length, 7);
+  assert.equal(shells.every((shell) => shell.blastOnExpire.radius.toFixed(3) === (CELL_SIZE * 7.5).toFixed(3)), true);
   for (let index = 1; index < shells.length; index += 1) {
     assert.equal(pointDistanceSquared(boat, shells[index - 1].targetHint) <= pointDistanceSquared(boat, shells[index].targetHint), true);
     assert.equal(shells[index - 1].arcFlightTime < shells[index].arcFlightTime, true);

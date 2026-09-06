@@ -98,6 +98,9 @@ const PHANTOM_OVERLOAD_DAMAGE = 22;
 const PHANTOM_OVERLOAD_RADIUS = CELL_SIZE * 3.2;
 const PHANTOM_OVERLOAD_IMPULSE = 140;
 const ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS = 1.55;
+const PLAYER_MORTAR_BASE_BLAST_RADIUS_CELLS = mortarDefinition.projectile.blastRadiusCells ?? 7.5;
+const ENEMY_MORTAR_BASE_BLAST_RADIUS = CELL_SIZE * PLAYER_MORTAR_BASE_BLAST_RADIUS_CELLS;
+const ENEMY_SINGLE_MORTAR_BLAST_RADIUS = ENEMY_MORTAR_BASE_BLAST_RADIUS * 1.5;
 const BROODABLE_ARCHETYPES = new Set([
   'ghost_phaser.ghost_forrest',
   'hopping_stream_mob.digitized_stream',
@@ -2005,7 +2008,7 @@ function fireEnemyMortarLine(game, enemy, count = 7) {
     .sort((a, b) => distanceSquared(enemy, a) - distanceSquared(enemy, b))
     .forEach((point, index) => {
       const flightTime = ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS + index * ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS;
-      fireEnemyArcShell(game, enemy, point, '#ffb25f', { flightTime });
+      fireEnemyArcShell(game, enemy, point, '#ffb25f', { flightTime, blastRadius: ENEMY_MORTAR_BASE_BLAST_RADIUS });
     });
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
@@ -2036,7 +2039,7 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {})
     detonateAtTarget: true,
     arcFlightTime: flightTime,
     blastOnExpire: {
-      radius: CELL_SIZE * 2.55,
+      radius: options.blastRadius ?? ENEMY_SINGLE_MORTAR_BLAST_RADIUS,
       damage: 4.5 * enemyDamageUpgradeScale(enemy),
       impulse: 34,
     },

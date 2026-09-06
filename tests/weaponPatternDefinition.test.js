@@ -17,9 +17,11 @@ import exampleOrbOfBladesDefinition from '../content/examples/prototype0-module-
 import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 import mortarLinePatternDefinition from '../content/examples/prototype0-zone-enemy-set/patterns/example.mortar_line_7.json' with { type: 'json' };
+import buzzardTrailingMortarDefinition from '../content/examples/prototype0-zone-enemy-set/patterns/example.buzzard_trailing_mortar.json' with { type: 'json' };
 import { createPatternState, firePattern, validatePatternDefinition } from '../src/core/patternDefinition.js';
 import { runtimeWeaponDefinition, validateWeaponDefinition } from '../src/core/weaponDefinition.js';
 import { Rng } from '../src/core/rng.js';
+import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('canon secondary weapon assets validate and normalize for runtime use', () => {
   for (const definition of [
@@ -137,6 +139,13 @@ test('pattern projectiles preserve sprite metadata for renderer handoff', () => 
   assert.equal(projectiles.length, 7);
   assert.equal(projectiles[0].sprite.assetId, 'sprite.weapon.mortar_enemy_shell');
   assert.equal(projectiles[0].landingMarkerSprite.assetId, 'sprite.weapon.mortar_enemy_marker');
+  assert.equal(projectiles[0].blastOnExpire.radius, 7.5 * CELL_SIZE);
+});
+
+test('single enemy mortar pattern uses the larger distinct blast radius', () => {
+  const projectiles = firePattern(buzzardTrailingMortarDefinition, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
+  assert.equal(projectiles.length, 1);
+  assert.equal(projectiles[0].blastOnExpire.radius, 7.5 * CELL_SIZE * 1.5);
 });
 
 test('sequential radial pattern emits one spoke at a time with delayed acceleration', () => {
