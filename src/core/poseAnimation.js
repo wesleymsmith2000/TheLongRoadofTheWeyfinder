@@ -304,7 +304,7 @@ function validateTransform(transform, path, errors) {
   }
   validateVector(transform.translate, `${path}.translate`, errors);
   validateVector(transform.pivot, `${path}.pivot`, errors);
-  for (const key of ['rotation', 'x', 'y', 'z', 'translateX', 'translateY', 'translateZ', 'amplitude', 'frequency', 'phase']) {
+  for (const key of ['rotation', 'rotateZ', 'x', 'y', 'z', 'translateX', 'translateY', 'translateZ', 'amplitude', 'frequency', 'phase']) {
     if (transform[key] != null && !Number.isFinite(transform[key])) errors.push(`${path}.${key} must be a finite number.`);
   }
 }
@@ -574,7 +574,7 @@ function transformFromDescriptor(descriptor = {}, group = null) {
     x: translate[0] ?? 0,
     y: translate[1] ?? 0,
     z: translate[2] ?? 0,
-    rotation: descriptor.rotation ?? 0,
+    rotation: descriptor.rotation ?? descriptor.rotateZ ?? 0,
     pivot: descriptor.pivot ?? group?.pivot ?? null,
   };
 }

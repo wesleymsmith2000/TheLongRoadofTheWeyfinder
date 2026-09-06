@@ -11,6 +11,7 @@ import {
   createEnhancedPirateShipEnemy,
   createMortarSkiffEnemy,
   createPirateShipEnemy,
+  drainEnemyDetachEvents,
   harvestEnemyScrap,
   traceEnemyVoxelRay,
   updateEnemyDestroyed,
@@ -88,6 +89,38 @@ const WALKER_SWEEP_TEST_ENEMY = {
     { a: 'body', b: 'core', aSide: 'bottom', bSide: 'top' },
   ],
 };
+
+const WALKER_STABILITY_TEST_ENEMY = {
+  schemaVersion: '0.1',
+  assetId: 'test.walker_stability_enemy',
+  cells: [
+    { id: 'left-front-low', type: 'wheel', gridX: -2, gridY: -1, gridZ: 0, role: 'supportLeg', legId: 'leftFront' },
+    { id: 'left-rear-low', type: 'wheel', gridX: -2, gridY: 1, gridZ: 0, role: 'supportLeg', legId: 'leftRear' },
+    { id: 'right-front-low', type: 'wheel', gridX: 2, gridY: -1, gridZ: 0, role: 'supportLeg', legId: 'rightFront' },
+    { id: 'right-rear-low', type: 'wheel', gridX: 2, gridY: 1, gridZ: 0, role: 'supportLeg', legId: 'rightRear' },
+    { id: 'left-front-mid', type: 'wheel', gridX: -2, gridY: -1, gridZ: 1, role: 'supportLeg', legId: 'leftFront' },
+    { id: 'left-rear-mid', type: 'wheel', gridX: -2, gridY: 1, gridZ: 1, role: 'supportLeg', legId: 'leftRear' },
+    { id: 'right-front-mid', type: 'wheel', gridX: 2, gridY: -1, gridZ: 1, role: 'supportLeg', legId: 'rightFront' },
+    { id: 'right-rear-mid', type: 'wheel', gridX: 2, gridY: 1, gridZ: 1, role: 'supportLeg', legId: 'rightRear' },
+    { id: 'body', type: 'armor', gridX: 0, gridY: 0, gridZ: 2, role: 'elevatedBody' },
+    { id: 'core', type: 'core', gridX: 0, gridY: 1, gridZ: 2, role: 'core' },
+  ],
+  connections: [
+    { a: 'left-front-low', b: 'left-front-mid', aSide: 'above', bSide: 'below' },
+    { a: 'left-rear-low', b: 'left-rear-mid', aSide: 'above', bSide: 'below' },
+    { a: 'right-front-low', b: 'right-front-mid', aSide: 'above', bSide: 'below' },
+    { a: 'right-rear-low', b: 'right-rear-mid', aSide: 'above', bSide: 'below' },
+    { a: 'body', b: 'core', aSide: 'bottom', bSide: 'top' },
+  ],
+};
+
+function destroyTestCells(enemy, ids) {
+  const wanted = new Set(ids);
+  for (const cell of enemy.cells.filter((candidate) => wanted.has(candidate.id))) {
+    for (const voxel of cell.mask.flat()) voxel.hp = 0;
+    recalculateCell(cell);
+  }
+}
 
 test('enemy takes voxel damage and records score damage', () => {
   const enemy = createEnemy(0, 0);
@@ -277,6 +310,34 @@ test('armor-only lowest walker layers fall away and expose the next layer', () =
   const middleAfter = middle.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
   assert.equal(second.cell.id, 'middle-wheel');
   assert.equal(middleAfter < middleBefore, true);
+});
+
+test('unstable walker support slices shear away before the body falls', () => {
+  const enemy = createEnemy(0, 0, WALKER_STABILITY_TEST_ENEMY, [], { moduleScale: 1 });
+  destroyTestCells(enemy, ['left-rear-low', 'right-front-low', 'right-rear-low']);
+
+  const hit = applyEnemyDamage(enemy, createProjectile(0, CELL_SIZE, 0, 0, { behavior: 'arc', damage: 1, radius: 1, team: 'player' }));
+
+  assert.equal(hit.hit, true);
+  assert.equal(enemy.cells.filter((cell) => (cell.gridZ ?? 0) === 0).every((cell) => cell.state.destroyed), true);
+  assert.equal(enemy.cells.filter((cell) => (cell.gridZ ?? 0) === 1 && cell.role === 'supportLeg').some((cell) => !cell.state.destroyed), true);
+  assert.equal(enemy.stability?.fallen, undefined);
+  const events = drainEnemyDetachEvents(enemy);
+  assert.equal(events.some((event) => event.reason === 'unstable support slice 0'), true);
+});
+
+test('walkers fall when remaining live legs are only on one side', () => {
+  const enemy = createEnemy(0, 0, WALKER_STABILITY_TEST_ENEMY, [], { moduleScale: 1 });
+  destroyTestCells(enemy, ['right-front-low', 'right-rear-low', 'right-front-mid', 'right-rear-mid']);
+
+  const hit = applyEnemyDamage(enemy, createProjectile(0, CELL_SIZE, 0, 0, { behavior: 'arc', damage: 1, radius: 1, team: 'player' }));
+
+  assert.equal(hit.hit, true);
+  assert.equal(enemy.stability.fallen, true);
+  assert.equal(enemy.cells.filter((cell) => cell.role === 'supportLeg').every((cell) => cell.state.destroyed), true);
+  assert.equal(enemy.cells.find((cell) => cell.id === 'core').state.destroyed, false);
+  const events = drainEnemyDetachEvents(enemy);
+  assert.equal(events.some((event) => event.reason === 'walker fall'), true);
 });
 
 test('blast radius includes walker layer height when damaging raised cells', () => {

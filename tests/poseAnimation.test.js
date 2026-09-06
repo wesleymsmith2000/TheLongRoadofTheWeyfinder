@@ -92,6 +92,27 @@ test('cell pose transform rotates local cell positions around a group pivot', ()
   assert.equal(posed.y.toFixed(3), CELL_SIZE.toFixed(3));
 });
 
+test('grouped cell poses can rotate and translate along z', () => {
+  const blade = createCell('raised-blade', 'gun', 1, 0, 2);
+  const entity = {
+    x: 0,
+    y: 0,
+    cells: [blade],
+    poseRig: {
+      groups: [{ id: 'bladeGroup', cells: [blade.id], pivot: [0, 0, CELL_SIZE * 2] }],
+      poses: [{ id: 'raised', transforms: [{ target: 'group:bladeGroup', rotateZ: Math.PI / 2, translateZ: CELL_SIZE }] }],
+      animations: [{ id: 'lift-and-turn', kind: 'poseCycle', driver: 'time', frequency: 1, loop: false, keyframes: [{ at: 1, pose: 'raised' }] }],
+    },
+  };
+
+  const posed = applyCellPoseTransform(blade, { x: CELL_SIZE, y: 0 }, evaluatePoseRig(entity, { time: 1 }));
+
+  assert.equal(posed.x.toFixed(3), '0.000');
+  assert.equal(posed.y.toFixed(3), CELL_SIZE.toFixed(3));
+  assert.equal(posed.z.toFixed(3), CELL_SIZE.toFixed(3));
+  assert.equal(posed.rotation.toFixed(3), (Math.PI / 2).toFixed(3));
+});
+
 test('weighted cell binding with one joint matches legacy rigid group transform', () => {
   const cell = createCell('upper-arm-cell', 'armor', 1, 0);
   const baseRig = {

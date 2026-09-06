@@ -11,6 +11,8 @@ import { createConnection } from './connections.js';
 
 const BASIC_ENEMY_PATTERNS = [enemyAimedShotDefinition, enemyRadialBurstDefinition];
 export const ENEMY_MODULE_LINEAR_SCALE = 2;
+const WALKER_SUPPORT_ROLES = new Set(['supportLeg', 'legArmor', 'legJoint']);
+const WALKER_BODY_ROLES = new Set(['elevatedBody', 'turretGun']);
 
 export function createEnemy(x, y, definition = basicTurretDefinition, patternDefinitions = BASIC_ENEMY_PATTERNS, options = {}) {
   const construct = instantiateConstruct(definition);
@@ -881,7 +883,158 @@ function collapseExposedArmorLayers(enemy) {
       recalculateCell(cell);
     }
   }
+  removed += collapseUnstableWalkerSupport(enemy).removed;
   return { removed };
+}
+
+function collapseUnstableWalkerSupport(enemy) {
+  if (!isWalkerSupportConstruct(enemy) || enemy.stability?.fallen) return { removed: 0 };
+  let removed = 0;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const bodyLayer = lowestWalkerBodyLayer(enemy);
+    const supportLayers = liveWalkerSupportLayers(enemy).filter((layer) => layer < bodyLayer);
+    for (const layer of supportLayers) {
+      const cells = liveWalkerSupportCells(enemy).filter((cell) => cellLayer(cell) === layer);
+      if (cells.length === 0) continue;
+      const legs = cells.filter((cell) => cell.role === 'supportLeg');
+      if (walkerSupportIsStable(enemy, legs)) continue;
+      removed += detachWalkerSupportCells(enemy, cells, `unstable support slice ${layer}`);
+      changed = true;
+      break;
+    }
+  }
+
+  const remainingLegs = liveWalkerSupportCells(enemy).filter((cell) => cell.role === 'supportLeg');
+  if (!walkerSupportIsStable(enemy, remainingLegs)) {
+    const remainingSupport = liveWalkerSupportCells(enemy);
+    removed += detachWalkerSupportCells(enemy, remainingSupport, 'walker fall');
+    if (remainingSupport.length === 0) recordWalkerFallEvent(enemy, remainingLegs.length === 0 ? 'no live supports' : 'unstable support polygon');
+    enemy.stability = {
+      ...(enemy.stability ?? {}),
+      fallen: true,
+      reason: remainingLegs.length === 0 ? 'no live supports' : 'unstable support polygon',
+    };
+  }
+  return { removed };
+}
+
+function recordWalkerFallEvent(enemy, reason) {
+  const body = (enemy.cells ?? []).filter((cell) => !cell.state?.destroyed && (WALKER_BODY_ROLES.has(cell.role) || cell.type === 'core'));
+  const source = body.length > 0 ? body : enemy.cells ?? [];
+  const cellCount = Math.max(1, source.length);
+  enemy.detachEvents ??= [];
+  enemy.detachEvents.push({
+    reason: 'walker fall',
+    detail: reason,
+    cellCount: 0,
+    voxels: 0,
+    gridX: source.reduce((sum, cell) => sum + cell.gridX, 0) / cellCount,
+    gridY: source.reduce((sum, cell) => sum + cell.gridY, 0) / cellCount,
+    gridZ: source.reduce((sum, cell) => sum + cellLayer(cell), 0) / cellCount,
+  });
+}
+
+function isWalkerSupportConstruct(enemy) {
+  const cells = enemy.cells ?? [];
+  return cells.some((cell) => WALKER_SUPPORT_ROLES.has(cell.role)) && cells.some((cell) => WALKER_BODY_ROLES.has(cell.role) || cell.type === 'core');
+}
+
+function liveWalkerSupportCells(enemy) {
+  return (enemy.cells ?? []).filter((cell) => !cell.state?.destroyed && WALKER_SUPPORT_ROLES.has(cell.role));
+}
+
+function liveWalkerSupportLayers(enemy) {
+  return [...new Set(liveWalkerSupportCells(enemy).map(cellLayer))].sort((a, b) => a - b);
+}
+
+function lowestWalkerBodyLayer(enemy) {
+  const body = (enemy.cells ?? []).filter((cell) => !cell.state?.destroyed && (WALKER_BODY_ROLES.has(cell.role) || cell.type === 'core' || cell.type === 'gun'));
+  if (body.length === 0) return Infinity;
+  return Math.min(...body.map(cellLayer));
+}
+
+function walkerSupportIsStable(enemy, supportLegs) {
+  const groups = walkerSupportGroups(enemy, supportLegs);
+  if (groups.length <= 1) return false;
+  const sides = new Set(groups.map((group) => group.side));
+  if (groups.length <= 2 && sides.size <= 1) return false;
+  return sides.size >= 2;
+}
+
+function walkerSupportGroups(enemy, supportLegs) {
+  const centerX = walkerBodyCenterX(enemy);
+  const groups = new Map();
+  for (const cell of supportLegs) {
+    const id = cell.legId ?? cell.supportId ?? `${cell.gridX < centerX ? 'left' : 'right'}:${cell.gridY}`;
+    const group = groups.get(id) ?? { id, x: 0, y: 0, count: 0, side: 'right' };
+    group.x += cell.gridX;
+    group.y += cell.gridY;
+    group.count += 1;
+    groups.set(id, group);
+  }
+  return [...groups.values()].map((group) => {
+    const x = group.x / group.count;
+    return {
+      ...group,
+      x,
+      y: group.y / group.count,
+      side: x < centerX ? 'left' : 'right',
+    };
+  });
+}
+
+function walkerBodyCenterX(enemy) {
+  const body = (enemy.cells ?? []).filter((cell) => WALKER_BODY_ROLES.has(cell.role) || cell.type === 'core');
+  const source = body.length > 0 ? body : enemy.cells ?? [];
+  return source.length === 0 ? 0 : source.reduce((sum, cell) => sum + cell.gridX, 0) / source.length;
+}
+
+function detachWalkerSupportCells(enemy, cells, reason) {
+  let removed = 0;
+  let x = 0;
+  let y = 0;
+  let z = 0;
+  let cellCount = 0;
+  for (const cell of cells) {
+    if (cell.state?.destroyed) continue;
+    const cellRemoved = destroyCellVoxels(cell);
+    if (cellRemoved <= 0) continue;
+    removed += cellRemoved;
+    x += cell.gridX;
+    y += cell.gridY;
+    z += cellLayer(cell);
+    cellCount += 1;
+  }
+  if (removed > 0 && cellCount > 0) {
+    enemy.detachEvents ??= [];
+    enemy.detachEvents.push({
+      reason,
+      cellCount,
+      voxels: removed,
+      gridX: x / cellCount,
+      gridY: y / cellCount,
+      gridZ: z / cellCount,
+    });
+  }
+  return removed;
+}
+
+function destroyCellVoxels(cell) {
+  let removed = 0;
+  for (const voxel of cell.mask.flat()) {
+    if (voxel.hp > 0) removed += 1;
+    voxel.hp = 0;
+  }
+  recalculateCell(cell);
+  return removed;
+}
+
+export function drainEnemyDetachEvents(enemy) {
+  const events = enemy.detachEvents ?? [];
+  enemy.detachEvents = [];
+  return events;
 }
 
 function enemyVisualScale(enemy) {

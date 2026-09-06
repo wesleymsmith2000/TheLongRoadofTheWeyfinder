@@ -28,6 +28,7 @@ import {
   createEnhancedPirateShipEnemy,
   createMortarSkiffEnemy,
   createPirateShipEnemy,
+  drainEnemyDetachEvents,
   enemyCoreEfficiency,
   enemyEngineEfficiency,
   enemyGunEfficiency,
@@ -150,6 +151,7 @@ const TARGETING_AI_SPEED_PER_RANK = 12;
 const TARGETING_AI_XP_PER_RANK = 45;
 const TARGETING_AI_BASE_WOBBLE = 18;
 const MAX_SMOKE_PARTICLES = 180;
+const MAX_DETACHED_SUPPORT_SCRAP = 24;
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
@@ -313,6 +315,7 @@ export function stepGame(game, input, dt) {
   stepBoostContrails(game, dt);
   handleCollisions(game);
   handleBoostExhaustDamage(game);
+  collectEnemyDetachScrapEvents(game);
   accelerateNextSpawnWhenArenaEmpty(game);
   stepScrapPickups(game, dt);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
@@ -3571,6 +3574,39 @@ function handleBoostExhaustDamage(game) {
         break;
       }
     }
+  }
+}
+
+function collectEnemyDetachScrapEvents(game) {
+  for (const enemy of game.enemies) {
+    for (const event of drainEnemyDetachEvents(enemy)) {
+      spawnDetachedSupportScrap(game, enemy, event);
+    }
+  }
+}
+
+function spawnDetachedSupportScrap(game, enemy, event) {
+  const local = { x: event.gridX * CELL_SIZE, y: event.gridY * CELL_SIZE };
+  const world = enemyLocalToWorldPoint(enemy, local);
+  const dx = world.x - enemy.x;
+  const dy = world.y - enemy.y;
+  const distance = Math.hypot(dx, dy) || 1;
+  const outward = { x: dx / distance, y: dy / distance };
+  const count = Math.min(MAX_DETACHED_SUPPORT_SCRAP, Math.max(3, Math.ceil((event.cellCount ?? 1) / 4)));
+  const value = Math.max(1, Math.round((event.voxels ?? count) / count));
+  const fallBoost = event.reason === 'walker fall' ? 56 : 32;
+  for (let index = 0; index < count; index += 1) {
+    const angle = Math.atan2(outward.y, outward.x) + game.rng.range(-0.9, 0.9);
+    const speed = game.rng.range(fallBoost, fallBoost + 74);
+    game.scrapPickups.push({
+      x: world.x + game.rng.range(-CELL_SIZE * 0.8, CELL_SIZE * 0.8),
+      y: world.y + game.rng.range(-CELL_SIZE * 0.8, CELL_SIZE * 0.8),
+      vx: enemy.vx * 0.2 + Math.cos(angle) * speed,
+      vy: enemy.vy * 0.2 + Math.sin(angle) * speed,
+      value,
+      radius: Math.max(1.1, VOXEL_SIZE * 0.8),
+      life: 18,
+    });
   }
 }
 
