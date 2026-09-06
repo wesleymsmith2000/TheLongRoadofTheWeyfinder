@@ -37,6 +37,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     maxSpeed: options.maxSpeed ?? Infinity,
     targetHint: options.targetHint ?? null,
     tracksReticleInArc: Boolean(options.tracksReticleInArc),
+    tracksReticleInHoming: Boolean(options.tracksReticleInHoming),
     detonateDistance: options.detonateDistance ?? null,
     detonateAtTarget: Boolean(options.detonateAtTarget),
     zCollision: Boolean(options.zCollision),
@@ -140,7 +141,7 @@ function stepDelayedAcceleration(projectile, targets, dt) {
     if (projectile.delayBeforeAcceleration > 0) return;
   }
   if (!projectile.accelerationLocked) {
-    const target = projectile.accelerationTarget ?? nearestTarget(projectile, targets);
+    const target = delayedAccelerationTarget(projectile, targets);
     const baseAngle = target ? Math.atan2(target.y - projectile.y, target.x - projectile.x) : projectile.angle;
     if (projectile.launchWhenFacingTarget) {
       if (projectile.stopBeforeAcceleration) {
@@ -167,8 +168,17 @@ function stepDelayedAcceleration(projectile, targets, dt) {
     if (projectile.explodeAfterAcceleration) projectile.readyToExplode = true;
     return;
   }
-  projectile.vx += Math.cos(projectile.accelerationAngle) * projectile.acceleration * dt;
-  projectile.vy += Math.sin(projectile.accelerationAngle) * projectile.acceleration * dt;
+  const liveReticleTarget = projectile.tracksReticleInHoming && projectile.targetHint ? projectile.targetHint : null;
+  if (liveReticleTarget) {
+    const desired = Math.atan2(liveReticleTarget.y - projectile.y, liveReticleTarget.x - projectile.x);
+    const delta = Math.atan2(Math.sin(desired - projectile.angle), Math.cos(desired - projectile.angle));
+    const maxTurn = Math.max(0, (projectile.turnRate ?? 0) * dt);
+    projectile.angle += Math.max(-maxTurn, Math.min(maxTurn, delta));
+    projectile.accelerationAngle = projectile.angle;
+  }
+  const thrustAngle = projectile.accelerationAngle ?? projectile.angle;
+  projectile.vx += Math.cos(thrustAngle) * projectile.acceleration * dt;
+  projectile.vy += Math.sin(thrustAngle) * projectile.acceleration * dt;
   const speed = Math.hypot(projectile.vx, projectile.vy);
   if (speed > projectile.maxSpeed) {
     projectile.vx = (projectile.vx / speed) * projectile.maxSpeed;
@@ -178,7 +188,7 @@ function stepDelayedAcceleration(projectile, targets, dt) {
 }
 
 function stepHomingProjectile(projectile, targets, dt) {
-  const target = nearestTarget(projectile, targets);
+  const target = projectile.tracksReticleInHoming && projectile.targetHint ? projectile.targetHint : nearestTarget(projectile, targets);
   if (target) {
     const desired = Math.atan2(target.y - projectile.y, target.x - projectile.x);
     const delta = Math.atan2(Math.sin(desired - projectile.angle), Math.cos(desired - projectile.angle));
@@ -188,6 +198,11 @@ function stepHomingProjectile(projectile, targets, dt) {
   const nextSpeed = Math.min(projectile.maxSpeed, speed + projectile.acceleration * dt);
   projectile.vx = Math.cos(projectile.angle) * nextSpeed;
   projectile.vy = Math.sin(projectile.angle) * nextSpeed;
+}
+
+function delayedAccelerationTarget(projectile, targets) {
+  if (projectile.tracksReticleInHoming && projectile.targetHint) return projectile.targetHint;
+  return projectile.accelerationTarget ?? nearestTarget(projectile, targets);
 }
 
 function nearestTarget(projectile, targets) {

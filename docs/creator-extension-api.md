@@ -438,6 +438,7 @@ Optional projectile presentation/simulation fields:
 - `launchAngleSpreadRadians`: random launch-angle spread applied to `launchAngleMode`.
 - `launchWhenFacingTarget`: if true on a delayed-acceleration projectile, it turns toward its selected target before locking the acceleration vector.
 - `tracksReticleInArc`: if true on an arc player weapon, the projectile continuously updates its target point and horizontal velocity from the live aim reticle.
+- `tracksReticleInHoming`: if true on a homing player weapon, the projectile continuously updates its target point from the live aim reticle instead of committing to a launch-time target.
 - `absorbsEnemyProjectiles`: if true on a player projectile payload, it destroys overlapping enemy shots and loses damage equal to the absorbed projectile's damage unless the shot is deflected.
 
 Sprite descriptors are render-facing JSON and should not change simulation results. A minimal descriptor:

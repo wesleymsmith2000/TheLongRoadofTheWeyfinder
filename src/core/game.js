@@ -275,7 +275,7 @@ export function stepGame(game, input, dt) {
   stepSecondaryWeapon(game, input, dt);
   handleEnemyRamShields(game);
 
-  trackReticleArcProjectiles(game);
+  trackReticleProjectiles(game);
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   stepPlayerProjectileEmitters(game, dt);
   syncBeamProjectiles(game);
@@ -1182,6 +1182,7 @@ function firePrimaryWeapon(game, muzzle, def) {
       acceleration: def.behavior === 'homing' ? def.acceleration : 0,
       maxSpeed: def.behavior === 'homing' ? def.maxSpeed : Infinity,
       delayBeforeAcceleration: def.delayBeforeAcceleration ?? 0,
+      tracksReticleInHoming: def.tracksReticleInHoming,
       stopBeforeAcceleration: def.stopBeforeAcceleration,
       accelerationDuration: def.accelerationDuration ?? Infinity,
       accelerationJitter: game.rng.range(-(def.accelerationSpreadRadians ?? 0), def.accelerationSpreadRadians ?? 0),
@@ -2566,15 +2567,19 @@ function createEmittedPlayerProjectile(game, source, emitter) {
   });
 }
 
-function trackReticleArcProjectiles(game) {
+function trackReticleProjectiles(game) {
   if (!game.aimReticle) return;
   for (const projectile of game.playerProjectiles) {
-    if (!projectile.tracksReticleInArc || projectile.behavior !== 'arc' || projectile.arcLanded || projectile.lifetime <= 0) continue;
-    projectile.targetHint = { x: game.aimReticle.x, y: game.aimReticle.y };
-    const flightTime = remainingArcFlightTime(projectile);
-    projectile.vx = (projectile.targetHint.x - projectile.x) / flightTime;
-    projectile.vy = (projectile.targetHint.y - projectile.y) / flightTime;
-    projectile.angle = Math.atan2(projectile.vy, projectile.vx);
+    if (projectile.lifetime <= 0) continue;
+    if (projectile.tracksReticleInArc && projectile.behavior === 'arc' && !projectile.arcLanded) {
+      projectile.targetHint = { x: game.aimReticle.x, y: game.aimReticle.y };
+      const flightTime = remainingArcFlightTime(projectile);
+      projectile.vx = (projectile.targetHint.x - projectile.x) / flightTime;
+      projectile.vy = (projectile.targetHint.y - projectile.y) / flightTime;
+      projectile.angle = Math.atan2(projectile.vy, projectile.vx);
+    } else if (projectile.tracksReticleInHoming && projectile.behavior === 'homing') {
+      projectile.targetHint = { x: game.aimReticle.x, y: game.aimReticle.y };
+    }
   }
 }
 

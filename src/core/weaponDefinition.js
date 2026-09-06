@@ -67,6 +67,7 @@ export function runtimeWeaponDefinition(definition) {
     launchAngleMode: projectile.launchAngleMode ?? null,
     launchAngleSpreadRadians: projectile.launchAngleSpreadRadians ?? 0,
     tracksReticleInArc: Boolean(projectile.tracksReticleInArc),
+    tracksReticleInHoming: Boolean(projectile.tracksReticleInHoming),
     usesVehicleVelocityOnly: Boolean(projectile.usesVehicleVelocityOnly),
     targetHint: projectile.targetHint ?? null,
     detonateAtTarget: Boolean(projectile.detonateAtTarget),
@@ -138,6 +139,7 @@ function validateProjectile(projectile, errors, warnings) {
   if (projectile.launchAngleMode != null && !['orthogonal'].includes(projectile.launchAngleMode)) errors.push('projectile.launchAngleMode must be orthogonal when provided.');
   if (projectile.launchAngleSpreadRadians != null) validateNumber(projectile.launchAngleSpreadRadians, 'projectile.launchAngleSpreadRadians', errors, { min: 0 });
   if (projectile.tracksReticleInArc != null && typeof projectile.tracksReticleInArc !== 'boolean') errors.push('projectile.tracksReticleInArc must be a boolean when provided.');
+  if (projectile.tracksReticleInHoming != null && typeof projectile.tracksReticleInHoming !== 'boolean') errors.push('projectile.tracksReticleInHoming must be a boolean when provided.');
   if (projectile.verticalVelocity != null) validateNumber(projectile.verticalVelocity, 'projectile.verticalVelocity', errors, { min: 0 });
   if (projectile.vz != null) validateNumber(projectile.vz, 'projectile.vz', errors, { min: 0 });
   if (projectile.gravity != null) validateNumber(projectile.gravity, 'projectile.gravity', errors, { min: 0 });

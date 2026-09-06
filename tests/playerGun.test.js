@@ -157,6 +157,7 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   assert.deepEqual(flechette.sprite.displaySize, [11, 4]);
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);
+  assert.equal(flechette.tracksReticleInHoming, true);
   assert.equal(flechette.delayBeforeAcceleration > 0.32, true);
   assert.equal(Math.abs(Math.abs(angleDelta(aimAngle, flechette.angle)) - Math.PI / 2) <= Math.PI / 6, true);
 
@@ -190,6 +191,30 @@ test('tracking flechette upgrades scale primary weapon stats', () => {
   assert.equal(flechette.acceleration.toFixed(2), (105 * 1.05).toFixed(2));
   assert.equal(flechette.turnRate.toFixed(2), (7.5 * 1.05).toFixed(2));
   assert.equal(game.playerFireTimer < 0.38 / Math.sqrt(2), true);
+});
+
+test('tracking flechette follows the live aim reticle while accelerating', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'tracking_flechette').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.enemies = [];
+  game.enemySpawnQueue = [{ at: 99, enemy: createEnemy(game.vehicle.x + 900, game.vehicle.y), markerShown: true, type: 'standard' }];
+  game.autofire = true;
+  stepGame(game, { aimWorld: { x: game.vehicle.x + 120, y: game.vehicle.y }, manualAimActive: true, gunnerEnabled: false }, 1 / 60);
+  game.autofire = false;
+  const flechette = game.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
+  flechette.delayBeforeAcceleration = 0;
+  flechette.accelerationLocked = true;
+  flechette.accelerationAngle = 0;
+  flechette.angle = 0;
+  flechette.vx = 90;
+  flechette.vy = 0;
+
+  const movedTarget = { x: flechette.x, y: flechette.y + 160 };
+  stepGame(game, { aimWorld: movedTarget, manualAimActive: true, gunnerEnabled: false }, 0.12);
+
+  assert.equal(flechette.targetHint.x, movedTarget.x);
+  assert.equal(flechette.targetHint.y, movedTarget.y);
+  assert.equal(flechette.vy > 0, true);
 });
 
 test('mortar primary arcs land on the selected aim reticle', () => {

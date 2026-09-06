@@ -45,6 +45,7 @@
     "launchAngleMode": "orthogonal",
     "launchAngleSpreadRadians": 0.5235987755982988,
     "lockBeforeLaunchSeconds": 0.35,
-    "launchWhenFacingTarget": true
+    "launchWhenFacingTarget": true,
+    "tracksReticleInHoming": true
   }
 }

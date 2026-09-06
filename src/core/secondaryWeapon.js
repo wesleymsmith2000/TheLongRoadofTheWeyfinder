@@ -107,6 +107,7 @@ export function fireSecondary(game) {
       ricochetOnEnemyExit: def.ricochetOnEnemyExit,
       detonateAtTarget: def.detonateAtTarget,
       tracksReticleInArc: def.tracksReticleInArc,
+      tracksReticleInHoming: def.tracksReticleInHoming,
       absorbsEnemyProjectiles: def.absorbsEnemyProjectiles,
       projectileDeflectionProbability: def.projectileDeflectionProbability,
       frames: def.behavior === 'beam' ? def.frames : 0,

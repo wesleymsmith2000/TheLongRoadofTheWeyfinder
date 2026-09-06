@@ -58,6 +58,31 @@ test('delayed acceleration can turn to face target before launch', () => {
   assert.equal(Math.abs(projectile.vx) < 0.001, true);
 });
 
+test('reticle-tracking delayed homing keeps steering after launch', () => {
+  const projectile = createProjectile(0, 0, 80, 0, {
+    behavior: 'homing',
+    angle: 0,
+    delayBeforeAcceleration: 0.01,
+    stopBeforeAcceleration: true,
+    launchWhenFacingTarget: true,
+    tracksReticleInHoming: true,
+    targetHint: { x: 100, y: 0 },
+    turnRate: Math.PI * 6,
+    acceleration: 160,
+    accelerationDuration: 2,
+    maxSpeed: 240,
+  });
+
+  stepProjectiles([projectile], 0.02);
+  assert.equal(projectile.accelerationLocked, true);
+  assert.equal(projectile.vx > 0, true);
+
+  projectile.targetHint = { x: projectile.x, y: projectile.y + 100 };
+  stepProjectiles([projectile], 0.1);
+  assert.equal(projectile.angle > 0, true);
+  assert.equal(projectile.vy > 0, true);
+});
+
 test('arc projectile lands after vertical motion resolves', () => {
   const projectile = createProjectile(0, 0, 10, 0, {
     behavior: 'arc',

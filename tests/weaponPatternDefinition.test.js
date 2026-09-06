@@ -57,6 +57,7 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);
   assert.equal(flechette.launchAngleMode, 'orthogonal');
+  assert.equal(flechette.tracksReticleInHoming, true);
   const sta = runtimeWeaponDefinition(staMissileDefinition);
   assert.equal(sta.tracksReticleInArc, true);
   assert.deepEqual(sta.sprite.displaySize, [22, 8]);
@@ -89,6 +90,7 @@ test('example module set weapons cover current upgrade projectile fields', () =>
   }
   assert.equal(exampleTrackingFlechetteDefinition.projectile.launchAngleMode, 'orthogonal');
   assert.equal(exampleTrackingFlechetteDefinition.projectile.launchWhenFacingTarget, true);
+  assert.equal(exampleTrackingFlechetteDefinition.projectile.tracksReticleInHoming, true);
   assert.equal(exampleStaMissileDefinition.projectile.tracksReticleInArc, true);
   assert.equal(exampleStaMissileDefinition.projectile.contrail.particleRadiusScale, 1.5);
   assert.equal(exampleOrbOfBladesDefinition.projectile.emitsProjectiles.absorbsEnemyProjectiles, true);

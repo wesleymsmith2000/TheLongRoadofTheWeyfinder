@@ -41,7 +41,7 @@ const ROLE_SHADE = {
   [Roles.DEVICE]: 64,
 };
 
-const VIEW_ANGLE_DEGREES = 35;
+const VIEW_ANGLE_DEGREES = 25;
 const HEIGHT_SCREEN_Y_SCALE = Math.cos((VIEW_ANGLE_DEGREES * Math.PI) / 180) / Math.cos(Math.PI / 4);
 
 const CANON_IMAGE_URLS = new Map([
