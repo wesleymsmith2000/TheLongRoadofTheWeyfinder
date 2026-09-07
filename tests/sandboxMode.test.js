@@ -33,6 +33,14 @@ test('sandbox schedules include one queued spawn per requested count', () => {
   assert.equal(queue.every((entry) => entry.enemy.archetypeId === 'mortar_skiff.prototype0'), true);
 });
 
+test('sandbox can schedule the runtime zeppelin boss archetype', () => {
+  const definition = sandboxDefinitionFromEnemy('boss.zeppelin.prototype0', { count: 1, interval: 0 });
+  const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(11));
+  assert.equal(queue.length, 1);
+  assert.equal(queue[0].enemy.kind, 'zeppelinBoss');
+  assert.equal(queue[0].enemy.archetypeId, 'boss.zeppelin.prototype0');
+});
+
 test('sandbox runtime fires scripted events and avoids normal level completion', () => {
   const game = createGame(1147, {
     sandbox: {

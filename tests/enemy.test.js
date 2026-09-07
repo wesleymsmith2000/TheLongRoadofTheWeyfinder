@@ -930,7 +930,9 @@ test('multileg walkers fire red STA missiles that lock a descent point without t
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   const missile = game.enemyProjectiles.find((projectile) => projectile.weapon === 'walker-sta-missile');
   assert.equal(Boolean(missile), true);
-  assert.equal(missile.sprite.tint, '#ff334f');
+  assert.equal(missile.sprite.tint, '#801a28');
+  assert.equal(missile.sprite.tintAlpha, 0.5);
+  assert.equal(missile.contrail.colors.includes('#050506'), true);
   assert.equal(missile.targetHint, null);
   assert.equal(missile.descentMode, 'direct');
   assert.equal(missile.hideLandingMarkerUntilTargetHint, true);
@@ -1040,8 +1042,28 @@ test('grounded multileg walkers stop STA missiles and fire slower spiral trackin
   assert.equal(missile.behavior, 'ballistic');
   assert.equal(missile.delayedAcceleration, true);
   assert.equal(missile.stopBeforeAcceleration, true);
+  assert.equal(missile.launchWhenFacingTarget, true);
+  assert.equal(missile.detonateAtTarget, true);
+  assert.equal(missile.contrail.colors.includes('#68151c'), true);
   assert.equal(missile.accelerationTarget, game.vehicle);
   assert.equal(walker.walkerGroundedSpiralCooldown, 0.24);
+
+  game.vehicle.x += CELL_SIZE * 5;
+  let lockedTarget = null;
+  for (let index = 0; index < 240 && !missile.accelerationLocked; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+    if (missile.accelerationLocked) lockedTarget = { x: game.vehicle.x, y: game.vehicle.y };
+  }
+  assert.equal(missile.accelerationLocked, true);
+  assert.deepEqual(missile.targetHint, lockedTarget);
+  assert.equal(Math.abs(Math.atan2(Math.sin(missile.accelerationAngle - Math.atan2(lockedTarget.y - missile.startY, lockedTarget.x - missile.startX)), Math.cos(missile.accelerationAngle - Math.atan2(lockedTarget.y - missile.startY, lockedTarget.x - missile.startX)))) < 0.001, true);
+
+  missile.previousX = lockedTarget.x - Math.cos(missile.angle) * CELL_SIZE;
+  missile.previousY = lockedTarget.y - Math.sin(missile.angle) * CELL_SIZE;
+  missile.x = lockedTarget.x;
+  missile.y = lockedTarget.y;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'enemy-pulse-blast'), true);
 });
 
 test('boss accelerates back toward the view area after being knocked away', () => {

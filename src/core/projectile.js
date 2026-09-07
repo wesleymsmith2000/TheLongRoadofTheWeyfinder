@@ -71,6 +71,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     accelerationTarget: options.accelerationTarget ?? null,
     accelerationJitter: options.accelerationJitter ?? 0,
     delayedAcceleration: (options.delayBeforeAcceleration ?? 0) > 0 || Boolean(options.accelerationTarget) || Boolean(options.explodeAfterAcceleration),
+    lockAccelerationTargetAsDetonationTarget: Boolean(options.lockAccelerationTargetAsDetonationTarget ?? options.detonateAtTarget),
     stopBeforeAcceleration: Boolean(options.stopBeforeAcceleration),
     launchWhenFacingTarget: Boolean(options.launchWhenFacingTarget),
     explodeAfterAcceleration: Boolean(options.explodeAfterAcceleration),
@@ -189,6 +190,12 @@ function stepDelayedAcceleration(projectile, targets, dt) {
     }
     projectile.accelerationAngle = projectile.angle + (projectile.accelerationJitter ?? 0);
     projectile.accelerationLocked = true;
+    if (projectile.lockAccelerationTargetAsDetonationTarget && target) {
+      projectile.targetHint = { x: target.x, y: target.y };
+      projectile.startX = projectile.x;
+      projectile.startY = projectile.y;
+      projectile.detonateDistance = Math.max(1, Math.hypot(projectile.targetHint.x - projectile.x, projectile.targetHint.y - projectile.y));
+    }
     if (projectile.stopBeforeAcceleration) {
       projectile.vx = 0;
       projectile.vy = 0;

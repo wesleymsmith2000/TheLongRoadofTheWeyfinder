@@ -131,8 +131,15 @@ const WALKER_STA_DIRECT_DESCENT_SECONDS = 0.78;
 const WALKER_STA_BLAST_RADIUS = CELL_SIZE * 4.5;
 const WALKER_STA_MISSILE_SPRITE = {
   ...staMissileDefinition.projectile.sprite,
-  tint: '#ff334f',
-  tintAlpha: 0.9,
+  tint: '#801a28',
+  tintAlpha: 0.5,
+};
+const ENEMY_RED_BLACK_CONTRAIL = {
+  emissionMeanPerSevenFrames: 3,
+  maxParticlesPerStep: 6,
+  particleLifetimeFrames: [5, 8],
+  particleRadiusScale: 1.65,
+  colors: ['#050506', '#171011', '#68151c', '#b32632'],
 };
 const WALKER_GROUNDED_SPIRAL_INTERVAL = 0.24;
 const WALKER_GROUNDED_SPIRAL_COUNT = 12;
@@ -174,6 +181,12 @@ const RUNTIME_ENEMY_ARCHETYPES = {
     displayName: 'Dizzy Mortar Skiff',
     zone: 'PiratesRoad',
     runtimeFactory: 'createMortarSkiffEnemy',
+  },
+  'boss.zeppelin.prototype0': {
+    id: 'boss.zeppelin.prototype0',
+    displayName: 'Prototype Zeppelin Boss',
+    zone: 'StarlightRoad',
+    runtimeFactory: 'createZeppelinBossEnemy',
   },
 };
 const MORTAR_ENEMY_SHELL_SPRITE = {
@@ -730,6 +743,7 @@ function createEnemyForArchetype(archetype, x, y, kind) {
   }
   const factory = archetype.runtimeFactory;
   if (factory === 'createMortarSkiffEnemy') return createMortarSkiffEnemy(x, y);
+  if (factory === 'createZeppelinBossEnemy') return createZeppelinBossEnemy(x, y);
   if (factory === 'createPirateShipEnemy') return createPirateShipEnemy(x, y, { kind });
   if (factory === 'createEnhancedPirateShipEnemy') return createEnhancedPirateShipEnemy(x, y);
   if (factory === 'createEnhancedEnemy') return createEnhancedEnemy(x, y);
@@ -1748,13 +1762,7 @@ function fireWalkerStaMissile(game, enemy, source) {
       damage: 5.5 * enemyDamageUpgradeScale(enemy),
       impulse: 46,
     },
-    contrail: {
-      emissionMeanPerSevenFrames: 2,
-      maxParticlesPerStep: 5,
-      particleLifetimeFrames: [4, 6],
-      particleRadiusScale: 1.25,
-      colors: ['#ff9aa8', '#d94d5f', '#6d6568', '#c9c3c5'],
-    },
+    contrail: ENEMY_RED_BLACK_CONTRAIL,
     zCollision: true,
   });
   shell.angle = -Math.PI / 2;
@@ -1795,11 +1803,20 @@ function fireGroundedWalkerSpiralMissile(game, enemy, source) {
       angle,
       delayBeforeAcceleration: 3,
       stopBeforeAcceleration: true,
+      launchWhenFacingTarget: true,
+      turnRate: Math.PI * 3.5,
       acceleration: 202.5 * enemyMovementUpgradeScale(enemy),
       accelerationDuration: 10,
       accelerationTarget: game.vehicle,
       accelerationJitter: 0,
       maxSpeed: 840 * enemyMovementUpgradeScale(enemy),
+      detonateAtTarget: true,
+      blastOnExpire: {
+        radius: CELL_SIZE * 2.8,
+        damage: 5.5 * enemyDamageUpgradeScale(enemy),
+        impulse: 48,
+      },
+      contrail: ENEMY_RED_BLACK_CONTRAIL,
       vanishOffscreen: true,
     }),
   );
@@ -2377,11 +2394,10 @@ function fireZeppelinAtsRocket(game, enemy, source) {
       impulse: 115,
     },
     contrail: {
+      ...ENEMY_RED_BLACK_CONTRAIL,
       emissionMeanPerSevenFrames: 5,
       maxParticlesPerStep: 8,
-      particleLifetimeFrames: [5, 9],
       particleRadiusScale: 2.2,
-      colors: ['#ff4a2d', '#ff9b3d', '#2f2d32', '#d1d1cf'],
     },
   });
   rocket.angle = Math.PI / 2;
@@ -3719,6 +3735,11 @@ function handleEnemyProjectileSpecials(game) {
       projectile.lifetime = 0;
       continue;
     }
+    if (projectile.weapon !== 'ats-grav-rocket' && projectile.blastOnExpire && projectile.detonateAtTarget && projectileReachedDetonationTarget(projectile)) {
+      spawned.push(...spawnEnemyPulseBlast(game, projectile));
+      projectile.lifetime = 0;
+      continue;
+    }
     if (projectile.readyToExplode && projectile.weapon === 'ats-grav-rocket' && !projectile.atsLaunched) {
       launchAtsGravRocket(game, projectile);
       kept.push(projectile);
@@ -3754,11 +3775,11 @@ function launchAtsGravRocket(game, projectile) {
   projectile.detonateDistance = distance;
   projectile.hideLandingMarkerUntilTargetHint = false;
   projectile.contrail = {
+    ...ENEMY_RED_BLACK_CONTRAIL,
     emissionMeanPerSevenFrames: 7,
     maxParticlesPerStep: 9,
     particleLifetimeFrames: [5, 8],
     particleRadiusScale: 3,
-    colors: ['#ff3728', '#ff8f35', '#211b1e', '#f2d7b7'],
   };
 }
 

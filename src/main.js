@@ -802,6 +802,10 @@ function sandboxEnemyOptions() {
     id: 'mortar_skiff.prototype0',
     displayName: 'Mortar Skiff',
   });
+  byId.set('boss.zeppelin.prototype0', {
+    id: 'boss.zeppelin.prototype0',
+    displayName: 'Prototype Zeppelin Boss',
+  });
   return [...byId.values()].sort((a, b) => (a.displayName ?? a.id).localeCompare(b.displayName ?? b.id));
 }
 
