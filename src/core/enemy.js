@@ -255,6 +255,96 @@ export function createBossEnemy(x, y, rng) {
   });
 }
 
+export function createZeppelinBossEnemy(x, y) {
+  const cells = [];
+  const connections = [];
+  const byKey = new Map();
+  const addCell = (id, type, gridX, gridY, gridZ, role = undefined) => {
+    const cell = createCell(id, type, gridX, gridY, gridZ);
+    if (role) cell.role = role;
+    cells.push(cell);
+    byKey.set(`${gridX},${gridY},${gridZ}`, cell);
+    return cell;
+  };
+
+  const lengthRadius = 8;
+  const widthRadius = 4;
+  const heightRadius = 2;
+  let armorIndex = 0;
+  let liningIndex = 0;
+  for (let zOffset = -heightRadius; zOffset <= heightRadius; zOffset += 1) {
+    for (let yOffset = -widthRadius; yOffset <= widthRadius; yOffset += 1) {
+      for (let xOffset = -lengthRadius; xOffset <= lengthRadius; xOffset += 1) {
+        const normalized =
+          (xOffset * xOffset) / (lengthRadius * lengthRadius) +
+          (yOffset * yOffset) / (widthRadius * widthRadius) +
+          (zOffset * zOffset) / (heightRadius * heightRadius);
+        if (normalized > 1.05) continue;
+        const inner =
+          (xOffset * xOffset) / ((lengthRadius - 2) * (lengthRadius - 2)) +
+          (yOffset * yOffset) / ((widthRadius - 2) * (widthRadius - 2)) +
+          (zOffset * zOffset) / Math.max(0.001, (heightRadius - 1) * (heightRadius - 1));
+        if (inner < 0.82) continue;
+        const type = inner < 1.18 ? 'armor' : 'armor';
+        const role = inner < 1.18 ? 'innerLining' : 'zeppelinHull';
+        addCell(`${role}-${role === 'innerLining' ? liningIndex++ : armorIndex++}`, type, xOffset, yOffset, zOffset + 4, role);
+      }
+    }
+  }
+
+  addCell('core-undercarriage', 'core', 0, 0, 1, 'zeppelinCore');
+  addCell('port-cannon', 'gun', -1, -5, 2, 'zeppelinCannon');
+  addCell('starboard-cannon', 'gun', -1, 5, 2, 'zeppelinCannon');
+  addCell('forward-cannon', 'gun', 8, 0, 3, 'zeppelinCannon');
+  addCell('port-fin', 'armor', -8, -4, 3, 'zeppelinFin');
+  addCell('starboard-fin', 'armor', -8, 4, 3, 'zeppelinFin');
+  addCell('dorsal-fin', 'armor', -8, 0, 7, 'zeppelinFin');
+  addCell('port-thruster', 'engine', -9, -2, 3, 'zeppelinThruster');
+  addCell('starboard-thruster', 'engine', -9, 2, 3, 'zeppelinThruster');
+
+  for (const cell of cells) {
+    for (const [dx, dy, dz, side] of [
+      [1, 0, 0, 'right'],
+      [0, 1, 0, 'bottom'],
+      [0, 0, 1, 'above'],
+    ]) {
+      const neighbor = byKey.get(`${cell.gridX + dx},${cell.gridY + dy},${(cell.gridZ ?? 0) + dz}`);
+      if (neighbor) connections.push(createConnection(cell.id, neighbor.id, side));
+    }
+  }
+  connect(connections, 'core-undercarriage', 'innerLining-0', 'above');
+
+  return {
+    assetId: 'boss.zeppelin.prototype0',
+    kind: 'zeppelinBoss',
+    archetypeId: 'boss.zeppelin.prototype0',
+    displayName: 'Prototype Zeppelin Boss',
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    radius: constructRadius(cells),
+    patterns: [],
+    cells,
+    connections,
+    damageTaken: 0,
+    destroyed: false,
+    explosionStart: null,
+    visualHeading: Math.PI / 2,
+    elevation: { z: 72, canBeHitByGroundFire: false, arcCollision: true, layeredExposure: true },
+    zeppelin: {
+      phase: 'turn',
+      runCount: 0,
+      turnTimer: 0,
+      atsCooldown: 1.4,
+      laserCooldown: 2.2,
+      walkerDropPending: false,
+      innerLiningTotal: Math.max(1, liningIndex),
+      meltdownTimer: null,
+    },
+  };
+}
+
 function connect(connections, a, b, side, type = 'structural') {
   connections.push(createConnection(a, b, side, undefined, type));
 }

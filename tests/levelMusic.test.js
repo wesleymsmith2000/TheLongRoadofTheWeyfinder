@@ -22,6 +22,14 @@ test('boss soundtrack levels add a boss and cut standard enemy count', () => {
   assert.equal(enemies.filter((enemy) => enemy.kind !== 'boss').length, 2);
 });
 
+test('starlight and twilight boss tracks route to the zeppelin boss', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const starlight = createLevelEnemies(road, 1, ['StarlightRoad_BossFight']);
+  const twilight = createLevelEnemies(road, 1, ['TwilightCrossroads_BossFight']);
+  assert.equal(starlight.some((enemy) => enemy.kind === 'zeppelinBoss'), true);
+  assert.equal(twilight.some((enemy) => enemy.kind === 'zeppelinBoss'), true);
+});
+
 test('post-boss non-boss levels include enhanced enemies', () => {
   assert.equal(hasBossMusicBeforeLevel(3, ['road', 'BossFight', 'road']), true);
   const enemies = createLevelEnemies({ x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 }, 3, ['road', 'BossFight', 'road']);

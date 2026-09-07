@@ -6,6 +6,7 @@ import {
   applyEnemyProjectilePierceDamage,
   createBossEnemy,
   createEnemy,
+  createZeppelinBossEnemy,
   createEnhancedEnemy,
   ENEMY_MODULE_LINEAR_SCALE,
   createEnhancedPirateShipEnemy,
@@ -996,6 +997,64 @@ test('boss accelerates back toward the view area after being knocked away', () =
   game.enemySpawnQueue = [];
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(boss.vx < 0, true);
+});
+
+test('zeppelin boss uses a hollow layered hull with underside cannons and harpoon vulnerability', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 26, game.vehicle.y);
+  boss.harpoonField = { x: boss.x, y: boss.y, z: 72, timer: 10, duration: 10 };
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  const projectile = createProjectile(boss.x + CELL_SIZE * 18, boss.y, 0, 0, {
+    team: 'player',
+    weapon: 'cannon',
+    radius: 2,
+    damage: 4,
+    lifetime: 1,
+  });
+  game.playerProjectiles = [projectile];
+
+  assert.equal(boss.kind, 'zeppelinBoss');
+  assert.equal(boss.cells.filter((cell) => cell.role === 'zeppelinCannon').length, 3);
+  assert.equal(boss.cells.some((cell) => cell.id === 'core-undercarriage' && cell.type === 'core'), true);
+  assert.equal(boss.cells.some((cell) => cell.role === 'innerLining' && (cell.gridZ ?? 0) > 1), true);
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(projectile.vx < 0, true);
+  assert.equal(boss.elevation.canBeHitByGroundFire, true);
+});
+
+test('zeppelin ATS grav rockets drop first, then lock a straight ground launch to the player', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 18, game.vehicle.y - CELL_SIZE * 10);
+  boss.zeppelin.atsCooldown = 0;
+  boss.zeppelin.laserCooldown = 99;
+  boss.zeppelin.harpoonCharge = { timer: 99 };
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const rocket = game.enemyProjectiles.find((projectile) => projectile.weapon === 'ats-grav-rocket');
+  assert.equal(Boolean(rocket), true);
+  assert.equal(rocket.behavior, 'arc');
+  assert.equal(rocket.targetHint, null);
+
+  game.vehicle.x += CELL_SIZE * 5;
+  let lockedTarget = null;
+  for (let index = 0; index < 360 && !rocket.atsLaunched; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+    if (rocket.atsLaunched) lockedTarget = { x: game.vehicle.x, y: game.vehicle.y };
+  }
+  assert.equal(rocket.atsLaunched, true);
+  assert.equal(rocket.behavior, 'ballistic');
+  assert.deepEqual(rocket.targetHint, lockedTarget);
+  const launchAngle = rocket.angle;
+  game.vehicle.x -= CELL_SIZE * 4;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(rocket.angle, launchAngle);
 });
 
 test('enhanced enemies can carry level style palettes', () => {

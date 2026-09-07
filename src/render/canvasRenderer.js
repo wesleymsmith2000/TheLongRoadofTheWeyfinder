@@ -831,6 +831,9 @@ function drawProjectiles(ctx, projectiles, color, imageAssets) {
       drawArcProjectile(ctx, projectile, color, imageAssets);
       continue;
     }
+    if (projectile.weapon === 'ats-grav-rocket' && projectile.targetHint) {
+      drawArcLandingMarker(ctx, projectile, projectile.targetHint, '#ff5a54', imageAssets);
+    }
     if (drawProjectileSprite(ctx, projectile, imageAssets)) continue;
     if (projectile.weapon === 'boss-missile') {
       drawBossMissile(ctx, projectile);

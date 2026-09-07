@@ -24,6 +24,7 @@ import {
   applyEnemyVoxelDamage,
   createBossEnemy,
   createEnemy,
+  createZeppelinBossEnemy,
   createEnhancedEnemy,
   createEnhancedPirateShipEnemy,
   createMortarSkiffEnemy,
@@ -103,6 +104,19 @@ const ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS = 1.55;
 const PLAYER_MORTAR_BASE_BLAST_RADIUS_CELLS = mortarDefinition.projectile.blastRadiusCells ?? 7.5;
 const ENEMY_MORTAR_BASE_BLAST_RADIUS = CELL_SIZE * PLAYER_MORTAR_BASE_BLAST_RADIUS_CELLS;
 const ENEMY_SINGLE_MORTAR_BLAST_RADIUS = ENEMY_MORTAR_BASE_BLAST_RADIUS * 1.5;
+const MORTAR_LEVEL_5_RADIUS_MULTIPLIER = (Math.sqrt(1.05)) ** 5;
+const MORTAR_LEVEL_5_DAMAGE_MULTIPLIER = 1.05 ** 5;
+const MOTH_BOMBER_BLAST_RADIUS = ENEMY_MORTAR_BASE_BLAST_RADIUS * MORTAR_LEVEL_5_RADIUS_MULTIPLIER;
+const MOTH_BOMBER_BLAST_DAMAGE = 4.5 * MORTAR_LEVEL_5_DAMAGE_MULTIPLIER;
+const MOTH_BOMBER_DIVE_ACCELERATION = 620;
+const MOTH_BOMBER_DIVE_SPEED = 430;
+const ZEPPELIN_HARPOON_CHARGE_SECONDS = 2;
+const ZEPPELIN_HARPOON_FIELD_SECONDS = 10;
+const ZEPPELIN_STRAFE_SPEED = 132;
+const ZEPPELIN_STRAFE_EXIT_MARGIN = CELL_SIZE * 13;
+const ZEPPELIN_ATS_ROCKET_BLAST_RADIUS = CELL_SIZE * 5.1 * (1.05 ** 12);
+const ZEPPELIN_ATS_ROCKET_BLAST_DAMAGE = 9 * (1.05 ** 12);
+const ZEPPELIN_WALKER_DROP_RUN_INTERVAL = 5;
 const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 2;
 const WALKER_SWEEP_BEAM_CHARGE_SECONDS = 1.35;
 const WALKER_SWEEP_BEAM_FIRE_SECONDS = 4;
@@ -303,6 +317,7 @@ export function stepGame(game, input, dt) {
   handleEnemyRamShields(game);
 
   trackReticleProjectiles(game);
+  attractPlayerProjectilesToZeppelinHarpoons(game, dt);
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   stepPlayerProjectileEmitters(game, dt);
   syncBeamProjectiles(game);
@@ -603,7 +618,9 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
   }
   if (isBoss) {
     const bossWorld = roadOffsetToWorld({ x: 0, y: -road.halfHeight - 90 }, road);
-    const boss = createBossEnemy(bossWorld.x, bossWorld.y);
+    const boss = usesZeppelinBoss(currentMusic)
+      ? createZeppelinBossEnemy(bossWorld.x, bossWorld.y)
+      : createBossEnemy(bossWorld.x, bossWorld.y);
     boss.vx = roadDirectionToWorld(0, 1, road).x * 18;
     boss.vy = roadDirectionToWorld(0, 1, road).y * 18;
     applyEnemyLevelUpgrades(boss, level);
@@ -670,6 +687,11 @@ function zoneArchetypeForMusic(trackName, kind, index) {
 function zoneNameFromTrack(trackName = '') {
   const match = String(trackName).match(/^([A-Za-z]+(?:[A-Z][a-z]+)*)(?:_|$)/);
   return match?.[1] ?? trackName;
+}
+
+function usesZeppelinBoss(trackName = '') {
+  const zone = zoneNameFromTrack(trackName);
+  return zone === 'StarlightRoad' || zone === 'TwilightCrossroads';
 }
 
 function createEnemyForArchetype(archetype, x, y, kind) {
@@ -1478,12 +1500,13 @@ function stepEnemy(game, enemy, dt) {
     stepDizzyEnemy(enemy, dt);
     return;
   }
-  steerEnemyBackToLaneCenter(enemy, game.road, dt);
+  if (enemy.kind !== 'zeppelinBoss') steerEnemyBackToLaneCenter(enemy, game.road, dt);
   stepArchetypeEnemy(game, enemy, dt);
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
+  if (enemy.kind === 'zeppelinBoss') stepZeppelinBoss(game, enemy, dt);
   if (enemy.destroyed) return;
-  if (!walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
+  if ((enemy.patterns?.length ?? 0) > 0 && !walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
   updateEnemyCollisionRotation(enemy, game.time);
   enemy.x += enemy.vx * dt;
@@ -1501,6 +1524,7 @@ function stepArchetypeEnemy(game, enemy, dt) {
   if (enemy.archetypeId === 'scrap_buzzard.shadowed_desert') stepScrapBuzzard(game, enemy, dt);
   if (enemy.archetypeId === 'inchworm_carrier.freedoms_pass') stepInchwormCarrier(game, enemy, dt);
   if (enemy.archetypeId === 'inchworm_segment.freedoms_pass') stepInchwormSegment(enemy, dt);
+  if (enemy.archetypeId === 'moth_bomber.freedoms_pass') stepMothBomber(game, enemy, dt);
 }
 
 function stepDizzyEnemy(enemy, dt) {
@@ -1632,6 +1656,7 @@ function inaccuratePlayerMortarTarget(game, radius) {
 }
 
 function stepWalkerEnemy(game, enemy, dt) {
+  refreshWalkerRuntime(enemy);
   enemy.elevation ??= { z: 0, canBeHitByGroundFire: true, arcCollision: true, layeredExposure: true };
   enemy.elevation.z = 0;
   enemy.elevation.canBeHitByGroundFire = true;
@@ -1894,7 +1919,8 @@ function walkerUsesGroundedRepulsor(enemy) {
 
 function walkerUsesElevatedSpecialWeapon(enemy) {
   if (!isWalkerEnemy(enemy)) return false;
-  if (!enemy.cells?.some((cell) => !cell.state?.destroyed && (cell.type === 'core' || cell.type === 'gun' || cell.role === 'elevatedBody' || cell.role === 'turretGun'))) return false;
+  const runtime = walkerRuntime(enemy);
+  if (!runtime.hasLiveBody) return false;
   return !walkerBodyIsGrounded(enemy);
 }
 
@@ -1904,20 +1930,12 @@ function isWalkerEnemy(enemy) {
 }
 
 function walkerBodyIsGrounded(enemy) {
-  const live = enemy.cells?.filter((cell) => !cell.state?.destroyed) ?? [];
-  if (live.length === 0) return true;
-  const bodyLayers = live
-    .filter((cell) => cell.type === 'core' || cell.type === 'gun' || cell.role === 'elevatedBody' || cell.role === 'turretGun')
-    .map(cellLayer);
-  if (bodyLayers.length === 0) return true;
-  return Math.min(...live.map(cellLayer)) >= Math.min(...bodyLayers);
+  return walkerRuntime(enemy).bodyGrounded;
 }
 
 function walkerBeamSource(enemy) {
-  const live = enemy.cells?.filter((cell) => !cell.state?.destroyed) ?? [];
-  const guns = live.filter((cell) => cell.type === 'gun' || cell.role === 'turretGun');
-  const candidates = guns.length > 0 ? guns : live.filter((cell) => cell.type === 'core');
-  const sourceCell = candidates.sort((a, b) => cellLayer(b) - cellLayer(a) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id))[0];
+  const runtime = walkerRuntime(enemy);
+  const sourceCell = runtime.sourceCell;
   if (!sourceCell) return null;
   const localX = sourceCell.gridX * CELL_SIZE;
   const localY = sourceCell.gridY * CELL_SIZE;
@@ -1928,14 +1946,69 @@ function walkerBeamSource(enemy) {
     cellId: sourceCell.id,
     localX,
     localY,
-    fromGun: guns.includes(sourceCell),
+    fromGun: runtime.sourceFromGun,
   };
 }
 
 function enemyCellWorldHeight(enemy, cell) {
-  const live = enemy.cells?.filter((candidate) => !candidate.state?.destroyed) ?? [];
-  const lowest = live.length > 0 ? Math.min(...live.map(cellLayer)) : 0;
+  const lowest = isWalkerEnemy(enemy) && enemy.walkerRuntime
+    ? enemy.walkerRuntime.lowestLayer
+    : lowestLiveCellLayer(enemy);
   return Math.max(0, cellLayer(cell) - lowest) * CELL_LAYER_HEIGHT * (enemy.visualScale ?? 1);
+}
+
+function lowestLiveCellLayer(enemy) {
+  const live = enemy.cells?.filter((candidate) => !candidate.state?.destroyed) ?? [];
+  return live.length > 0 ? Math.min(...live.map(cellLayer)) : 0;
+}
+
+function walkerRuntime(enemy) {
+  return enemy.walkerRuntime ?? refreshWalkerRuntime(enemy);
+}
+
+function refreshWalkerRuntime(enemy) {
+  const live = enemy.cells?.filter((cell) => !cell.state?.destroyed) ?? [];
+  const body = [];
+  const guns = [];
+  const cores = [];
+  let lowestLayer = Infinity;
+  for (const cell of live) {
+    const layer = cellLayer(cell);
+    if (layer < lowestLayer) lowestLayer = layer;
+    if (cell.type === 'gun' || cell.role === 'turretGun') guns.push(cell);
+    if (cell.type === 'core') cores.push(cell);
+    if (cell.type === 'core' || cell.type === 'gun' || cell.role === 'elevatedBody' || cell.role === 'turretGun') body.push(cell);
+  }
+  if (!Number.isFinite(lowestLayer)) lowestLayer = 0;
+  const lowestBodyLayer = body.length > 0 ? Math.min(...body.map(cellLayer)) : lowestLayer;
+  const sourceFromGun = guns.length > 0;
+  const candidates = sourceFromGun ? guns : cores;
+  let sourceCell = null;
+  for (const candidate of candidates) {
+    if (
+      !sourceCell ||
+      cellLayer(candidate) > cellLayer(sourceCell) ||
+      (cellLayer(candidate) === cellLayer(sourceCell) && (
+        candidate.gridY < sourceCell.gridY ||
+        (candidate.gridY === sourceCell.gridY && (
+          candidate.gridX < sourceCell.gridX ||
+          (candidate.gridX === sourceCell.gridX && candidate.id.localeCompare(sourceCell.id) < 0)
+        ))
+      ))
+    ) {
+      sourceCell = candidate;
+    }
+  }
+  enemy.walkerRuntime = {
+    live,
+    lowestLayer,
+    lowestBodyLayer,
+    hasLiveBody: body.length > 0,
+    bodyGrounded: body.length === 0 || lowestLayer >= lowestBodyLayer,
+    sourceCell,
+    sourceFromGun,
+  };
+  return enemy.walkerRuntime;
 }
 
 function cellLayer(cell) {
@@ -2038,6 +2111,339 @@ function stepInchwormSegment(enemy, dt) {
   enemy.vy *= Math.pow(0.72, dt);
 }
 
+function stepMothBomber(game, enemy, dt) {
+  enemy.patterns = [];
+  enemy.elevation ??= { z: 35, canBeHitByGroundFire: true, arcCollision: true };
+  enemy.visualScale = Math.min(enemy.visualScale ?? 1, 0.75);
+  const state = enemy.mothBomber ?? {
+    phase: 'orbit',
+    timer: game.rng.range(1.1, 2.1),
+    orbitSign: game.rng.chance(0.5) ? 1 : -1,
+    diveTarget: null,
+    diveAngle: 0,
+    diveTimer: 0,
+  };
+  enemy.mothBomber = state;
+  if (state.detonated) return;
+
+  if (state.phase !== 'dive') {
+    state.timer -= dt * enemyAttackRateUpgradeScale(enemy);
+    const aim = game.vehicle.turretHeading ?? game.vehicle.heading ?? 0;
+    const behind = {
+      x: game.vehicle.x - Math.cos(aim) * CELL_SIZE * 10,
+      y: game.vehicle.y - Math.sin(aim) * CELL_SIZE * 10,
+    };
+    const side = CELL_SIZE * (3.5 + Math.sin(game.time * 2.4 + state.orbitSign) * 1.7) * state.orbitSign;
+    const target = {
+      x: behind.x + Math.cos(aim + Math.PI / 2) * side,
+      y: behind.y + Math.sin(aim + Math.PI / 2) * side,
+    };
+    const direction = directionFromTo(enemy, target);
+    const desiredSpeed = 122 * enemyMovementUpgradeScale(enemy);
+    const steer = clamp(4.8 * dt, 0, 1);
+    enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
+    enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
+    enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+    if (state.timer > 0 && distanceSquared(enemy, target) > (CELL_SIZE * 3.8) ** 2) return;
+
+    state.phase = 'dive';
+    state.diveTarget = {
+      x: game.vehicle.x + game.vehicle.vx * 0.22,
+      y: game.vehicle.y + game.vehicle.vy * 0.22,
+    };
+    state.diveAngle = Math.atan2(state.diveTarget.y - enemy.y, state.diveTarget.x - enemy.x);
+    state.diveTimer = 1.65;
+    const speed = Math.max(120, Math.hypot(enemy.vx, enemy.vy));
+    enemy.vx = Math.cos(state.diveAngle) * speed;
+    enemy.vy = Math.sin(state.diveAngle) * speed;
+  }
+
+  state.diveTimer -= dt;
+  enemy.vx += Math.cos(state.diveAngle) * MOTH_BOMBER_DIVE_ACCELERATION * dt * enemyMovementUpgradeScale(enemy);
+  enemy.vy += Math.sin(state.diveAngle) * MOTH_BOMBER_DIVE_ACCELERATION * dt * enemyMovementUpgradeScale(enemy);
+  const speed = Math.hypot(enemy.vx, enemy.vy);
+  const maxSpeed = MOTH_BOMBER_DIVE_SPEED * enemyMovementUpgradeScale(enemy);
+  if (speed > maxSpeed) {
+    enemy.vx = (enemy.vx / speed) * maxSpeed;
+    enemy.vy = (enemy.vy / speed) * maxSpeed;
+  }
+  enemy.visualHeading = state.diveAngle;
+  if (state.diveTimer <= 0 || distanceSquared(enemy, state.diveTarget) <= (CELL_SIZE * 1.9) ** 2 || distanceSquared(enemy, game.vehicle) <= (CELL_SIZE * 3.4) ** 2) {
+    detonateMothBomber(game, enemy);
+  }
+}
+
+function detonateMothBomber(game, enemy) {
+  if (enemy.mothBomber?.detonated) return;
+  enemy.mothBomber ??= {};
+  enemy.mothBomber.detonated = true;
+  const origin = { x: enemy.x, y: enemy.y };
+  game.enemyProjectiles.push(
+    createProjectile(origin.x, origin.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'moth-bomber-blast',
+      behavior: 'blast',
+      radius: 1,
+      maxRadius: MOTH_BOMBER_BLAST_RADIUS,
+      damage: 0,
+      impulse: 0,
+      lifetime: 0.22,
+      color: '#ff8a3d',
+    }),
+  );
+  if (distanceSquared(game.vehicle, origin) <= (MOTH_BOMBER_BLAST_RADIUS + CELL_SIZE * 3.8) ** 2) {
+    applyVehicleDamage(game.vehicle, origin, MOTH_BOMBER_BLAST_RADIUS, MOTH_BOMBER_BLAST_DAMAGE, 92, directionFromTo(origin, game.vehicle));
+  }
+  for (let index = 0; index < 7; index += 1) {
+    const angle = game.rng.range(0, Math.PI * 2);
+    const distance = Math.sqrt(game.rng.next()) * MOTH_BOMBER_BLAST_RADIUS * 3;
+    const target = {
+      x: origin.x + Math.cos(angle) * distance,
+      y: origin.y + Math.sin(angle) * distance,
+    };
+    fireEnemyArcShell(game, { ...enemy, x: origin.x, y: origin.y }, target, '#ff6d4b', {
+      weapon: 'moth-scatter-mortar',
+      flightTime: game.rng.range(0.7, 1.25),
+      gravity: 116,
+      blastRadius: MOTH_BOMBER_BLAST_RADIUS,
+      blastDamage: MOTH_BOMBER_BLAST_DAMAGE,
+      blastImpulse: 52,
+    });
+  }
+  enemy.destroyed = true;
+  explodeEnemy(game, enemy);
+}
+
+function stepZeppelinBoss(game, enemy, dt) {
+  enemy.elevation ??= { z: 72, canBeHitByGroundFire: false, arcCollision: true, layeredExposure: true };
+  enemy.elevation.z = 72;
+  enemy.elevation.canBeHitByGroundFire = Boolean(enemy.harpoonField);
+  const state = enemy.zeppelin ?? {
+    phase: 'turn',
+    runCount: 0,
+    turnTimer: 0,
+    atsCooldown: 1.4,
+    laserCooldown: 2.2,
+    innerLiningTotal: Math.max(1, enemy.cells.filter((cell) => cell.role === 'innerLining').length),
+    meltdownTimer: null,
+  };
+  enemy.zeppelin = state;
+  stepZeppelinHarpoon(game, enemy, dt);
+  if (stepZeppelinMeltdown(game, enemy, dt)) return;
+  stepZeppelinStrafe(game, enemy, state, dt);
+  stepZeppelinCannons(game, enemy, state, dt);
+}
+
+function stepZeppelinStrafe(game, enemy, state, dt) {
+  const offset = worldToRoadOffset(enemy, game.road);
+  if (state.phase === 'strafe') {
+    if (
+      Math.abs(offset.x) > game.road.halfWidth + ZEPPELIN_STRAFE_EXIT_MARGIN ||
+      Math.abs(offset.y) > game.road.halfHeight + ZEPPELIN_STRAFE_EXIT_MARGIN
+    ) {
+      state.phase = 'turn';
+      state.turnTimer = 0.75;
+      state.runCount += 1;
+      if (state.runCount % ZEPPELIN_WALKER_DROP_RUN_INTERVAL === 0) state.walkerDropPending = true;
+    }
+  }
+  if (state.phase === 'turn') {
+    state.turnTimer -= dt;
+    enemy.vx *= Math.pow(0.08, dt);
+    enemy.vy *= Math.pow(0.08, dt);
+    const angle = Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+    enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? angle, angle, 2.8 * dt);
+    if (state.turnTimer > 0) return;
+    state.phase = 'strafe';
+    state.strafeAngle = angle;
+  }
+  const angle = state.strafeAngle ?? Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+  enemy.visualHeading = angle;
+  const speed = ZEPPELIN_STRAFE_SPEED * enemyMovementUpgradeScale(enemy);
+  const steer = clamp(2.8 * dt, 0, 1);
+  enemy.vx += (Math.cos(angle) * speed - enemy.vx) * steer;
+  enemy.vy += (Math.sin(angle) * speed - enemy.vy) * steer;
+  if (state.walkerDropPending) dropZeppelinWalker(game, enemy, state);
+}
+
+function dropZeppelinWalker(game, enemy, state) {
+  const walkerCount = activeEnemies(game).filter((candidate) => isWalkerEnemy(candidate)).length;
+  if (walkerCount >= 5) {
+    state.walkerDropPending = false;
+    return;
+  }
+  const archetype = zoneArchetypeForMusic(game.currentMusic, 'standard', state.runCount);
+  if (!archetype || !isWalkerEnemy(archetype)) {
+    state.walkerDropPending = false;
+    return;
+  }
+  const walker = createEnemyForArchetype(archetype, enemy.x + game.rng.range(-CELL_SIZE * 4, CELL_SIZE * 4), enemy.y + CELL_SIZE * 3.5, 'standard');
+  applyArchetypeRuntimeMetadata(walker, archetype);
+  applyEnemyLevelUpgrades(walker, game.level);
+  walker.vx = enemy.vx * 0.25;
+  walker.vy = enemy.vy * 0.25;
+  game.enemies.push(walker);
+  state.walkerDropPending = false;
+}
+
+function stepZeppelinCannons(game, enemy, state, dt) {
+  const sources = zeppelinCannonSources(enemy);
+  if (sources.length === 0) return;
+  state.atsCooldown = Math.max(0, (state.atsCooldown ?? 1.4) - dt * enemyFireTimerScale(enemy));
+  if (state.atsCooldown <= 0) {
+    fireZeppelinAtsRocket(game, enemy, sources[Math.floor(game.rng.range(0, sources.length))] ?? sources[0]);
+    state.atsCooldown = game.rng.range(2.2, 3.4);
+  }
+  state.laserCooldown = Math.max(0, (state.laserCooldown ?? 2.2) - dt * enemyFireTimerScale(enemy));
+  if (state.laserCooldown <= 0) {
+    fireZeppelinGroundLaser(game, enemy, sources[Math.floor(game.rng.range(0, sources.length))] ?? sources[0]);
+    state.laserCooldown = game.rng.range(3.4, 5.2);
+  }
+}
+
+function zeppelinCannonSources(enemy) {
+  return (enemy.cells ?? [])
+    .filter((cell) => !cell.state?.destroyed && (cell.role === 'zeppelinCannon' || cell.type === 'gun'))
+    .map((cell) => {
+      const localX = cell.gridX * CELL_SIZE;
+      const localY = cell.gridY * CELL_SIZE;
+      const world = enemyLocalToWorldPoint(enemy, { x: localX, y: localY });
+      return {
+        ...world,
+        z: enemyCellWorldHeight(enemy, cell) + (enemy.elevation?.z ?? 0),
+        cellId: cell.id,
+        localX,
+        localY,
+      };
+    });
+}
+
+function fireZeppelinAtsRocket(game, enemy, source) {
+  const rocket = createProjectile(source.x, source.y, 0, 0, {
+    team: 'enemy',
+    weapon: 'ats-grav-rocket',
+    behavior: 'arc',
+    radius: 4.2,
+    color: '#ff4b35',
+    sprite: WALKER_STA_MISSILE_SPRITE,
+    landingMarkerSprite: MORTAR_ENEMY_MARKER_SPRITE,
+    damage: 10 * enemyDamageUpgradeScale(enemy),
+    impulse: 72,
+    lifetime: 5.2,
+    z: source.z,
+    verticalVelocity: -18,
+    gravity: 28,
+    maxArcHeight: Math.max(90, source.z),
+    shadowRadius: 5,
+    targetHint: null,
+    detonateAtTarget: false,
+    blastOnExpire: {
+      radius: ZEPPELIN_ATS_ROCKET_BLAST_RADIUS,
+      damage: ZEPPELIN_ATS_ROCKET_BLAST_DAMAGE * enemyDamageUpgradeScale(enemy),
+      impulse: 115,
+    },
+    contrail: {
+      emissionMeanPerSevenFrames: 5,
+      maxParticlesPerStep: 8,
+      particleLifetimeFrames: [5, 9],
+      particleRadiusScale: 2.2,
+      colors: ['#ff4a2d', '#ff9b3d', '#2f2d32', '#d1d1cf'],
+    },
+  });
+  rocket.angle = Math.PI / 2;
+  game.enemyProjectiles.push(rocket);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function fireZeppelinGroundLaser(game, enemy, source) {
+  const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, 0, 0, {
+      team: 'enemy',
+      weapon: 'zeppelin-ground-laser',
+      behavior: 'beam',
+      radius: 1.5,
+      damage: 7.5 * enemyDamageUpgradeScale(enemy),
+      impulse: 80,
+      lifetime: 15 / 60,
+      maxLifetime: 15 / 60,
+      length: 380,
+      frames: 15,
+      angle,
+      color: '#ff2626',
+      sourceEnemy: enemy,
+      sourceCellId: source.cellId,
+      sourceOffset: { x: source.localX, y: source.localY },
+      sourceZ: source.z,
+      endZ: 0,
+      widthEnvelopeScale: 1,
+    }),
+  );
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BEAM);
+}
+
+function stepZeppelinHarpoon(game, enemy, dt) {
+  if (enemy.harpoonField) {
+    enemy.harpoonField.timer -= dt;
+    enemy.harpoonField.x = enemy.x;
+    enemy.harpoonField.y = enemy.y;
+    if (enemy.harpoonField.timer <= 0) enemy.harpoonField = null;
+    return;
+  }
+  const charge = enemy.zeppelin.harpoonCharge ?? { timer: ZEPPELIN_HARPOON_CHARGE_SECONDS };
+  enemy.zeppelin.harpoonCharge = charge;
+  charge.timer -= dt;
+  if (charge.timer > 0) return;
+  enemy.harpoonField = {
+    timer: ZEPPELIN_HARPOON_FIELD_SECONDS,
+    duration: ZEPPELIN_HARPOON_FIELD_SECONDS,
+    x: enemy.x,
+    y: enemy.y,
+    z: enemy.elevation?.z ?? 72,
+  };
+  enemy.zeppelin.harpoonCharge = null;
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_BULLET);
+}
+
+function stepZeppelinMeltdown(game, enemy, dt) {
+  const state = enemy.zeppelin;
+  if (state.meltdownTimer == null) {
+    const total = state.innerLiningTotal ?? Math.max(1, enemy.cells.filter((cell) => cell.role === 'innerLining').length);
+    const destroyed = enemy.cells.filter((cell) => cell.role === 'innerLining' && cell.state?.destroyed).length;
+    if (destroyed / Math.max(1, total) > 0.1) state.meltdownTimer = 3.2;
+    else return false;
+  }
+  state.meltdownTimer -= dt;
+  if (game.rng.chance(8 * dt)) {
+    const live = enemy.cells.filter((cell) => !cell.state?.destroyed && (cell.role === 'innerLining' || cell.role === 'zeppelinHull'));
+    const cell = live[Math.floor(game.rng.range(0, live.length))];
+    if (cell) {
+      const local = { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE };
+      const world = enemyLocalToWorldPoint(enemy, local);
+      game.enemyProjectiles.push(createProjectile(world.x, world.y, 0, 0, {
+        team: 'enemy',
+        weapon: 'zeppelin-internal-blast',
+        behavior: 'blast',
+        radius: 1,
+        maxRadius: CELL_SIZE * 2.8,
+        damage: 0,
+        impulse: 0,
+        lifetime: 0.16,
+        color: '#ff8038',
+      }));
+    }
+  }
+  if (state.meltdownTimer > 0) return true;
+  game.enemyProjectiles.push(...spawnEnemyPulseBlast(game, {
+    x: enemy.x,
+    y: enemy.y,
+    blastOnExpire: { radius: CELL_SIZE * 18, damage: 18, impulse: 140 },
+  }));
+  enemy.destroyed = true;
+  explodeEnemy(game, enemy);
+  return true;
+}
+
 function updateEnemyVisualHeading(enemy, dt) {
   if (enemy.kind === 'boss' || enemy.silhouette !== 'pirateShip') return;
   const speed = Math.hypot(enemy.vx, enemy.vy);
@@ -2049,6 +2455,10 @@ function updateEnemyVisualHeading(enemy, dt) {
 function updateEnemyCollisionRotation(enemy, time = Infinity) {
   if (enemy.inchworm?.role) {
     enemy.collisionRotation = (enemy.inchworm.heading ?? enemy.visualHeading ?? 0) - Math.PI;
+    return;
+  }
+  if (enemy.kind === 'zeppelinBoss') {
+    enemy.collisionRotation = (enemy.visualHeading ?? 0) - Math.PI / 2;
     return;
   }
   if (enemy.kind === 'boss' || enemy.silhouette !== 'pirateShip') {
@@ -2394,14 +2804,14 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {})
   const verticalVelocity = options.verticalVelocity ?? (gravity * flightTime) / 2;
   const shell = createProjectile(enemy.x, enemy.y, vx, vy, {
     team: 'enemy',
-    weapon: 'enemy-mortar',
+    weapon: options.weapon ?? 'enemy-mortar',
     behavior: 'arc',
     radius: 3.2,
     color,
     sprite: MORTAR_ENEMY_SHELL_SPRITE,
     landingMarkerSprite: MORTAR_ENEMY_MARKER_SPRITE,
-    damage: 8 * enemyDamageUpgradeScale(enemy),
-    impulse: 80,
+    damage: (options.damage ?? 8) * enemyDamageUpgradeScale(enemy),
+    impulse: options.impulse ?? 80,
     lifetime: flightTime + 0.35,
     verticalVelocity,
     gravity,
@@ -2412,8 +2822,8 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {})
     arcFlightTime: flightTime,
     blastOnExpire: {
       radius: options.blastRadius ?? ENEMY_SINGLE_MORTAR_BLAST_RADIUS,
-      damage: 4.5 * enemyDamageUpgradeScale(enemy),
-      impulse: 34,
+      damage: (options.blastDamage ?? 4.5) * enemyDamageUpgradeScale(enemy),
+      impulse: options.blastImpulse ?? 34,
     },
   });
   game.enemyProjectiles.push(shell);
@@ -2664,6 +3074,7 @@ function handleCollisions(game) {
 
 function enemyCanBeHitByProjectile(enemy, projectile) {
   if (enemy.phasedOut && projectile.behavior !== 'arc') return false;
+  if (enemy.kind === 'zeppelinBoss' && !enemy.harpoonField && projectile.behavior !== 'arc') return false;
   if (enemyUsesLayeredCellExposure(enemy)) return true;
   if (enemy.elevation?.canBeHitByGroundFire === false && projectile.behavior !== 'arc') return false;
   return true;
@@ -2972,6 +3383,29 @@ function lockEnemyStaMissileDescents(game) {
   }
 }
 
+function attractPlayerProjectilesToZeppelinHarpoons(game, dt) {
+  const fields = activeEnemies(game)
+    .filter((enemy) => enemy.kind === 'zeppelinBoss' && enemy.harpoonField)
+    .map((enemy) => enemy.harpoonField);
+  if (fields.length === 0) return;
+  for (const projectile of game.playerProjectiles) {
+    if (projectile.lifetime <= 0 || projectile.behavior === 'beam' || projectile.behavior === 'blast') continue;
+    if (projectile.weapon === 'repulsor_beam' || projectile.weapon === 'tractor_beam') continue;
+    const field = fields.reduce((nearest, candidate) => (
+      !nearest || distanceSquared(projectile, candidate) < distanceSquared(projectile, nearest) ? candidate : nearest
+    ), null);
+    if (!field) continue;
+    const dx = field.x - projectile.x;
+    const dy = field.y - projectile.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const pull = 920 * dt;
+    projectile.vx += (dx / distance) * pull;
+    projectile.vy += (dy / distance) * pull;
+    projectile.targetHint = { x: field.x, y: field.y };
+    projectile.angle = Math.atan2(projectile.vy, projectile.vx);
+  }
+}
+
 function remainingArcFlightTime(projectile) {
   const gravity = projectile.gravity ?? 0;
   if (gravity <= 0) return Math.max(0.001, projectile.lifetime ?? 1);
@@ -3093,6 +3527,16 @@ function handleEnemyProjectileSpecials(game) {
       projectile.lifetime = 0;
       continue;
     }
+    if (projectile.weapon === 'ats-grav-rocket' && projectile.atsLaunched && projectileReachedDetonationTarget(projectile)) {
+      spawned.push(...spawnEnemyPulseBlast(game, projectile));
+      projectile.lifetime = 0;
+      continue;
+    }
+    if (projectile.readyToExplode && projectile.weapon === 'ats-grav-rocket' && !projectile.atsLaunched) {
+      launchAtsGravRocket(game, projectile);
+      kept.push(projectile);
+      continue;
+    }
     if (projectile.readyToExplode) {
       spawned.push(...spawnEnemyPulseBlast(game, projectile));
       projectile.lifetime = 0;
@@ -3101,6 +3545,34 @@ function handleEnemyProjectileSpecials(game) {
     kept.push(projectile);
   }
   game.enemyProjectiles = [...kept, ...spawned];
+}
+
+function launchAtsGravRocket(game, projectile) {
+  projectile.readyToExplode = false;
+  projectile.arcLanded = false;
+  projectile.behavior = 'ballistic';
+  projectile.atsLaunched = true;
+  projectile.targetHint = { x: game.vehicle.x, y: game.vehicle.y };
+  projectile.detonateAtTarget = true;
+  projectile.startX = projectile.x;
+  projectile.startY = projectile.y;
+  const angle = Math.atan2(projectile.targetHint.y - projectile.y, projectile.targetHint.x - projectile.x);
+  const distance = Math.max(1, Math.hypot(projectile.targetHint.x - projectile.x, projectile.targetHint.y - projectile.y));
+  const speed = clamp(distance / 0.82, 210, 620);
+  projectile.vx = Math.cos(angle) * speed;
+  projectile.vy = Math.sin(angle) * speed;
+  projectile.angle = angle;
+  projectile.lifetime = Math.max(0.4, distance / speed + 0.28);
+  projectile.maxLifetime = projectile.lifetime;
+  projectile.detonateDistance = distance;
+  projectile.hideLandingMarkerUntilTargetHint = false;
+  projectile.contrail = {
+    emissionMeanPerSevenFrames: 7,
+    maxParticlesPerStep: 9,
+    particleLifetimeFrames: [5, 8],
+    particleRadiusScale: 3,
+    colors: ['#ff3728', '#ff8f35', '#211b1e', '#f2d7b7'],
+  };
 }
 
 function syncEnemyBeamProjectiles(game) {
@@ -3117,7 +3589,7 @@ function syncEnemyBeamProjectiles(game) {
     });
     projectile.x = source.x;
     projectile.y = source.y;
-    projectile.sourceZ = enemyCellWorldHeight(projectile.sourceEnemy, sourceCell);
+    projectile.sourceZ = enemyCellWorldHeight(projectile.sourceEnemy, sourceCell) + (projectile.sourceEnemy.elevation?.z ?? 0);
     if (projectile.sweepBeam && projectile.sweepTarget) {
       const progress = easeOutCubic(1 - Math.max(0, projectile.lifetime / Math.max(0.001, projectile.maxLifetime)));
       const start = projectile.sweepStart ?? { x: projectile.sourceEnemy.x, y: projectile.sourceEnemy.y };
