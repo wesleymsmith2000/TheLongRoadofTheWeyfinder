@@ -20,11 +20,27 @@ test('clearing all enemies records level time and completion count', () => {
   game.targetingAi.levelStartXp = 4;
   for (const enemy of game.enemies) enemy.destroyed = true;
   stepGame(game, {}, 0.016);
+  assert.equal(game.levelComplete, false);
+  assert.equal(game.victoryBanner.kind, 'level');
+  for (let index = 0; index < 190; index += 1) stepGame(game, {}, 1 / 60);
   assert.equal(game.levelComplete, true);
   assert.equal(game.levelsCompleted, 1);
   assert.equal(game.levelTime > 12, true);
   assert.equal(game.targetingAi.lastLevelXp, 5);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.STAGE_VICTORY), true);
+});
+
+test('boss clears show boss defeated banner before the level completes', () => {
+  const game = createGame(1147, { levelMusic: ['BossFight_1'] });
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.scrapPickups = [];
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.levelComplete, false);
+  assert.equal(game.victoryBanner.kind, 'boss');
+  for (let index = 0; index < 190; index += 1) stepGame(game, {}, 1 / 60);
+  assert.equal(game.levelComplete, true);
+  assert.equal(game.bossLevelsCompleted, 1);
 });
 
 test('pause freezes simulation while menu state can still change', () => {

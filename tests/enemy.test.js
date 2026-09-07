@@ -862,6 +862,60 @@ test('boss arm attack mix can schedule and fire a tracking laser', () => {
   assert.notDeepEqual(initialTarget, lockedTarget);
 });
 
+test('octopus boss arm destruction drops partial scrap, smoke, and phases out briefly', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createBossEnemy(game.vehicle.x + 140, game.vehicle.y);
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  game.scrapPickups = [];
+  game.smokeParticles = [];
+  const armCells = boss.cells.filter((cell) => cell.id.startsWith('arm-0-'));
+  for (const voxel of armCells[0].mask.flat()) voxel.hp = 0;
+  recalculateCell(armCells[0]);
+  const remainingLiveVoxels = armCells.reduce(
+    (sum, cell) => sum + cell.mask.flat().filter((voxel) => voxel.hp > 0).length,
+    0,
+  );
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(boss.arms[0].detonated, true);
+  assert.equal(boss.phasedOut, true);
+  assert.equal(boss.armPhaseOutTimer > 1.8, true);
+  assert.equal(game.scrapPickups.length >= Math.floor(remainingLiveVoxels / 4) - 1, true);
+  assert.equal(game.smokeParticles.some((particle) => particle.color === '#050506' || particle.color === '#1b1718'), true);
+});
+
+test('octopus boss core loss starts an internal destruction sequence before final defeat', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createBossEnemy(game.vehicle.x + 140, game.vehicle.y);
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  game.scrapPickups = [];
+  game.playerProjectiles = [];
+  game.enemyProjectiles = [];
+  for (const core of boss.cells.filter((cell) => cell.id.startsWith('core-'))) {
+    for (const voxel of core.mask.flat()) voxel.hp = 0;
+    recalculateCell(core);
+  }
+  boss.destroyed = true;
+  const eventsBefore = consumeSoundEvents(game);
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(eventsBefore.length, 0);
+  assert.equal(boss.destroyed, false);
+  assert.equal(Boolean(boss.internalDestruction), true);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id.startsWith('boss-internal-explosion')), true);
+
+  for (let index = 0; index < 220 && !boss.destroyed; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.destroyed, true);
+  assert.equal(boss.internalDestructionComplete, true);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id.startsWith('boss-main-explosion')), true);
+});
+
 test('multileg walkers fire red STA missiles that lock a descent point without tracking', () => {
   const game = createGame();
   game.autofire = false;

@@ -6,6 +6,10 @@ export const SOUND_EVENTS = {
   ENEMY_BULLET: 'enemy-bullet',
   ENEMY_BEAM: 'enemy-beam',
   ENEMY_DEATH: 'enemy-death',
+  BOSS_INTERNAL_EXPLOSION_1: 'boss-internal-explosion-1',
+  BOSS_INTERNAL_EXPLOSION_2: 'boss-internal-explosion-2',
+  BOSS_MAIN_EXPLOSION_1: 'boss-main-explosion-1',
+  BOSS_MAIN_EXPLOSION_2: 'boss-main-explosion-2',
   STAGE_VICTORY: 'stage-victory',
 };
 

@@ -24,6 +24,9 @@ test('level completion waits until dropped scrap is collected or gone', () => {
   game.scrapPickups[0].x = game.vehicle.x;
   game.scrapPickups[0].y = game.vehicle.y;
   stepGame(game, {}, 1 / 60);
+  assert.equal(game.levelComplete, false);
+  assert.equal(game.victoryBanner.kind, 'level');
+  for (let index = 0; index < 190; index += 1) stepGame(game, {}, 1 / 60);
   assert.equal(game.levelComplete, true);
 });
 

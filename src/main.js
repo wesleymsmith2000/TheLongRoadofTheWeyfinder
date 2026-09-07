@@ -45,7 +45,9 @@ import {
 } from './core/economy.js';
 import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairTargetOptions } from './core/vehicle.js';
 import { DEFAULT_SANDBOX_DEFINITION, sandboxDefinitionFromEnemy, validateSandboxDefinition } from './core/sandboxMode.js';
+import levelCompleteBannerArt from '../assets/images/level_complete_banner.png';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
+import bossDefeatedBannerArt from '../assets/images/boss_defeated_banner.png';
 import levelFailArt from '../assets/images/level_fail_screen.png';
 import pauseArt from '../assets/images/pause_screen.png';
 import repairArt from '../assets/images/repair_screen.png';
@@ -91,6 +93,10 @@ import errorClickSound from '../assets/sounds/ErrorClick.mp3';
 import particleBeamSound from '../assets/sounds/ParticleBeam.mp3';
 import rocketAccelerateSound from '../assets/sounds/RocketAccelerate.mp3';
 import victoryTone1Sound from '../assets/sounds/VictoryTone1.mp3';
+import bossInternalExplosion1Sound from '../assets/sounds/boss__internal_explosion_1.mp3';
+import bossInternalExplosion2Sound from '../assets/sounds/boss__internal_explosion_2.mp3';
+import bossMainExplosion1Sound from '../assets/sounds/boss__main_explosion_1.mp3';
+import bossMainExplosion2Sound from '../assets/sounds/boss__main_explosion_2.mp3';
 
 const MUSIC_URLS = {
   BossFight_1: bossFight1Music,
@@ -137,6 +143,10 @@ const SOUND_URLS = {
   [SOUND_EVENTS.ENEMY_BULLET]: errorClickSound,
   [SOUND_EVENTS.ENEMY_BEAM]: errorBuzz2Sound,
   [SOUND_EVENTS.ENEMY_DEATH]: futuristicCannonSound,
+  [SOUND_EVENTS.BOSS_INTERNAL_EXPLOSION_1]: bossInternalExplosion1Sound,
+  [SOUND_EVENTS.BOSS_INTERNAL_EXPLOSION_2]: bossInternalExplosion2Sound,
+  [SOUND_EVENTS.BOSS_MAIN_EXPLOSION_1]: bossMainExplosion1Sound,
+  [SOUND_EVENTS.BOSS_MAIN_EXPLOSION_2]: bossMainExplosion2Sound,
   [SOUND_EVENTS.STAGE_VICTORY]: victoryTone1Sound,
 };
 
@@ -150,6 +160,7 @@ const titleSandboxRun = document.querySelector('#titleSandboxRun');
 const titleVehicleBay = document.querySelector('#titleVehicleBay');
 const titleControls = document.querySelector('#titleControls');
 const gameOver = document.querySelector('#gameOver');
+const victoryBanner = document.querySelector('#victoryBanner');
 const launchScreen = document.querySelector('#launchScreen');
 const launchButton = document.querySelector('#launchButton');
 const vehicleEditorCanvas = document.querySelector('#vehicleEditorCanvas');
@@ -295,6 +306,8 @@ const virtualPointer = {
   selectRepeat: 0,
 };
 document.documentElement.style.setProperty('--level-complete-art', `url("${levelCompleteArt}")`);
+document.documentElement.style.setProperty('--level-complete-banner-art', `url("${levelCompleteBannerArt}")`);
+document.documentElement.style.setProperty('--boss-defeated-banner-art', `url("${bossDefeatedBannerArt}")`);
 document.documentElement.style.setProperty('--level-fail-art', `url("${levelFailArt}")`);
 document.documentElement.style.setProperty('--pause-art', `url("${pauseArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
@@ -427,6 +440,7 @@ function frame(now) {
   syncLaunchScreen();
   gameOver.classList.toggle('hidden', !game.gameOver);
   levelComplete.classList.toggle('hidden', !game.levelComplete);
+  syncVictoryBanner();
   syncProgressHud();
   syncSandboxUi();
   refreshAchievementAwards();
@@ -810,6 +824,20 @@ function syncSandboxUi() {
   sandboxStatus.textContent = game.sandbox.lastMessage || `Sandbox active: ${active} active, ${pending} queued.`;
 }
 
+function syncVictoryBanner() {
+  if (!victoryBanner) return;
+  const banner = game.victoryBanner;
+  const visible = Boolean(banner && !game.levelComplete && !game.gameOver && !awaitingLaunch);
+  victoryBanner.classList.toggle('hidden', !visible);
+  if (!visible) return;
+  victoryBanner.dataset.kind = banner.kind === 'boss' ? 'boss' : 'level';
+  const progress = Math.max(0, banner.elapsed ?? 0);
+  const frame = Math.min(7, Math.floor(progress * 8) % 8);
+  const column = frame % 4;
+  const row = Math.floor(frame / 4);
+  victoryBanner.style.backgroundPosition = `${column * 33.3333}% ${row * 100}%`;
+}
+
 function syncMusic(forcePlay = false) {
   const trackName = game.currentMusic;
   const src = MUSIC_URLS[trackName];
@@ -834,7 +862,13 @@ function playSoundEvents(game) {
     const src = SOUND_URLS[event.id];
     if (!src) continue;
     const player = soundPlayerFor(src);
-    player.volume = event.id === SOUND_EVENTS.PLAYER_MAIN_GUN ? 0.24 : 0.48;
+    player.volume = event.id === SOUND_EVENTS.PLAYER_MAIN_GUN
+      ? 0.24
+      : event.id.startsWith('boss-main-explosion')
+        ? 0.72
+        : event.id.startsWith('boss-internal-explosion')
+          ? 0.56
+          : 0.48;
     player.currentTime = 0;
     player.play().catch(() => {});
   }

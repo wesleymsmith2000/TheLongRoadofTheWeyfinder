@@ -146,8 +146,56 @@
       body.title-active .ai-lead-toggle,
       body.title-active .boost-button,
       body.title-active .secondary-touch-button,
-      body.title-active .secondary-cycle-button {
+      body.title-active .secondary-cycle-button,
+      body.title-active .victory-banner {
         display: none;
+      }
+
+      .victory-banner {
+        position: fixed;
+        left: 50%;
+        top: 15vh;
+        width: min(620px, calc(100vw - 30px));
+        aspect-ratio: 2 / 1;
+        transform: translateX(-50%);
+        background-image: var(--level-complete-banner-art);
+        background-repeat: no-repeat;
+        background-size: 400% 200%;
+        filter: drop-shadow(0 16px 28px rgb(0 0 0 / 0.62));
+        pointer-events: none;
+        z-index: 24;
+        animation: victory-banner-pop 3s ease-out both;
+      }
+
+      .victory-banner[data-kind="boss"] {
+        background-image: var(--boss-defeated-banner-art);
+      }
+
+      .victory-banner.hidden {
+        display: none;
+      }
+
+      @keyframes victory-banner-pop {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-22px) scale(0.8);
+        }
+        14% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0) scale(1.04);
+        }
+        24% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+        82% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-6px) scale(0.96);
+        }
       }
 
       .title {
@@ -1780,6 +1828,7 @@
       </div>
     </div>
     <div class="boost-gauge" aria-label="Boost fuel"><div id="boostFill" class="boost-fill"></div></div>
+    <div id="victoryBanner" class="victory-banner hidden" data-kind="level" aria-hidden="true"></div>
     <button id="primaryFireToggle" class="primary-fire-toggle" type="button" aria-label="Toggle primary fire mode" aria-pressed="true">FIRE</button>
     <button id="aiLeadToggle" class="ai-lead-toggle" type="button" aria-label="Disable AI shot leading" aria-pressed="true">AI LEAD</button>
     <button id="secondaryTouchCycle" class="secondary-cycle-button" type="button" aria-label="Cycle secondary weapon">SWAP</button>

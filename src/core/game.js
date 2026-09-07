@@ -13,7 +13,7 @@ import {
   stepRoadFrame,
   worldToRoadOffset,
 } from './camera.js';
-import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXEL_SIZE } from './voxelMask.js';
+import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, VOXEL_SIZE } from './voxelMask.js';
 import { recalculateCell as recalculateEnemyCell } from './cell.js';
 import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
@@ -117,6 +117,8 @@ const ZEPPELIN_STRAFE_EXIT_MARGIN = CELL_SIZE * 13;
 const ZEPPELIN_ATS_ROCKET_BLAST_RADIUS = CELL_SIZE * 5.1 * (1.05 ** 12);
 const ZEPPELIN_ATS_ROCKET_BLAST_DAMAGE = 9 * (1.05 ** 12);
 const ZEPPELIN_WALKER_DROP_RUN_INTERVAL = 5;
+const BOSS_INTERNAL_DESTRUCTION_SECONDS = 3.2;
+const OCTOPUS_ARM_PHASE_SECONDS = 2;
 const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 2;
 const WALKER_SWEEP_BEAM_CHARGE_SECONDS = 1.35;
 const WALKER_SWEEP_BEAM_FIRE_SECONDS = 4;
@@ -245,6 +247,7 @@ export function createGame(seed = 1147, options = {}) {
     playerFireTimer: 0,
     playerGunIndex: 0,
     levelComplete: false,
+    victoryBanner: null,
     levelTime: 0,
     level: sandboxDefinition?.level ?? startLevel,
     levelStartTime: 0,
@@ -340,7 +343,9 @@ export function stepGame(game, input, dt) {
   updateTerrainStreaming(game.terrain, game.camera);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   game.gameOver = !game.vehicle.alive;
-  if (shouldCompleteRun(game) && activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0 && game.scrapPickups.length === 0) finishLevel(game);
+  const arenaClear = shouldCompleteRun(game) && activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0;
+  stepVictoryBanner(game, arenaClear, dt);
+  if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
   return game;
 }
 
@@ -369,6 +374,23 @@ function finishLevel(game) {
   emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
 }
 
+function stepVictoryBanner(game, arenaClear, dt) {
+  if (!arenaClear || game.levelComplete || game.gameOver) {
+    game.victoryBanner = null;
+    return;
+  }
+  game.victoryBanner ??= {
+    kind: isBossLevel(game.level, game.levelMusic) ? 'boss' : 'level',
+    elapsed: 0,
+    minDuration: 3,
+  };
+  game.victoryBanner.elapsed += dt;
+}
+
+function victoryBannerHasPlayed(game) {
+  return (game.victoryBanner?.elapsed ?? 0) >= (game.victoryBanner?.minDuration ?? 3);
+}
+
 export function startNextLevel(game) {
   game.level += 1;
   game.levelComplete = false;
@@ -379,6 +401,7 @@ export function startNextLevel(game) {
   game.enemySpawnQueue = createLevelEnemySchedule(game.road, game.level, game.levelMusic, game.rng);
   game.enemies = dequeueReadySpawns(game.enemySpawnQueue, 0);
   game.incomingMarkers = [];
+  game.victoryBanner = null;
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
   game.smokeParticles = [];
@@ -401,6 +424,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.enemySpawnQueue = createSandboxEnemySchedule(game.road, sandboxDefinition, game.rng, options);
   game.enemies = dequeueReadySpawns(game.enemySpawnQueue, 0);
   game.incomingMarkers = [];
+  game.victoryBanner = null;
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
   game.smokeParticles = [];
@@ -1495,7 +1519,17 @@ function stepEnemies(game, dt) {
 }
 
 function stepEnemy(game, enemy, dt) {
-  if (enemy.destroyed) return;
+  if (enemy.internalDestruction) {
+    stepBossInternalDestruction(game, enemy, dt);
+    return;
+  }
+  if (enemy.destroyed) {
+    if (bossUsesInternalDestruction(enemy) && !enemy.internalDestructionComplete) {
+      startBossInternalDestruction(game, enemy);
+      stepBossInternalDestruction(game, enemy, dt);
+    }
+    return;
+  }
   if ((enemy.dizzyTimer ?? 0) > 0) {
     stepDizzyEnemy(enemy, dt);
     return;
@@ -2402,7 +2436,7 @@ function stepZeppelinHarpoon(game, enemy, dt) {
     z: enemy.elevation?.z ?? 72,
   };
   enemy.zeppelin.harpoonCharge = null;
-  emitSoundEvent(game, SOUND_EVENTS.PLAYER_BULLET);
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
 }
 
 function stepZeppelinMeltdown(game, enemy, dt) {
@@ -2410,10 +2444,18 @@ function stepZeppelinMeltdown(game, enemy, dt) {
   if (state.meltdownTimer == null) {
     const total = state.innerLiningTotal ?? Math.max(1, enemy.cells.filter((cell) => cell.role === 'innerLining').length);
     const destroyed = enemy.cells.filter((cell) => cell.role === 'innerLining' && cell.state?.destroyed).length;
-    if (destroyed / Math.max(1, total) > 0.1) state.meltdownTimer = 3.2;
+    if (destroyed / Math.max(1, total) > 0.1) {
+      state.meltdownTimer = 3.2;
+      state.meltdownSoundTimer = 0;
+    }
     else return false;
   }
   state.meltdownTimer -= dt;
+  state.meltdownSoundTimer = (state.meltdownSoundTimer ?? 0) - dt;
+  if (state.meltdownSoundTimer <= 0) {
+    emitRandomBossInternalExplosionSound(game);
+    state.meltdownSoundTimer = game.rng.range(0.34, 0.62);
+  }
   if (game.rng.chance(8 * dt)) {
     const live = enemy.cells.filter((cell) => !cell.state?.destroyed && (cell.role === 'innerLining' || cell.role === 'zeppelinHull'));
     const cell = live[Math.floor(game.rng.range(0, live.length))];
@@ -2439,6 +2481,7 @@ function stepZeppelinMeltdown(game, enemy, dt) {
     y: enemy.y,
     blastOnExpire: { radius: CELL_SIZE * 18, damage: 18, impulse: 140 },
   }));
+  enemy.internalDestructionComplete = true;
   enemy.destroyed = true;
   explodeEnemy(game, enemy);
   return true;
@@ -2501,6 +2544,20 @@ function stepEnhancedEnemy(game, enemy, dt) {
 }
 
 function stepBossEnemy(game, boss, dt) {
+  if ((boss.armPhaseOutTimer ?? 0) > 0) {
+    boss.armPhaseOutTimer = Math.max(0, boss.armPhaseOutTimer - dt);
+    boss.phasedOut = true;
+    boss.renderAlpha = 0.18 + (Math.sin(game.time * 18) * 0.5 + 0.5) * 0.12;
+    boss.vx *= Math.pow(0.16, dt);
+    boss.vy *= Math.pow(0.16, dt);
+    if (boss.armPhaseOutTimer <= 0) {
+      boss.phasedOut = false;
+      boss.renderAlpha = 1;
+    }
+    return;
+  }
+  boss.phasedOut = false;
+  boss.renderAlpha = 1;
   updateBossArmUnfurl(game, boss, dt);
   steerBossBackToViewArea(game, boss, dt);
   boss.centerPulseTimer -= dt * enemyCoreTimerScale(boss);
@@ -2692,6 +2749,13 @@ function detonateBrokenBossArm(game, boss, arm) {
   const cells = boss.cells.filter((cell) => cell.id.startsWith(`arm-${arm.index}-`));
   if (!cells.some((cell) => cell.state.destroyed)) return false;
   arm.detonated = true;
+  spawnBossArmPartialScrap(game, boss, cells);
+  spawnBlackSmokeCloud(game, {
+    x: boss.x + arm.direction.x * CELL_SIZE * 8,
+    y: boss.y + arm.direction.y * CELL_SIZE * 8,
+  }, 34);
+  boss.armPhaseOutTimer = OCTOPUS_ARM_PHASE_SECONDS;
+  boss.phasedOut = true;
   for (const cell of cells) {
     const origin = { x: boss.x + cell.gridX * CELL_SIZE, y: boss.y + cell.gridY * CELL_SIZE };
     for (const voxel of cell.mask.flat()) voxel.hp = 0;
@@ -2716,13 +2780,136 @@ function detonateBrokenBossArm(game, boss, arm) {
       );
     }
   }
-  updateEnemyDestroyedAfterArmLoss(boss);
+  updateEnemyDestroyedAfterArmLoss(game, boss);
   return true;
 }
 
-function updateEnemyDestroyedAfterArmLoss(boss) {
+function updateEnemyDestroyedAfterArmLoss(game, boss) {
   const liveCore = boss.cells.some((cell) => cell.id.startsWith('core-') && !cell.state.destroyed);
-  if (!liveCore) boss.destroyed = true;
+  if (!liveCore) startBossInternalDestruction(game, boss);
+}
+
+function spawnBossArmPartialScrap(game, boss, cells) {
+  const unit = CELL_SIZE / VOXELS;
+  let scrapIndex = 0;
+  for (const cell of cells) {
+    for (let vy = 0; vy < VOXELS; vy += 1) {
+      for (let vx = 0; vx < VOXELS; vx += 1) {
+        const voxel = cell.mask[vy][vx];
+        if (voxel.hp <= 0) continue;
+        scrapIndex += 1;
+        if (scrapIndex % 4 !== 0) continue;
+        const local = {
+          x: cell.gridX * CELL_SIZE - CELL_SIZE / 2 + (vx + 0.5) * unit,
+          y: cell.gridY * CELL_SIZE - CELL_SIZE / 2 + (vy + 0.5) * unit,
+        };
+        const world = enemyLocalToWorldPoint(boss, local);
+        game.scrapPickups.push({
+          x: world.x + game.rng.range(-unit, unit),
+          y: world.y + game.rng.range(-unit, unit),
+          vx: game.rng.range(-38, 38) + boss.vx * 0.12,
+          vy: game.rng.range(-38, 38) + boss.vy * 0.12,
+          value: 1,
+          radius: Math.max(1.1, unit * 0.55),
+          life: 18,
+        });
+      }
+    }
+  }
+}
+
+function startBossInternalDestruction(game, boss) {
+  if (boss.internalDestruction || boss.internalDestructionComplete) return;
+  boss.destroyed = false;
+  boss.phasedOut = false;
+  boss.renderAlpha = 1;
+  boss.internalDestruction = {
+    timer: BOSS_INTERNAL_DESTRUCTION_SECONDS,
+    duration: BOSS_INTERNAL_DESTRUCTION_SECONDS,
+    soundTimer: 0,
+    smokeTimer: 0,
+  };
+  boss.vx *= 0.25;
+  boss.vy *= 0.25;
+  emitRandomBossInternalExplosionSound(game);
+}
+
+function stepBossInternalDestruction(game, boss, dt) {
+  const state = boss.internalDestruction;
+  if (!state) return;
+  state.timer -= dt;
+  state.soundTimer -= dt;
+  state.smokeTimer -= dt;
+  boss.vx *= Math.pow(0.08, dt);
+  boss.vy *= Math.pow(0.08, dt);
+  boss.renderAlpha = 0.72 + (Math.sin(game.time * 24) * 0.5 + 0.5) * 0.28;
+  if (state.soundTimer <= 0) {
+    emitRandomBossInternalExplosionSound(game);
+    state.soundTimer = game.rng.range(0.32, 0.58);
+  }
+  if (state.smokeTimer <= 0) {
+    spawnBossInternalBlastEffect(game, boss);
+    state.smokeTimer = game.rng.range(0.08, 0.18);
+  }
+  if (state.timer > 0) return;
+  boss.internalDestruction = null;
+  boss.internalDestructionComplete = true;
+  boss.destroyed = true;
+  boss.renderAlpha = 1;
+  explodeEnemy(game, boss);
+}
+
+function spawnBossInternalBlastEffect(game, boss) {
+  const live = (boss.cells ?? []).filter((cell) => !cell.state?.destroyed);
+  const cell = live[Math.floor(game.rng.range(0, live.length))];
+  const origin = cell
+    ? enemyLocalToWorldPoint(boss, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE })
+    : { x: boss.x, y: boss.y };
+  game.enemyProjectiles.push(createProjectile(origin.x, origin.y, 0, 0, {
+    team: 'enemy',
+    weapon: 'boss-internal-blast',
+    behavior: 'blast',
+    radius: 1,
+    maxRadius: CELL_SIZE * game.rng.range(1.5, 3.3),
+    damage: 0,
+    impulse: 0,
+    lifetime: 0.14,
+    color: '#ff8f38',
+  }));
+  spawnBlackSmokeCloud(game, origin, 5);
+}
+
+function spawnBlackSmokeCloud(game, origin, count = 20) {
+  for (let index = 0; index < count; index += 1) {
+    const angle = game.rng.range(0, Math.PI * 2);
+    const speed = game.rng.range(16, 95);
+    const distance = game.rng.range(0, CELL_SIZE * 2.4);
+    pushSmokeParticle(game, {
+      x: origin.x + Math.cos(angle) * distance,
+      y: origin.y + Math.sin(angle) * distance,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: game.rng.range(3.4, 9.5),
+      color: game.rng.chance(0.28) ? '#1b1718' : '#050506',
+      lifetime: game.rng.range(0.45, 0.95),
+      maxLifetime: game.rng.range(0.45, 0.95),
+      growth: game.rng.range(7, 18),
+    });
+  }
+}
+
+function emitRandomBossInternalExplosionSound(game) {
+  emitSoundEvent(
+    game,
+    game.rng.chance(0.5) ? SOUND_EVENTS.BOSS_INTERNAL_EXPLOSION_1 : SOUND_EVENTS.BOSS_INTERNAL_EXPLOSION_2,
+  );
+}
+
+function emitRandomBossMainExplosionSound(game) {
+  emitSoundEvent(
+    game,
+    game.rng.chance(0.5) ? SOUND_EVENTS.BOSS_MAIN_EXPLOSION_1 : SOUND_EVENTS.BOSS_MAIN_EXPLOSION_2,
+  );
 }
 
 function fireBossCenterPulse(game, boss) {
@@ -4138,11 +4325,16 @@ function samplePoisson(rng, mean) {
 }
 
 function explodeEnemy(game, enemy) {
+  if (bossUsesInternalDestruction(enemy) && !enemy.internalDestructionComplete) {
+    startBossInternalDestruction(game, enemy);
+    return;
+  }
   enemy.explosionStart = game.time;
   recordEnemyDefeat(game.score, enemy);
   game.scrapPickups.push(...harvestEnemyScrap(enemy, game.rng));
   if (enemy.inchworm?.role === 'segment' || enemy.inchworm?.suppressDeathBlast) return;
-  emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
+  if (bossUsesInternalDestruction(enemy)) emitRandomBossMainExplosionSound(game);
+  else emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
   game.playerProjectiles.push(
     createProjectile(enemy.x, enemy.y, 0, 0, {
       team: 'player',
@@ -4162,6 +4354,10 @@ function explodeEnemy(game, enemy) {
     if (other === enemy || other.destroyed) continue;
     knockEnemyFromPoint(other, enemy, radius, impulse);
   }
+}
+
+function bossUsesInternalDestruction(enemy) {
+  return enemy?.kind === 'boss' || enemy?.kind === 'zeppelinBoss';
 }
 
 function detonatePhantomOverload(game, enemy) {
