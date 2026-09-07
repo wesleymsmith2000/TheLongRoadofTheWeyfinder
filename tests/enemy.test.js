@@ -20,7 +20,7 @@ import {
 import { createProjectile } from '../src/core/projectile.js';
 import { createGame, createLevelEnemies, stepGame } from '../src/core/game.js';
 import { recalculateCell } from '../src/core/cell.js';
-import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS } from '../src/core/voxelMask.js';
+import { CELL_LAYER_HEIGHT, CELL_SIZE, Roles, VOXELS } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 import enemyAimedShotDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 
@@ -1079,7 +1079,7 @@ test('zeppelin boss uses a hollow layered hull with underside cannons and harpoo
   const game = createGame();
   game.autofire = false;
   const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 26, game.vehicle.y);
-  boss.harpoonField = { x: boss.x, y: boss.y, z: 72, timer: 10, duration: 10 };
+  boss.harpoonField = { x: boss.x, y: boss.y, z: boss.elevation.z, timer: 10, duration: 10 };
   game.enemies = [boss];
   game.enemySpawnQueue = [];
   const projectile = createProjectile(boss.x + CELL_SIZE * 18, boss.y, 0, 0, {
@@ -1095,10 +1095,87 @@ test('zeppelin boss uses a hollow layered hull with underside cannons and harpoo
   assert.equal(boss.cells.filter((cell) => cell.role === 'zeppelinCannon').length, 3);
   assert.equal(boss.cells.some((cell) => cell.id === 'core-undercarriage' && cell.type === 'core'), true);
   assert.equal(boss.cells.some((cell) => cell.role === 'innerLining' && (cell.gridZ ?? 0) > 1), true);
+  assert.equal(boss.visualScale, 1.5);
+  assert.equal(boss.radiusIncludesVisualScale, true);
+  assert.equal(boss.elevation.z, CELL_LAYER_HEIGHT * 14);
 
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(projectile.vx < 0, true);
   assert.equal(boss.elevation.canBeHitByGroundFire, true);
+});
+
+test('zeppelin shell armor is tougher and harpooned shots strike shell layers before the core', () => {
+  const standard = createEnemy(0, 0);
+  const standardArmor = standard.cells.find((cell) => cell.type === 'armor').mask.flat().find((voxel) => voxel.role === Roles.ARMOR);
+  const boss = createZeppelinBossEnemy(0, 0);
+  const shellCell = boss.cells.find((cell) => cell.role === 'zeppelinHull' || cell.role === 'innerLining');
+  const shellArmor = shellCell.mask.flat().find((voxel) => voxel.role === Roles.ARMOR);
+  boss.harpoonField = { x: boss.x, y: boss.y, z: boss.elevation.z, timer: 10, duration: 10 };
+  const core = boss.cells.find((cell) => cell.id === 'core-undercarriage');
+  const coreIntegrity = core.state.deviceIntegrity;
+
+  const hit = applyEnemyDamage(boss, createProjectile(boss.x, boss.y, 0, 0, {
+    team: 'player',
+    weapon: 'test-shot',
+    damage: 4,
+    radius: 2,
+  }));
+
+  assert.equal(shellArmor.maxHp, standardArmor.maxHp * 5);
+  assert.notEqual(hit.cell.id, 'core-undercarriage');
+  assert.equal(core.state.deviceIntegrity, coreIntegrity);
+});
+
+test('zeppelin harpoon powerups spawn, expire, and trigger harpoon charge when collected', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 24, game.vehicle.y);
+  boss.zeppelin.atsCooldown = 99;
+  boss.zeppelin.laserCooldown = 99;
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.zeppelin.harpoonPowerup?.duration, 5);
+  assert.equal(boss.zeppelin.harpoonPowerup.flashStart, 3);
+  assert.equal(boss.zeppelin.harpoonSpawnTimer, 15);
+
+  boss.zeppelin.harpoonSpawnTimer = 10.01;
+  boss.zeppelin.harpoonPowerup = {
+    kind: 'zeppelinHarpoon',
+    x: game.vehicle.x + CELL_SIZE * 30,
+    y: game.vehicle.y,
+    radius: CELL_SIZE * 2.4,
+    timer: 0.01,
+    duration: 5,
+    flashStart: 3,
+    age: 4.99,
+  };
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.zeppelin.harpoonPowerup, null);
+  assert.equal(boss.zeppelin.harpoonSpawnTimer < 10.01, true);
+  assert.equal(boss.zeppelin.harpoonSpawnTimer > 9.9, true);
+
+  boss.zeppelin.harpoonSpawnTimer = 99;
+  boss.zeppelin.harpoonPowerup = {
+    kind: 'zeppelinHarpoon',
+    x: game.vehicle.x,
+    y: game.vehicle.y,
+    radius: CELL_SIZE * 2.4,
+    timer: 5,
+    duration: 5,
+    flashStart: 3,
+    age: 0,
+  };
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.zeppelin.harpoonPowerup, null);
+  assert.equal(Boolean(boss.zeppelin.harpoonCharge), true);
+
+  for (let index = 0; index < 130 && !boss.harpoonField; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
+  assert.equal(Boolean(boss.harpoonField), true);
+  assert.equal(boss.harpoonField.duration, 10);
 });
 
 test('zeppelin ATS grav rockets drop first, then lock a straight ground launch to the player', () => {

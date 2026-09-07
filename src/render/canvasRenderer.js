@@ -119,6 +119,7 @@ export class CanvasRenderer {
     drawRoadLane(ctx, game.road);
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
+    drawZeppelinHarpoonPowerups(ctx, game.enemies, game.time);
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game);
     drawSmokeParticles(ctx, game.smokeParticles);
     drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
@@ -188,6 +189,54 @@ function drawScrapPickups(ctx, pickups) {
     ctx.beginPath();
     ctx.rect(-pickup.radius, -pickup.radius, pickup.radius * 2, pickup.radius * 2);
     ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawZeppelinHarpoonPowerups(ctx, enemies = [], time = 0) {
+  for (const enemy of enemies) {
+    const powerup = enemy.zeppelin?.harpoonPowerup;
+    if (!powerup) continue;
+    const age = powerup.age ?? powerup.duration - powerup.timer;
+    const flashStart = powerup.flashStart ?? 3;
+    let alpha = 0.9;
+    if (age >= flashStart) {
+      const t = Math.min(1, (age - flashStart) / Math.max(0.001, powerup.duration - flashStart));
+      const frequency = 7 + t * 26;
+      alpha = Math.sin(time * frequency) > -0.18 ? 0.95 : 0.22;
+    }
+    ctx.save();
+    ctx.translate(powerup.x, powerup.y);
+    ctx.globalAlpha *= alpha;
+    const pulse = Math.sin(time * 5.2) * 0.5 + 0.5;
+    const radius = powerup.radius * (0.86 + pulse * 0.08);
+    ctx.fillStyle = 'rgb(129 244 255 / 0.22)';
+    ctx.strokeStyle = '#9befff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.rotate(-Math.PI / 4);
+    ctx.fillStyle = '#eefbff';
+    ctx.strokeStyle = '#103544';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(0, -radius * 0.72);
+    ctx.lineTo(radius * 0.46, 0);
+    ctx.lineTo(0, radius * 0.72);
+    ctx.lineTo(-radius * 0.46, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#0e5d74';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-radius * 0.5, radius * 0.28);
+    ctx.lineTo(radius * 0.46, -radius * 0.36);
+    ctx.moveTo(radius * 0.18, -radius * 0.17);
+    ctx.lineTo(radius * 0.38, radius * 0.18);
     ctx.stroke();
     ctx.restore();
   }
@@ -572,13 +621,54 @@ function drawMothFlicker(ctx, time, palette) {
 function drawEnemyElevationShadow(ctx, enemy) {
   const z = enemyBaseElevation(enemy) + enemyMaxLayerLift(enemy);
   const alpha = Math.max(0.08, 0.24 - z / 900);
+  const profile = enemyShadowProfile(enemy);
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.fillStyle = '#050506';
   ctx.beginPath();
-  ctx.ellipse(0, 0, Math.max(CELL_SIZE * 1.1, enemy.radius * 0.65), Math.max(CELL_SIZE * 0.35, enemy.radius * 0.22), 0, 0, Math.PI * 2);
+  ctx.ellipse(profile.x, profile.y, profile.radiusX, profile.radiusY, profile.rotation, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+}
+
+function enemyShadowProfile(enemy) {
+  if (enemy.kind === 'zeppelinBoss') {
+    const bounds = enemyLiveCellBounds(enemy);
+    if (bounds) {
+      const scale = enemy.visualScale ?? 1;
+      return {
+        x: ((bounds.minX + bounds.maxX) / 2) * scale,
+        y: ((bounds.minY + bounds.maxY) / 2) * scale,
+        radiusX: Math.max(CELL_SIZE * 2, ((bounds.maxX - bounds.minX) / 2) * scale),
+        radiusY: Math.max(CELL_SIZE, ((bounds.maxY - bounds.minY) / 2) * scale),
+        rotation: enemyRenderRotation(enemy, 0),
+      };
+    }
+  }
+  const radiusScale = enemy.radiusIncludesVisualScale ? 1 : enemy.visualScale ?? 1;
+  return {
+    x: 0,
+    y: 0,
+    radiusX: Math.max(CELL_SIZE * 1.1, enemy.radius * radiusScale * 0.65),
+    radiusY: Math.max(CELL_SIZE * 0.35, enemy.radius * radiusScale * 0.22),
+    rotation: 0,
+  };
+}
+
+function enemyLiveCellBounds(enemy) {
+  const liveCells = enemy.cells?.filter((cell) => !cell.state?.destroyed) ?? [];
+  if (liveCells.length === 0) return null;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const cell of liveCells) {
+    minX = Math.min(minX, cell.gridX * CELL_SIZE - CELL_SIZE / 2);
+    maxX = Math.max(maxX, cell.gridX * CELL_SIZE + CELL_SIZE / 2);
+    minY = Math.min(minY, cell.gridY * CELL_SIZE - CELL_SIZE / 2);
+    maxY = Math.max(maxY, cell.gridY * CELL_SIZE + CELL_SIZE / 2);
+  }
+  return { minX, maxX, minY, maxY };
 }
 
 function enemyRenderRotation(enemy, time) {
@@ -1025,7 +1115,7 @@ function lowestRenderableLayer(cells) {
 }
 
 function enemyBaseElevation(enemy) {
-  return enemy.elevation?.layeredExposure ? 0 : enemy.elevation?.z ?? 0;
+  return enemy.elevation?.z ?? 0;
 }
 
 function enemyHasRenderableLayers(enemy) {

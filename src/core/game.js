@@ -112,6 +112,10 @@ const MOTH_BOMBER_DIVE_ACCELERATION = 620;
 const MOTH_BOMBER_DIVE_SPEED = 430;
 const ZEPPELIN_HARPOON_CHARGE_SECONDS = 2;
 const ZEPPELIN_HARPOON_FIELD_SECONDS = 10;
+const ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS = 15;
+const ZEPPELIN_HARPOON_POWERUP_LIFETIME_SECONDS = 5;
+const ZEPPELIN_HARPOON_POWERUP_FLASH_START_SECONDS = 3;
+const ZEPPELIN_HARPOON_POWERUP_RADIUS = CELL_SIZE * 2.4;
 const ZEPPELIN_STRAFE_SPEED = 132;
 const ZEPPELIN_STRAFE_EXIT_MARGIN = CELL_SIZE * 13;
 const ZEPPELIN_ATS_ROCKET_BLAST_RADIUS = CELL_SIZE * 5.1 * (1.05 ** 12);
@@ -2005,7 +2009,8 @@ function enemyCellWorldHeight(enemy, cell) {
   const lowest = isWalkerEnemy(enemy) && enemy.walkerRuntime
     ? enemy.walkerRuntime.lowestLayer
     : lowestLiveCellLayer(enemy);
-  return Math.max(0, cellLayer(cell) - lowest) * CELL_LAYER_HEIGHT * (enemy.visualScale ?? 1);
+  const baseElevation = enemy.elevation?.z ?? 0;
+  return baseElevation + Math.max(0, cellLayer(cell) - lowest) * CELL_LAYER_HEIGHT * (enemy.visualScale ?? 1);
 }
 
 function lowestLiveCellLayer(enemy) {
@@ -2440,19 +2445,59 @@ function stepZeppelinHarpoon(game, enemy, dt) {
     if (enemy.harpoonField.timer <= 0) enemy.harpoonField = null;
     return;
   }
-  const charge = enemy.zeppelin.harpoonCharge ?? { timer: ZEPPELIN_HARPOON_CHARGE_SECONDS };
-  enemy.zeppelin.harpoonCharge = charge;
-  charge.timer -= dt;
-  if (charge.timer > 0) return;
-  enemy.harpoonField = {
-    timer: ZEPPELIN_HARPOON_FIELD_SECONDS,
-    duration: ZEPPELIN_HARPOON_FIELD_SECONDS,
-    x: enemy.x,
-    y: enemy.y,
-    z: enemy.elevation?.z ?? 72,
+  if (enemy.zeppelin.harpoonCharge) {
+    enemy.zeppelin.harpoonCharge.timer -= dt;
+    if (enemy.zeppelin.harpoonCharge.timer > 0) return;
+    enemy.harpoonField = {
+      timer: ZEPPELIN_HARPOON_FIELD_SECONDS,
+      duration: ZEPPELIN_HARPOON_FIELD_SECONDS,
+      x: enemy.x,
+      y: enemy.y,
+      z: enemy.elevation?.z ?? CELL_LAYER_HEIGHT * 14,
+    };
+    enemy.zeppelin.harpoonCharge = null;
+    enemy.zeppelin.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
+    emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
+    return;
+  }
+  if (enemy.zeppelin.harpoonPowerup) {
+    const powerup = enemy.zeppelin.harpoonPowerup;
+    powerup.timer -= dt;
+    enemy.zeppelin.harpoonSpawnTimer = Math.max(0, (enemy.zeppelin.harpoonSpawnTimer ?? ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS) - dt);
+    powerup.age = powerup.duration - powerup.timer;
+    if (distanceSquared(powerup, game.vehicle) <= (powerup.radius + CELL_SIZE * 3.6) ** 2) {
+      enemy.zeppelin.harpoonPowerup = null;
+      enemy.zeppelin.harpoonCharge = { timer: ZEPPELIN_HARPOON_CHARGE_SECONDS };
+      return;
+    }
+    if (powerup.timer <= 0) {
+      enemy.zeppelin.harpoonPowerup = null;
+    }
+    return;
+  }
+  enemy.zeppelin.harpoonSpawnTimer = Math.max(0, (enemy.zeppelin.harpoonSpawnTimer ?? 0) - dt);
+  if (enemy.zeppelin.harpoonSpawnTimer > 0) return;
+  enemy.zeppelin.harpoonPowerup = createZeppelinHarpoonPowerup(game);
+  enemy.zeppelin.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
+}
+
+function createZeppelinHarpoonPowerup(game) {
+  const margin = CELL_SIZE * 8;
+  const offset = {
+    x: game.rng.range(-Math.max(margin, game.road.halfWidth - margin), Math.max(margin, game.road.halfWidth - margin)),
+    y: game.rng.range(-Math.max(margin, game.road.halfHeight - margin), Math.max(margin, game.road.halfHeight - margin)),
   };
-  enemy.zeppelin.harpoonCharge = null;
-  emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
+  const world = roadOffsetToWorld(offset, game.road);
+  return {
+    kind: 'zeppelinHarpoon',
+    x: world.x,
+    y: world.y,
+    radius: ZEPPELIN_HARPOON_POWERUP_RADIUS,
+    timer: ZEPPELIN_HARPOON_POWERUP_LIFETIME_SECONDS,
+    duration: ZEPPELIN_HARPOON_POWERUP_LIFETIME_SECONDS,
+    flashStart: ZEPPELIN_HARPOON_POWERUP_FLASH_START_SECONDS,
+    age: 0,
+  };
 }
 
 function stepZeppelinMeltdown(game, enemy, dt) {

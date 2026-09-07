@@ -13,6 +13,9 @@ const BASIC_ENEMY_PATTERNS = [enemyAimedShotDefinition, enemyRadialBurstDefiniti
 export const ENEMY_MODULE_LINEAR_SCALE = 2;
 const WALKER_SUPPORT_ROLES = new Set(['supportLeg', 'legArmor', 'legJoint']);
 const WALKER_BODY_ROLES = new Set(['elevatedBody', 'turretGun']);
+const ZEPPELIN_VISUAL_SCALE = 1.5;
+const ZEPPELIN_BASE_ELEVATION = CELL_LAYER_HEIGHT * 14;
+const ZEPPELIN_SHELL_HP_MULTIPLIER = 5;
 
 export function createEnemy(x, y, definition = basicTurretDefinition, patternDefinitions = BASIC_ENEMY_PATTERNS, options = {}) {
   const construct = instantiateConstruct(definition);
@@ -303,6 +306,12 @@ export function createZeppelinBossEnemy(x, y) {
   addCell('starboard-thruster', 'engine', -9, 2, 3, 'zeppelinThruster');
 
   for (const cell of cells) {
+    if (cell.type === 'armor' && ['zeppelinHull', 'innerLining', 'zeppelinFin'].includes(cell.role)) {
+      multiplyCellVoxelHp(cell, ZEPPELIN_SHELL_HP_MULTIPLIER);
+    }
+  }
+
+  for (const cell of cells) {
     for (const [dx, dy, dz, side] of [
       [1, 0, 0, 'right'],
       [0, 1, 0, 'bottom'],
@@ -323,7 +332,9 @@ export function createZeppelinBossEnemy(x, y) {
     y,
     vx: 0,
     vy: 0,
-    radius: constructRadius(cells),
+    radius: constructRadius(cells) * ZEPPELIN_VISUAL_SCALE,
+    radiusIncludesVisualScale: true,
+    visualScale: ZEPPELIN_VISUAL_SCALE,
     patterns: [],
     cells,
     connections,
@@ -331,18 +342,30 @@ export function createZeppelinBossEnemy(x, y) {
     destroyed: false,
     explosionStart: null,
     visualHeading: Math.PI / 2,
-    elevation: { z: 72, canBeHitByGroundFire: false, arcCollision: true, layeredExposure: true },
+    elevation: { z: ZEPPELIN_BASE_ELEVATION, canBeHitByGroundFire: false, arcCollision: true, layeredExposure: true },
     zeppelin: {
       phase: 'turn',
       runCount: 0,
       turnTimer: 0,
       atsCooldown: 1.4,
       laserCooldown: 2.2,
+      harpoonSpawnTimer: 0,
       walkerDropPending: false,
       innerLiningTotal: Math.max(1, liningIndex),
       meltdownTimer: null,
     },
   };
+}
+
+function multiplyCellVoxelHp(cell, multiplier) {
+  for (const row of cell.mask) {
+    for (const voxel of row) {
+      if (voxel.hp <= 0 || voxel.maxHp <= 0) continue;
+      voxel.hp *= multiplier;
+      voxel.maxHp *= multiplier;
+    }
+  }
+  recalculateCell(cell);
 }
 
 function connect(connections, a, b, side, type = 'structural') {
@@ -455,7 +478,11 @@ export function applyEnemyDamage(enemy, projectile) {
     ...projectile,
     radius: (projectile.radius ?? 0) / scale,
   };
-  const hitCells = enemyCellsForDirectDamage(enemy, { groundOnly: projectile?.behavior !== 'arc', topFirst: projectile?.behavior === 'arc' }).filter((candidate) => {
+  const harpoonLiftedShot = enemy.kind === 'zeppelinBoss' && enemy.harpoonField && projectile?.behavior !== 'arc';
+  const hitCells = enemyCellsForDirectDamage(enemy, {
+    groundOnly: projectile?.behavior !== 'arc' && !harpoonLiftedShot,
+    topFirst: projectile?.behavior === 'arc' || harpoonLiftedShot,
+  }).filter((candidate) => {
     if (candidate.state.destroyed) return false;
     const minX = candidate.gridX * CELL_SIZE - CELL_SIZE / 2;
     const minY = candidate.gridY * CELL_SIZE - CELL_SIZE / 2;
@@ -809,9 +836,14 @@ function enemiesNearTracePath(enemies, start, angle, maxLength, margin = 0) {
   };
   return enemies.filter((enemy) => {
     if (enemy.destroyed) return false;
-    const radius = (enemy.radius ?? CELL_SIZE) * enemyVisualScale(enemy) + margin;
+    const radius = enemyWorldRadius(enemy) + margin;
     return pointSegmentDistanceSquared(enemy, start, end) <= radius * radius;
   });
+}
+
+function enemyWorldRadius(enemy) {
+  const radius = enemy.radius ?? CELL_SIZE;
+  return radius * (enemy.radiusIncludesVisualScale ? 1 : enemyVisualScale(enemy));
 }
 
 function pointSegmentDistanceSquared(point, start, end) {
@@ -946,9 +978,9 @@ function enemyVoxelWorldCenter3d(enemy, cell, vx, vy) {
 }
 
 function enemyCellWorldHeight(enemy, cell) {
-  const baseElevation = enemy.elevation?.layeredExposure ? 0 : enemy.elevation?.z ?? 0;
+  const baseElevation = enemy.elevation?.z ?? 0;
   const layerLift = Math.max(0, cellLayer(cell) - enemyLowestLiveLayer(enemy)) * CELL_LAYER_HEIGHT;
-  return (baseElevation + layerLift) * enemyVisualScale(enemy);
+  return baseElevation + layerLift * enemyVisualScale(enemy);
 }
 
 function distance3d(a, b) {
