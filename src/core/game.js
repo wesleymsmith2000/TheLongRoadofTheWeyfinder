@@ -128,6 +128,11 @@ const ZEPPELIN_ATS_ROCKET_BLAST_DAMAGE = 9 * (1.05 ** 12);
 const ZEPPELIN_ATS_LAUNCH_SPEED_SCALE = 0.5;
 const ZEPPELIN_CURSED_TRAIL_DAMAGE = 1.1;
 const ZEPPELIN_CURSED_TRAIL_RADIUS = CELL_SIZE * 1.8;
+const ZEPPELIN_GROUND_LASER_WARNING_SECONDS = 5;
+const ZEPPELIN_GROUND_LASER_LOCK_SECONDS = 2;
+const ZEPPELIN_GROUND_LASER_FIRE_SECONDS = 3;
+const ZEPPELIN_GROUND_LASER_SEQUENCE_COOLDOWN = 15;
+const ZEPPELIN_GROUND_LASER_LENGTH = CELL_SIZE * 54;
 const BOSS_INTERNAL_DESTRUCTION_SECONDS = 3.2;
 const OCTOPUS_ARM_PHASE_SECONDS = 2;
 const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 2;
@@ -2408,7 +2413,7 @@ function dropZeppelinWalker(game, enemy, state) {
     state.walkerDropPending = false;
     return;
   }
-  const archetype = zoneArchetypeForMusic(game.currentMusic, 'standard', state.runCount);
+  const archetype = zeppelinWalkerArchetypeForMusic(game.currentMusic, state.runCount);
   if (!archetype || !isWalkerEnemy(archetype)) {
     state.walkerDropPending = false;
     return;
@@ -2424,6 +2429,13 @@ function dropZeppelinWalker(game, enemy, state) {
   state.walkerDropPending = false;
 }
 
+function zeppelinWalkerArchetypeForMusic(trackName, index) {
+  const archetype = zoneArchetypeForMusic(trackName, 'standard', index);
+  if (archetype && isWalkerEnemy(archetype)) return archetype;
+  const fallbackId = zoneNameFromTrack(trackName) === 'TwilightCrossroads' ? 'twilight_walker.prototype0' : 'starlight_walker.prototype0';
+  return getEnemyArchetype(fallbackId) ?? RUNTIME_ENEMY_ARCHETYPES[fallbackId] ?? null;
+}
+
 function activeZeppelinSummonedWalkers(game, zeppelin) {
   const id = zeppelin.assetId ?? zeppelin.archetypeId ?? 'boss.zeppelin.prototype0';
   return activeEnemies(game).filter((enemy) => enemy.summonedByZeppelin === id && isWalkerEnemy(enemy));
@@ -2437,28 +2449,122 @@ function stepZeppelinCannons(game, enemy, state, dt) {
     fireZeppelinAtsRocket(game, enemy, sources[Math.floor(game.rng.range(0, sources.length))] ?? sources[0]);
     state.atsCooldown = game.rng.range(2.2, 3.4);
   }
-  state.laserCooldown = Math.max(0, (state.laserCooldown ?? 2.2) - dt * enemyFireTimerScale(enemy));
-  if (state.laserCooldown <= 0) {
-    fireZeppelinGroundLaser(game, enemy, sources[Math.floor(game.rng.range(0, sources.length))] ?? sources[0]);
-    state.laserCooldown = game.rng.range(3.4, 5.2);
+  stepZeppelinGroundLaserSequence(game, enemy, state, sources, dt);
+}
+
+function stepZeppelinGroundLaserSequence(game, enemy, state, sources, dt) {
+  const fireScale = enemyFireTimerScale(enemy);
+  if (enemyBeamIsActive(game, enemy, 'zeppelin-ground-laser')) return;
+  if (state.laserWarning) {
+    stepZeppelinLaserWarning(game, enemy, state, sources, dt * fireScale);
+    return;
   }
+  if ((state.laserQueue?.length ?? 0) > 0) {
+    startNextZeppelinLaserWarning(game, enemy, state, sources);
+    return;
+  }
+  state.laserCooldown = Math.max(0, (state.laserCooldown ?? 2.2) - dt * fireScale);
+  if (state.laserCooldown > 0) return;
+  state.laserQueue = zeppelinEligibleCannonSources(game, enemy, sources).map((source) => source.cellId);
+  if (state.laserQueue.length === 0) {
+    state.laserCooldown = 2;
+    return;
+  }
+  startNextZeppelinLaserWarning(game, enemy, state, sources);
+}
+
+function startNextZeppelinLaserWarning(game, enemy, state, sources) {
+  const nextId = state.laserQueue?.shift();
+  const source = sources.find((candidate) => candidate.cellId === nextId);
+  if (!source) {
+    state.laserWarning = null;
+    if ((state.laserQueue?.length ?? 0) === 0) state.laserCooldown = ZEPPELIN_GROUND_LASER_SEQUENCE_COOLDOWN;
+    return;
+  }
+  state.laserWarning = createZeppelinLaserWarning(game, enemy, source);
+}
+
+function stepZeppelinLaserWarning(game, enemy, state, sources, scaledDt) {
+  const warning = state.laserWarning;
+  const source = sources.find((candidate) => candidate.cellId === warning.cellId);
+  if (!source) {
+    state.laserWarning = null;
+    return;
+  }
+  warning.timer -= scaledDt;
+  warning.source = source;
+  warning.source.z = source.z;
+  if (warning.timer > warning.lockSeconds) updateZeppelinLaserWarningTarget(game, warning, source);
+  if (warning.timer > 0) return;
+  fireZeppelinGroundLaser(game, enemy, source, warning);
+  state.laserWarning = null;
+  if ((state.laserQueue?.length ?? 0) === 0) state.laserCooldown = ZEPPELIN_GROUND_LASER_SEQUENCE_COOLDOWN;
+}
+
+function createZeppelinLaserWarning(game, enemy, source) {
+  const warning = {
+    kind: 'zeppelin-ground-laser',
+    cellId: source.cellId,
+    source,
+    length: ZEPPELIN_GROUND_LASER_LENGTH,
+    timer: ZEPPELIN_GROUND_LASER_WARNING_SECONDS,
+    duration: ZEPPELIN_GROUND_LASER_WARNING_SECONDS,
+    lockSeconds: ZEPPELIN_GROUND_LASER_LOCK_SECONDS,
+    color: '#ff2626',
+  };
+  updateZeppelinLaserWarningTarget(game, warning, source);
+  return warning;
+}
+
+function updateZeppelinLaserWarningTarget(game, warning, source) {
+  const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  warning.angle = angle;
+  warning.target = {
+    x: source.x + Math.cos(angle) * warning.length,
+    y: source.y + Math.sin(angle) * warning.length,
+  };
+}
+
+function zeppelinEligibleCannonSources(game, enemy, sources) {
+  const eligible = sources.filter((source) => !zeppelinCannonFacesAwayFromPlayer(game, enemy, source));
+  return (eligible.length > 0 ? eligible : sources).sort((a, b) => {
+    const aAngle = Math.atan2(a.y - enemy.y, a.x - enemy.x);
+    const bAngle = Math.atan2(b.y - enemy.y, b.x - enemy.x);
+    const toPlayer = Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+    return Math.abs(angleDelta(aAngle, toPlayer)) - Math.abs(angleDelta(bAngle, toPlayer));
+  });
+}
+
+function zeppelinCannonFacesAwayFromPlayer(game, enemy, source) {
+  const outwardX = source.x - enemy.x;
+  const outwardY = source.y - enemy.y;
+  const outwardDistance = Math.hypot(outwardX, outwardY) || 1;
+  const toPlayerX = game.vehicle.x - source.x;
+  const toPlayerY = game.vehicle.y - source.y;
+  const playerDistance = Math.hypot(toPlayerX, toPlayerY) || 1;
+  return (outwardX / outwardDistance) * (toPlayerX / playerDistance) + (outwardY / outwardDistance) * (toPlayerY / playerDistance) < -0.2;
 }
 
 function zeppelinCannonSources(enemy) {
-  return (enemy.cells ?? [])
+  const sourceByGroup = new Map();
+  for (const cell of (enemy.cells ?? [])
     .filter((cell) => !cell.state?.destroyed && cell.role === 'zeppelinCannon')
-    .map((cell) => {
-      const localX = cell.gridX * CELL_SIZE;
-      const localY = cell.gridY * CELL_SIZE;
-      const world = enemyLocalToWorldPoint(enemy, { x: localX, y: localY });
-      return {
-        ...world,
-        z: enemyCellWorldHeight(enemy, cell),
-        cellId: cell.id,
-        localX,
-        localY,
-      };
-    });
+  ) {
+    const localX = cell.gridX * CELL_SIZE;
+    const localY = cell.gridY * CELL_SIZE;
+    const world = enemyLocalToWorldPoint(enemy, { x: localX, y: localY });
+    const source = {
+      ...world,
+      z: enemyCellWorldHeight(enemy, cell),
+      cellId: cell.id,
+      cannonGroup: cell.id.split(':')[0],
+      localX,
+      localY,
+    };
+    const current = sourceByGroup.get(source.cannonGroup);
+    if (!current || source.z > current.z) sourceByGroup.set(source.cannonGroup, source);
+  }
+  return [...sourceByGroup.values()];
 }
 
 function fireZeppelinAtsRocket(game, enemy, source) {
@@ -2498,8 +2604,13 @@ function fireZeppelinAtsRocket(game, enemy, source) {
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
-function fireZeppelinGroundLaser(game, enemy, source) {
-  const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+function fireZeppelinGroundLaser(game, enemy, source, warning) {
+  const start = { x: source.x, y: source.y };
+  const target = warning?.target ?? {
+    x: source.x + Math.cos(warning?.angle ?? 0) * ZEPPELIN_GROUND_LASER_LENGTH,
+    y: source.y + Math.sin(warning?.angle ?? 0) * ZEPPELIN_GROUND_LASER_LENGTH,
+  };
+  const angle = warning?.angle ?? Math.atan2(target.y - source.y, target.x - source.x);
   game.enemyProjectiles.push(
     createProjectile(source.x, source.y, 0, 0, {
       team: 'enemy',
@@ -2508,18 +2619,22 @@ function fireZeppelinGroundLaser(game, enemy, source) {
       radius: 1.5,
       damage: 7.5 * enemyDamageUpgradeScale(enemy),
       impulse: 80,
-      lifetime: 15 / 60,
-      maxLifetime: 15 / 60,
-      length: 380,
-      frames: 15,
+      lifetime: ZEPPELIN_GROUND_LASER_FIRE_SECONDS,
+      maxLifetime: ZEPPELIN_GROUND_LASER_FIRE_SECONDS,
+      length: 1,
+      frames: 60,
       angle,
       color: '#ff2626',
+      alpha: 0.9,
       sourceEnemy: enemy,
       sourceCellId: source.cellId,
       sourceOffset: { x: source.localX, y: source.localY },
       sourceZ: source.z,
       endZ: 0,
       widthEnvelopeScale: 1,
+      sweepBeam: true,
+      sweepStart: start,
+      sweepTarget: { ...target },
     }),
   );
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_BEAM);
@@ -2593,7 +2708,7 @@ function stepZeppelinMeltdown(game, enemy, dt) {
   if (state.meltdownTimer == null) {
     const total = state.innerLiningTotal ?? Math.max(1, enemy.cells.filter((cell) => cell.role === 'innerLining').length);
     const destroyed = enemy.cells.filter((cell) => cell.role === 'innerLining' && cell.state?.destroyed).length;
-    if (destroyed / Math.max(1, total) > 0.1) {
+    if (destroyed / Math.max(1, total) > 0.33) {
       state.meltdownTimer = 3.2;
       state.meltdownSoundTimer = 0;
     }
@@ -3940,10 +4055,9 @@ function syncEnemyBeamProjectiles(game) {
     if (projectile.sweepBeam && projectile.sweepTarget) {
       const progress = easeOutCubic(1 - Math.max(0, projectile.lifetime / Math.max(0.001, projectile.maxLifetime)));
       const start = projectile.sweepStart ?? { x: projectile.sourceEnemy.x, y: projectile.sourceEnemy.y };
-      const groundStart = { x: projectile.sourceEnemy.x, y: projectile.sourceEnemy.y };
       const end = {
-        x: groundStart.x + (projectile.sweepTarget.x - start.x) * progress,
-        y: groundStart.y + (projectile.sweepTarget.y - start.y) * progress,
+        x: start.x + (projectile.sweepTarget.x - start.x) * progress,
+        y: start.y + (projectile.sweepTarget.y - start.y) * progress,
       };
       projectile.angle = Math.atan2(end.y - projectile.y, end.x - projectile.x);
       projectile.length = Math.max(1, Math.hypot(end.x - projectile.x, end.y - projectile.y));

@@ -816,18 +816,22 @@ function drawBossLaserTelegraphs(ctx, enemy, time) {
 }
 
 function drawWalkerSweepTelegraph(ctx, enemy, time) {
-  const warning = enemy.walkerSweepWarning;
+  const warning = enemy.walkerSweepWarning ?? enemy.zeppelin?.laserWarning;
   if (!warning?.target) return;
   const progress = 1 - Math.max(0, warning.timer / Math.max(0.001, warning.duration));
-  const flash = Math.sin(time * (8 + progress * 18)) * 0.5 + 0.5;
+  const locked = warning.lockSeconds != null && warning.timer <= warning.lockSeconds;
+  const lockProgress = locked ? 1 - Math.max(0, warning.timer) / Math.max(0.001, warning.lockSeconds) : 0;
+  const flashRate = locked ? 22 + lockProgress * 74 : 7;
+  const flash = Math.sin(time * flashRate) * 0.5 + 0.5;
   const source = warning.source ?? { x: enemy.x, y: enemy.y, z: 0 };
   ctx.save();
-  ctx.globalAlpha = 0.22 + progress * 0.24 + flash * 0.18;
-  ctx.strokeStyle = '#ffe36a';
-  ctx.lineWidth = 1.1 + progress * 1.2;
-  ctx.setLineDash([CELL_SIZE * 0.9, CELL_SIZE * 0.48]);
+  ctx.globalAlpha = locked ? 0.2 + flash * 0.72 : 0.34 + progress * 0.2;
+  ctx.strokeStyle = warning.color ?? '#ffe36a';
+  ctx.lineWidth = locked ? 1.5 + flash * 3.1 : 1.1 + progress * 1.2;
+  ctx.setLineDash(locked ? [] : [CELL_SIZE * 0.9, CELL_SIZE * 0.48]);
   ctx.beginPath();
-  ctx.moveTo(source.x - enemy.x, source.y - enemy.y - projectHeight(source.z ?? 0));
+  const sourceGroundY = warning.kind === 'zeppelin-ground-laser' ? source.y - enemy.y : source.y - enemy.y - projectHeight(source.z ?? 0);
+  ctx.moveTo(source.x - enemy.x, sourceGroundY);
   ctx.lineTo(warning.target.x - enemy.x, warning.target.y - enemy.y);
   ctx.stroke();
   ctx.restore();

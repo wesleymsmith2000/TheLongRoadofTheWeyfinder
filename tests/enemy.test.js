@@ -1166,7 +1166,6 @@ test('zeppelin boss calls walkers from completed strafing runs with reduced scra
   const game = createGame();
   game.autofire = false;
   const boss = createZeppelinBossEnemy(game.road.x + game.road.halfWidth + CELL_SIZE * 24, game.road.y);
-  game.currentMusic = 'StarlightRoad_1';
   boss.zeppelin.phase = 'strafe';
   boss.zeppelin.strafeAngle = 0;
   boss.zeppelin.atsCooldown = 99;
@@ -1199,6 +1198,56 @@ test('zeppelin boss calls walkers from completed strafing runs with reduced scra
   assert.equal(game.scrapPickups.some((pickup) => pickup.kind === 'repairPack'), true);
 });
 
+test('zeppelin ground laser telegraphs then scans from a cannon ground point', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 24, game.vehicle.y - CELL_SIZE * 5);
+  boss.zeppelin.phase = 'orbit';
+  boss.zeppelin.atsCooldown = 99;
+  boss.zeppelin.laserCooldown = 0;
+  boss.zeppelin.harpoonSpawnTimer = 99;
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const warning = boss.zeppelin.laserWarning;
+  assert.equal(Boolean(warning), true);
+  assert.equal(warning.duration, 5);
+  assert.equal(warning.lockSeconds, 2);
+  assert.equal(warning.timer <= 5, true);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'zeppelin-ground-laser'), false);
+
+  const firstTarget = { ...warning.target };
+  game.vehicle.x += CELL_SIZE * 5;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(Math.hypot(warning.target.x - firstTarget.x, warning.target.y - firstTarget.y) > 1, true);
+
+  for (let index = 0; index < 190 && warning.timer > warning.lockSeconds; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
+  const lockedTarget = { ...warning.target };
+  game.vehicle.x -= CELL_SIZE * 8;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.deepEqual(warning.target, lockedTarget);
+
+  let beam = null;
+  for (let index = 0; index < 220 && !beam; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+    beam = game.enemyProjectiles.find((projectile) => projectile.weapon === 'zeppelin-ground-laser');
+  }
+
+  assert.equal(Boolean(beam), true);
+  assert.equal(beam.maxLifetime, 3);
+  assert.equal(beam.sweepBeam, true);
+  assert.deepEqual(beam.sweepTarget, lockedTarget);
+  assert.equal(Math.hypot(beam.sweepStart.x - beam.x, beam.sweepStart.y - beam.y) < CELL_SIZE * 2, true);
+  const initialLength = beam.length;
+  for (let index = 0; index < 60; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(beam.length > initialLength, true);
+});
+
 test('zeppelin shell armor is tougher and harpooned shots strike shell layers before the core', () => {
   const standard = createEnemy(0, 0);
   const standardArmor = standard.cells.find((cell) => cell.type === 'armor').mask.flat().find((voxel) => voxel.role === Roles.ARMOR);
@@ -1219,6 +1268,32 @@ test('zeppelin shell armor is tougher and harpooned shots strike shell layers be
   assert.equal(shellArmor.maxHp, standardArmor.maxHp * 5);
   assert.notEqual(hit.cell.id, 'core-undercarriage');
   assert.equal(core.state.deviceIntegrity, coreIntegrity);
+});
+
+test('zeppelin internal destruction waits until one third of lining is punctured', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 24, game.vehicle.y);
+  boss.zeppelin.atsCooldown = 99;
+  boss.zeppelin.laserCooldown = 99;
+  boss.zeppelin.harpoonSpawnTimer = 99;
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  const lining = boss.cells.filter((cell) => cell.role === 'innerLining');
+  const destroyCount = Math.floor(lining.length * 0.33);
+
+  for (const cell of lining.slice(0, destroyCount)) {
+    for (const row of cell.mask) for (const voxel of row) voxel.hp = 0;
+    recalculateCell(cell);
+  }
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.zeppelin.meltdownTimer, null);
+
+  const next = lining[destroyCount];
+  for (const row of next.mask) for (const voxel of row) voxel.hp = 0;
+  recalculateCell(next);
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.zeppelin.meltdownTimer < 3.2, true);
 });
 
 test('zeppelin harpoon powerups spawn, expire, and trigger harpoon charge when collected', () => {
