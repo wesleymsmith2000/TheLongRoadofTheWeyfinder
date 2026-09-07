@@ -183,15 +183,29 @@ function drawScrapPickups(ctx, pickups) {
   for (const pickup of pickups) {
     ctx.save();
     ctx.translate(pickup.x, pickup.y);
-    ctx.fillStyle = '#c9b66f';
-    ctx.strokeStyle = '#fff1a8';
+    const style = pickupStyle(pickup);
+    ctx.fillStyle = style.fill;
+    ctx.strokeStyle = style.stroke;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.rect(-pickup.radius, -pickup.radius, pickup.radius * 2, pickup.radius * 2);
+    if (pickup.kind === 'ammoPack') {
+      ctx.roundRect(-pickup.radius * 0.7, -pickup.radius, pickup.radius * 1.4, pickup.radius * 2, 2);
+    } else if (pickup.kind === 'repairPack') {
+      ctx.rect(-pickup.radius, -pickup.radius * 0.32, pickup.radius * 2, pickup.radius * 0.64);
+      ctx.rect(-pickup.radius * 0.32, -pickup.radius, pickup.radius * 0.64, pickup.radius * 2);
+    } else {
+      ctx.rect(-pickup.radius, -pickup.radius, pickup.radius * 2, pickup.radius * 2);
+    }
     ctx.fill();
     ctx.stroke();
     ctx.restore();
   }
+}
+
+function pickupStyle(pickup) {
+  if (pickup.kind === 'ammoPack') return { fill: '#70c8ff', stroke: '#e8fbff' };
+  if (pickup.kind === 'repairPack') return { fill: '#6fe08c', stroke: '#efffde' };
+  return { fill: '#c9b66f', stroke: '#fff1a8' };
 }
 
 function drawZeppelinHarpoonPowerups(ctx, enemies = [], time = 0) {
@@ -246,6 +260,7 @@ function applyCameraTransform(ctx, camera, w, h) {
   const scale = cameraViewScale({ width: w, height: h });
   ctx.translate(w / 2, h * 0.58);
   ctx.scale(scale, scale);
+  ctx.translate(camera.shake?.offsetX ?? 0, camera.shake?.offsetY ?? 0);
   ctx.translate(-camera.x, -camera.y);
 }
 

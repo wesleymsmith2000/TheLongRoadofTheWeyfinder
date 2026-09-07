@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 import { stepVehicle } from '../src/core/physics.js';
 import {
+  addCameraShake,
   cameraViewScale,
   configureRoadLaneForViewport,
   containVehicleInRoadFrame,
@@ -142,4 +143,21 @@ test('mobile road play lane keeps its previous screen footprint after zooming ou
   assert.equal(scale, 0.5);
   assert.equal((road.halfWidth * scale).toFixed(2), (viewport.width * 0.34).toFixed(2));
   assert.equal((road.halfHeight * scale).toFixed(2), (viewport.height * 0.24).toFixed(2));
+});
+
+test('camera shake offsets the view temporarily without moving the tracked camera point', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  const camera = createRoadCamera(road);
+  const start = { x: camera.x, y: camera.y };
+
+  addCameraShake(camera, 0.6, 0.25);
+  stepRoadCamera(camera, road, vehicle, 1 / 60);
+
+  assert.equal(Math.hypot(camera.shake.offsetX, camera.shake.offsetY) > 0, true);
+  assert.deepEqual({ x: camera.x, y: camera.y }, start);
+
+  stepRoadCamera(camera, road, vehicle, 0.5);
+  assert.equal(camera.shake.offsetX, 0);
+  assert.equal(camera.shake.offsetY, 0);
 });

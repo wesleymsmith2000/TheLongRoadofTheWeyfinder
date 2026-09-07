@@ -1,10 +1,11 @@
-import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, recalculateVehicle } from './vehicle.js';
+import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
 import { stepVehicle, typedModulePower } from './physics.js';
 import { applyRocketHullDamage, createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
 import { clamp, distanceSquared } from './math.js';
 import { Rng } from './rng.js';
 import {
+  addCameraShake,
   containVehicleInRoadFrame,
   createRoadCamera,
   createRoadFrame,
@@ -42,6 +43,7 @@ import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js'
 import {
   SHOP_COSTS,
   buyUpgradeWithScrap,
+  ammoCapacityWithUpgrades,
   createUpgradeState,
   refillAmmoWithScrap,
   repairVehicleWithScrap,
@@ -116,11 +118,16 @@ const ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS = 15;
 const ZEPPELIN_HARPOON_POWERUP_LIFETIME_SECONDS = 5;
 const ZEPPELIN_HARPOON_POWERUP_FLASH_START_SECONDS = 3;
 const ZEPPELIN_HARPOON_POWERUP_RADIUS = CELL_SIZE * 2.4;
-const ZEPPELIN_STRAFE_SPEED = 132;
+const ZEPPELIN_STRAFE_SPEED = 92;
 const ZEPPELIN_STRAFE_EXIT_MARGIN = CELL_SIZE * 13;
+const ZEPPELIN_SUMMONED_WALKER_LIMIT = 3;
+const ZEPPELIN_ORBIT_SPEED = 70;
+const ZEPPELIN_ORBIT_MARGIN = CELL_SIZE * 18;
 const ZEPPELIN_ATS_ROCKET_BLAST_RADIUS = CELL_SIZE * 5.1 * (1.05 ** 12);
 const ZEPPELIN_ATS_ROCKET_BLAST_DAMAGE = 9 * (1.05 ** 12);
-const ZEPPELIN_WALKER_DROP_RUN_INTERVAL = 5;
+const ZEPPELIN_ATS_LAUNCH_SPEED_SCALE = 0.5;
+const ZEPPELIN_CURSED_TRAIL_DAMAGE = 1.1;
+const ZEPPELIN_CURSED_TRAIL_RADIUS = CELL_SIZE * 1.8;
 const BOSS_INTERNAL_DESTRUCTION_SECONDS = 3.2;
 const OCTOPUS_ARM_PHASE_SECONDS = 2;
 const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 2;
@@ -281,6 +288,7 @@ export function createGame(seed = 1147, options = {}) {
     targetingMode: 'mixed',
     guidedTargetId: null,
     targetingAi: createTargetingAiState(options.targetingAi),
+    playerDamageShake: { timer: 0, lostCells: 0 },
     sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options.enemyArchetypes) : null,
   };
 }
@@ -344,12 +352,16 @@ export function stepGame(game, input, dt) {
   lockEnemyStaMissileDescents(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   syncEnemyBeamProjectiles(game);
+  stepGroundBeamScorchParticles(game, dt);
+  const livePlayerCellsBeforeDamage = countLiveAttachedVehicleCells(game.vehicle);
   handleEnemyProjectileSpecials(game);
   stepSmokeParticles(game, dt);
   stepRocketContrails(game, dt);
   stepBoostContrails(game, dt);
   handleCollisions(game);
   handleBoostExhaustDamage(game);
+  handleSmokeHazardDamage(game);
+  updatePlayerDamageCameraShake(game, livePlayerCellsBeforeDamage, dt);
   collectEnemyDetachScrapEvents(game);
   accelerateNextSpawnWhenArenaEmpty(game);
   stepScrapPickups(game, dt);
@@ -1000,13 +1012,49 @@ function stepScrapPickups(game, dt) {
     pickup.vy *= Math.pow(0.18, dt);
     pickup.life -= dt;
     if (distanceSquared(pickup, game.vehicle) <= (collectRange + pickup.radius) ** 2) {
-      game.scrap += pickup.value;
-      game.score.scrapCollected += pickup.value;
+      collectPickup(game, pickup);
       continue;
     }
     if (pickup.life > 0) kept.push(pickup);
   }
   game.scrapPickups = kept;
+}
+
+function collectPickup(game, pickup) {
+  if (pickup.kind === 'ammoPack') {
+    const weapon = game.secondary.selected;
+    const capacity = ammoCapacityWithUpgrades(game, weapon);
+    if (Number.isFinite(capacity) && capacity > 0 && game.secondary.ammo[weapon] != null) {
+      const amount = Math.max(1, Math.ceil(capacity * (pickup.fraction ?? 0.1)));
+      game.secondary.ammo[weapon] = Math.min(capacity, game.secondary.ammo[weapon] + amount);
+    }
+    return;
+  }
+  if (pickup.kind === 'repairPack') {
+    repairVehicleDamage(game.vehicle, pickup.repairPower ?? pickup.value ?? 0, 'all');
+    return;
+  }
+  game.scrap += pickup.value;
+  game.score.scrapCollected += pickup.value;
+}
+
+function countLiveAttachedVehicleCells(vehicle) {
+  return vehicle.cells.filter((cell) => cell.attached && !cell.state?.destroyed).length;
+}
+
+function updatePlayerDamageCameraShake(game, liveCellsBeforeDamage, dt) {
+  game.playerDamageShake ??= { timer: 0, lostCells: 0 };
+  const window = game.playerDamageShake;
+  window.timer = Math.max(0, (window.timer ?? 0) - dt);
+  if (window.timer <= 0) window.lostCells = 0;
+  const lostThisFrame = Math.max(0, liveCellsBeforeDamage - countLiveAttachedVehicleCells(game.vehicle));
+  if (lostThisFrame <= 0) return;
+  window.timer = 0.5;
+  window.lostCells = (window.lostCells ?? 0) + lostThisFrame;
+  if (window.lostCells >= 2) {
+    addCameraShake(game.camera, Math.min(0.85, 0.25 + window.lostCells * 0.12), 0.36);
+    window.lostCells = 0;
+  }
 }
 
 function shouldSweepRemainingScrap(game) {
@@ -2271,8 +2319,8 @@ function detonateMothBomber(game, enemy) {
 }
 
 function stepZeppelinBoss(game, enemy, dt) {
-  enemy.elevation ??= { z: 72, canBeHitByGroundFire: false, arcCollision: true, layeredExposure: true };
-  enemy.elevation.z = 72;
+  enemy.elevation ??= { z: CELL_LAYER_HEIGHT * 14, canBeHitByGroundFire: false, arcCollision: true, layeredExposure: true };
+  enemy.elevation.z ??= CELL_LAYER_HEIGHT * 14;
   enemy.elevation.canBeHitByGroundFire = Boolean(enemy.harpoonField);
   const state = enemy.zeppelin ?? {
     phase: 'turn',
@@ -2280,10 +2328,12 @@ function stepZeppelinBoss(game, enemy, dt) {
     turnTimer: 0,
     atsCooldown: 1.4,
     laserCooldown: 2.2,
+    harpoonSpawnTimer: 0,
     innerLiningTotal: Math.max(1, enemy.cells.filter((cell) => cell.role === 'innerLining').length),
     meltdownTimer: null,
   };
   enemy.zeppelin = state;
+  state.harpoonSpawnTimer ??= 0;
   stepZeppelinHarpoon(game, enemy, dt);
   if (stepZeppelinMeltdown(game, enemy, dt)) return;
   stepZeppelinStrafe(game, enemy, state, dt);
@@ -2291,6 +2341,18 @@ function stepZeppelinBoss(game, enemy, dt) {
 }
 
 function stepZeppelinStrafe(game, enemy, state, dt) {
+  const summonedWalkers = activeZeppelinSummonedWalkers(game, enemy);
+  if (summonedWalkers.length >= ZEPPELIN_SUMMONED_WALKER_LIMIT) {
+    state.phase = 'orbit';
+    state.walkerDropPending = false;
+  } else if (state.phase === 'orbit') {
+    state.phase = 'turn';
+    state.turnTimer = 0.45;
+  }
+  if (state.phase === 'orbit') {
+    stepZeppelinSupportOrbit(game, enemy, state, dt);
+    return;
+  }
   const offset = worldToRoadOffset(enemy, game.road);
   if (state.phase === 'strafe') {
     if (
@@ -2300,7 +2362,7 @@ function stepZeppelinStrafe(game, enemy, state, dt) {
       state.phase = 'turn';
       state.turnTimer = 0.75;
       state.runCount += 1;
-      if (state.runCount % ZEPPELIN_WALKER_DROP_RUN_INTERVAL === 0) state.walkerDropPending = true;
+      if (activeZeppelinSummonedWalkers(game, enemy).length < ZEPPELIN_SUMMONED_WALKER_LIMIT) state.walkerDropPending = true;
     }
   }
   if (state.phase === 'turn') {
@@ -2314,17 +2376,35 @@ function stepZeppelinStrafe(game, enemy, state, dt) {
     state.strafeAngle = angle;
   }
   const angle = state.strafeAngle ?? Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
-  enemy.visualHeading = angle;
   const speed = ZEPPELIN_STRAFE_SPEED * enemyMovementUpgradeScale(enemy);
   const steer = clamp(2.8 * dt, 0, 1);
   enemy.vx += (Math.cos(angle) * speed - enemy.vx) * steer;
   enemy.vy += (Math.sin(angle) * speed - enemy.vy) * steer;
+  const moveAngle = Math.hypot(enemy.vx, enemy.vy) > 4 ? Math.atan2(enemy.vy, enemy.vx) : angle;
+  enemy.visualHeading = moveAngle;
   if (state.walkerDropPending) dropZeppelinWalker(game, enemy, state);
 }
 
+function stepZeppelinSupportOrbit(game, enemy, state, dt) {
+  const orbitRadiusX = game.road.halfWidth + ZEPPELIN_ORBIT_MARGIN;
+  const orbitRadiusY = game.road.halfHeight + ZEPPELIN_ORBIT_MARGIN * 0.72;
+  state.orbitAngle ??= Math.atan2(enemy.y - game.road.y, enemy.x - game.road.x);
+  state.orbitAngle += dt * 0.34;
+  const target = roadOffsetToWorld({
+    x: Math.cos(state.orbitAngle) * orbitRadiusX,
+    y: Math.sin(state.orbitAngle) * orbitRadiusY,
+  }, game.road);
+  const direction = directionFromTo(enemy, target);
+  const speed = ZEPPELIN_ORBIT_SPEED * enemyMovementUpgradeScale(enemy);
+  const steer = clamp(2.4 * dt, 0, 1);
+  enemy.vx += (direction.x * speed - enemy.vx) * steer;
+  enemy.vy += (direction.y * speed - enemy.vy) * steer;
+  if (Math.hypot(enemy.vx, enemy.vy) > 4) enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+}
+
 function dropZeppelinWalker(game, enemy, state) {
-  const walkerCount = activeEnemies(game).filter((candidate) => isWalkerEnemy(candidate)).length;
-  if (walkerCount >= 5) {
+  const walkerCount = activeZeppelinSummonedWalkers(game, enemy).length;
+  if (walkerCount >= ZEPPELIN_SUMMONED_WALKER_LIMIT) {
     state.walkerDropPending = false;
     return;
   }
@@ -2336,10 +2416,17 @@ function dropZeppelinWalker(game, enemy, state) {
   const walker = createEnemyForArchetype(archetype, enemy.x + game.rng.range(-CELL_SIZE * 4, CELL_SIZE * 4), enemy.y + CELL_SIZE * 3.5, 'standard');
   applyArchetypeRuntimeMetadata(walker, archetype);
   applyEnemyLevelUpgrades(walker, game.level);
+  walker.summonedByZeppelin = enemy.assetId ?? enemy.archetypeId ?? 'boss.zeppelin.prototype0';
+  walker.dropProfile = 'zeppelinWalker';
   walker.vx = enemy.vx * 0.25;
   walker.vy = enemy.vy * 0.25;
   game.enemies.push(walker);
   state.walkerDropPending = false;
+}
+
+function activeZeppelinSummonedWalkers(game, zeppelin) {
+  const id = zeppelin.assetId ?? zeppelin.archetypeId ?? 'boss.zeppelin.prototype0';
+  return activeEnemies(game).filter((enemy) => enemy.summonedByZeppelin === id && isWalkerEnemy(enemy));
 }
 
 function stepZeppelinCannons(game, enemy, state, dt) {
@@ -2359,14 +2446,14 @@ function stepZeppelinCannons(game, enemy, state, dt) {
 
 function zeppelinCannonSources(enemy) {
   return (enemy.cells ?? [])
-    .filter((cell) => !cell.state?.destroyed && (cell.role === 'zeppelinCannon' || cell.type === 'gun'))
+    .filter((cell) => !cell.state?.destroyed && cell.role === 'zeppelinCannon')
     .map((cell) => {
       const localX = cell.gridX * CELL_SIZE;
       const localY = cell.gridY * CELL_SIZE;
       const world = enemyLocalToWorldPoint(enemy, { x: localX, y: localY });
       return {
         ...world,
-        z: enemyCellWorldHeight(enemy, cell) + (enemy.elevation?.z ?? 0),
+        z: enemyCellWorldHeight(enemy, cell),
         cellId: cell.id,
         localX,
         localY,
@@ -2398,6 +2485,7 @@ function fireZeppelinAtsRocket(game, enemy, source) {
       damage: ZEPPELIN_ATS_ROCKET_BLAST_DAMAGE * enemyDamageUpgradeScale(enemy),
       impulse: 115,
     },
+    sourceEnemy: enemy,
     contrail: {
       ...ENEMY_RED_BLACK_CONTRAIL,
       emissionMeanPerSevenFrames: 5,
@@ -3811,7 +3899,7 @@ function launchAtsGravRocket(game, projectile) {
   projectile.startY = projectile.y;
   const angle = Math.atan2(projectile.targetHint.y - projectile.y, projectile.targetHint.x - projectile.x);
   const distance = Math.max(1, Math.hypot(projectile.targetHint.x - projectile.x, projectile.targetHint.y - projectile.y));
-  const speed = clamp(distance / 0.82, 210, 620);
+  const speed = clamp(distance / 0.82, 210, 620) * (projectile.weapon === 'ats-grav-rocket' ? ZEPPELIN_ATS_LAUNCH_SPEED_SCALE : 1);
   projectile.vx = Math.cos(angle) * speed;
   projectile.vy = Math.sin(angle) * speed;
   projectile.angle = angle;
@@ -3825,6 +3913,12 @@ function launchAtsGravRocket(game, projectile) {
     maxParticlesPerStep: 9,
     particleLifetimeFrames: [5, 8],
     particleRadiusScale: 3,
+    hazardDamage: ZEPPELIN_CURSED_TRAIL_DAMAGE,
+    hazardRadius: ZEPPELIN_CURSED_TRAIL_RADIUS,
+    hazardSourceEnemy: projectile.sourceEnemy,
+    hazardAffectsEnemies: true,
+    hazardAffectsPlayer: true,
+    colors: ['#050506', '#19080a', '#711018', '#ff5a2d'],
   };
 }
 
@@ -3842,7 +3936,7 @@ function syncEnemyBeamProjectiles(game) {
     });
     projectile.x = source.x;
     projectile.y = source.y;
-    projectile.sourceZ = enemyCellWorldHeight(projectile.sourceEnemy, sourceCell) + (projectile.sourceEnemy.elevation?.z ?? 0);
+    projectile.sourceZ = enemyCellWorldHeight(projectile.sourceEnemy, sourceCell);
     if (projectile.sweepBeam && projectile.sweepTarget) {
       const progress = easeOutCubic(1 - Math.max(0, projectile.lifetime / Math.max(0.001, projectile.maxLifetime)));
       const start = projectile.sweepStart ?? { x: projectile.sourceEnemy.x, y: projectile.sourceEnemy.y };
@@ -3877,6 +3971,7 @@ function spawnEnemyPulseBlast(game, projectile) {
     }),
   ];
   for (const enemy of activeEnemies(game)) {
+    if (projectile.sourceEnemy?.kind === 'zeppelinBoss' && enemy.kind === 'zeppelinBoss') continue;
     if (distanceSquared(enemy, projectile) > (enemy.radius + blast.radius) ** 2) continue;
     const hit = applyEnemyBlastDamage(enemy, projectile, {
       maxVoxelDistance: Math.max(1, blast.radius / VOXEL_SIZE),
@@ -3891,7 +3986,17 @@ function spawnEnemyPulseBlast(game, projectile) {
   if (distanceSquared(game.vehicle, projectile) <= (blast.radius + CELL_SIZE * 3.8) ** 2) {
     applyVehicleDamage(game.vehicle, projectile, blast.radius, blast.damage, blast.impulse ?? 0, directionFromTo(projectile, game.vehicle));
   }
+  shakeCameraFromExplosion(game, projectile, blast.radius, blast.impulse ?? blast.damage ?? 0);
   return effects;
+}
+
+function shakeCameraFromExplosion(game, origin, radius, strength) {
+  const distance = Math.hypot(game.vehicle.x - origin.x, game.vehicle.y - origin.y);
+  const range = radius + CELL_SIZE * 24;
+  if (distance > range) return;
+  const proximity = 1 - distance / Math.max(1, range);
+  const impulseScale = clamp((strength ?? 0) / 140, 0.18, 1);
+  addCameraShake(game.camera, proximity * impulseScale * 0.55, 0.32);
 }
 
 function isOutsideRoadArea(projectile, road) {
@@ -4354,7 +4459,7 @@ function spawnRocketSmokeParticle(game, projectile) {
   const lifetimeRange = projectile.contrail.particleLifetimeFrames;
   const lifetimeFrames = Array.isArray(lifetimeRange) ? game.rng.range(lifetimeRange[0], lifetimeRange[1]) : game.rng.chance(0.5) ? 4 : 5;
   const radiusScale = projectile.contrail.particleRadiusScale ?? 1;
-  pushSmokeParticle(game, {
+  const particle = {
     x: projectile.x - cos * backOffset - sin * sideOffset,
     y: projectile.y - sin * backOffset + cos * sideOffset,
     vx: Math.cos(angle) * speed + projectile.vx * 0.05,
@@ -4363,7 +4468,80 @@ function spawnRocketSmokeParticle(game, projectile) {
     color: colors[Math.floor(game.rng.range(0, colors.length))] ?? colors[0],
     lifetime: lifetimeFrames / 60,
     maxLifetime: lifetimeFrames / 60,
+  };
+  if ((projectile.contrail.hazardDamage ?? 0) > 0) {
+    particle.weapon = 'cursed-rocket-contrail';
+    particle.team = 'enemy';
+    particle.damage = projectile.contrail.hazardDamage;
+    particle.impulse = projectile.contrail.hazardImpulse ?? 8;
+    particle.hazardRadius = projectile.contrail.hazardRadius ?? Math.max(particle.radius, CELL_SIZE);
+    particle.hazardAffectsEnemies = projectile.contrail.hazardAffectsEnemies !== false;
+    particle.hazardAffectsPlayer = projectile.contrail.hazardAffectsPlayer !== false;
+    particle.hazardSourceEnemy = projectile.contrail.hazardSourceEnemy ?? projectile.sourceEnemy ?? null;
+  }
+  pushSmokeParticle(game, particle);
+}
+
+function stepGroundBeamScorchParticles(game, dt) {
+  for (const projectile of game.enemyProjectiles) {
+    if (projectile.lifetime <= 0 || projectile.behavior !== 'beam' || projectile.endZ !== 0) continue;
+    if (projectile.weapon !== 'zeppelin-ground-laser' && projectile.weapon !== 'walker-ground-sweep') continue;
+    const length = Math.max(1, Math.hypot((projectile.renderEndX ?? projectile.x) - projectile.x, (projectile.renderEndY ?? projectile.y) - projectile.y) || projectile.length);
+    const mean = Math.min(7, Math.max(1.2, length / 90)) * dt * 18;
+    const count = Math.min(8, samplePoisson(game.rng, mean));
+    for (let index = 0; index < count; index += 1) spawnGroundBeamScorchParticle(game, projectile, length);
+  }
+}
+
+function spawnGroundBeamScorchParticle(game, projectile, length) {
+  const angle = projectile.angle ?? 0;
+  const distance = game.rng.range(0, length);
+  const lifetimeMean = Math.max(0.08, projectile.maxLifetime ?? projectile.lifetime ?? 0.25);
+  const lifetime = clamp(-Math.log(Math.max(0.001, 1 - game.rng.next())) * lifetimeMean, 0.06, lifetimeMean * 3.2);
+  const side = game.rng.range(-beamHalfWidth(projectile) * 0.8, beamHalfWidth(projectile) * 0.8);
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  const nx = -dy;
+  const ny = dx;
+  pushSmokeParticle(game, {
+    x: projectile.x + dx * distance + nx * side,
+    y: projectile.y + dy * distance + ny * side,
+    vx: nx * game.rng.range(-5, 5),
+    vy: -game.rng.range(4, 16),
+    radius: game.rng.range(0.9, 2.6),
+    color: game.rng.chance(0.55) ? '#090807' : '#2c2520',
+    lifetime,
+    maxLifetime: lifetime,
+    growth: game.rng.range(1.8, 5.2),
   });
+}
+
+function handleSmokeHazardDamage(game) {
+  for (const particle of game.smokeParticles) {
+    if ((particle.damage ?? 0) <= 0 || particle.weapon !== 'cursed-rocket-contrail') continue;
+    const radius = particle.hazardRadius ?? particle.radius;
+    if (particle.hazardAffectsPlayer && !particle.playerDamageApplied && distanceSquared(particle, game.vehicle) <= (radius + CELL_SIZE * 3.8) ** 2) {
+      const hit = applyVehicleDamage(game.vehicle, particle, radius, particle.damage, particle.impulse ?? 0, directionFromTo(particle, game.vehicle));
+      if (hit.hit) particle.playerDamageApplied = true;
+    }
+    if (particle.hazardAffectsEnemies && !particle.enemyDamageApplied) {
+      for (const enemy of activeEnemies(game)) {
+        if (enemy.kind === 'zeppelinBoss' || enemy === particle.hazardSourceEnemy) continue;
+        if (distanceSquared(particle, enemy) > (radius + enemy.radius) ** 2) continue;
+        const hit = applyEnemyDamage(enemy, {
+          ...particle,
+          radius,
+          behavior: 'blast',
+          damage: particle.damage,
+          impulse: particle.impulse ?? 0,
+        });
+        if (!hit.hit) continue;
+        particle.enemyDamageApplied = true;
+        if (hit.destroyedNow) explodeEnemy(game, enemy);
+        break;
+      }
+    }
+  }
 }
 
 function pushSmokeParticle(game, particle) {
@@ -4405,7 +4583,7 @@ function explodeEnemy(game, enemy) {
   }
   enemy.explosionStart = game.time;
   recordEnemyDefeat(game.score, enemy);
-  game.scrapPickups.push(...harvestEnemyScrap(enemy, game.rng));
+  game.scrapPickups.push(...enemyDeathPickups(game, enemy));
   if (enemy.inchworm?.role === 'segment' || enemy.inchworm?.suppressDeathBlast) return;
   if (bossUsesInternalDestruction(enemy)) emitRandomBossMainExplosionSound(game);
   else emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
@@ -4428,6 +4606,41 @@ function explodeEnemy(game, enemy) {
     if (other === enemy || other.destroyed) continue;
     knockEnemyFromPoint(other, enemy, radius, impulse);
   }
+}
+
+function enemyDeathPickups(game, enemy) {
+  const scrap = harvestEnemyScrap(enemy, game.rng);
+  if (enemy.dropProfile !== 'zeppelinWalker') return scrap;
+  const totalValue = scrap.reduce((sum, pickup) => sum + (pickup.value ?? 0), 0);
+  const reducedScrap = scrap.filter((_, index) => index % 3 === 0);
+  const rewardOrigin = reducedScrap[0] ?? { x: enemy.x, y: enemy.y, vx: enemy.vx ?? 0, vy: enemy.vy ?? 0 };
+  return [
+    ...reducedScrap,
+    createRewardPickup(game, rewardOrigin, 'ammoPack', {
+      value: 0,
+      fraction: 0.1,
+      radius: CELL_SIZE * 1.7,
+    }),
+    createRewardPickup(game, rewardOrigin, 'repairPack', {
+      value: Math.max(1, Math.ceil(totalValue / 3)),
+      repairPower: Math.max(1, totalValue / 3),
+      radius: CELL_SIZE * 1.6,
+    }),
+  ];
+}
+
+function createRewardPickup(game, origin, kind, overrides = {}) {
+  const angle = game.rng.range(0, Math.PI * 2);
+  const speed = game.rng.range(28, 76);
+  return {
+    kind,
+    x: origin.x + game.rng.range(-CELL_SIZE * 2, CELL_SIZE * 2),
+    y: origin.y + game.rng.range(-CELL_SIZE * 2, CELL_SIZE * 2),
+    vx: (origin.vx ?? 0) * 0.1 + Math.cos(angle) * speed,
+    vy: (origin.vy ?? 0) * 0.1 + Math.sin(angle) * speed,
+    life: 18,
+    ...overrides,
+  };
 }
 
 function bossUsesInternalDestruction(enemy) {

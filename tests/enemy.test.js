@@ -1082,26 +1082,86 @@ test('zeppelin boss uses a hollow layered hull with underside cannons and harpoo
   boss.harpoonField = { x: boss.x, y: boss.y, z: boss.elevation.z, timer: 10, duration: 10 };
   game.enemies = [boss];
   game.enemySpawnQueue = [];
-  const projectile = createProjectile(boss.x + CELL_SIZE * 18, boss.y, 0, 0, {
-    team: 'player',
-    weapon: 'cannon',
-    radius: 2,
-    damage: 4,
-    lifetime: 1,
-  });
-  game.playerProjectiles = [projectile];
 
   assert.equal(boss.kind, 'zeppelinBoss');
-  assert.equal(boss.cells.filter((cell) => cell.role === 'zeppelinCannon').length, 3);
+  assert.equal(boss.cells.filter((cell) => cell.id.startsWith('port-cannon:')).length > 0, true);
+  assert.equal(boss.cells.filter((cell) => cell.id.startsWith('starboard-cannon:')).length > 0, true);
+  assert.equal(boss.cells.filter((cell) => cell.id.startsWith('forward-cannon:')).length > 0, true);
+  assert.equal(boss.cells.filter((cell) => cell.role === 'zeppelinCannon').length >= 3, true);
+  assert.equal(boss.cells.filter((cell) => cell.type === 'core').length, 1);
   assert.equal(boss.cells.some((cell) => cell.id === 'core-undercarriage' && cell.type === 'core'), true);
   assert.equal(boss.cells.some((cell) => cell.role === 'innerLining' && (cell.gridZ ?? 0) > 1), true);
-  assert.equal(boss.visualScale, 1.5);
+  assert.equal(boss.visualScale, 2.25);
   assert.equal(boss.radiusIncludesVisualScale, true);
   assert.equal(boss.elevation.z, CELL_LAYER_HEIGHT * 14);
 
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
-  assert.equal(projectile.vx < 0, true);
   assert.equal(boss.elevation.canBeHitByGroundFire, true);
+});
+
+test('zeppelin boss strafes more slowly, faces travel direction, and switches to support orbit near its walker limit', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 22, game.vehicle.y);
+  boss.zeppelin.phase = 'strafe';
+  boss.zeppelin.strafeAngle = Math.PI;
+  boss.zeppelin.atsCooldown = 99;
+  boss.zeppelin.laserCooldown = 99;
+  boss.zeppelin.harpoonSpawnTimer = 99;
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(Math.hypot(boss.vx, boss.vy) < 92, true);
+  assert.equal(Math.abs(Math.atan2(Math.sin(boss.visualHeading - Math.atan2(boss.vy, boss.vx)), Math.cos(boss.visualHeading - Math.atan2(boss.vy, boss.vx)))) < 0.001, true);
+
+  for (let index = 0; index < 3; index += 1) {
+    const walker = createEnemy(game.vehicle.x + CELL_SIZE * (8 + index), game.vehicle.y);
+    walker.archetypeId = 'starlight_walker.prototype0';
+    walker.summonedByZeppelin = boss.assetId;
+    game.enemies.push(walker);
+  }
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.zeppelin.phase, 'orbit');
+});
+
+test('zeppelin boss calls walkers from completed strafing runs with reduced scrap reward packs', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createZeppelinBossEnemy(game.road.x + game.road.halfWidth + CELL_SIZE * 24, game.road.y);
+  game.currentMusic = 'StarlightRoad_1';
+  boss.zeppelin.phase = 'strafe';
+  boss.zeppelin.strafeAngle = 0;
+  boss.zeppelin.atsCooldown = 99;
+  boss.zeppelin.laserCooldown = 99;
+  boss.zeppelin.harpoonSpawnTimer = 99;
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+
+  for (let index = 0; index < 90 && game.enemies.filter((enemy) => enemy.summonedByZeppelin === boss.assetId).length === 0; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
+
+  const walker = game.enemies.find((enemy) => enemy.summonedByZeppelin === boss.assetId);
+  assert.equal(Boolean(walker), true);
+  assert.equal(walker.dropProfile, 'zeppelinWalker');
+
+  const rewardEnemy = createEnemy(game.vehicle.x + CELL_SIZE * 8, game.vehicle.y);
+  rewardEnemy.dropProfile = 'zeppelinWalker';
+  game.enemies = [rewardEnemy];
+  game.playerProjectiles = [createProjectile(rewardEnemy.x, rewardEnemy.y, 0, 0, {
+    team: 'player',
+    weapon: 'test-kill',
+    radius: CELL_SIZE,
+    damage: 5000,
+    lifetime: 1,
+  })];
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.scrapPickups.some((pickup) => pickup.kind === 'ammoPack'), true);
+  assert.equal(game.scrapPickups.some((pickup) => pickup.kind === 'repairPack'), true);
 });
 
 test('zeppelin shell armor is tougher and harpooned shots strike shell layers before the core', () => {
@@ -1204,6 +1264,9 @@ test('zeppelin ATS grav rockets drop first, then lock a straight ground launch t
   assert.equal(rocket.atsLaunched, true);
   assert.equal(rocket.behavior, 'ballistic');
   assert.deepEqual(rocket.targetHint, lockedTarget);
+  assert.equal(Math.hypot(rocket.vx, rocket.vy) < 310, true);
+  assert.equal(rocket.contrail.hazardAffectsEnemies, true);
+  assert.equal(rocket.contrail.hazardAffectsPlayer, true);
   const launchAngle = rocket.angle;
   game.vehicle.x -= CELL_SIZE * 4;
   stepGame(game, { gunnerEnabled: false }, 1 / 60);

@@ -53,6 +53,7 @@ export function createRoadCamera(road) {
     x: road.x,
     y: road.y,
     heading: road.heading,
+    shake: createCameraShakeState(),
   };
 }
 
@@ -61,6 +62,42 @@ export function stepRoadCamera(camera, road, vehicle, dt) {
   const follow = Math.min(1, dt * 4.2);
   camera.x = lerp(camera.x, road.x, follow);
   camera.y = lerp(camera.y, road.y, follow);
+  stepCameraShake(camera, dt);
+}
+
+function createCameraShakeState() {
+  return { trauma: 0, timer: 0, duration: 0, phase: 0, offsetX: 0, offsetY: 0 };
+}
+
+export function addCameraShake(camera, strength = 0, duration = 0.28) {
+  if (!camera) return;
+  camera.shake ??= createCameraShakeState();
+  camera.shake.trauma = clamp((camera.shake.trauma ?? 0) + strength, 0, 1);
+  camera.shake.timer = Math.max(camera.shake.timer ?? 0, duration);
+  camera.shake.duration = Math.max(camera.shake.duration ?? 0, duration);
+}
+
+function stepCameraShake(camera, dt) {
+  camera.shake ??= createCameraShakeState();
+  const shake = camera.shake;
+  if ((shake.timer ?? 0) <= 0 || (shake.trauma ?? 0) <= 0) {
+    shake.timer = 0;
+    shake.trauma = 0;
+    shake.offsetX = 0;
+    shake.offsetY = 0;
+    return;
+  }
+  shake.timer = Math.max(0, shake.timer - dt);
+  shake.phase = (shake.phase ?? 0) + dt * 47;
+  const falloff = shake.duration > 0 ? clamp(shake.timer / shake.duration, 0, 1) : 0;
+  const amplitude = 11 * shake.trauma * shake.trauma * falloff;
+  shake.offsetX = Math.sin(shake.phase * 1.41) * amplitude + Math.sin(shake.phase * 0.73) * amplitude * 0.35;
+  shake.offsetY = Math.cos(shake.phase * 1.17) * amplitude + Math.sin(shake.phase * 1.93) * amplitude * 0.28;
+  if (shake.timer <= 0) {
+    shake.trauma = 0;
+    shake.offsetX = 0;
+    shake.offsetY = 0;
+  }
 }
 
 export function containVehicleInRoadFrame(vehicle, road, dt = 0) {

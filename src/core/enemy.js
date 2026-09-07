@@ -6,6 +6,7 @@ import { clamp } from './math.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
 import enemyAimedShotDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import enemyRadialBurstDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
+import rotatableBossCannonDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.rotatable_boss_cannon_sculpted.json' with { type: 'json' };
 import { createCell } from './cell.js';
 import { createConnection } from './connections.js';
 
@@ -13,7 +14,7 @@ const BASIC_ENEMY_PATTERNS = [enemyAimedShotDefinition, enemyRadialBurstDefiniti
 export const ENEMY_MODULE_LINEAR_SCALE = 2;
 const WALKER_SUPPORT_ROLES = new Set(['supportLeg', 'legArmor', 'legJoint']);
 const WALKER_BODY_ROLES = new Set(['elevatedBody', 'turretGun']);
-const ZEPPELIN_VISUAL_SCALE = 1.5;
+const ZEPPELIN_VISUAL_SCALE = 2.25;
 const ZEPPELIN_BASE_ELEVATION = CELL_LAYER_HEIGHT * 14;
 const ZEPPELIN_SHELL_HP_MULTIPLIER = 5;
 
@@ -296,14 +297,14 @@ export function createZeppelinBossEnemy(x, y) {
   }
 
   addCell('core-undercarriage', 'core', 0, 0, 1, 'zeppelinCore');
-  addCell('port-cannon', 'gun', -1, -5, 2, 'zeppelinCannon');
-  addCell('starboard-cannon', 'gun', -1, 5, 2, 'zeppelinCannon');
-  addCell('forward-cannon', 'gun', 8, 0, 3, 'zeppelinCannon');
   addCell('port-fin', 'armor', -8, -4, 3, 'zeppelinFin');
   addCell('starboard-fin', 'armor', -8, 4, 3, 'zeppelinFin');
   addCell('dorsal-fin', 'armor', -8, 0, 7, 'zeppelinFin');
   addCell('port-thruster', 'engine', -9, -2, 3, 'zeppelinThruster');
   addCell('starboard-thruster', 'engine', -9, 2, 3, 'zeppelinThruster');
+  attachZeppelinCannonConstruct(cells, connections, byKey, 'port-cannon', 0, -9, 3, 0);
+  attachZeppelinCannonConstruct(cells, connections, byKey, 'starboard-cannon', 0, 9, 3, 2);
+  attachZeppelinCannonConstruct(cells, connections, byKey, 'forward-cannon', 14, 0, 3, 1);
 
   for (const cell of cells) {
     if (cell.type === 'armor' && ['zeppelinHull', 'innerLining', 'zeppelinFin'].includes(cell.role)) {
@@ -366,6 +367,52 @@ function multiplyCellVoxelHp(cell, multiplier) {
     }
   }
   recalculateCell(cell);
+}
+
+function attachZeppelinCannonConstruct(cells, connections, byKey, prefix, anchorX, anchorY, anchorZ, rotationTurns = 0) {
+  const construct = instantiateConstruct(rotatableBossCannonDefinition);
+  const idMap = new Map();
+  const barrelTipY = Math.min(...construct.cells.filter((cell) => cell.role === 'cannonBarrel').map((cell) => cell.gridY));
+  let attachCellId = null;
+  for (const source of construct.cells) {
+    const rotated = rotateGridQuarterTurns(source.gridX, source.gridY, rotationTurns);
+    const clone = {
+      ...source,
+      id: `${prefix}:${source.id}`,
+      type: source.type === 'core' ? 'armor' : source.type,
+      gridX: anchorX + rotated.x,
+      gridY: anchorY + rotated.y,
+      gridZ: anchorZ + (source.gridZ ?? source.layer ?? 0),
+      layer: anchorZ + (source.gridZ ?? source.layer ?? 0),
+      role: source.role === 'cannonBarrel' && source.gridY === barrelTipY ? 'zeppelinCannon' : `zeppelin${capitalize(source.role ?? source.type)}`,
+      mask: structuredClone(source.mask),
+      state: null,
+    };
+    recalculateCell(clone);
+    cells.push(clone);
+    byKey.set(`${clone.gridX},${clone.gridY},${clone.gridZ}`, clone);
+    idMap.set(source.id, clone.id);
+    if (source.id === 'core_x0_y0') attachCellId = clone.id;
+  }
+  for (const edge of construct.connections ?? []) {
+    const a = idMap.get(edge.a);
+    const b = idMap.get(edge.b);
+    if (a && b) connections.push(createConnection(a, b, edge.aSide, edge.bSide, edge.type));
+  }
+  if (attachCellId) connections.push(createConnection('core-undercarriage', attachCellId, 'above', 'bottom', 'structural'));
+}
+
+function rotateGridQuarterTurns(x, y, turns = 0) {
+  const normalized = ((Math.round(turns) % 4) + 4) % 4;
+  if (normalized === 1) return { x: -y, y: x };
+  if (normalized === 2) return { x: -x, y: -y };
+  if (normalized === 3) return { x: y, y: -x };
+  return { x, y };
+}
+
+function capitalize(value) {
+  const text = String(value);
+  return `${text.slice(0, 1).toUpperCase()}${text.slice(1)}`;
 }
 
 function connect(connections, a, b, side, type = 'structural') {
