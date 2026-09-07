@@ -438,7 +438,7 @@ function drawEnemy(ctx, enemy, time, game = null) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
-  if ((enemy.elevation?.z ?? 0) > 0 || enemyHasRenderableLayers(enemy)) drawEnemyElevationShadow(ctx, enemy);
+  if (!enemy.destroyed && ((enemy.elevation?.z ?? 0) > 0 || enemyHasRenderableLayers(enemy))) drawEnemyElevationShadow(ctx, enemy);
   ctx.translate(0, -projectHeight(enemyBaseElevation(enemy)));
   drawWalkerSweepTelegraph(ctx, enemy, time);
   if (enemy.kind === 'boss') {

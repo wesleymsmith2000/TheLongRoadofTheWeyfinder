@@ -1089,6 +1089,9 @@ test('zeppelin boss uses a hollow layered hull with underside cannons and harpoo
   assert.equal(boss.cells.filter((cell) => cell.id.startsWith('forward-cannon:')).length > 0, true);
   assert.equal(boss.cells.filter((cell) => cell.role === 'zeppelinCannon').length >= 3, true);
   assert.equal(boss.cells.filter((cell) => cell.type === 'core').length, 1);
+  assert.equal(new Set(boss.cells.map((cell) => `${cell.gridX},${cell.gridY},${cell.gridZ}`)).size, boss.cells.length);
+  assert.equal(Math.max(...boss.cells.map((cell) => cell.gridX)) - Math.min(...boss.cells.map((cell) => cell.gridX)) >= 28, true);
+  assert.equal(Math.max(...boss.cells.map((cell) => cell.gridY)) - Math.min(...boss.cells.map((cell) => cell.gridY)) >= 22, true);
   assert.equal(boss.cells.some((cell) => cell.id === 'core-undercarriage' && cell.type === 'core'), true);
   assert.equal(boss.cells.some((cell) => cell.role === 'innerLining' && (cell.gridZ ?? 0) > 1), true);
   assert.equal(boss.visualScale, 2.25);
@@ -1097,6 +1100,38 @@ test('zeppelin boss uses a hollow layered hull with underside cannons and harpoo
 
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(boss.elevation.canBeHitByGroundFire, true);
+});
+
+test('zeppelin boss cannot be core-killed by non-harpooned ground or mortar blasts', () => {
+  const boss = createZeppelinBossEnemy(0, 0);
+  const core = boss.cells.find((cell) => cell.id === 'core-undercarriage');
+  const coreIntegrity = core.state.deviceIntegrity;
+
+  const direct = applyEnemyDamage(boss, createProjectile(boss.x, boss.y, 0, 0, {
+    team: 'player',
+    weapon: 'main-gun',
+    behavior: 'ballistic',
+    damage: 5000,
+    radius: CELL_SIZE,
+  }));
+  const blast = applyEnemyBlastDamage(boss, {
+    x: boss.x,
+    y: boss.y,
+    z: boss.elevation.z,
+    team: 'player',
+    weapon: 'mortar-blast',
+  }, {
+    damage: 800,
+    maxVoxelDistance: 18,
+    closeVoxelDistance: 6,
+    closePenetration: 3,
+    farPenetration: 1,
+  });
+
+  assert.equal(direct.hit, false);
+  assert.equal(blast.hit, true);
+  assert.equal(boss.destroyed, false);
+  assert.equal(core.state.deviceIntegrity, coreIntegrity);
 });
 
 test('zeppelin boss strafes more slowly, faces travel direction, and switches to support orbit near its walker limit', () => {

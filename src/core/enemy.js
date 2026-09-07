@@ -271,9 +271,9 @@ export function createZeppelinBossEnemy(x, y) {
     return cell;
   };
 
-  const lengthRadius = 8;
-  const widthRadius = 4;
-  const heightRadius = 2;
+  const lengthRadius = 11;
+  const widthRadius = 6;
+  const heightRadius = 3;
   let armorIndex = 0;
   let liningIndex = 0;
   for (let zOffset = -heightRadius; zOffset <= heightRadius; zOffset += 1) {
@@ -296,15 +296,16 @@ export function createZeppelinBossEnemy(x, y) {
     }
   }
 
+  carveZeppelinCannonSocket(cells, byKey, 0, 0, 1);
   addCell('core-undercarriage', 'core', 0, 0, 1, 'zeppelinCore');
-  addCell('port-fin', 'armor', -8, -4, 3, 'zeppelinFin');
-  addCell('starboard-fin', 'armor', -8, 4, 3, 'zeppelinFin');
-  addCell('dorsal-fin', 'armor', -8, 0, 7, 'zeppelinFin');
-  addCell('port-thruster', 'engine', -9, -2, 3, 'zeppelinThruster');
-  addCell('starboard-thruster', 'engine', -9, 2, 3, 'zeppelinThruster');
-  attachZeppelinCannonConstruct(cells, connections, byKey, 'port-cannon', 0, -9, 3, 0);
-  attachZeppelinCannonConstruct(cells, connections, byKey, 'starboard-cannon', 0, 9, 3, 2);
-  attachZeppelinCannonConstruct(cells, connections, byKey, 'forward-cannon', 14, 0, 3, 1);
+  addCell('port-fin', 'armor', -11, -6, 4, 'zeppelinFin');
+  addCell('starboard-fin', 'armor', -11, 6, 4, 'zeppelinFin');
+  addCell('dorsal-fin', 'armor', -11, 0, 8, 'zeppelinFin');
+  addCell('port-thruster', 'engine', -13, -3, 4, 'zeppelinThruster');
+  addCell('starboard-thruster', 'engine', -13, 3, 4, 'zeppelinThruster');
+  attachZeppelinCannonConstruct(cells, connections, byKey, 'port-cannon', 0, -6, 3, 0);
+  attachZeppelinCannonConstruct(cells, connections, byKey, 'starboard-cannon', 0, 6, 3, 2);
+  attachZeppelinCannonConstruct(cells, connections, byKey, 'forward-cannon', 10, 0, 3, 1);
 
   for (const cell of cells) {
     if (cell.type === 'armor' && ['zeppelinHull', 'innerLining', 'zeppelinFin'].includes(cell.role)) {
@@ -376,6 +377,7 @@ function attachZeppelinCannonConstruct(cells, connections, byKey, prefix, anchor
   let attachCellId = null;
   for (const source of construct.cells) {
     const rotated = rotateGridQuarterTurns(source.gridX, source.gridY, rotationTurns);
+    carveZeppelinCannonSocket(cells, byKey, anchorX + rotated.x, anchorY + rotated.y, anchorZ + (source.gridZ ?? source.layer ?? 0));
     const clone = {
       ...source,
       id: `${prefix}:${source.id}`,
@@ -400,6 +402,15 @@ function attachZeppelinCannonConstruct(cells, connections, byKey, prefix, anchor
     if (a && b) connections.push(createConnection(a, b, edge.aSide, edge.bSide, edge.type));
   }
   if (attachCellId) connections.push(createConnection('core-undercarriage', attachCellId, 'above', 'bottom', 'structural'));
+}
+
+function carveZeppelinCannonSocket(cells, byKey, gridX, gridY, gridZ) {
+  const key = `${gridX},${gridY},${gridZ}`;
+  const existing = byKey.get(key);
+  if (!existing || !['zeppelinHull', 'innerLining'].includes(existing.role)) return;
+  const index = cells.indexOf(existing);
+  if (index >= 0) cells.splice(index, 1);
+  byKey.delete(key);
 }
 
 function rotateGridQuarterTurns(x, y, turns = 0) {
@@ -516,7 +527,16 @@ function constructRadius(cells) {
   }, CELL_SIZE);
 }
 
+function enemyIncomingDamageScale(enemy, projectile) {
+  if (enemy.kind !== 'zeppelinBoss' || enemy.harpoonField) return 1;
+  if (projectile?.behavior === 'arc' || projectile?.behavior === 'blast') return 0.08;
+  return 0;
+}
+
 export function applyEnemyDamage(enemy, projectile) {
+  if (enemy.kind === 'zeppelinBoss' && !enemy.harpoonField && projectile?.behavior !== 'arc') {
+    return { hit: false, removed: 0, destroyedNow: false };
+  }
   const scale = enemyVisualScale(enemy);
   const local = enemyWorldToLocal(enemy, projectile);
   const localX = local.x;
@@ -524,13 +544,16 @@ export function applyEnemyDamage(enemy, projectile) {
   const localProjectile = {
     ...projectile,
     radius: (projectile.radius ?? 0) / scale,
+    damage: projectile.damage * enemyIncomingDamageScale(enemy, projectile),
   };
   const harpoonLiftedShot = enemy.kind === 'zeppelinBoss' && enemy.harpoonField && projectile?.behavior !== 'arc';
+  const zeppelinGlancingHit = enemy.kind === 'zeppelinBoss' && !enemy.harpoonField;
   const hitCells = enemyCellsForDirectDamage(enemy, {
     groundOnly: projectile?.behavior !== 'arc' && !harpoonLiftedShot,
     topFirst: projectile?.behavior === 'arc' || harpoonLiftedShot,
   }).filter((candidate) => {
     if (candidate.state.destroyed) return false;
+    if (zeppelinGlancingHit && (candidate.type === 'core' || candidate.role === 'zeppelinCore')) return false;
     const minX = candidate.gridX * CELL_SIZE - CELL_SIZE / 2;
     const minY = candidate.gridY * CELL_SIZE - CELL_SIZE / 2;
     return localX >= minX && localX <= minX + CELL_SIZE && localY >= minY && localY <= minY + CELL_SIZE;
@@ -542,7 +565,7 @@ export function applyEnemyDamage(enemy, projectile) {
     localX - cell.gridX * CELL_SIZE,
     localY - cell.gridY * CELL_SIZE,
     localProjectile.radius * 3.4,
-    projectile.damage,
+    localProjectile.damage,
   );
   if (!result.hit) {
     const fallback = damageNearestLiveVoxel(cell, localX - cell.gridX * CELL_SIZE, localY - cell.gridY * CELL_SIZE, localProjectile);
@@ -556,7 +579,7 @@ export function applyEnemyDamage(enemy, projectile) {
     return { hit: true, cell, removed: fallback.removed + collapse.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
   }
   recalculateCell(cell);
-  enemy.damageTaken += projectile.damage + result.removed * 3;
+  enemy.damageTaken += localProjectile.damage + result.removed * 3;
   const wasDestroyed = enemy.destroyed;
   const collapse = collapseExposedArmorLayers(enemy);
   enemy.damageTaken += collapse.removed * 3;
@@ -638,7 +661,8 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   const closeDistance = options.closeVoxelDistance ?? 5;
   const closePenetration = options.closePenetration ?? 3;
   const farPenetration = options.farPenetration ?? 1;
-  const damage = options.damage ?? 18;
+  const damage = (options.damage ?? 18) * enemyIncomingDamageScale(enemy, { behavior: 'blast', team: origin?.team, weapon: origin?.weapon });
+  const zeppelinGlancingHit = enemy.kind === 'zeppelinBoss' && !enemy.harpoonField;
   const wasDestroyed = enemy.destroyed;
   let hit = false;
   let removed = 0;
@@ -648,6 +672,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
 
   for (const cell of enemy.cells) {
     if (cell.state.destroyed) continue;
+    if (zeppelinGlancingHit && (cell.type === 'core' || cell.role === 'zeppelinCore')) continue;
     let cellRemoved = 0;
     let cellHit = false;
     for (let vy = 0; vy < VOXELS; vy += 1) {
