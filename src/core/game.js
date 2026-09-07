@@ -3944,13 +3944,21 @@ function hitVehicleWithEnemyBeam(game, projectile) {
   projectile.renderEndX = projectile.x + dx * projectile.length;
   projectile.renderEndY = projectile.y + dy * projectile.length;
   if (projectile.forceMode === 'push') repelPlayerProjectilesWithEnemyBeam(game, projectile, dx, dy);
-  for (let distance = 0; distance <= projectile.length; distance += step) {
-    const point = { x: projectile.x + dx * distance, y: projectile.y + dy * distance };
-    if (distanceSquared(point, game.vehicle) > (CELL_SIZE * 4.2) ** 2) continue;
-    const hit = hitVehicleWithProjectile(game.vehicle, { ...projectile, x: point.x, y: point.y, vx: dx, vy: dy });
+  const vehicleHitRange = CELL_SIZE * 4.2 + beamHalfWidth(projectile);
+  const end = { x: projectile.x + dx * projectile.length, y: projectile.y + dy * projectile.length };
+  if (pointSegmentDistanceSquared(game.vehicle, projectile, end) > vehicleHitRange * vehicleHitRange) return false;
+  const along = clamp(((game.vehicle.x - projectile.x) * dx + (game.vehicle.y - projectile.y) * dy), 0, projectile.length);
+  const startDistance = Math.max(0, along - vehicleHitRange);
+  const endDistance = Math.min(projectile.length, along + vehicleHitRange);
+  const collisionProjectile = { ...projectile, vx: dx, vy: dy };
+  for (let distance = startDistance; distance <= endDistance; distance += step) {
+    collisionProjectile.x = projectile.x + dx * distance;
+    collisionProjectile.y = projectile.y + dy * distance;
+    if (distanceSquared(collisionProjectile, game.vehicle) > vehicleHitRange * vehicleHitRange) continue;
+    const hit = hitVehicleWithProjectile(game.vehicle, collisionProjectile);
     if (!hit.hit) continue;
-    projectile.renderEndX = point.x;
-    projectile.renderEndY = point.y;
+    projectile.renderEndX = collisionProjectile.x;
+    projectile.renderEndY = collisionProjectile.y;
     return true;
   }
   return false;

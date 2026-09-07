@@ -746,11 +746,13 @@ export function traceEnemyVoxelBeam(enemies, start, angle, maxLength, halfWidth 
   const nx = -Math.sin(angle);
   const ny = Math.cos(angle);
   const hitsByVoxel = new Map();
+  const traceOptions = { ...options, cellCache: options.cellCache ?? new Map() };
+  const candidateEnemies = enemiesNearTracePath(enemies, start, angle, maxLength, halfWidth + CELL_SIZE);
 
   for (let lane = 0; lane < laneCount; lane += 1) {
     const offset = laneCount === 1 ? 0 : -halfWidth + lane * laneSpacing;
     const laneStart = { x: start.x + nx * offset, y: start.y + ny * offset };
-    for (const hit of traceEnemyVoxelPierceLine(enemies, laneStart, angle, maxLength, pierce, 0, options)) {
+    for (const hit of traceEnemyVoxelPierceLine(candidateEnemies, laneStart, angle, maxLength, pierce, 0, traceOptions)) {
       const key = enemyVoxelKey(hit);
       const existing = hitsByVoxel.get(key);
       if (!existing || hit.distance < existing.distance) hitsByVoxel.set(key, hit);
@@ -778,6 +780,8 @@ function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0,
   const maxHits = Math.max(1, Math.floor(pierce) + 1);
   const laneCount = halfWidth <= step ? 1 : Math.min(9, Math.max(3, Math.ceil((halfWidth * 2) / step) + 1));
   const laneSpacing = laneCount === 1 ? 0 : (halfWidth * 2) / (laneCount - 1);
+  const traceOptions = options.cellCache ? options : { ...options, cellCache: new Map() };
+  const candidateEnemies = enemiesNearTracePath(enemies, start, angle, maxLength, halfWidth + CELL_SIZE);
   for (let distance = 0; distance <= maxLength; distance += step) {
     for (let lane = 0; lane < laneCount; lane += 1) {
       const offset = laneCount === 1 ? 0 : -halfWidth + lane * laneSpacing;
@@ -785,7 +789,7 @@ function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0,
         x: start.x + dx * distance + nx * offset,
         y: start.y + dy * distance + ny * offset,
       };
-      const hit = findEnemyVoxelAt(enemies, point, options) ?? findNearestEnemyVoxelInCellAt(enemies, point, options);
+      const hit = findEnemyVoxelAt(candidateEnemies, point, traceOptions) ?? findNearestEnemyVoxelInCellAt(candidateEnemies, point, traceOptions);
       if (!hit) continue;
       const key = enemyVoxelKey(hit);
       if (pierced.has(key)) continue;
@@ -798,6 +802,29 @@ function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0,
   return [...hitsByVoxel.values()].sort((a, b) => a.distance - b.distance);
 }
 
+function enemiesNearTracePath(enemies, start, angle, maxLength, margin = 0) {
+  const end = {
+    x: start.x + Math.cos(angle) * maxLength,
+    y: start.y + Math.sin(angle) * maxLength,
+  };
+  return enemies.filter((enemy) => {
+    if (enemy.destroyed) return false;
+    const radius = (enemy.radius ?? CELL_SIZE) * enemyVisualScale(enemy) + margin;
+    return pointSegmentDistanceSquared(enemy, start, end) <= radius * radius;
+  });
+}
+
+function pointSegmentDistanceSquared(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 0.000001) return (point.x - start.x) ** 2 + (point.y - start.y) ** 2;
+  const t = clamp(((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared, 0, 1);
+  const closestX = start.x + dx * t;
+  const closestY = start.y + dy * t;
+  return (point.x - closestX) ** 2 + (point.y - closestY) ** 2;
+}
+
 function enemyVoxelKey(hit) {
   return `${hit.enemy.x}:${hit.enemy.y}:${hit.cell.id}:${hit.voxelIndex?.x ?? ''}:${hit.voxelIndex?.y ?? ''}`;
 }
@@ -806,7 +833,7 @@ function findEnemyVoxelAt(enemies, worldPoint, options = {}) {
   for (const enemy of enemies) {
     if (enemy.destroyed) continue;
     const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
-    for (const cell of enemyCellsForDirectDamage(enemy, options)) {
+    for (const cell of cachedEnemyCellsForDirectDamage(enemy, options)) {
       if (cell.state.destroyed) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
       const cellLocalY = localY - cell.gridY * CELL_SIZE;
@@ -853,7 +880,7 @@ function findEnemyCellAt(enemies, worldPoint, options = {}) {
   for (const enemy of enemies) {
     if (enemy.destroyed) continue;
     const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
-    for (const cell of enemyCellsForDirectDamage(enemy, options)) {
+    for (const cell of cachedEnemyCellsForDirectDamage(enemy, options)) {
       if (cell.state.destroyed) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
       const cellLocalY = localY - cell.gridY * CELL_SIZE;
@@ -956,6 +983,18 @@ function enemyCellsForDirectDamage(enemy, options = {}) {
       const layerSort = (options.topFirst ? cellLayer(b) - cellLayer(a) : cellLayer(a) - cellLayer(b));
       return layerSort || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id);
     });
+}
+
+function cachedEnemyCellsForDirectDamage(enemy, options = {}) {
+  if (!options.cellCache) return enemyCellsForDirectDamage(enemy, options);
+  let byEnemy = options.cellCache.get(enemy);
+  if (!byEnemy) {
+    byEnemy = new Map();
+    options.cellCache.set(enemy, byEnemy);
+  }
+  const key = `${options.groundOnly ? 'ground' : 'all'}:${options.topFirst ? 'top' : 'bottom'}`;
+  if (!byEnemy.has(key)) byEnemy.set(key, enemyCellsForDirectDamage(enemy, options));
+  return byEnemy.get(key);
 }
 
 function collapseExposedArmorLayers(enemy) {
