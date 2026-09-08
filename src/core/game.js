@@ -363,9 +363,11 @@ export function stepGame(game, input, dt) {
   stepSmokeParticles(game, dt);
   stepRocketContrails(game, dt);
   stepBoostContrails(game, dt);
-  handleCollisions(game);
-  handleBoostExhaustDamage(game);
-  handleSmokeHazardDamage(game);
+  if (!game.performanceDiagnostics?.disableCollisions) {
+    handleCollisions(game);
+    handleBoostExhaustDamage(game);
+    handleSmokeHazardDamage(game);
+  }
   updatePlayerDamageCameraShake(game, livePlayerCellsBeforeDamage, dt);
   collectEnemyDetachScrapEvents(game);
   accelerateNextSpawnWhenArenaEmpty(game);
@@ -374,7 +376,7 @@ export function stepGame(game, input, dt) {
   recalculateVehicle(game.vehicle);
   syncBeamProjectiles(game);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
-  updateTerrainStreaming(game.terrain, game.camera);
+  if (!game.performanceDiagnostics?.freezeTerrainStreaming) updateTerrainStreaming(game.terrain, game.camera);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   game.gameOver = !game.vehicle.alive;
   const arenaClear = shouldCompleteRun(game) && activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0;
@@ -3013,35 +3015,42 @@ function detonateBrokenBossArm(game, boss, arm) {
   const cells = boss.cells.filter((cell) => cell.id.startsWith(`arm-${arm.index}-`));
   if (!cells.some((cell) => cell.state.destroyed)) return false;
   arm.detonated = true;
-  spawnBossArmPartialScrap(game, boss, cells);
-  spawnBlackSmokeCloud(game, {
-    x: boss.x + arm.direction.x * CELL_SIZE * 8,
-    y: boss.y + arm.direction.y * CELL_SIZE * 8,
-  }, 34);
+  const diagnostics = game.performanceDiagnostics ?? {};
+  if (!diagnostics.disableArmDetonationFx) {
+    spawnBossArmPartialScrap(game, boss, cells);
+    spawnBlackSmokeCloud(game, {
+      x: boss.x + arm.direction.x * CELL_SIZE * 8,
+      y: boss.y + arm.direction.y * CELL_SIZE * 8,
+    }, 34);
+  }
   boss.armPhaseOutTimer = OCTOPUS_ARM_PHASE_SECONDS;
   boss.phasedOut = true;
   for (const cell of cells) {
     const origin = { x: boss.x + cell.gridX * CELL_SIZE, y: boss.y + cell.gridY * CELL_SIZE };
     for (const voxel of cell.mask.flat()) voxel.hp = 0;
     cell.state.destroyed = true;
-    game.enemyProjectiles.push(
-      ...spawnEnemyPulseBlast(game, {
-        ...origin,
-        blastOnExpire: { radius: CELL_SIZE * 1.4, damage: 6, impulse: 42.5 },
-      }),
-    );
-    for (let index = 0; index < 4; index += 1) {
-      const angle = game.rng.range(0, Math.PI * 2);
+    if (!diagnostics.disableArmDetonationFx) {
       game.enemyProjectiles.push(
-        createProjectile(origin.x, origin.y, Math.cos(angle) * game.rng.range(37.5, 75), Math.sin(angle) * game.rng.range(37.5, 75), {
-          team: 'enemy',
-          weapon: 'boss-arm-shrapnel',
-          radius: 1.4,
-        damage: 5 * enemyDamageUpgradeScale(boss),
-          impulse: 35,
-          lifetime: game.rng.range(0.3, 0.55),
+        ...spawnEnemyPulseBlast(game, {
+          ...origin,
+          blastOnExpire: { radius: CELL_SIZE * 1.4, damage: 6, impulse: 42.5 },
         }),
       );
+    }
+    if (!diagnostics.disableArmShrapnel) {
+      for (let index = 0; index < 4; index += 1) {
+        const angle = game.rng.range(0, Math.PI * 2);
+        game.enemyProjectiles.push(
+          createProjectile(origin.x, origin.y, Math.cos(angle) * game.rng.range(37.5, 75), Math.sin(angle) * game.rng.range(37.5, 75), {
+            team: 'enemy',
+            weapon: 'boss-arm-shrapnel',
+            radius: 1.4,
+            damage: 5 * enemyDamageUpgradeScale(boss),
+            impulse: 35,
+            lifetime: game.rng.range(0.3, 0.55),
+          }),
+        );
+      }
     }
   }
   updateEnemyDestroyedAfterArmLoss(game, boss);

@@ -2,6 +2,7 @@ import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.j
 import { cameraViewScale } from '../core/camera.js';
 import { applyCellPoseTransform, evaluatePoseRig } from '../core/poseAnimation.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
+import { createPerformanceDiagnostics } from '../debug/performanceConfig.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
 import { TerrainRenderer } from './terrainRenderer.js';
 import trackingFlechetteUrl from '../../assets/images/weapons/tracking_flechette.png';
@@ -89,24 +90,30 @@ function baseUrl() {
 }
 
 export class CanvasRenderer {
-  constructor(canvas) {
+  constructor(canvas, options = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.terrainRenderer = new TerrainRenderer(createTerrainAtlasLibrary());
     this.imageAssets = createImageAssetLibrary();
+    this.diagnostics = options.diagnostics ?? createPerformanceDiagnostics();
+    this.pixelRatio = 1;
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
 
   resize() {
-    const ratio = window.devicePixelRatio || 1;
+    const ratio = this.diagnostics.effectiveDpr(window.devicePixelRatio || 1);
+    this.pixelRatio = ratio;
     this.canvas.width = Math.floor(window.innerWidth * ratio);
     this.canvas.height = Math.floor(window.innerHeight * ratio);
     this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
 
   draw(game, debug) {
+    const ratio = this.diagnostics.effectiveDpr(window.devicePixelRatio || 1);
+    if (Math.abs(ratio - this.pixelRatio) > 0.001) this.resize();
     const ctx = this.ctx;
+    const diagnostics = this.diagnostics.state;
     const w = window.innerWidth;
     const h = window.innerHeight;
     ctx.clearRect(0, 0, w, h);
@@ -115,15 +122,17 @@ export class CanvasRenderer {
     ctx.save();
     applyCameraTransform(ctx, game.camera, w, h);
     const viewScale = cameraViewScale({ width: w, height: h });
-    this.terrainRenderer.drawWorld(ctx, game.terrain, game.camera, w / viewScale, h / viewScale, debug);
+    if (!diagnostics.freezeTerrainStreaming) this.terrainRenderer.drawWorld(ctx, game.terrain, game.camera, w / viewScale, h / viewScale, debug);
     drawRoadLane(ctx, game.road);
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
     drawZeppelinHarpoonPowerups(ctx, game.enemies, game.time);
-    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game);
+    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics);
     drawSmokeParticles(ctx, game.smokeParticles);
-    drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
-    drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
+    if (!diagnostics.noProjectileRender) {
+      drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
+      drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
+    }
     drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets);
     drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
@@ -434,7 +443,7 @@ function drawComMarker(ctx, com) {
   ctx.stroke();
 }
 
-function drawEnemy(ctx, enemy, time, game = null) {
+function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
@@ -449,6 +458,11 @@ function drawEnemy(ctx, enemy, time, game = null) {
   }
   const visualScale = enemy.visualScale ?? 1;
   if (visualScale !== 1) ctx.scale(visualScale, visualScale);
+  if (diagnostics.simpleBossRender && (enemy.kind === 'boss' || enemy.kind === 'zeppelinBoss')) {
+    drawSimpleBossDiagnostic(ctx, enemy);
+    ctx.restore();
+    return;
+  }
   drawEnemyPresentationUnderlay(ctx, enemy, time);
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
   const poseTransforms = evaluatePoseRig(enemy, {
@@ -486,6 +500,20 @@ function drawEnemy(ctx, enemy, time, game = null) {
     ctx.lineWidth = 2;
     drawBossOutline(ctx, enemy, time);
   }
+  ctx.restore();
+}
+
+function drawSimpleBossDiagnostic(ctx, enemy) {
+  const radiusScale = enemy.radiusIncludesVisualScale ? 1 / Math.max(0.001, enemy.visualScale ?? 1) : 1;
+  ctx.save();
+  ctx.globalAlpha *= 0.72;
+  ctx.fillStyle = enemy.kind === 'zeppelinBoss' ? '#8fa6ad' : '#221015';
+  ctx.strokeStyle = enemy.kind === 'zeppelinBoss' ? '#d7eef1' : '#ff5a2c';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(CELL_SIZE, enemy.radius * radiusScale), Math.max(CELL_SIZE * 0.5, enemy.radius * radiusScale * 0.45), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
   ctx.restore();
 }
 

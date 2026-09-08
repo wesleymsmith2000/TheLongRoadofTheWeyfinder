@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPerformanceMonitor, summarizePerformanceSamples } from '../src/debug/performanceMonitor.js';
+import { createPerformanceDiagnostics, effectiveDpr } from '../src/debug/performanceConfig.js';
 
 test('performance monitor records frame slices counters and slow frame buckets', () => {
   let time = 0;
@@ -40,4 +41,35 @@ test('performance sample summaries report p95 and max deterministically', () => 
   assert.equal(summary.frame.max, 20);
   assert.equal(summary.slices.simulation.avg, 6);
   assert.equal(summary.counters.enemyProjectiles, 190);
+});
+
+test('performance monitor can run counters-only or off', () => {
+  let time = 0;
+  let mode = 'counters';
+  const monitor = createPerformanceMonitor({ windowSize: 30, now: () => time, getMode: () => mode, summaryIntervalMs: 0 });
+
+  monitor.beginFrame(time);
+  time += 4;
+  monitor.mark('simulation');
+  time += 6;
+  const countersOnly = monitor.endFrame({ enemyProjectiles: 42 });
+
+  assert.equal(countersOnly.frame.max, 10);
+  assert.equal(countersOnly.slices.simulation.max, 0);
+  assert.equal(countersOnly.counters.enemyProjectiles, 42);
+
+  mode = 'off';
+  monitor.beginFrame(time);
+  time += 100;
+  const disabled = monitor.endFrame({ enemyProjectiles: 99 });
+  assert.equal(disabled.counters.enemyProjectiles, 42);
+});
+
+test('performance diagnostics expose mobile DPR cap and runtime toggles', () => {
+  const diagnostics = createPerformanceDiagnostics({}, { matchMedia: () => ({ matches: true }) });
+  assert.equal(diagnostics.state.dprMode, '1.5');
+  assert.equal(diagnostics.effectiveDpr(3), 1.5);
+  assert.deepEqual(diagnostics.set({ noSfx: true, dprMode: '1' }).noSfx, true);
+  assert.equal(effectiveDpr(3, 'native'), 3);
+  assert.equal(effectiveDpr(3, '1'), 1);
 });

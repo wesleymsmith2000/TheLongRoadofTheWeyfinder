@@ -47,15 +47,18 @@ export function drawDebugOverlay(ctx, game) {
 function performanceLines(performance) {
   if (!performance?.sampleCount) return [];
   const frame = performance.frame;
+  const rafGap = performance.rafGap ?? frame;
   const slices = performance.slices ?? {};
   const counters = performance.counters ?? {};
   const slow = performance.slowFrames ?? {};
   return [
     `perf samples ${performance.sampleCount}/${performance.windowSize}`,
-    `frame avg ${formatMs(frame.avg)} p95 ${formatMs(frame.p95)} max ${formatMs(frame.max)}`,
+    `raf avg ${formatMs(rafGap.avg)} p95 ${formatMs(rafGap.p95)} max ${formatMs(rafGap.max)}`,
+    `js avg ${formatMs(frame.avg)} p95 ${formatMs(frame.p95)} max ${formatMs(frame.max)}`,
     `sim ${formatMs(slices.simulation?.avg)} ui ${formatMs(slices.ui?.avg)} render ${formatMs(slices.render?.avg)}`,
     `slow >33 ${slow.over33ms ?? 0} >50 ${slow.over50ms ?? 0} >100 ${slow.over100ms ?? 0}`,
     `proj p/e ${counters.playerProjectiles ?? 0}/${counters.enemyProjectiles ?? 0} smoke ${counters.smokeParticles ?? 0}`,
+    `audio play ${counters.audioPlayCalls ?? 0} enemy sfx ${counters.enemyBulletSoundEvents ?? 0}`,
     `cells enemy ${counters.liveEnemyCells ?? 0}/${counters.enemyCells ?? 0} vehicle ${counters.vehicleCells ?? 0}`,
     `terrain cache ${counters.terrainCacheBuilds ?? 0} pending ${counters.terrainPendingChunks ?? 0}`,
   ];

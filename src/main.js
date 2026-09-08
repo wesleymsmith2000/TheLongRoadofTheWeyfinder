@@ -16,6 +16,7 @@ import {
 } from './input/controlBindings.js';
 import { createMouseInput, createPointerButtonInput } from './input/mouse.js';
 import { createDebugOverlay } from './debug/debugOverlay.js';
+import { createPerformanceDiagnostics, installPerformanceDiagnosticsGlobal } from './debug/performanceConfig.js';
 import { createPerformanceMonitor } from './debug/performanceMonitor.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
 import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
@@ -259,7 +260,8 @@ const upgradeSummary = document.querySelector('#upgradeSummary');
 const restartButton = document.querySelector('#restartButton');
 const levelName = document.querySelector('#levelName');
 const levelProgressFill = document.querySelector('#levelProgressFill');
-const renderer = new CanvasRenderer(canvas);
+const performanceDiagnostics = installPerformanceDiagnosticsGlobal(createPerformanceDiagnostics());
+const renderer = new CanvasRenderer(canvas, { diagnostics: performanceDiagnostics });
 const CONTROL_BINDINGS_STORAGE_KEY = 'weyfinder.prototype0.controlBindings';
 const SANDBOX_STORAGE_KEY = 'weyfinder.prototype0.sandboxDefinition';
 const AI_SHOT_LEADING_STORAGE_KEY = 'weyfinder.prototype0.aiShotLeading';
@@ -276,7 +278,24 @@ const touchSecondaryCycle = createPointerButtonInput(secondaryTouchCycle);
 const touchSecondaryFloating = createPointerButtonInput(secondaryTouchFire);
 const pauseSecondaryPress = createPointerButtonInput(pauseSecondaryFire);
 const debug = createDebugOverlay();
-const perfMonitor = createPerformanceMonitor();
+const perfMonitor = createPerformanceMonitor({
+  getMode: () => performanceDiagnostics.monitorMode(),
+  getOverlayVisible: () => debug.visible,
+});
+const uiDirty = {
+  shop: true,
+  pause: true,
+};
+const uiTimers = {
+  shop: 0,
+  pause: 0,
+};
+let shopUiWasVisible = false;
+let pauseUiWasVisible = false;
+const frameAudioCounters = {
+  audioPlayCalls: 0,
+  enemyBulletSoundEvents: 0,
+};
 
 const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
 
@@ -292,6 +311,12 @@ const musicAudio = new Audio();
 musicAudio.loop = true;
 musicAudio.volume = 0.42;
 const soundPlayers = new Map();
+const lastSoundPlayedAt = new Map();
+const SOUND_MIN_INTERVAL_MS = new Map([
+  [SOUND_EVENTS.ENEMY_BULLET, 55],
+  [SOUND_EVENTS.ENEMY_BEAM, 90],
+  [SOUND_EVENTS.PLAYER_MAIN_GUN, 35],
+]);
 const padReticle = {
   x: window.innerWidth / 2,
   y: window.innerHeight * 0.42,
@@ -322,6 +347,7 @@ syncSandboxScript(loadSandboxDefinition());
 refreshRepairTargets();
 renderAchievements();
 renderControlConfig();
+prewarmSoundPlayers();
 if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) combatPanel.classList.add('hidden');
 const vehicleEditor = createPlayerVehicleLaunchEditor(
   {
@@ -418,6 +444,16 @@ function frame(now) {
     targetCycle,
     aiShotLeading,
   };
+  if (
+    input.shopRepairPressed ||
+    input.shopReplacePressed ||
+    input.shopRefillAmmoPressed ||
+    input.shopBuyUpgradePressed ||
+    input.nextLevelPressed
+  ) {
+    uiDirty.shop = true;
+    uiDirty.pause = true;
+  }
   perfMonitor.mark('input');
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) toggleDebug();
@@ -427,6 +463,7 @@ function frame(now) {
   if (keyInput.achievementsTogglePressed || padInput.achievementsTogglePressed) toggleAchievements();
   if (keyInput.sandboxTogglePressed || padInput.sandboxTogglePressed) toggleSandboxPanel();
   if (!awaitingLaunch) {
+    game.performanceDiagnostics = performanceDiagnostics.snapshot();
     const next = stepGame(game, input, dt);
     if (next !== game) {
       game = next;
@@ -437,35 +474,39 @@ function frame(now) {
   }
   perfMonitor.mark('simulation');
   game.fps = game.fps * 0.9 + (1 / Math.max(dt, 0.001)) * 0.1;
-  syncLaunchScreen();
-  gameOver.classList.toggle('hidden', !game.gameOver);
-  levelComplete.classList.toggle('hidden', !game.levelComplete);
-  syncVictoryBanner();
-  syncProgressHud();
-  syncSandboxUi();
-  refreshAchievementAwards();
-  levelTime.textContent = game.levelTime.toFixed(1);
-  targetingAiXpGain.textContent = (game.targetingAi?.lastLevelXp ?? 0).toFixed(1);
-  levelNumber.textContent = game.level;
-  levelsCompleted.textContent = game.levelsCompleted;
-  updateShopUi();
-  syncPauseUi(mouseInput.aimWorld ?? padAimWorld);
-  boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
-  secondarySelect.value = game.secondary.selected;
-  secondaryIcon.dataset.icon = game.secondary.selected;
-  const selectedAmmo = game.secondary.ammo[game.secondary.selected];
-  secondaryAmmo.textContent = selectedAmmo == null ? '-' : formatAmmoValue(selectedAmmo);
-  secondaryHeat.style.width = `${game.secondary.heat}%`;
-  primaryFireToggle.setAttribute('aria-pressed', String(game.autofire));
-  primaryFireToggle.textContent = game.autofire ? 'FIRE' : 'QUIET';
-  syncAiLeadToggle();
-  scrapCount.textContent = game.scrap;
-  scoreDamage.textContent = game.score.damageDone;
+  if (!performanceDiagnostics.state.noDomSync) {
+    syncLaunchScreen();
+    gameOver.classList.toggle('hidden', !game.gameOver);
+    levelComplete.classList.toggle('hidden', !game.levelComplete);
+    syncVictoryBanner();
+    syncProgressHud();
+    syncSandboxUi();
+    refreshAchievementAwards();
+    levelTime.textContent = game.levelTime.toFixed(1);
+    targetingAiXpGain.textContent = (game.targetingAi?.lastLevelXp ?? 0).toFixed(1);
+    levelNumber.textContent = game.level;
+    levelsCompleted.textContent = game.levelsCompleted;
+    updateShopUi(dt);
+    syncPauseUi(mouseInput.aimWorld ?? padAimWorld, dt);
+    boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
+    secondarySelect.value = game.secondary.selected;
+    secondaryIcon.dataset.icon = game.secondary.selected;
+    const selectedAmmo = game.secondary.ammo[game.secondary.selected];
+    secondaryAmmo.textContent = selectedAmmo == null ? '-' : formatAmmoValue(selectedAmmo);
+    secondaryHeat.style.width = `${game.secondary.heat}%`;
+    primaryFireToggle.setAttribute('aria-pressed', String(game.autofire));
+    primaryFireToggle.textContent = game.autofire ? 'FIRE' : 'QUIET';
+    syncAiLeadToggle();
+    scrapCount.textContent = game.scrap;
+    scoreDamage.textContent = game.score.damageDone;
+  }
   perfMonitor.mark('ui');
   renderer.draw(game, debug);
   perfMonitor.mark('render');
   syncMusic();
-  playSoundEvents(game);
+  const audioCounters = playSoundEvents(game, now);
+  frameAudioCounters.audioPlayCalls = audioCounters.audioPlayCalls;
+  frameAudioCounters.enemyBulletSoundEvents = audioCounters.enemyBulletSoundEvents;
   perfMonitor.mark('audio');
   game.performance = perfMonitor.endFrame(performanceCounters(game));
   requestAnimationFrame(frame);
@@ -488,6 +529,9 @@ secondarySelect.addEventListener('change', syncSecondarySelects);
 pauseSecondarySelect.addEventListener('change', syncSecondarySelects);
 secondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 pauseSecondaryAutofire.addEventListener('change', syncSecondaryAutofire);
+shopRepairTarget.addEventListener('change', markShopUiDirty);
+shopAmmoSelect.addEventListener('change', markShopUiDirty);
+shopUpgradeSelect.addEventListener('change', markShopUiDirty);
 controlConfigClose.addEventListener('click', closeControlConfig);
 controlConfigReset.addEventListener('click', resetControlBindings);
 sandboxQuickRun.addEventListener('click', runQuickSandbox);
@@ -550,6 +594,10 @@ function syncSecondaryAutofire(event) {
   const checked = Boolean(event?.target?.checked);
   secondaryAutofire.checked = checked;
   pauseSecondaryAutofire.checked = checked;
+}
+
+function markShopUiDirty() {
+  uiDirty.shop = true;
 }
 
 function toggleDebug() {
@@ -683,11 +731,24 @@ function syncLaunchScreen() {
   launchScreen.setAttribute('aria-hidden', String(!visible));
 }
 
-function syncPauseUi(hoverWorld = null) {
+function syncPauseUi(hoverWorld = null, dt = 0) {
   const visible = Boolean(game.paused);
   pauseScreen.classList.toggle('hidden', !visible);
   pauseScreen.setAttribute('aria-hidden', String(!visible));
   pauseToggle.setAttribute('aria-pressed', String(visible));
+  if (!visible) {
+    pauseUiWasVisible = false;
+    uiTimers.pause = 0;
+    return;
+  }
+  if (!pauseUiWasVisible) {
+    pauseUiWasVisible = true;
+    uiDirty.pause = true;
+  }
+  uiTimers.pause += dt;
+  if (!uiDirty.pause && uiTimers.pause < 0.2) return;
+  uiDirty.pause = false;
+  uiTimers.pause = 0;
   if (!TARGETING_MODES.includes(targetingModeSelect.value)) targetingModeSelect.value = 'mixed';
   targetingModeSelect.value = game.targetingMode ?? targetingModeSelect.value;
   pauseSecondarySelect.value = secondarySelect.value;
@@ -857,14 +918,22 @@ function syncMusic(forcePlay = false) {
   if (forcePlay || musicAudio.paused) musicAudio.play().catch(() => {});
 }
 
-function playSoundEvents(game) {
+function playSoundEvents(game, now = performance.now()) {
+  const counters = { audioPlayCalls: 0, enemyBulletSoundEvents: 0 };
   if (awaitingLaunch) {
     consumeSoundEvents(game);
-    return;
+    return counters;
+  }
+  if (performanceDiagnostics.state.noSfx) {
+    consumeSoundEvents(game);
+    return counters;
   }
   for (const event of consumeSoundEvents(game)) {
     const src = SOUND_URLS[event.id];
     if (!src) continue;
+    if (event.id === SOUND_EVENTS.ENEMY_BULLET) counters.enemyBulletSoundEvents += 1;
+    if (performanceDiagnostics.state.noEnemyBulletSfx && event.id === SOUND_EVENTS.ENEMY_BULLET) continue;
+    if (!soundEventAllowed(event.id, now)) continue;
     const player = soundPlayerFor(src);
     player.volume = event.id === SOUND_EVENTS.PLAYER_MAIN_GUN
       ? 0.24
@@ -875,7 +944,18 @@ function playSoundEvents(game) {
           : 0.48;
     player.currentTime = 0;
     player.play().catch(() => {});
+    counters.audioPlayCalls += 1;
   }
+  return counters;
+}
+
+function soundEventAllowed(id, now) {
+  const interval = SOUND_MIN_INTERVAL_MS.get(id) ?? 0;
+  if (interval <= 0) return true;
+  const previousPlay = lastSoundPlayedAt.get(id) ?? -Infinity;
+  if (now - previousPlay < interval) return false;
+  lastSoundPlayedAt.set(id, now);
+  return true;
 }
 
 function loadPlayerAccount() {
@@ -1103,6 +1183,14 @@ function soundPlayerFor(src) {
     soundPlayers.set(src, audio);
   }
   return soundPlayers.get(src);
+}
+
+function prewarmSoundPlayers() {
+  for (const src of Object.values(SOUND_URLS)) {
+    const player = soundPlayerFor(src);
+    player.preload = 'auto';
+    player.load?.();
+  }
 }
 
 function bindButtonActivation(button, handler) {
@@ -1392,6 +1480,8 @@ function performanceCounters(game) {
     terrainChunks: game.terrain?.chunks?.size ?? 0,
     terrainCacheBuilds: game.terrain?.stats?.cacheBuildsLastDraw ?? 0,
     terrainPendingChunks: game.terrain?.stats?.pendingChunks ?? 0,
+    audioPlayCalls: frameAudioCounters.audioPlayCalls,
+    enemyBulletSoundEvents: frameAudioCounters.enemyBulletSoundEvents,
   };
 }
 
@@ -1473,7 +1563,21 @@ function refreshUpgradeSummary() {
   );
 }
 
-function updateShopUi() {
+function updateShopUi(dt = 0) {
+  const visible = Boolean(game.levelComplete) && !awaitingLaunch && !titleActive;
+  if (!visible) {
+    shopUiWasVisible = false;
+    uiTimers.shop = 0;
+    return;
+  }
+  if (!shopUiWasVisible) {
+    shopUiWasVisible = true;
+    uiDirty.shop = true;
+  }
+  uiTimers.shop += dt;
+  if (!uiDirty.shop && uiTimers.shop < 0.25) return;
+  uiDirty.shop = false;
+  uiTimers.shop = 0;
   if (!shopAmmoSelect.value) shopAmmoSelect.value = game.secondary.selected;
   const ammoWeapon = shopAmmoSelect.value;
   const ammoCost = ammoRefillCost(ammoWeapon);
