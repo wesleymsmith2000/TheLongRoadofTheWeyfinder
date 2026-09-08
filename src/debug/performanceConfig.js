@@ -2,7 +2,7 @@ export const PERFORMANCE_DIAGNOSTIC_DEFAULTS = Object.freeze({
   noDomSync: false,
   noSfx: false,
   noEnemyBulletSfx: false,
-  perfMonitorOff: false,
+  perfMonitorOff: true,
   perfMonitorCountersOnly: false,
   dprMode: 'native',
   simpleBossRender: false,

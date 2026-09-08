@@ -68,6 +68,9 @@ test('performance monitor can run counters-only or off', () => {
 test('performance diagnostics expose mobile DPR cap and runtime toggles', () => {
   const diagnostics = createPerformanceDiagnostics({}, { matchMedia: () => ({ matches: true }) });
   assert.equal(diagnostics.state.dprMode, '1.5');
+  assert.equal(diagnostics.monitorMode(), 'off');
+  diagnostics.set({ perfMonitorOff: false });
+  assert.equal(diagnostics.monitorMode(), 'full');
   assert.equal(diagnostics.effectiveDpr(3), 1.5);
   assert.deepEqual(diagnostics.set({ noSfx: true, dprMode: '1' }).noSfx, true);
   assert.equal(effectiveDpr(3, 'native'), 3);

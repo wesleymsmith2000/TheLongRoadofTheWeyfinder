@@ -315,15 +315,12 @@ function drawVehicle(ctx, vehicle, boost, time, imageAssets) {
   drawBoostShield(ctx, boost, time);
   drawConstructPresentation(ctx, vehicle, imageAssets);
   drawVehicleEdges(ctx, vehicle);
-  const attached = vehicle.cells
-    .filter((cell) => cell.attached && !cell.state.destroyed)
-    .sort((a, b) => cellLayer(a) - cellLayer(b) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id));
-  const baseLayer = lowestRenderableLayer(attached);
+  const { cells: attached, baseLayer } = sortedRenderableCells(vehicle, (cell) => cell.attached && !cell.state.destroyed);
   const poseTransforms = evaluatePoseRig(vehicle, { time, phase: time, movementSpeed: Math.hypot(vehicle.vx ?? 0, vehicle.vy ?? 0) });
   for (const cell of attached) {
     const posed = applyCellPoseTransform(cell, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE }, poseTransforms);
     const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
-    drawCell(ctx, { ...cell, renderRotation: posed.rotation }, posed.x, posed.y - projectHeight(layerLift + (posed.z ?? 0)), 1);
+    drawCell(ctx, cell, posed.x, posed.y - projectHeight(layerLift + (posed.z ?? 0)), 1, COLORS, posed.rotation);
   }
   drawTurret(ctx, vehicle);
   drawComMarker(ctx, vehicle.centerOfMass);
@@ -382,7 +379,7 @@ function drawDetachedPiece(ctx, piece) {
   ctx.restore();
 }
 
-function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
+function drawCell(ctx, cell, x, y, alpha, palette = COLORS, renderRotation = cell.renderRotation) {
   const unit = CELL_SIZE / VOXELS;
   const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
   const depth = projectHeight(CELL_SIZE * 0.11);
@@ -391,7 +388,7 @@ function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.translate(x, y);
-  if (Number.isFinite(cell.renderRotation) && Math.abs(cell.renderRotation) > 0.000001) ctx.rotate(cell.renderRotation);
+  if (Number.isFinite(renderRotation) && Math.abs(renderRotation) > 0.000001) ctx.rotate(renderRotation);
   ctx.fillStyle = palette.shadow ?? COLORS.shadow;
   ctx.fillRect(-CELL_SIZE / 2 + shadowOffset, -CELL_SIZE / 2 + shadowOffset * 1.6, CELL_SIZE, CELL_SIZE);
   for (let vy = VOXELS - 1; vy >= 0; vy -= 1) {
@@ -415,6 +412,39 @@ function drawCell(ctx, cell, x, y, alpha, palette = COLORS) {
   ctx.lineWidth = 1;
   ctx.strokeRect(-CELL_SIZE / 2, -CELL_SIZE / 2 - depth, CELL_SIZE, CELL_SIZE);
   ctx.restore();
+}
+
+function sortedRenderableCells(entity, includeCell) {
+  const sourceCells = entity?.cells ?? [];
+  let liveCount = 0;
+  let hash = 2166136261;
+  for (let index = 0; index < sourceCells.length; index += 1) {
+    const cell = sourceCells[index];
+    if (!includeCell(cell)) {
+      hash = Math.imul(hash ^ (index + 1), 16777619);
+      continue;
+    }
+    liveCount += 1;
+    hash = Math.imul(hash ^ hashCellSortIdentity(cell), 16777619);
+  }
+  const cache = entity?._renderableCellCache;
+  if (cache?.sourceCells === sourceCells && cache.liveCount === liveCount && cache.hash === hash) return cache;
+  const cells = sourceCells
+    .filter(includeCell)
+    .sort((a, b) => cellLayer(a) - cellLayer(b) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id));
+  const next = { sourceCells, liveCount, hash, cells, baseLayer: lowestRenderableLayer(cells) };
+  if (entity && Object.isExtensible(entity)) entity._renderableCellCache = next;
+  return next;
+}
+
+function hashCellSortIdentity(cell) {
+  let hash = 2166136261;
+  const id = String(cell.id ?? '');
+  for (let index = 0; index < id.length; index += 1) hash = Math.imul(hash ^ id.charCodeAt(index), 16777619);
+  hash = Math.imul(hash ^ Math.trunc((cell.gridX ?? 0) + 8192), 16777619);
+  hash = Math.imul(hash ^ Math.trunc((cell.gridY ?? 0) + 8192), 16777619);
+  hash = Math.imul(hash ^ Math.trunc((cellLayer(cell) ?? 0) + 128), 16777619);
+  return hash >>> 0;
 }
 
 function drawVehicleEdges(ctx, vehicle) {
@@ -471,10 +501,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}) {
     movementSpeed: Math.hypot(enemy.vx ?? 0, enemy.vy ?? 0),
     target: game?.vehicle ?? enemy.poseTarget ?? null,
   });
-  const liveCells = enemy.cells
-    .filter((cell) => !cell.state.destroyed)
-    .sort((a, b) => cellLayer(a) - cellLayer(b) || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id));
-  const baseLayer = lowestRenderableLayer(liveCells);
+  const { cells: liveCells, baseLayer } = sortedRenderableCells(enemy, (cell) => !cell.state.destroyed);
   for (const cell of liveCells) {
     if (!cell.state.destroyed) {
       const position = bossCellVisualPosition(enemy, cell, time);
@@ -482,11 +509,12 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}) {
       const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
       drawCell(
         ctx,
-        { ...cell, renderRotation: posed.rotation },
+        cell,
         posed.x,
         posed.y - projectHeight(layerLift + (posed.z ?? 0)),
         enemy.destroyed ? 0.35 : 1,
         palette,
+        posed.rotation,
       );
     }
   }

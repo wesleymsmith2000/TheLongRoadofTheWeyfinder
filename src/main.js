@@ -304,6 +304,22 @@ const frameAudioCounters = {
   audioPlayCalls: 0,
   enemyBulletSoundEvents: 0,
 };
+const IDLE_FRONT_PAGE_FRAME_INTERVAL_MS = 1000 / 12;
+const IDLE_PERFORMANCE_COUNTERS = Object.freeze({
+  playerProjectiles: 0,
+  enemyProjectiles: 0,
+  smokeParticles: 0,
+  scrapPickups: 0,
+  enemies: 0,
+  enemyCells: 0,
+  liveEnemyCells: 0,
+  vehicleCells: 0,
+  terrainChunks: 0,
+  terrainCacheBuilds: 0,
+  terrainPendingChunks: 0,
+  audioPlayCalls: 0,
+  enemyBulletSoundEvents: 0,
+});
 
 const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
 
@@ -321,6 +337,7 @@ musicAudio.volume = BASE_MUSIC_VOLUME;
 const soundPlayers = new Map();
 const musicLayerPlayers = new Map();
 let lastProceduralMusicCue = null;
+let soundPlayersPrewarmed = false;
 const lastSoundPlayedAt = new Map();
 const SOUND_MIN_INTERVAL_MS = new Map([
   [SOUND_EVENTS.ENEMY_BULLET, 55],
@@ -358,7 +375,6 @@ syncSandboxScript(loadSandboxDefinition());
 refreshRepairTargets();
 renderAchievements();
 renderControlConfig();
-prewarmSoundPlayers();
 if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) combatPanel.classList.add('hidden');
 const vehicleEditor = createPlayerVehicleLaunchEditor(
   {
@@ -391,7 +407,7 @@ syncAiLeadToggle();
 
 function frame(now) {
   perfMonitor.beginFrame(now);
-  const dt = (now - previous) / 1000;
+  const dt = Math.min(0.1, (now - previous) / 1000);
   previous = now;
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
@@ -512,18 +528,31 @@ function frame(now) {
     scoreDamage.textContent = game.score.damageDone;
   }
   perfMonitor.mark('ui');
-  renderer.draw(game, debug);
+  const frontPageIdle = awaitingLaunch || titleActive;
+  const shouldDrawGameCanvas = !frontPageIdle;
+  canvas.hidden = !shouldDrawGameCanvas;
+  if (shouldDrawGameCanvas) renderer.draw(game, debug);
   perfMonitor.mark('render');
   syncMusic();
   const audioCounters = playSoundEvents(game, now);
   frameAudioCounters.audioPlayCalls = audioCounters.audioPlayCalls;
   frameAudioCounters.enemyBulletSoundEvents = audioCounters.enemyBulletSoundEvents;
   perfMonitor.mark('audio');
-  game.performance = perfMonitor.endFrame(performanceCounters(game));
-  requestAnimationFrame(frame);
+  const monitorMode = performanceDiagnostics.monitorMode();
+  const counters = monitorMode === 'off' ? undefined : frontPageIdle ? idlePerformanceCounters() : performanceCounters(game);
+  game.performance = perfMonitor.endFrame(counters);
+  scheduleNextFrame(frontPageIdle);
 }
 
 requestAnimationFrame(frame);
+
+function scheduleNextFrame(frontPageIdle) {
+  if (frontPageIdle) {
+    window.setTimeout(() => requestAnimationFrame(frame), IDLE_FRONT_PAGE_FRAME_INTERVAL_MS);
+    return;
+  }
+  requestAnimationFrame(frame);
+}
 
 bindButtonActivation(debugToggle, toggleDebug);
 bindButtonActivation(hudToggle, toggleCombatHud);
@@ -627,6 +656,7 @@ function launchVehicle() {
   awaitingLaunch = false;
   game.levelStartTime = game.time;
   previous = performance.now();
+  scheduleSoundPrewarm();
   syncMusic(true);
   syncTitleScreen();
   syncLaunchScreen();
@@ -705,6 +735,7 @@ function startSandbox(definition) {
     game.paused = false;
     game.levelStartTime = game.time;
     previous = performance.now();
+    scheduleSoundPrewarm();
     localStorage.setItem(SANDBOX_STORAGE_KEY, JSON.stringify(definition));
     refreshRepairTargets();
     syncTitleScreen();
@@ -1256,11 +1287,22 @@ function soundPlayerFor(src) {
 }
 
 function prewarmSoundPlayers() {
+  if (soundPlayersPrewarmed) return;
+  soundPlayersPrewarmed = true;
   for (const src of Object.values(SOUND_URLS)) {
     const player = soundPlayerFor(src);
     player.preload = 'auto';
     player.load?.();
   }
+}
+
+function scheduleSoundPrewarm() {
+  if (soundPlayersPrewarmed) return;
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(() => prewarmSoundPlayers(), { timeout: 2000 });
+    return;
+  }
+  window.setTimeout(() => prewarmSoundPlayers(), 500);
 }
 
 function bindButtonActivation(button, handler) {
@@ -1523,6 +1565,14 @@ function scrollableAncestor(element) {
 
 function viewport() {
   return { width: window.innerWidth, height: window.innerHeight };
+}
+
+function idlePerformanceCounters() {
+  return {
+    ...IDLE_PERFORMANCE_COUNTERS,
+    audioPlayCalls: frameAudioCounters.audioPlayCalls,
+    enemyBulletSoundEvents: frameAudioCounters.enemyBulletSoundEvents,
+  };
 }
 
 function performanceCounters(game) {

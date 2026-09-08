@@ -96,13 +96,11 @@ export function createWalkerStridePoseRig(entity, options = {}) {
 }
 
 export function evaluatePoseRig(entity, context = {}) {
-  const rig = normalizePoseRig(entity?.poseRig ?? entity?.animationRig);
+  const rig = cachedNormalizedPoseRig(entity);
   const transforms = new Map();
   if (!rig) return transforms;
-  const groupMap = buildGroupMap(entity, rig);
-  const jointMap = buildJointMap(rig, groupMap);
+  const { groupMap, jointMap, poseMap } = cachedPoseRigTopology(entity, rig);
   const jointTransforms = new Map();
-  const poseMap = new Map(rig.poses.map((pose) => [pose.id, pose]));
   const addToTarget = (target, transform) => {
     addToJointsForTarget(target, transform, jointMap, jointTransforms);
     for (const cell of cellsForTarget(entity, groupMap, jointMap, target)) {
@@ -127,6 +125,28 @@ export function evaluatePoseRig(entity, context = {}) {
   }
   applyWeightedCellBindings(entity, rig, jointMap, jointTransforms, transforms);
   return transforms;
+}
+
+function cachedNormalizedPoseRig(entity) {
+  const source = entity?.poseRig ?? entity?.animationRig;
+  if (!source) return null;
+  const cache = entity?._poseRigNormalizeCache;
+  if (cache?.source === source) return cache.rig;
+  const rig = normalizePoseRig(source);
+  if (entity && Object.isExtensible(entity)) entity._poseRigNormalizeCache = { source, rig };
+  return rig;
+}
+
+function cachedPoseRigTopology(entity, rig) {
+  const cells = entity?.cells ?? [];
+  const cache = entity?._poseRigTopologyCache;
+  if (cache?.rig === rig && cache.cells === cells) return cache;
+  const groupMap = buildGroupMap(entity, rig);
+  const jointMap = buildJointMap(rig, groupMap);
+  const poseMap = new Map(rig.poses.map((pose) => [pose.id, pose]));
+  const topology = { rig, cells, groupMap, jointMap, poseMap };
+  if (entity && Object.isExtensible(entity)) entity._poseRigTopologyCache = topology;
+  return topology;
 }
 
 export function applyCellPoseTransform(cell, point, transforms) {

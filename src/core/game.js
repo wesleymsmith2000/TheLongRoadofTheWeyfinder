@@ -191,6 +191,7 @@ const TARGETING_AI_SPEED_PER_RANK = 12;
 const TARGETING_AI_XP_PER_RANK = 45;
 const TARGETING_AI_BASE_WOBBLE = 18;
 const MAX_SMOKE_PARTICLES = 180;
+const MAX_GROUND_BEAM_SCORCH_PARTICLES = 72;
 const MAX_DETACHED_SUPPORT_SCRAP = 24;
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
@@ -4614,27 +4615,31 @@ function spawnRocketSmokeParticle(game, projectile) {
 }
 
 function stepGroundBeamScorchParticles(game, dt) {
+  let emitted = false;
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0 || projectile.behavior !== 'beam' || projectile.endZ !== 0) continue;
     if (projectile.weapon !== 'zeppelin-ground-laser' && projectile.weapon !== 'walker-ground-sweep') continue;
     const length = Math.max(1, Math.hypot((projectile.renderEndX ?? projectile.x) - projectile.x, (projectile.renderEndY ?? projectile.y) - projectile.y) || projectile.length);
-    const mean = Math.min(7, Math.max(1.2, length / 90)) * dt * 18;
-    const count = Math.min(8, samplePoisson(game.rng, mean));
+    const mean = Math.min(4.2, Math.max(0.8, length / 150)) * dt * 12;
+    const count = Math.min(4, samplePoisson(game.rng, mean));
     for (let index = 0; index < count; index += 1) spawnGroundBeamScorchParticle(game, projectile, length);
+    emitted ||= count > 0;
   }
+  if (emitted) limitSmokeParticlesByKind(game, 'ground-beam-scorch', MAX_GROUND_BEAM_SCORCH_PARTICLES);
 }
 
 function spawnGroundBeamScorchParticle(game, projectile, length) {
   const angle = projectile.angle ?? 0;
   const distance = game.rng.range(0, length);
-  const lifetimeMean = Math.max(0.08, projectile.maxLifetime ?? projectile.lifetime ?? 0.25);
-  const lifetime = clamp(-Math.log(Math.max(0.001, 1 - game.rng.next())) * lifetimeMean, 0.06, lifetimeMean * 3.2);
+  const lifetimeMean = Math.max(0.08, (projectile.maxLifetime ?? projectile.lifetime ?? 0.25) * 0.42);
+  const lifetime = clamp(-Math.log(Math.max(0.001, 1 - game.rng.next())) * lifetimeMean, 0.05, lifetimeMean * 2.4);
   const side = game.rng.range(-beamHalfWidth(projectile) * 0.8, beamHalfWidth(projectile) * 0.8);
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
   const nx = -dy;
   const ny = dx;
   pushSmokeParticle(game, {
+    kind: 'ground-beam-scorch',
     x: projectile.x + dx * distance + nx * side,
     y: projectile.y + dy * distance + ny * side,
     vx: nx * game.rng.range(-5, 5),
@@ -4645,6 +4650,21 @@ function spawnGroundBeamScorchParticle(game, projectile, length) {
     maxLifetime: lifetime,
     growth: game.rng.range(1.8, 5.2),
   });
+}
+
+function limitSmokeParticlesByKind(game, kind, maxCount) {
+  let count = 0;
+  for (const particle of game.smokeParticles) {
+    if (particle.kind === kind) count += 1;
+  }
+  for (let index = 0; count > maxCount && index < game.smokeParticles.length; ) {
+    if (game.smokeParticles[index].kind === kind) {
+      game.smokeParticles.splice(index, 1);
+      count -= 1;
+    } else {
+      index += 1;
+    }
+  }
 }
 
 function handleSmokeHazardDamage(game) {
