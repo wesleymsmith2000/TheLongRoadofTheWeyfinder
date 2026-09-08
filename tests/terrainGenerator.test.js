@@ -155,6 +155,19 @@ test('terrain streaming can throttle generated chunks per update', () => {
   assert.equal(terrain.chunks.size, 4);
 });
 
+test('terrain streaming reuses the chunk request window while the camera remains in a chunk', () => {
+  const terrain = createTerrainState(createTerrainGenerator({ seed: 55 }));
+  updateTerrainStreaming(terrain, { x: 24, y: -40, heading: 0 });
+  const windowPlan = terrain.streamWindow;
+  const generatedChunks = terrain.stats.generatedChunks;
+
+  updateTerrainStreaming(terrain, { x: 28, y: -44, heading: 0.03 });
+
+  assert.equal(terrain.streamWindow, windowPlan);
+  assert.equal(terrain.stats.generatedLastUpdate, 0);
+  assert.equal(terrain.stats.generatedChunks, generatedChunks);
+});
+
 function tileIds(chunk) {
   return chunk.tiles.map((row) => row.map((tile) => `${tile.sourceAssetId}:${tile.rotation}:${tile.fallback ? 'fallback' : 'authored'}`));
 }

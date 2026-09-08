@@ -21,6 +21,48 @@ export function updateTerrainStreaming(terrain, camera, options = {}) {
   const config = terrain.generator.config;
   const centerX = Math.floor(camera.x / config.chunkSize);
   const centerY = Math.floor(camera.y / config.chunkSize);
+  const windowPlan = terrainStreamWindowPlan(terrain, camera, centerX, centerY);
+  const requestedBudget = Math.max(0, options.maxGeneratedChunks ?? terrain.maxGeneratedChunksPerUpdate ?? Infinity);
+  const budget = Number.isFinite(requestedBudget) ? Math.floor(requestedBudget) : requestedBudget;
+  let generated = 0;
+  let pending = 0;
+  for (const chunk of windowPlan.requestedChunks) {
+    if (terrain.chunks.has(chunk.key)) continue;
+    if (generated < budget) {
+      getTerrainChunk(terrain, chunk.x, chunk.y);
+      generated += 1;
+    } else {
+      pending += 1;
+    }
+  }
+  terrain.stats.generatedLastUpdate = generated;
+  terrain.stats.pendingChunks = pending;
+
+  for (const [key, chunk] of terrain.chunks.entries()) {
+    if (windowPlan.activeKeys.has(key)) continue;
+    releaseTerrainChunk(chunk);
+    terrain.chunks.delete(key);
+    terrain.stats.retiredChunks += 1;
+  }
+  return terrain;
+}
+
+function terrainStreamWindowPlan(terrain, camera, centerX, centerY) {
+  const config = terrain.generator.config;
+  const forward = roadForward(camera);
+  const aheadOffsets = [];
+  for (let index = 1; index <= config.pregenerateAheadChunks; index += 1) {
+    aheadOffsets.push([Math.round(forward.x * index), Math.round(forward.y * index)]);
+  }
+  const key = [
+    centerX,
+    centerY,
+    config.activeRadiusChunks,
+    config.pregenerateAheadChunks,
+    ...aheadOffsets.map(([x, y]) => `${x},${y}`),
+  ].join(':');
+  if (terrain.streamWindow?.key === key) return terrain.streamWindow;
+
   const activeKeys = new Set();
   const requestedChunks = [];
   const requestedKeys = new Set();
@@ -39,31 +81,20 @@ export function updateTerrainStreaming(terrain, camera, options = {}) {
     }
   }
 
-  const forward = roadForward(camera);
-  for (let index = 1; index <= config.pregenerateAheadChunks; index += 1) {
-    const aheadX = centerX + Math.round(forward.x * index);
-    const aheadY = centerY + Math.round(forward.y * index);
-    queueChunk(aheadX, aheadY);
+  for (const [x, y] of aheadOffsets) {
+    queueChunk(centerX + x, centerY + y);
   }
 
   requestedChunks.sort((a, b) => a.distance - b.distance || a.y - b.y || a.x - b.x);
-  const requestedBudget = Math.max(0, options.maxGeneratedChunks ?? terrain.maxGeneratedChunksPerUpdate ?? Infinity);
-  const budget = Number.isFinite(requestedBudget) ? Math.floor(requestedBudget) : requestedBudget;
-  const generateCount = Math.min(requestedChunks.length, budget);
-  terrain.stats.generatedLastUpdate = 0;
-  terrain.stats.pendingChunks = Math.max(0, requestedChunks.length - generateCount);
-  for (let index = 0; index < generateCount; index += 1) {
-    getTerrainChunk(terrain, requestedChunks[index].x, requestedChunks[index].y);
-    terrain.stats.generatedLastUpdate += 1;
-  }
-
-  for (const [key, chunk] of terrain.chunks.entries()) {
-    if (activeKeys.has(key)) continue;
-    releaseTerrainChunk(chunk);
-    terrain.chunks.delete(key);
-    terrain.stats.retiredChunks += 1;
-  }
-  return terrain;
+  terrain.streamWindow = {
+    key,
+    activeKeys,
+    requestedChunks: requestedChunks.map((chunk) => ({
+      ...chunk,
+      key: terrainChunkKey(chunk.x, chunk.y),
+    })),
+  };
+  return terrain.streamWindow;
 }
 
 export function getTerrainChunk(terrain, chunkX, chunkY) {

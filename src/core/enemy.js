@@ -548,17 +548,20 @@ export function applyEnemyDamage(enemy, projectile) {
   };
   const harpoonLiftedShot = enemy.kind === 'zeppelinBoss' && enemy.harpoonField && projectile?.behavior !== 'arc';
   const zeppelinGlancingHit = enemy.kind === 'zeppelinBoss' && !enemy.harpoonField;
-  const hitCells = enemyCellsForDirectDamage(enemy, {
+  const candidateCells = cachedEnemyCellsForDirectDamage(enemy, {
     groundOnly: projectile?.behavior !== 'arc' && !harpoonLiftedShot,
     topFirst: projectile?.behavior === 'arc' || harpoonLiftedShot,
-  }).filter((candidate) => {
-    if (candidate.state.destroyed) return false;
-    if (zeppelinGlancingHit && (candidate.type === 'core' || candidate.role === 'zeppelinCore')) return false;
+  });
+  let cell = null;
+  for (const candidate of candidateCells) {
+    if (candidate.state.destroyed) continue;
+    if (zeppelinGlancingHit && (candidate.type === 'core' || candidate.role === 'zeppelinCore')) continue;
     const minX = candidate.gridX * CELL_SIZE - CELL_SIZE / 2;
     const minY = candidate.gridY * CELL_SIZE - CELL_SIZE / 2;
-    return localX >= minX && localX <= minX + CELL_SIZE && localY >= minY && localY <= minY + CELL_SIZE;
-  });
-  const cell = hitCells[0] ?? null;
+    if (localX < minX || localX > minX + CELL_SIZE || localY < minY || localY > minY + CELL_SIZE) continue;
+    cell = candidate;
+    break;
+  }
   if (!cell) return { hit: false, removed: 0, destroyedNow: false };
   const result = applyDamage(
     cell.mask,
@@ -574,6 +577,7 @@ export function applyEnemyDamage(enemy, projectile) {
     enemy.damageTaken += fallback.damage + fallback.removed * 3;
     const wasDestroyed = enemy.destroyed;
     const collapse = collapseExposedArmorLayers(enemy);
+    invalidateEnemyRuntimeCaches(enemy);
     enemy.damageTaken += collapse.removed * 3;
     updateEnemyDestroyed(enemy);
     return { hit: true, cell, removed: fallback.removed + collapse.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
@@ -582,6 +586,7 @@ export function applyEnemyDamage(enemy, projectile) {
   enemy.damageTaken += localProjectile.damage + result.removed * 3;
   const wasDestroyed = enemy.destroyed;
   const collapse = collapseExposedArmorLayers(enemy);
+  invalidateEnemyRuntimeCaches(enemy);
   enemy.damageTaken += collapse.removed * 3;
   updateEnemyDestroyed(enemy);
   return { hit: true, cell, removed: result.removed + collapse.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
@@ -605,6 +610,7 @@ export function applyEnemyVoxelDamage(enemy, hit, damage) {
   recalculateCell(hit.cell);
   enemy.damageTaken += damage + removed * 3;
   const collapse = collapseExposedArmorLayers(enemy);
+  invalidateEnemyRuntimeCaches(enemy);
   enemy.damageTaken += collapse.removed * 3;
   updateEnemyDestroyed(enemy);
   return { hit: true, cell: hit.cell, removed: removed + collapse.removed, damage, destroyedNow: !wasDestroyed && enemy.destroyed };
@@ -724,6 +730,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
 
   for (const cell of changedCells) recalculateCell(cell);
   const collapse = collapseExposedArmorLayers(enemy);
+  if (hit || collapse.removed > 0) invalidateEnemyRuntimeCaches(enemy);
   removed += collapse.removed;
   enemy.damageTaken += collapse.removed * 3;
   if (hit) enemy.damageTaken += damage * 0.35;
@@ -1090,13 +1097,17 @@ function enemyCellsForDirectDamage(enemy, options = {}) {
 }
 
 function cachedEnemyCellsForDirectDamage(enemy, options = {}) {
-  if (!options.cellCache) return enemyCellsForDirectDamage(enemy, options);
+  const key = `${options.groundOnly ? 'ground' : 'all'}:${options.topFirst ? 'top' : 'bottom'}`;
+  if (!options.cellCache) {
+    enemy._directDamageCellsCache ??= new Map();
+    if (!enemy._directDamageCellsCache.has(key)) enemy._directDamageCellsCache.set(key, enemyCellsForDirectDamage(enemy, options));
+    return enemy._directDamageCellsCache.get(key);
+  }
   let byEnemy = options.cellCache.get(enemy);
   if (!byEnemy) {
     byEnemy = new Map();
     options.cellCache.set(enemy, byEnemy);
   }
-  const key = `${options.groundOnly ? 'ground' : 'all'}:${options.topFirst ? 'top' : 'bottom'}`;
   if (!byEnemy.has(key)) byEnemy.set(key, enemyCellsForDirectDamage(enemy, options));
   return byEnemy.get(key);
 }
@@ -1262,6 +1273,13 @@ function destroyCellVoxels(cell) {
   }
   recalculateCell(cell);
   return removed;
+}
+
+function invalidateEnemyRuntimeCaches(enemy) {
+  if (!enemy) return;
+  enemy.walkerRuntime = null;
+  enemy._directDamageCellsCache = null;
+  enemy._renderableCellCache = null;
 }
 
 export function drainEnemyDetachEvents(enemy) {

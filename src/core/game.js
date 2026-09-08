@@ -136,7 +136,7 @@ const ZEPPELIN_GROUND_LASER_SEQUENCE_COOLDOWN = 15;
 const ZEPPELIN_GROUND_LASER_LENGTH = CELL_SIZE * 54;
 const BOSS_INTERNAL_DESTRUCTION_SECONDS = 3.2;
 const OCTOPUS_ARM_PHASE_SECONDS = 2;
-const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 2;
+const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 1;
 const WALKER_SWEEP_BEAM_CHARGE_SECONDS = 1.35;
 const WALKER_SWEEP_BEAM_FIRE_SECONDS = 4;
 const WALKER_SWEEP_BEAM_LENGTH = CELL_SIZE * 48;
@@ -1772,7 +1772,7 @@ function inaccuratePlayerMortarTarget(game, radius) {
 }
 
 function stepWalkerEnemy(game, enemy, dt) {
-  refreshWalkerRuntime(enemy);
+  walkerRuntime(enemy);
   enemy.elevation ??= { z: 0, canBeHitByGroundFire: true, arcCollision: true, layeredExposure: true };
   enemy.elevation.z = 0;
   enemy.elevation.canBeHitByGroundFire = true;
