@@ -15,6 +15,8 @@ Levels need to coordinate:
 - future crew voiceover and scripted trigger events
 - dependencies on constructs, weapons, patterns, behaviors, voxel models, art, sound effects, and music
 
+Future Road / Fate's Shadow adaptive-director work should layer onto this same level/content contract through validated data, not editor-only fields. See `docs/adaptive-director-level-building-editor-roadmap.md` for the planned editor concepts: event sockets, event windows, event templates, director envelopes, and semantic music state maps.
+
 ## Files Added By Editor Thread
 
 Current level framework files:
@@ -235,3 +237,12 @@ Before either thread adds a new creator-facing field:
 5. If the field creates a new dependency, update `collectLevelDependencies`.
 
 Do not add editor-only fields to exported level JSON unless they are namespaced as temporary UI metadata and stripped before runtime import.
+
+For adaptive director fields specifically, define shared core registries before adding editor controls:
+
+- socket tag registry
+- event family registry
+- music-state registry
+- action-verb registry
+- director schema version
+- deterministic resolution preview shape

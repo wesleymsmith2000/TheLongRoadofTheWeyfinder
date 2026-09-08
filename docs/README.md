@@ -9,6 +9,7 @@ Start here:
 - [Creator Extension API](./creator-extension-api.md)
 - [Content Pack Manifest](./content-pack-manifest.md)
 - [Level Editor Main Game Handoff](./level-editor-main-game-handoff.md)
+- [Adaptive Director Level-Building Editor Roadmap](./adaptive-director-level-building-editor-roadmap.md)
 - [Enemy And Pattern Editor Handoff](./enemy-pattern-editor-handoff.md)
 - [Gameplay / Audio / Mobile Handoff](./gameplay-audio-mobile-handoff.md)
 - [Editor Runtime Seams](./editor-runtime-seams.md)
