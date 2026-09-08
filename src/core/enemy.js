@@ -1,5 +1,5 @@
 import { recalculateCell } from './cell.js';
-import { instantiateConstruct } from './constructDefinition.js';
+import { annotateConstructRuntimeMetadata, instantiateConstruct } from './constructDefinition.js';
 import { createPatternState } from './patternDefinition.js';
 import { applyDamage, applyNearestDamage, CELL_LAYER_HEIGHT, CELL_SIZE, Roles, VOXELS } from './voxelMask.js';
 import { clamp } from './math.js';
@@ -36,7 +36,7 @@ export function createEnemy(x, y, definition = basicTurretDefinition, patternDef
     destroyed: false,
     explosionStart: null,
     kind: 'standard',
-  }, options.moduleScale ?? ENEMY_MODULE_LINEAR_SCALE);
+  }, options.moduleScale ?? ENEMY_MODULE_LINEAR_SCALE, definition);
 }
 
 export function createEnhancedEnemy(x, y) {
@@ -325,7 +325,7 @@ export function createZeppelinBossEnemy(x, y) {
   }
   connect(connections, 'core-undercarriage', 'innerLining-0', 'above');
 
-  return {
+  const enemy = annotateConstructRuntimeMetadata({
     assetId: 'boss.zeppelin.prototype0',
     kind: 'zeppelinBoss',
     archetypeId: 'boss.zeppelin.prototype0',
@@ -356,7 +356,9 @@ export function createZeppelinBossEnemy(x, y) {
       innerLiningTotal: Math.max(1, liningIndex),
       meltdownTimer: null,
     },
-  };
+  });
+  enemy.zeppelin.innerLiningTotal = Math.max(1, enemy.damageGroups?.innerLining?.length ?? liningIndex);
+  return enemy;
 }
 
 function multiplyCellVoxelHp(cell, multiplier) {
@@ -430,9 +432,9 @@ function connect(connections, a, b, side, type = 'structural') {
   connections.push(createConnection(a, b, side, undefined, type));
 }
 
-function enlargeEnemyModules(enemy, linearScale = ENEMY_MODULE_LINEAR_SCALE) {
+function enlargeEnemyModules(enemy, linearScale = ENEMY_MODULE_LINEAR_SCALE, definition = null) {
   const factor = Math.max(1, Math.floor(linearScale));
-  if (factor <= 1 || enemy.moduleLinearScale >= factor) return enemy;
+  if (factor <= 1 || enemy.moduleLinearScale >= factor) return annotateConstructRuntimeMetadata(enemy, definition);
   const cells = [];
   for (const cell of enemy.cells) {
     if (cell.type === 'core') {
@@ -450,7 +452,7 @@ function enlargeEnemyModules(enemy, linearScale = ENEMY_MODULE_LINEAR_SCALE) {
   enemy.connections = moduleAdjacencyConnections(cells);
   enemy.radius = constructRadius(cells);
   enemy.moduleLinearScale = factor;
-  return enemy;
+  return annotateConstructRuntimeMetadata(enemy, definition);
 }
 
 function cloneEnemyCell(cell, id, gridX, gridY) {

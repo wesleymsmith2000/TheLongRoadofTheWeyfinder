@@ -1,5 +1,5 @@
 import { createCell } from './cell.js';
-import { createConnection, OPPOSITE } from './connections.js';
+import { coreDistanceMap, createConnection, OPPOSITE } from './connections.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { normalizePoseRig, validatePoseRig } from './poseAnimation.js';
 
@@ -25,6 +25,12 @@ export function validateConstructDefinition(definition) {
   if (definition.modules != null && !Array.isArray(definition.modules)) errors.push('modules must be an array when provided.');
   if (definition.tags != null && !isStringArray(definition.tags)) warnings.push('tags should be an array of strings.');
   if (definition.dependencies != null && !isStringArray(definition.dependencies)) warnings.push('dependencies should be an array of strings.');
+  if (definition.damageGroups != null && !damageGroupsAreValidShape(definition.damageGroups)) {
+    errors.push('damageGroups must be an object of cell id arrays or an array of { id, cells } entries.');
+  }
+  if (definition.topology != null && !isPlainObject(definition.topology)) {
+    errors.push('topology must be an object when provided.');
+  }
 
   const cells = Array.isArray(definition.cells) ? definition.cells : [];
   const cellIds = new Set();
@@ -73,6 +79,8 @@ export function validateConstructDefinition(definition) {
   }
 
   validateCoreCluster(cells, connections, errors);
+  validateDamageGroupReferences(definition.damageGroups, cellIds, errors, warnings);
+  validateTopologyMetadata(definition.topology, cellIds, warnings);
   if (cells.length > 0 && connections.length === 0) warnings.push('Construct has no explicit connections; only the core will be structurally connected.');
   validatePoseRig(constructPoseRigDefinition(definition), 'poseRig', cellIds, errors, warnings);
 
@@ -90,11 +98,12 @@ export function instantiateConstruct(definition) {
       if (['id', 'type', 'gridX', 'gridY', 'gridZ', 'layer'].includes(key)) continue;
       runtimeCell[key] = structuredClone(value);
     }
+    runtimeCell.sourceId = cell.id;
     return runtimeCell;
   });
   const connections = (definition.connections ?? []).map((edge) => createConnection(edge.a, edge.b, edge.aSide, edge.bSide ?? OPPOSITE[edge.aSide], edge.type ?? 'structural'));
   const poseRig = normalizePoseRig(constructPoseRigDefinition(definition));
-  return {
+  const construct = {
     assetId: definition.assetId,
     schemaVersion: definition.schemaVersion,
     canonStatus: definition.canonStatus ?? 'EXPERIMENTAL',
@@ -105,6 +114,46 @@ export function instantiateConstruct(definition) {
     cells,
     connections,
   };
+  return annotateConstructRuntimeMetadata(construct, definition);
+}
+
+export function annotateConstructRuntimeMetadata(construct, definition = null) {
+  if (!construct || !Array.isArray(construct.cells)) return construct;
+  const distances = runtimeCoreDistanceMap(construct, definition);
+  const coreCellIds = [];
+  let maxCoreDistance = 0;
+  const coreDistanceByCellId = {};
+
+  for (const cell of construct.cells) {
+    cell.sourceId ??= cell.id;
+    const distance = distances.get(cell.id);
+    if (cell.type === 'core') coreCellIds.push(cell.id);
+    if (Number.isFinite(distance)) {
+      maxCoreDistance = Math.max(maxCoreDistance, distance);
+      coreDistanceByCellId[cell.id] = distance;
+      cell.coreDistance = distance;
+    } else {
+      delete cell.coreDistance;
+    }
+    cell.topology = {
+      ...(isPlainObject(cell.topology) ? cell.topology : {}),
+      sourceId: cell.sourceId,
+      originalCore: cell.type === 'core',
+      coreDistance: Number.isFinite(distance) ? distance : null,
+    };
+  }
+
+  construct.topology = {
+    schemaVersion: '0.1',
+    ...(isPlainObject(definition?.topology) ? structuredClone(definition.topology) : {}),
+    coreCellIds,
+    coreDistanceByCellId,
+    maxCoreDistance,
+  };
+  const damageGroups = buildRuntimeDamageGroups(construct.cells, definition);
+  construct.damageGroups = damageGroups.groups;
+  construct.damageGroupCellIds = damageGroups.ids;
+  return construct;
 }
 
 function constructPoseRigDefinition(definition) {
@@ -121,6 +170,155 @@ function constructPoseRigDefinition(definition) {
     };
   }
   return null;
+}
+
+function runtimeCoreDistanceMap(construct, definition) {
+  const computed = coreDistanceMap(construct.cells, construct.connections, { includeDestroyed: true });
+  const prebaked = prebakedCoreDistanceBySourceId(definition?.topology);
+  const uniqueSourceIds = new Set(construct.cells.map((cell) => cell.sourceId ?? cell.id));
+  if (prebaked.size === 0 || uniqueSourceIds.size !== construct.cells.length) return computed;
+
+  const distances = new Map();
+  for (const cell of construct.cells) {
+    const sourceId = cell.sourceId ?? cell.id;
+    const sourceDistance = prebaked.get(sourceId);
+    if (Number.isFinite(sourceDistance)) distances.set(cell.id, sourceDistance);
+    else if (computed.has(cell.id)) distances.set(cell.id, computed.get(cell.id));
+  }
+  return distances;
+}
+
+function prebakedCoreDistanceBySourceId(topology) {
+  if (!isPlainObject(topology)) return new Map();
+  const source = topology.coreDistanceByCellId ?? topology.coreDistances;
+  const result = new Map();
+  if (isPlainObject(source)) {
+    for (const [id, distance] of Object.entries(source)) {
+      const numeric = Number(distance);
+      if (Number.isFinite(numeric) && numeric >= 0) result.set(id, numeric);
+    }
+  } else if (Array.isArray(source)) {
+    for (const entry of source) {
+      if (!isPlainObject(entry) || !isNonEmptyString(entry.cellId ?? entry.id)) continue;
+      const numeric = Number(entry.distance ?? entry.coreDistance);
+      if (Number.isFinite(numeric) && numeric >= 0) result.set(entry.cellId ?? entry.id, numeric);
+    }
+  }
+  return result;
+}
+
+function buildRuntimeDamageGroups(cells, definition) {
+  const groups = new Map();
+  const add = (groupId, cell) => {
+    if (!isNonEmptyString(groupId) || !cell) return;
+    if (!groups.has(groupId)) groups.set(groupId, new Set());
+    groups.get(groupId).add(cell);
+  };
+
+  const cellsBySourceId = new Map();
+  for (const cell of cells) {
+    const sourceId = cell.sourceId ?? cell.id;
+    if (!cellsBySourceId.has(sourceId)) cellsBySourceId.set(sourceId, []);
+    cellsBySourceId.get(sourceId).push(cell);
+  }
+  const cellById = new Map(cells.map((cell) => [cell.id, cell]));
+  for (const cell of cells) {
+    if (isNonEmptyString(cell.role)) add(cell.role, cell);
+    if (isNonEmptyString(cell.type)) add(`type:${cell.type}`, cell);
+    if (isNonEmptyString(cell.slot)) add(`slot:${cell.slot}`, cell);
+    for (const tag of Array.isArray(cell.tags) ? cell.tags : []) add(`tag:${tag}`, cell);
+    for (const groupId of cellDamageGroupIds(cell)) add(groupId, cell);
+  }
+
+  for (const [groupId, ids] of normalizeDamageGroupEntries(definition?.damageGroups)) {
+    for (const id of ids) {
+      const sourceCells = cellsBySourceId.get(id);
+      if (sourceCells) {
+        for (const cell of sourceCells) add(groupId, cell);
+      } else {
+        add(groupId, cellById.get(id));
+      }
+    }
+  }
+  for (const [groupId, ids] of normalizeDamageGroupEntries(definition?.topology?.damageGroups)) {
+    for (const id of ids) {
+      const sourceCells = cellsBySourceId.get(id);
+      if (sourceCells) {
+        for (const cell of sourceCells) add(groupId, cell);
+      } else {
+        add(groupId, cellById.get(id));
+      }
+    }
+  }
+
+  const runtimeGroups = {};
+  const runtimeIds = {};
+  for (const [groupId, groupCells] of groups) {
+    const ordered = [...groupCells].sort((a, b) => a.id.localeCompare(b.id));
+    runtimeGroups[groupId] = ordered;
+    runtimeIds[groupId] = ordered.map((cell) => cell.id);
+  }
+  return { groups: runtimeGroups, ids: runtimeIds };
+}
+
+function cellDamageGroupIds(cell) {
+  const groups = [];
+  if (isNonEmptyString(cell.damageGroup)) groups.push(cell.damageGroup);
+  if (Array.isArray(cell.damageGroups)) {
+    for (const group of cell.damageGroups) {
+      if (isNonEmptyString(group)) groups.push(group);
+    }
+  }
+  return groups;
+}
+
+function normalizeDamageGroupEntries(groups) {
+  const entries = [];
+  if (isPlainObject(groups)) {
+    for (const [groupId, ids] of Object.entries(groups)) {
+      if (Array.isArray(ids)) entries.push([groupId, ids.filter(isNonEmptyString)]);
+    }
+  } else if (Array.isArray(groups)) {
+    for (const entry of groups) {
+      if (!isPlainObject(entry) || !isNonEmptyString(entry.id) || !Array.isArray(entry.cells)) continue;
+      entries.push([entry.id, entry.cells.filter(isNonEmptyString)]);
+    }
+  }
+  return entries;
+}
+
+function damageGroupsAreValidShape(groups) {
+  if (isPlainObject(groups)) return Object.values(groups).every((ids) => Array.isArray(ids));
+  if (!Array.isArray(groups)) return false;
+  return groups.every((entry) => isPlainObject(entry) && isNonEmptyString(entry.id) && Array.isArray(entry.cells));
+}
+
+function validateDamageGroupReferences(groups, cellIds, errors, warnings) {
+  if (groups == null) return;
+  if (!damageGroupsAreValidShape(groups)) return;
+  for (const [groupId, ids] of normalizeDamageGroupEntries(groups)) {
+    if (!isNonEmptyString(groupId)) {
+      warnings.push('damageGroups should use non-empty group ids.');
+      continue;
+    }
+    for (const id of ids) {
+      if (!cellIds.has(id)) errors.push(`damageGroups.${groupId} references unknown cell "${id}".`);
+    }
+  }
+}
+
+function validateTopologyMetadata(topology, cellIds, warnings) {
+  if (!isPlainObject(topology)) return;
+  const prebaked = prebakedCoreDistanceBySourceId(topology);
+  for (const id of prebaked.keys()) {
+    if (!cellIds.has(id)) warnings.push(`topology core distance references unknown cell "${id}".`);
+  }
+  for (const [groupId, ids] of normalizeDamageGroupEntries(topology.damageGroups)) {
+    if (!isNonEmptyString(groupId)) continue;
+    for (const id of ids) {
+      if (!cellIds.has(id)) warnings.push(`topology.damageGroups.${groupId} references unknown cell "${id}".`);
+    }
+  }
 }
 
 function validateCoreCluster(cells, connections, errors) {

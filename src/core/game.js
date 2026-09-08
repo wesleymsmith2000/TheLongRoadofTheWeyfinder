@@ -2345,7 +2345,7 @@ function stepZeppelinBoss(game, enemy, dt) {
     atsCooldown: 1.4,
     laserCooldown: 2.2,
     harpoonSpawnTimer: 0,
-    innerLiningTotal: Math.max(1, enemy.cells.filter((cell) => cell.role === 'innerLining').length),
+    innerLiningTotal: Math.max(1, zeppelinDamageGroupCells(enemy, 'innerLining').length),
     meltdownTimer: null,
   };
   enemy.zeppelin = state;
@@ -2717,8 +2717,9 @@ function createZeppelinHarpoonPowerup(game) {
 function stepZeppelinMeltdown(game, enemy, dt) {
   const state = enemy.zeppelin;
   if (state.meltdownTimer == null) {
-    const total = state.innerLiningTotal ?? Math.max(1, enemy.cells.filter((cell) => cell.role === 'innerLining').length);
-    const destroyed = enemy.cells.filter((cell) => cell.role === 'innerLining' && cell.state?.destroyed).length;
+    const lining = zeppelinDamageGroupCells(enemy, 'innerLining');
+    const total = state.innerLiningTotal ?? Math.max(1, lining.length);
+    const destroyed = lining.filter((cell) => cell.state?.destroyed).length;
     if (destroyed / Math.max(1, total) > 0.33) {
       state.meltdownTimer = 3.2;
       state.meltdownSoundTimer = 0;
@@ -2732,7 +2733,7 @@ function stepZeppelinMeltdown(game, enemy, dt) {
     state.meltdownSoundTimer = game.rng.range(0.34, 0.62);
   }
   if (game.rng.chance(8 * dt)) {
-    const live = enemy.cells.filter((cell) => !cell.state?.destroyed && (cell.role === 'innerLining' || cell.role === 'zeppelinHull'));
+    const live = zeppelinLiveShellCells(enemy);
     const cell = live[Math.floor(game.rng.range(0, live.length))];
     if (cell) {
       const local = { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE };
@@ -2760,6 +2761,29 @@ function stepZeppelinMeltdown(game, enemy, dt) {
   enemy.destroyed = true;
   explodeEnemy(game, enemy);
   return true;
+}
+
+function zeppelinDamageGroupCells(enemy, groupId) {
+  const cells = enemy.damageGroups?.[groupId];
+  if (Array.isArray(cells)) return cells;
+  return (enemy.cells ?? []).filter((cell) => (
+    cell.role === groupId ||
+    cell.damageGroup === groupId ||
+    (Array.isArray(cell.damageGroups) && cell.damageGroups.includes(groupId))
+  ));
+}
+
+function zeppelinLiveShellCells(enemy) {
+  const cells = [
+    ...zeppelinDamageGroupCells(enemy, 'innerLining'),
+    ...zeppelinDamageGroupCells(enemy, 'zeppelinHull'),
+  ];
+  const unique = new Set();
+  return cells.filter((cell) => {
+    if (!cell || cell.state?.destroyed || unique.has(cell.id)) return false;
+    unique.add(cell.id);
+    return true;
+  });
 }
 
 function updateEnemyVisualHeading(enemy, dt) {

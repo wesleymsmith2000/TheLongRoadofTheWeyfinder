@@ -204,6 +204,30 @@ Grid adjacency is not structural truth. Structural connectivity is defined by ex
 
 Constructs may also include optional `presentation.sprite` metadata for renderer overlays and editor previews. Runtime damage, connectivity, hit checks, and repair continue to use `cells` and `connections`; sprites are presentation only and should always fall back to voxel rendering.
 
+Constructs may include optional runtime metadata for structural distance and marked damage regions:
+
+```json
+{
+  "damageGroups": {
+    "innerLining": ["lining-a", "lining-b"],
+    "punctureCritical": ["lining-a", "lining-b"]
+  },
+  "topology": {
+    "schemaVersion": "0.1",
+    "coreDistanceByCellId": {
+      "core-a": 0,
+      "lining-a": 1,
+      "outer-hull-a": 2
+    },
+    "damageGroups": {
+      "interiorShell": ["lining-a", "lining-b"]
+    }
+  }
+}
+```
+
+`coreDistanceByCellId` is optional; runtime computes it with breadth-first search over explicit structural connections when it is missing or when a scaled enemy expands authored cells into multiple runtime cells. Damage groups may also be placed on individual cells with `damageGroup` or `damageGroups`. Cell `role` values automatically become runtime damage groups, so `role: "innerLining"` remains enough for zeppelin puncture checks.
+
 Constructs may include optional pose rig metadata for linked cell-group animation:
 
 ```json

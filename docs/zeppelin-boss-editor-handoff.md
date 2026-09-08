@@ -1,6 +1,6 @@
 # Zeppelin Boss Editor Handoff
 
-Runtime version target: `v1.0.8.8`
+Runtime version target: `v1.0.8.22`
 
 ## Runtime Status
 
@@ -16,7 +16,7 @@ Preserve these runtime-facing ids and roles:
 - `archetypeId`: propose `boss.zeppelin.prototype0` or an archetype that aliases to it
 - Core: one or more connected undercarriage core cells with role `zeppelinCore`
 - Hull: football/zeppelin silhouette, hollow interior, 2-cell-thick walls
-- Inner lining: hull cells on the interior surface should use role `innerLining`
+- Inner lining: hull cells on the interior surface should use role `innerLining`, or include those cells in a `damageGroups.innerLining` list
 - Outer hull: exterior armor cells should use role `zeppelinHull`
 - Cannons: three gun cells or grouped gun assemblies with role `zeppelinCannon`
 - Cannon locations: port underside, starboard underside, forward underside/nose
@@ -34,8 +34,9 @@ The current scale target is roughly:
 The runtime behavior scans roles instead of hard-coded cell ids where possible:
 
 - `zeppelinCannon`: used as ATS rocket and ground laser sources
-- `innerLining`: if more than 10% of these cells are destroyed, the boss enters internal meltdown
+- `innerLining`: if more than 33% of these cells are destroyed, the boss enters internal meltdown
 - `zeppelinCore`: undercarriage core placement for player-readable weak point
+- Optional `topology.coreDistanceByCellId`: runtime can consume a prebaked BFS distance map from core cells, keyed by authored cell id. If omitted, runtime computes this from explicit structural connections.
 
 The provisional boss is airborne. Ground-fire projectiles cannot damage it unless `harpoonField` is active; arc weapons can still hit it.
 
@@ -48,7 +49,7 @@ The provisional boss is airborne. Ground-fire projectiles cannot damage it unles
 - Warning marker: shown for the ATS locked impact point during the ground-launch phase
 - Ground lasers: cannons fire octopus-boss-strength red ground beams
 - Walker drops: every fifth strafe, the boss drops the zone walker if fewer than 5 walkers are active
-- Meltdown: destroying more than 10% of the `innerLining` triggers internal explosions, then a large burst
+- Meltdown: destroying more than 33% of the `innerLining` group triggers internal explosions, then a large burst
 
 ## Editor Follow-Up
 

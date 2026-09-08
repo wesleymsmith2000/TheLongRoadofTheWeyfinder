@@ -50,3 +50,44 @@ export function connectedFromCore(cells, connections) {
   }
   return connected;
 }
+
+export function coreDistanceMap(cells, connections, options = {}) {
+  const includeDestroyed = options.includeDestroyed ?? true;
+  const cellsById = new Map();
+  for (const cell of cells ?? []) {
+    if (!cell?.id) continue;
+    if (!includeDestroyed && cell.state?.destroyed) continue;
+    cellsById.set(cell.id, cell);
+  }
+
+  const distances = new Map();
+  const queue = [];
+  for (const cell of cellsById.values()) {
+    if (cell.type !== 'core') continue;
+    distances.set(cell.id, 0);
+    queue.push(cell.id);
+  }
+
+  if (queue.length === 0) return distances;
+  const neighborsById = new Map();
+  for (const id of cellsById.keys()) neighborsById.set(id, []);
+  for (const edge of connections ?? []) {
+    if (!edge || edge.type !== 'structural') continue;
+    if (edge.valid === false && !includeDestroyed) continue;
+    if (!cellsById.has(edge.a) || !cellsById.has(edge.b)) continue;
+    neighborsById.get(edge.a).push(edge.b);
+    neighborsById.get(edge.b).push(edge.a);
+  }
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const id = queue[index];
+    const nextDistance = distances.get(id) + 1;
+    for (const neighbor of neighborsById.get(id) ?? []) {
+      if (distances.has(neighbor)) continue;
+      distances.set(neighbor, nextDistance);
+      queue.push(neighbor);
+    }
+  }
+
+  return distances;
+}

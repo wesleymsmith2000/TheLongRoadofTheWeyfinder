@@ -120,6 +120,53 @@ test('construct validation accepts adjacent explicitly connected multi-cell core
   assert.deepEqual(report.errors, []);
 });
 
+test('construct instantiation annotates topology and damage groups for runtime scans', () => {
+  const definition = {
+    ...startingVehicleDefinition,
+    cells: [
+      { id: 'core-a', type: 'core', gridX: 0, gridY: 0 },
+      { id: 'core-b', type: 'core', gridX: 1, gridY: 0 },
+      { id: 'lining', type: 'armor', gridX: 2, gridY: 0, role: 'innerLining' },
+      { id: 'outer', type: 'armor', gridX: 3, gridY: 0, damageGroups: ['outerShell'] },
+    ],
+    connections: [
+      { a: 'core-a', b: 'core-b', aSide: 'right', bSide: 'left' },
+      { a: 'core-b', b: 'lining', aSide: 'right', bSide: 'left' },
+      { a: 'lining', b: 'outer', aSide: 'right', bSide: 'left' },
+    ],
+    damageGroups: {
+      punctureCritical: ['lining'],
+    },
+    topology: {
+      coreDistanceByCellId: {
+        'core-a': 0,
+        'core-b': 0,
+        lining: 1,
+        outer: 2,
+      },
+    },
+  };
+
+  const construct = instantiateConstruct(definition);
+
+  assert.equal(construct.cells.find((cell) => cell.id === 'outer').topology.coreDistance, 2);
+  assert.deepEqual(construct.damageGroupCellIds.innerLining, ['lining']);
+  assert.deepEqual(construct.damageGroupCellIds.outerShell, ['outer']);
+  assert.deepEqual(construct.damageGroupCellIds.punctureCritical, ['lining']);
+});
+
+test('construct validation rejects explicit damage groups with unknown cells', () => {
+  const report = validateConstructDefinition({
+    ...startingVehicleDefinition,
+    damageGroups: {
+      broken: ['missing-cell'],
+    },
+  });
+
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('damageGroups.broken references unknown cell "missing-cell"')), true);
+});
+
 test('construct validation rejects multi-core clusters without adjacency and explicit core links', () => {
   const report = validateConstructDefinition({
     ...startingVehicleDefinition,

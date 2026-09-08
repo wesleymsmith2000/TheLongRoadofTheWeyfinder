@@ -1279,7 +1279,8 @@ test('zeppelin internal destruction waits until one third of lining is punctured
   boss.zeppelin.harpoonSpawnTimer = 99;
   game.enemies = [boss];
   game.enemySpawnQueue = [];
-  const lining = boss.cells.filter((cell) => cell.role === 'innerLining');
+  const lining = boss.damageGroups.innerLining;
+  assert.equal(lining.length, boss.zeppelin.innerLiningTotal);
   const destroyCount = Math.floor(lining.length * 0.33);
 
   for (const cell of lining.slice(0, destroyCount)) {
