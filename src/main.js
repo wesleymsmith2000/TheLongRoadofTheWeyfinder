@@ -32,6 +32,7 @@ import {
 } from './core/localContentLibrary.js';
 import { ACHIEVEMENT_DEFINITIONS, achievementRewardText, achievementStatsFromGame, awardAchievements } from './core/achievements.js';
 import { consumeSoundEvents, SOUND_EVENTS } from './core/soundEvents.js';
+import { MUSIC_LAYERS, consumeProceduralMusicCue } from './core/proceduralMusic.js';
 import {
   SHOP_COSTS,
   ammoCapacityWithUpgrades,
@@ -135,6 +136,13 @@ const MUSIC_URLS = {
   TwilightCrossroads: twilightCrossroadsMusic,
   TwilightCrossroads_BossFight: twilightCrossroadsBossMusic,
 };
+
+const MUSIC_LAYER_URLS = {
+  // Future stem/cue loops go here by base track:
+  // TheWeyfindersRoad_1: { attention: attentionStemUrl, suspicion: suspicionStemUrl }
+};
+const BASE_MUSIC_VOLUME = 0.42;
+const LAYER_MUSIC_VOLUME = 0.26;
 
 const SOUND_URLS = {
   [SOUND_EVENTS.PLAYER_MAIN_GUN]: buttonChirpSound,
@@ -309,8 +317,10 @@ let titleActive = true;
 let activeMusicTrack = null;
 const musicAudio = new Audio();
 musicAudio.loop = true;
-musicAudio.volume = 0.42;
+musicAudio.volume = BASE_MUSIC_VOLUME;
 const soundPlayers = new Map();
+const musicLayerPlayers = new Map();
+let lastProceduralMusicCue = null;
 const lastSoundPlayedAt = new Map();
 const SOUND_MIN_INTERVAL_MS = new Map([
   [SOUND_EVENTS.ENEMY_BULLET, 55],
@@ -341,6 +351,7 @@ if (buildVersionTag) buildVersionTag.textContent = BUILD_VERSION;
 if (titleVersionTag) titleVersionTag.textContent = BUILD_VERSION;
 exposeLocalContentModuleApi();
 exposeSandboxApi();
+exposeProceduralMusicApi();
 populateUpgradeSelect();
 populateSandboxEnemySelect();
 syncSandboxScript(loadSandboxDefinition());
@@ -904,10 +915,14 @@ function syncVictoryBanner() {
 }
 
 function syncMusic(forcePlay = false) {
-  const trackName = game.currentMusic;
+  const musicPlan = game.music ?? { baseTrack: game.currentMusic, layerVolumes: {} };
+  const cue = consumeProceduralMusicCue(game.music);
+  if (cue) lastProceduralMusicCue = cue;
+  const trackName = musicPlan.baseTrack ?? game.currentMusic;
   const src = MUSIC_URLS[trackName];
   if (!src || awaitingLaunch || game.gameOver || game.levelComplete || game.paused) {
     musicAudio.pause();
+    pauseMusicLayers();
     return;
   }
   if (trackName !== activeMusicTrack) {
@@ -915,7 +930,48 @@ function syncMusic(forcePlay = false) {
     musicAudio.src = src;
     musicAudio.currentTime = 0;
   }
+  musicAudio.volume = BASE_MUSIC_VOLUME * (0.86 + (musicPlan.layerVolumes?.travel ?? 1) * 0.14);
   if (forcePlay || musicAudio.paused) musicAudio.play().catch(() => {});
+  syncMusicLayers(trackName, musicPlan, forcePlay);
+}
+
+function syncMusicLayers(trackName, musicPlan, forcePlay = false) {
+  const urls = MUSIC_LAYER_URLS[trackName] ?? {};
+  for (const layer of Object.values(MUSIC_LAYERS)) {
+    const player = musicLayerPlayerFor(trackName, layer, urls[layer]);
+    if (!player) continue;
+    const targetVolume = (musicPlan.layerVolumes?.[layer] ?? 0) * LAYER_MUSIC_VOLUME;
+    player.volume = targetVolume;
+    if (targetVolume <= 0.004) {
+      player.pause();
+      continue;
+    }
+    if (forcePlay || player.paused) player.play().catch(() => {});
+  }
+}
+
+function pauseMusicLayers() {
+  for (const player of musicLayerPlayers.values()) player.pause();
+}
+
+function musicLayerPlayerFor(trackName, layer, src) {
+  if (!src) return null;
+  const key = `${trackName}:${layer}`;
+  if (!musicLayerPlayers.has(key)) {
+    const audio = new Audio(src);
+    audio.loop = true;
+    audio.volume = 0;
+    audio.preload = 'auto';
+    musicLayerPlayers.set(key, audio);
+  }
+  const player = musicLayerPlayers.get(key);
+  if (player.src !== src) {
+    player.src = src;
+    player.currentTime = musicAudio.currentTime;
+  } else if (Math.abs(player.currentTime - musicAudio.currentTime) > 0.18) {
+    player.currentTime = musicAudio.currentTime;
+  }
+  return player;
 }
 
 function playSoundEvents(game, now = performance.now()) {
@@ -1172,6 +1228,20 @@ function exposeSandboxApi() {
     stop: stopSandbox,
     current() {
       return game.sandbox?.definition ? structuredClone(game.sandbox.definition) : null;
+    },
+  });
+}
+
+function exposeProceduralMusicApi() {
+  window.WeyfinderMusic = Object.freeze({
+    snapshot() {
+      return structuredClone(game.music ?? {});
+    },
+    lastCue() {
+      return lastProceduralMusicCue ? structuredClone(lastProceduralMusicCue) : null;
+    },
+    layerAssets() {
+      return structuredClone(MUSIC_LAYER_URLS);
     },
   });
 }

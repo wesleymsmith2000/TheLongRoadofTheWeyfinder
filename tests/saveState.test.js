@@ -14,6 +14,8 @@ test('save states restore run progression and verify checksum', () => {
   game.score.damageDone = 1234;
   game.targetingAi.xp = 37;
   game.targetingAi.lastLevelXp = 8;
+  game.music.semanticState = 'SUSPICION';
+  game.music.layerVolumes.suspicion = 0.5;
   const save = createSaveState(game, account, { savedAt: '2026-08-31T00:00:00.000Z' });
 
   const report = validateSaveState(save);
@@ -29,6 +31,8 @@ test('save states restore run progression and verify checksum', () => {
   assert.equal(restored.score.damageDone, 1234);
   assert.equal(restored.targetingAi.xp, 37);
   assert.equal(restored.targetingAi.lastLevelXp, 8);
+  assert.equal(restored.music.semanticState, 'SUSPICION');
+  assert.equal(restored.music.layerVolumes.suspicion, 0.5);
   assert.equal(restored.paused, true);
 });
 

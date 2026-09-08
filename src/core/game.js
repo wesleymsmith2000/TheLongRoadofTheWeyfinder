@@ -60,6 +60,7 @@ import { getEnemyArchetype, listEnemyArchetypes } from './enemyArchetypeDefiniti
 import { createTerrainGenerator } from './terrainGenerator.js';
 import { sampleTerrain } from './terrainQuery.js';
 import { createTerrainState, updateTerrainStreaming } from './terrainStreaming.js';
+import { createProceduralMusicState, setProceduralMusicBaseTrack, stepProceduralMusic } from './proceduralMusic.js';
 import { normalizeGunLoadouts } from './weaponLoadout.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, validateSandboxDefinition } from './sandboxMode.js';
@@ -248,10 +249,12 @@ export function createGame(seed = 1147, options = {}) {
     ? createSandboxEnemySchedule(road, sandboxDefinition, rng, options)
     : createLevelEnemySchedule(road, startLevel, levelMusic, rng);
   const initialSpawns = dequeueReadySpawns(enemySpawnQueue, 0);
+  const currentMusic = sandboxDefinition ? options.music ?? 'Sandbox' : musicForLevel(startLevel, levelMusic);
   return {
     rng,
     levelMusic,
-    currentMusic: sandboxDefinition ? options.music ?? 'Sandbox' : musicForLevel(startLevel, levelMusic),
+    currentMusic,
+    music: createProceduralMusicState({ baseTrack: currentMusic }),
     vehicleDefinition,
     vehicle,
     road,
@@ -308,6 +311,7 @@ export function stepGame(game, input, dt) {
   if (input.targetCycle) cycleGuidedTarget(game, input.targetCycle);
   if (game.paused) {
     stepPausedGame(game, input, dt);
+    stepProceduralMusic(game, dt);
     return game;
   }
   game.time += dt;
@@ -326,6 +330,7 @@ export function stepGame(game, input, dt) {
     game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
     stepSmokeParticles(game, dt);
     stepRoadCamera(game.camera, game.road, game.vehicle, dt);
+    stepProceduralMusic(game, dt);
     return game;
   }
   if (input.fireTogglePressed) game.autofire = !game.autofire;
@@ -382,6 +387,7 @@ export function stepGame(game, input, dt) {
   const arenaClear = shouldCompleteRun(game) && activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0;
   stepVictoryBanner(game, arenaClear, dt);
   if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
+  stepProceduralMusic(game, dt);
   return game;
 }
 
@@ -434,6 +440,7 @@ export function startNextLevel(game) {
   game.levelStartTime = game.time;
   game.sandbox = null;
   game.currentMusic = musicForLevel(game.level, game.levelMusic);
+  setProceduralMusicBaseTrack(game.music, game.currentMusic);
   game.enemySpawnQueue = createLevelEnemySchedule(game.road, game.level, game.levelMusic, game.rng);
   game.enemies = dequeueReadySpawns(game.enemySpawnQueue, 0);
   game.incomingMarkers = [];
@@ -454,6 +461,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.sandbox = createSandboxRuntimeState(sandboxDefinition, report.warnings, options.enemyArchetypes);
   game.level = sandboxDefinition.level;
   game.currentMusic = options.music ?? 'Sandbox';
+  game.music = createProceduralMusicState({ baseTrack: game.currentMusic });
   game.levelComplete = false;
   game.levelTime = 0;
   game.levelStartTime = game.time;

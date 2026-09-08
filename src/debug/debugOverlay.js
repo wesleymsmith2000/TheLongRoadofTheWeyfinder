@@ -28,6 +28,7 @@ export function drawDebugOverlay(ctx, game) {
     `detached ${vehicle.detachedPieces.length + vehicle.cells.filter((cell) => !cell.attached).length}`,
     `autofire ${game.autofire ? 'on' : 'off'}`,
     `secondary ${game.secondary.selected} ${game.secondary.ammo[game.secondary.selected] ?? '-'} heat ${game.secondary.heat.toFixed(0)}`,
+    game.music ? `music ${game.music.semanticState} t:${formatLayer(game.music.layerVolumes?.travel)} a:${formatLayer(game.music.layerVolumes?.attention)} s:${formatLayer(game.music.layerVolumes?.suspicion)} m:${formatLayer(game.music.layerVolumes?.manifestation)}` : '',
     `damage ${game.score.damageDone}`,
     `level ${game.level} enemies ${game.enemies.filter((enemy) => !enemy.destroyed).length}`,
     ...performanceLines(game.performance),
@@ -66,4 +67,8 @@ function performanceLines(performance) {
 
 function formatMs(value = 0) {
   return `${value.toFixed(1)}ms`;
+}
+
+function formatLayer(value = 0) {
+  return value.toFixed(2);
 }

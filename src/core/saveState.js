@@ -20,6 +20,7 @@ export function createSaveState(game, playerAccount, options = {}) {
     score: structuredClone(game.score ?? {}),
     targetingMode: game.targetingMode ?? 'mixed',
     targetingAi: structuredClone(game.targetingAi ?? {}),
+    music: structuredClone(game.music ?? {}),
   };
   return signSavePayload(payload);
 }
@@ -68,6 +69,7 @@ export function applySaveStateToGame(game, saveState) {
   game.score = isPlainObject(payload.score) ? structuredClone(payload.score) : game.score;
   game.targetingMode = typeof payload.targetingMode === 'string' ? payload.targetingMode : game.targetingMode;
   if (isPlainObject(payload.targetingAi)) game.targetingAi = structuredClone(payload.targetingAi);
+  if (isPlainObject(payload.music)) game.music = structuredClone(payload.music);
   game.levelComplete = false;
   game.gameOver = false;
   game.paused = true;
