@@ -136,6 +136,10 @@ const ZEPPELIN_GROUND_LASER_SEQUENCE_COOLDOWN = 15;
 const ZEPPELIN_GROUND_LASER_LENGTH = CELL_SIZE * 54;
 const BOSS_INTERNAL_DESTRUCTION_SECONDS = 3.2;
 const OCTOPUS_ARM_PHASE_SECONDS = 2;
+const OCTOPUS_ARM_ANGER_SECONDS = 1.6;
+const OCTOPUS_NAKED_PANIC_SECONDS = 10;
+const OCTOPUS_RETREAT_SPEED = 118;
+const OCTOPUS_RETREAT_EXIT_MARGIN = CELL_SIZE * 12;
 const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 1;
 const WALKER_SWEEP_BEAM_CHARGE_SECONDS = 1.35;
 const WALKER_SWEEP_BEAM_FIRE_SECONDS = 4;
@@ -146,6 +150,10 @@ const WALKER_STA_GRAVITY = 330;
 const WALKER_STA_VERTICAL_VELOCITY = 245;
 const WALKER_STA_DIRECT_DESCENT_SECONDS = 0.78;
 const WALKER_STA_BLAST_RADIUS = CELL_SIZE * 4.5;
+const WALKER_FALL_ANIMATION_SECONDS = 1.25;
+const WALKER_FALL_HANG_SECONDS = 0.34;
+const WALKER_FALL_IMPACT_PROGRESS = 0.82;
+const WALKER_FALL_ANGER_SECONDS = 2.4;
 const WALKER_STA_MISSILE_SPRITE = {
   ...staMissileDefinition.projectile.sprite,
   tint: '#801a28',
@@ -1616,6 +1624,11 @@ function stepEnemy(game, enemy, dt) {
     stepDizzyEnemy(enemy, dt);
     return;
   }
+  if (enemy.walkerFallAnimation) {
+    stepWalkerFallAnimation(game, enemy, dt);
+    return;
+  }
+  enemy.walkerAngerTimer = Math.max(0, (enemy.walkerAngerTimer ?? 0) - dt);
   if (enemy.kind !== 'zeppelinBoss') steerEnemyBackToLaneCenter(enemy, game.road, dt);
   stepArchetypeEnemy(game, enemy, dt);
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
@@ -2855,6 +2868,11 @@ function stepBossEnemy(game, boss, dt) {
     }
     return;
   }
+  if (boss.octopusRetreat) {
+    stepOctopusRetreat(game, boss, dt);
+    return;
+  }
+  boss.bossAngerTimer = Math.max(0, (boss.bossAngerTimer ?? 0) - dt);
   boss.phasedOut = false;
   boss.renderAlpha = 1;
   updateBossArmUnfurl(game, boss, dt);
@@ -2865,6 +2883,54 @@ function stepBossEnemy(game, boss, dt) {
     fireBossCenterPulse(game, boss);
     boss.centerPulseTimer = 6.8;
   }
+}
+
+function stepOctopusRetreat(game, boss, dt) {
+  const state = boss.octopusRetreat;
+  if (!state) return;
+  boss.phasedOut = false;
+  boss.centerPulseTimer = Math.max(boss.centerPulseTimer ?? 0, 1);
+  boss.bossAngerTimer = 0;
+  if (state.phase === 'panic') {
+    state.timer = Math.max(0, state.timer - dt);
+    const pulse = Math.sin(game.time * 9) * 0.5 + 0.5;
+    boss.renderAlpha = 0.82 + pulse * 0.18;
+    boss.vx *= Math.pow(0.06, dt);
+    boss.vy *= Math.pow(0.06, dt);
+    boss.x += boss.vx * dt;
+    boss.y += boss.vy * dt;
+    if (state.timer > 0) return;
+    const offset = worldToRoadOffset(boss, game.road);
+    state.phase = 'retreat';
+    state.targetOffset = {
+      x: clamp(offset.x, -game.road.halfWidth * 0.5, game.road.halfWidth * 0.5),
+      y: -game.road.halfHeight - OCTOPUS_RETREAT_EXIT_MARGIN,
+    };
+    spawnBlackSmokeCloud(game, boss, 62);
+    emitRandomBossInternalExplosionSound(game);
+    return;
+  }
+
+  boss.renderAlpha = 0.58 + (Math.sin(game.time * 18) * 0.5 + 0.5) * 0.28;
+  const target = roadOffsetToWorld(state.targetOffset, game.road);
+  const direction = directionFromTo(boss, target);
+  const desiredSpeed = OCTOPUS_RETREAT_SPEED * enemyMovementUpgradeScale(boss);
+  const steer = clamp(2.6 * dt, 0, 1);
+  boss.vx += (direction.x * desiredSpeed - boss.vx) * steer;
+  boss.vy += (direction.y * desiredSpeed - boss.vy) * steer;
+  boss.x += boss.vx * dt;
+  boss.y += boss.vy * dt;
+  boss.vx *= Math.pow(0.86, dt);
+  boss.vy *= Math.pow(0.86, dt);
+  if (game.rng.chance(11 * dt)) spawnBlackSmokeCloud(game, boss, 3);
+
+  const offset = worldToRoadOffset(boss, game.road);
+  if (offset.y > -game.road.halfHeight - OCTOPUS_RETREAT_EXIT_MARGIN * 0.85) return;
+  boss.destroyed = true;
+  boss.escaped = true;
+  boss.renderAlpha = 0;
+  boss.internalDestructionComplete = true;
+  recordEnemyDefeat(game.score, boss);
 }
 
 function updateBossArmUnfurl(game, boss, dt) {
@@ -3086,13 +3152,32 @@ function detonateBrokenBossArm(game, boss, arm) {
       }
     }
   }
+  boss.bossAngerTimer = OCTOPUS_ARM_ANGER_SECONDS;
   updateEnemyDestroyedAfterArmLoss(game, boss);
   return true;
 }
 
 function updateEnemyDestroyedAfterArmLoss(game, boss) {
   const liveCore = boss.cells.some((cell) => cell.id.startsWith('core-') && !cell.state.destroyed);
-  if (!liveCore) startBossInternalDestruction(game, boss);
+  if (!liveCore) {
+    startBossInternalDestruction(game, boss);
+    return;
+  }
+  const allArmsLost = (boss.arms ?? []).length > 0 && boss.arms.every((arm) => arm.detonated);
+  if (allArmsLost) startOctopusNakedRetreat(game, boss);
+}
+
+function startOctopusNakedRetreat(game, boss) {
+  if (boss.octopusRetreat || boss.destroyed || boss.internalDestruction) return;
+  boss.octopusRetreat = {
+    phase: 'panic',
+    timer: OCTOPUS_NAKED_PANIC_SECONDS,
+    duration: OCTOPUS_NAKED_PANIC_SECONDS,
+  };
+  boss.bossAngerTimer = 0;
+  boss.centerPulseTimer = Math.max(boss.centerPulseTimer ?? 0, OCTOPUS_NAKED_PANIC_SECONDS + 1);
+  boss.vx *= 0.08;
+  boss.vy *= 0.08;
 }
 
 function spawnBossArmPartialScrap(game, boss, cells) {
@@ -4574,9 +4659,123 @@ function handleBoostExhaustDamage(game) {
 function collectEnemyDetachScrapEvents(game) {
   for (const enemy of game.enemies) {
     for (const event of drainEnemyDetachEvents(enemy)) {
+      if (event.reason === 'walker fall') startWalkerFallAnimation(game, enemy, event);
       spawnDetachedSupportScrap(game, enemy, event);
     }
   }
+}
+
+function startWalkerFallAnimation(game, enemy, event) {
+  if (enemy.walkerFallAnimation || !isWalkerEnemy(enemy)) return;
+  const bodyHeight = Math.max(1, event.gridZ ?? walkerRuntime(enemy).lowestBodyLayer ?? 1);
+  const driftAngle = Math.atan2(enemy.vy ?? 0, enemy.vx ?? 0);
+  const fallbackAngle = Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+  const angle = Math.hypot(enemy.vx ?? 0, enemy.vy ?? 0) > 5 ? driftAngle : fallbackAngle;
+  const side = game.rng.chance(0.5) ? 1 : -1;
+  enemy.walkerFallAnimation = {
+    timer: WALKER_FALL_ANIMATION_SECONDS,
+    duration: WALKER_FALL_ANIMATION_SECONDS,
+    hangSeconds: WALKER_FALL_HANG_SECONDS,
+    impactProgress: WALKER_FALL_IMPACT_PROGRESS,
+    startLift: bodyHeight * CELL_LAYER_HEIGHT * (enemy.visualScale ?? 1),
+    tiltAngle: side * game.rng.range(0.42, 0.62),
+    fallAngle: angle + side * Math.PI / 2,
+    blastTimer: 0,
+    soundTimer: 0,
+    impacted: false,
+  };
+  enemy.walkerSweepWarning = null;
+  enemy.walkerStaCooldown = Math.max(enemy.walkerStaCooldown ?? 0, WALKER_FALL_ANIMATION_SECONDS);
+  enemy.walkerBeamCooldown = Math.max(enemy.walkerBeamCooldown ?? 0, WALKER_FALL_ANIMATION_SECONDS);
+  enemy.walkerGroundedSpiralCooldown = Math.max(enemy.walkerGroundedSpiralCooldown ?? 0, WALKER_FALL_ANIMATION_SECONDS);
+  enemy.walkerRepulsorCooldown = Math.max(enemy.walkerRepulsorCooldown ?? 0, WALKER_FALL_ANIMATION_SECONDS);
+  emitRandomBossInternalExplosionSound(game);
+}
+
+function stepWalkerFallAnimation(game, enemy, dt) {
+  const state = enemy.walkerFallAnimation;
+  if (!state) return;
+  state.timer = Math.max(0, state.timer - dt);
+  const elapsed = state.duration - state.timer;
+  const fallTime = Math.max(0.001, state.duration - state.hangSeconds);
+  const fallProgress = clamp((elapsed - state.hangSeconds) / fallTime, 0, 1);
+  state.progress = fallProgress;
+  enemy.walkerSweepWarning = null;
+  enemy.vx *= Math.pow(0.03, dt);
+  enemy.vy *= Math.pow(0.03, dt);
+  enemy.x += enemy.vx * dt;
+  enemy.y += enemy.vy * dt;
+
+  if (elapsed >= state.hangSeconds) {
+    state.soundTimer -= dt;
+    state.blastTimer -= dt;
+    if (state.soundTimer <= 0 && fallProgress < 0.95) {
+      emitRandomBossInternalExplosionSound(game);
+      state.soundTimer = game.rng.range(0.24, 0.42);
+    }
+    if (state.blastTimer <= 0 && fallProgress < 0.95) {
+      spawnWalkerFallInternalBlastEffect(game, enemy);
+      state.blastTimer = game.rng.range(0.1, 0.18);
+    }
+  }
+
+  if (!state.impacted && fallProgress >= state.impactProgress) {
+    state.impacted = true;
+    spawnWalkerFallImpactEffect(game, enemy, state);
+    addCameraShake(game.camera, 0.42, 0.32);
+    emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
+  }
+
+  updateEnemyCollisionRotation(enemy, game.time);
+  if (state.timer > 0) return;
+  enemy.walkerFallAnimation = null;
+  enemy.walkerAngerTimer = WALKER_FALL_ANGER_SECONDS;
+  enemy.walkerStaCooldown = 0;
+  enemy.walkerBeamCooldown = 0;
+  enemy.walkerGroundedSpiralCooldown = 0;
+  enemy.walkerRepulsorCooldown = 0;
+  for (const pattern of enemy.patterns ?? []) pattern.timer = Math.min(pattern.timer ?? 0, 0);
+}
+
+function spawnWalkerFallInternalBlastEffect(game, enemy) {
+  const body = (enemy.cells ?? []).filter((cell) => !cell.state?.destroyed && (cell.type === 'core' || cell.type === 'gun' || cell.role === 'elevatedBody' || cell.role === 'turretGun'));
+  const source = body.length > 0 ? body : (enemy.cells ?? []).filter((cell) => !cell.state?.destroyed);
+  const cell = source[Math.floor(game.rng.range(0, source.length))];
+  const origin = cell
+    ? enemyLocalToWorldPoint(enemy, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE })
+    : { x: enemy.x, y: enemy.y };
+  game.enemyProjectiles.push(createProjectile(origin.x, origin.y, 0, 0, {
+    team: 'enemy',
+    weapon: 'walker-internal-blast',
+    behavior: 'blast',
+    radius: 1,
+    maxRadius: CELL_SIZE * game.rng.range(1.2, 2.6),
+    damage: 0,
+    impulse: 0,
+    lifetime: 0.12,
+    color: '#ff8f38',
+  }));
+  spawnBlackSmokeCloud(game, origin, 3);
+}
+
+function spawnWalkerFallImpactEffect(game, enemy, state) {
+  const offset = CELL_SIZE * 2.2;
+  const origin = {
+    x: enemy.x + Math.cos(state.fallAngle ?? 0) * offset,
+    y: enemy.y + Math.sin(state.fallAngle ?? 0) * offset,
+  };
+  game.enemyProjectiles.push(createProjectile(origin.x, origin.y, 0, 0, {
+    team: 'enemy',
+    weapon: 'walker-fall-impact',
+    behavior: 'blast',
+    radius: 1,
+    maxRadius: CELL_SIZE * 4.2,
+    damage: 0,
+    impulse: 0,
+    lifetime: 0.22,
+    color: '#d6b06a',
+  }));
+  spawnBlackSmokeCloud(game, origin, 8);
 }
 
 function spawnDetachedSupportScrap(game, enemy, event) {

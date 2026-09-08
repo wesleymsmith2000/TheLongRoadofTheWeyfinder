@@ -341,6 +341,34 @@ test('walkers fall when remaining live legs are only on one side', () => {
   assert.equal(events.some((event) => event.reason === 'walker fall'), true);
 });
 
+test('walker fall events play an internal collapse animation before grounded recovery', () => {
+  const game = createGame();
+  game.autofire = false;
+  const enemy = createEnemy(game.vehicle.x + CELL_SIZE * 8, game.vehicle.y, WALKER_STABILITY_TEST_ENEMY, [], { moduleScale: 1 });
+  enemy.archetypeId = 'twilight_walker.prototype0';
+  destroyTestCells(enemy, ['right-front-low', 'right-rear-low', 'right-front-mid', 'right-rear-mid']);
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+
+  applyEnemyDamage(enemy, createProjectile(enemy.x, enemy.y + CELL_SIZE, 0, 0, { behavior: 'arc', damage: 1, radius: 1, team: 'player' }));
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(Boolean(enemy.walkerFallAnimation), true);
+  assert.equal(enemy.walkerSweepWarning, null);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id.startsWith('boss-internal-explosion')), true);
+
+  let sawFallEffect = false;
+  for (let index = 0; index < 90; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+    sawFallEffect ||= game.enemyProjectiles.some((projectile) => projectile.weapon === 'walker-internal-blast' || projectile.weapon === 'walker-fall-impact');
+  }
+
+  assert.equal(enemy.walkerFallAnimation, null);
+  assert.equal(enemy.walkerAngerTimer > 0, true);
+  assert.equal(enemy.walkerSweepWarning, null);
+  assert.equal(sawFallEffect, true);
+});
+
 test('blast radius includes walker layer height when damaging raised cells', () => {
   const enemy = createEnemy(0, 0, LAYERED_WALKER_ENEMY, [], { moduleScale: 1 });
   enemy.elevation = { z: 0, canBeHitByGroundFire: true, layeredExposure: true };
@@ -885,6 +913,56 @@ test('octopus boss arm destruction drops partial scrap, smoke, and phases out br
   assert.equal(boss.armPhaseOutTimer > 1.8, true);
   assert.equal(game.scrapPickups.length >= Math.floor(remainingLiveVoxels / 4) - 1, true);
   assert.equal(game.smokeParticles.some((particle) => particle.color === '#050506' || particle.color === '#1b1718'), true);
+});
+
+test('octopus boss shows anger after limb loss', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createBossEnemy(game.vehicle.x + 140, game.vehicle.y);
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  const armCells = boss.cells.filter((cell) => cell.id.startsWith('arm-0-'));
+  for (const voxel of armCells[0].mask.flat()) voxel.hp = 0;
+  recalculateCell(armCells[0]);
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(boss.arms[0].detonated, true);
+  assert.equal(boss.bossAngerTimer > 1.4, true);
+  assert.equal(boss.octopusRetreat, undefined);
+});
+
+test('octopus boss can retreat and clear the fight after all limbs are lost', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createBossEnemy(game.vehicle.x + 140, game.vehicle.y);
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+  game.smokeParticles = [];
+  for (const arm of boss.arms) {
+    const cell = boss.cells.find((candidate) => candidate.id.startsWith(`arm-${arm.index}-`));
+    for (const voxel of cell.mask.flat()) voxel.hp = 0;
+    recalculateCell(cell);
+  }
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(Boolean(boss.octopusRetreat), true);
+  assert.equal(boss.octopusRetreat.phase, 'panic');
+  assert.equal(boss.destroyed, false);
+
+  boss.armPhaseOutTimer = 0;
+  boss.octopusRetreat.timer = 0;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.octopusRetreat.phase, 'retreat');
+  assert.equal(game.smokeParticles.length > 0, true);
+
+  for (let index = 0; index < 520 && !boss.destroyed; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(boss.destroyed, true);
+  assert.equal(boss.escaped, true);
+  assert.equal(boss.explosionStart, null);
 });
 
 test('octopus boss core loss starts an internal destruction sequence before final defeat', () => {

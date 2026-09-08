@@ -477,15 +477,17 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
+  const fallVisual = walkerFallVisualState(enemy.walkerFallAnimation);
   if (!enemy.destroyed && ((enemy.elevation?.z ?? 0) > 0 || enemyHasRenderableLayers(enemy))) drawEnemyElevationShadow(ctx, enemy);
-  ctx.translate(0, -projectHeight(enemyBaseElevation(enemy)));
+  ctx.translate(0, -projectHeight(enemyBaseElevation(enemy) + (fallVisual?.lift ?? 0)));
   drawWalkerSweepTelegraph(ctx, enemy, time);
   if (enemy.kind === 'boss') {
     drawBossLaserTelegraphs(ctx, enemy, time);
     drawBossTentacleWiggle(ctx, enemy, time);
   } else {
-    ctx.rotate(enemyRenderRotation(enemy, time));
+    ctx.rotate(enemyRenderRotation(enemy, time) + (fallVisual?.rotation ?? 0));
   }
+  if (fallVisual) ctx.transform(1, fallVisual.skewY, fallVisual.skewX, fallVisual.scaleY, 0, 0);
   const visualScale = enemy.visualScale ?? 1;
   if (visualScale !== 1) ctx.scale(visualScale, visualScale);
   if (diagnostics.simpleBossRender && (enemy.kind === 'boss' || enemy.kind === 'zeppelinBoss')) {
@@ -521,6 +523,9 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}) {
   drawEnemyPresentationOverlay(ctx, enemy, palette, time);
   drawPirateShipFlair(ctx, enemy, palette, time);
   drawDizzySwirl(ctx, enemy, time);
+  drawWalkerFallCue(ctx, enemy, time);
+  drawWalkerAngerCue(ctx, enemy, time);
+  drawBossReactionCue(ctx, enemy, time);
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
   } else if (enemy.kind === 'boss') {
@@ -803,6 +808,105 @@ function drawDizzySwirl(ctx, enemy, time) {
     const y = Math.sin(angle) * CELL_SIZE * 0.34;
     drawStar(ctx, x, y, CELL_SIZE * (0.16 + pulse * 0.05), '#fff1a8');
   }
+  ctx.restore();
+}
+
+function walkerFallVisualState(state) {
+  if (!state) return null;
+  const progress = Math.max(0, Math.min(1, state.progress ?? 0));
+  const eased = easeOutCubic(progress);
+  const hangPulse = progress <= 0 ? 0.04 * Math.sin((state.duration - state.timer) * 34) : 0;
+  const impactSquash = state.impacted ? Math.max(0, 1 - progress) * 0.16 : 0;
+  return {
+    lift: (state.startLift ?? 0) * (1 - eased),
+    rotation: (state.tiltAngle ?? 0) * eased + hangPulse,
+    skewX: Math.sin(state.fallAngle ?? 0) * 0.14 * eased,
+    skewY: Math.cos(state.fallAngle ?? 0) * 0.08 * eased,
+    scaleY: 1 - impactSquash,
+  };
+}
+
+function drawWalkerFallCue(ctx, enemy, time) {
+  const state = enemy.walkerFallAnimation;
+  if (!state || enemy.destroyed) return;
+  const elapsed = state.duration - state.timer;
+  const cueEnd = (state.hangSeconds ?? 0.34) + 0.28;
+  if (elapsed > cueEnd) return;
+  const pulse = Math.sin(time * 18) * 0.5 + 0.5;
+  ctx.save();
+  ctx.globalAlpha *= 0.65 + pulse * 0.25;
+  ctx.font = `${Math.max(14, CELL_SIZE * 1.05)}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgb(0 0 0 / 0.62)';
+  ctx.fillStyle = '#fff1a8';
+  const y = -Math.max(CELL_SIZE * 2.6, enemy.radius * 0.28);
+  ctx.strokeText('?!', 0, y);
+  ctx.fillText('?!', 0, y);
+  ctx.restore();
+}
+
+function drawWalkerAngerCue(ctx, enemy, time) {
+  if ((enemy.walkerAngerTimer ?? 0) <= 0 || enemy.destroyed) return;
+  const pulse = Math.sin(time * 13) * 0.5 + 0.5;
+  ctx.save();
+  ctx.globalAlpha *= Math.min(1, 0.45 + (enemy.walkerAngerTimer ?? 0) * 0.25);
+  ctx.font = `${Math.max(13, CELL_SIZE * (0.75 + pulse * 0.14))}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgb(0 0 0 / 0.65)';
+  ctx.fillStyle = '#ff3b30';
+  const y = -Math.max(CELL_SIZE * 2.8, enemy.radius * 0.3);
+  ctx.strokeText('😡💢', 0, y);
+  ctx.fillText('😡💢', 0, y);
+  ctx.restore();
+}
+
+function drawBossReactionCue(ctx, enemy, time) {
+  if (enemy.kind !== 'boss' || enemy.destroyed) return;
+  if (enemy.octopusRetreat?.phase === 'panic') {
+    drawFloatingCueText(ctx, '?! 😰😳', enemy, time, {
+      color: '#fff1a8',
+      size: 0.88,
+      pulseSpeed: 10,
+      yScale: 0.38,
+    });
+    return;
+  }
+  if (enemy.octopusRetreat?.phase === 'retreat') {
+    drawFloatingCueText(ctx, '💨', enemy, time, {
+      color: '#2b2b2c',
+      size: 0.95,
+      pulseSpeed: 8,
+      yScale: 0.34,
+    });
+    return;
+  }
+  if ((enemy.bossAngerTimer ?? 0) > 0) {
+    drawFloatingCueText(ctx, '😡💢', enemy, time, {
+      color: '#ff3b30',
+      size: 0.82,
+      pulseSpeed: 13,
+      yScale: 0.36,
+    });
+  }
+}
+
+function drawFloatingCueText(ctx, text, enemy, time, options = {}) {
+  const pulse = Math.sin(time * (options.pulseSpeed ?? 10)) * 0.5 + 0.5;
+  ctx.save();
+  ctx.globalAlpha *= options.alpha ?? 0.85;
+  ctx.font = `${Math.max(14, CELL_SIZE * ((options.size ?? 0.8) + pulse * 0.12))}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgb(0 0 0 / 0.68)';
+  ctx.fillStyle = options.color ?? '#fff1a8';
+  const y = -Math.max(CELL_SIZE * 3.2, enemy.radius * (options.yScale ?? 0.36));
+  ctx.strokeText(text, 0, y);
+  ctx.fillText(text, 0, y);
   ctx.restore();
 }
 
