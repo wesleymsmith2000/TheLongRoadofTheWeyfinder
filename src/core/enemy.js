@@ -662,7 +662,8 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
 
 export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   if (enemy.destroyed) return { hit: false, removed: 0, destroyedNow: false };
-  const voxelSize = (CELL_SIZE / VOXELS) * enemyVisualScale(enemy);
+  const scale = enemyVisualScale(enemy);
+  const voxelSize = (CELL_SIZE / VOXELS) * scale;
   const maxDistance = options.maxVoxelDistance ?? 20;
   const closeDistance = options.closeVoxelDistance ?? 5;
   const closePenetration = options.closePenetration ?? 3;
@@ -675,39 +676,44 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   const propagationLoss = options.propagationLoss ?? 0.18;
   const changedCells = new Set();
   const shellDepths = enemyLiveVoxelShellDepths(enemy);
+  const localOrigin = enemyWorldToLocal(enemy, origin);
+  const originZ = origin?.z ?? 0;
+  const blastRadiusWorld = maxDistance * voxelSize;
+  const blastVoxels = enemyBlastVoxelCandidates(enemy, {
+    localOrigin,
+    originZ,
+    scale,
+    voxelSize,
+    maxDistance,
+    blastRadiusWorld,
+    shellDepths,
+    zeppelinGlancingHit,
+  });
+  const hitCells = new Set();
+
+  for (const candidate of blastVoxels) {
+    if (candidate.voxel.hp <= 0) continue;
+    const penetration = blastPenetration(candidate.distanceVoxels, closeDistance, maxDistance, closePenetration, farPenetration);
+    if (candidate.shellDepth > penetration) continue;
+    const falloff = clamp(1 - candidate.distanceVoxels / maxDistance, 0.35, 1);
+    const before = candidate.voxel.hp;
+    const appliedDamage = damage * falloff;
+    candidate.voxel.hp = Math.max(0, candidate.voxel.hp - appliedDamage);
+    hit = true;
+    hitCells.add(candidate.cell);
+    if (before > 0 && candidate.voxel.hp <= 0) {
+      removed += 1;
+      const excess = Math.max(0, appliedDamage - before) * (1 - propagationLoss);
+      const propagated = propagateBlastExcess(candidate, maxDistance, penetration, excess, blastVoxels);
+      removed += propagated.removed;
+      for (const changedCell of propagated.changedCells) changedCells.add(changedCell);
+    }
+  }
 
   for (const cell of enemy.cells) {
     if (cell.state.destroyed) continue;
     if (zeppelinGlancingHit && (cell.type === 'core' || cell.role === 'zeppelinCore')) continue;
-    let cellRemoved = 0;
-    let cellHit = false;
-    for (let vy = 0; vy < VOXELS; vy += 1) {
-      for (let vx = 0; vx < VOXELS; vx += 1) {
-        const voxel = cell.mask[vy][vx];
-        if (voxel.hp <= 0) continue;
-        const world = enemyVoxelWorldCenter3d(enemy, cell, vx, vy);
-        const distanceVoxels = distance3d(world, origin) / voxelSize;
-        if (distanceVoxels > maxDistance) continue;
-        const penetration = blastPenetration(distanceVoxels, closeDistance, maxDistance, closePenetration, farPenetration);
-        if (enemyVoxelShellDepth(shellDepths, cell, vx, vy) > penetration) continue;
-        const falloff = clamp(1 - distanceVoxels / maxDistance, 0.35, 1);
-        const before = voxel.hp;
-        const appliedDamage = damage * falloff;
-        voxel.hp = Math.max(0, voxel.hp - appliedDamage);
-        hit = true;
-        cellHit = true;
-        if (before > 0 && voxel.hp <= 0) {
-          removed += 1;
-          cellRemoved += 1;
-          const excess = Math.max(0, appliedDamage - before) * (1 - propagationLoss);
-          const propagated = propagateBlastExcess(enemy, cell, vx, vy, origin, maxDistance, penetration, excess, shellDepths);
-          removed += propagated.removed;
-          cellRemoved += propagated.removed;
-          for (const changedCell of propagated.changedCells) changedCells.add(changedCell);
-        }
-      }
-    }
-    if (!cellHit && enemyCellIntersectsBlast(enemy, cell, origin, maxDistance * voxelSize)) {
+    if (!hitCells.has(cell) && enemyCellIntersectsBlastLocal(enemy, cell, localOrigin, originZ, blastRadiusWorld)) {
       const fallback = applyEnemyBlastFallback(enemy, cell, origin, {
         damage,
         maxDistance,
@@ -719,16 +725,15 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
       });
       if (fallback.hit) {
         hit = true;
-        cellHit = true;
+        hitCells.add(cell);
         removed += fallback.removed;
-        cellRemoved += fallback.removed;
       }
     }
-    if (cellHit) recalculateCell(cell);
-    if (cellRemoved > 0) enemy.damageTaken += cellRemoved * 3;
   }
 
+  for (const cell of hitCells) recalculateCell(cell);
   for (const cell of changedCells) recalculateCell(cell);
+  enemy.damageTaken += removed * 3;
   const collapse = collapseExposedArmorLayers(enemy);
   if (hit || collapse.removed > 0) invalidateEnemyRuntimeCaches(enemy);
   removed += collapse.removed;
@@ -738,23 +743,61 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   return { hit, removed, destroyedNow: !wasDestroyed && enemy.destroyed };
 }
 
-function propagateBlastExcess(enemy, sourceCell, sourceVx, sourceVy, origin, maxDistance, penetration, initialPower, shellDepths) {
+function enemyBlastVoxelCandidates(enemy, options) {
+  const candidates = [];
+  const unit = CELL_SIZE / VOXELS;
+  for (const cell of enemy.cells) {
+    if (cell.state.destroyed) continue;
+    if (options.zeppelinGlancingHit && (cell.type === 'core' || cell.role === 'zeppelinCore')) continue;
+    if (!enemyCellIntersectsBlastLocal(enemy, cell, options.localOrigin, options.originZ, options.blastRadiusWorld + unit * options.scale)) continue;
+    const z = enemyCellWorldHeight(enemy, cell);
+    const dz = z - options.originZ;
+    const layerDepth = dz * dz;
+    for (let vy = 0; vy < VOXELS; vy += 1) {
+      for (let vx = 0; vx < VOXELS; vx += 1) {
+        const voxel = cell.mask[vy][vx];
+        if (voxel.hp <= 0) continue;
+        const localX = cell.gridX * CELL_SIZE + (vx + 0.5) * unit - CELL_SIZE / 2;
+        const localY = cell.gridY * CELL_SIZE + (vy + 0.5) * unit - CELL_SIZE / 2;
+        const dx = (localX - options.localOrigin.x) * options.scale;
+        const dy = (localY - options.localOrigin.y) * options.scale;
+        const distanceVoxels = Math.sqrt(dx * dx + dy * dy + layerDepth) / options.voxelSize;
+        if (distanceVoxels > options.maxDistance) continue;
+        candidates.push({
+          key: enemyVoxelGridKey(cell, vx, vy),
+          cell,
+          vx,
+          vy,
+          voxel,
+          x: enemy.x + localX * options.scale,
+          y: enemy.y + localY * options.scale,
+          z,
+          shellDepth: enemyVoxelShellDepth(options.shellDepths, cell, vx, vy),
+          distanceVoxels,
+        });
+      }
+    }
+  }
+  return candidates;
+}
+
+function propagateBlastExcess(source, maxDistance, penetration, initialPower, blastVoxels) {
   let power = initialPower;
   let removed = 0;
-  let current = enemyVoxelWorldCenter3d(enemy, sourceCell, sourceVx, sourceVy);
-  const visited = new Set([`${sourceCell.id}:${sourceVx}:${sourceVy}`]);
+  let current = source;
+  const visited = new Set([source.key]);
   const changedCells = new Set();
   while (power > 0.05) {
-    const next = nearestBlastPropagationVoxel(enemy, current, origin, maxDistance, penetration + removed, visited, shellDepths);
+    const next = nearestBlastPropagationVoxel(blastVoxels, current, maxDistance, penetration + removed, visited);
     if (!next) break;
-    visited.add(`${next.cell.id}:${next.vx}:${next.vy}`);
+    visited.add(next.key);
     const before = next.voxel.hp;
     next.voxel.hp = Math.max(0, next.voxel.hp - power);
     changedCells.add(next.cell);
     if (before > 0 && next.voxel.hp <= 0) {
       removed += 1;
       power = Math.max(0, power - before) * 0.82;
-      current = next.world;
+      current = next;
       continue;
     }
     power = 0;
@@ -762,25 +805,15 @@ function propagateBlastExcess(enemy, sourceCell, sourceVx, sourceVy, origin, max
   return { removed, changedCells };
 }
 
-function nearestBlastPropagationVoxel(enemy, from, origin, maxDistance, penetration, visited, shellDepths) {
-  const voxelSize = (CELL_SIZE / VOXELS) * enemyVisualScale(enemy);
+function nearestBlastPropagationVoxel(blastVoxels, from, maxDistance, penetration, visited) {
   let nearest = null;
-  for (const cell of enemy.cells) {
-    if (cell.state.destroyed) continue;
-    for (let vy = 0; vy < VOXELS; vy += 1) {
-      for (let vx = 0; vx < VOXELS; vx += 1) {
-        const key = `${cell.id}:${vx}:${vy}`;
-        if (visited.has(key)) continue;
-        const voxel = cell.mask[vy][vx];
-        if (voxel.hp <= 0) continue;
-        if (enemyVoxelShellDepth(shellDepths, cell, vx, vy) > penetration + 1) continue;
-        const world = enemyVoxelWorldCenter3d(enemy, cell, vx, vy);
-        const originDistance = distance3d(world, origin) / voxelSize;
-        if (originDistance > maxDistance) continue;
-        const stepDistance = distance3d(world, from);
-        if (!nearest || stepDistance < nearest.distance) nearest = { cell, vx, vy, voxel, world, distance: stepDistance };
-      }
-    }
+  for (const candidate of blastVoxels) {
+    if (visited.has(candidate.key)) continue;
+    if (candidate.voxel.hp <= 0) continue;
+    if (candidate.shellDepth > penetration + 1) continue;
+    if (candidate.distanceVoxels > maxDistance) continue;
+    const stepDistance = (candidate.x - from.x) ** 2 + (candidate.y - from.y) ** 2 + (candidate.z - from.z) ** 2;
+    if (!nearest || stepDistance < nearest.distance) nearest = { ...candidate, distance: stepDistance };
   }
   return nearest;
 }
@@ -1031,13 +1064,17 @@ function applyEnemyBlastFallback(enemy, cell, origin, options) {
 function enemyCellIntersectsBlast(enemy, cell, origin, radius) {
   const scale = enemyVisualScale(enemy);
   const { x: localX, y: localY } = enemyWorldToLocal(enemy, origin);
+  return enemyCellIntersectsBlastLocal(enemy, cell, { x: localX, y: localY }, origin?.z ?? 0, radius, scale);
+}
+
+function enemyCellIntersectsBlastLocal(enemy, cell, localOrigin, originZ, radius, scale = enemyVisualScale(enemy)) {
   const minX = cell.gridX * CELL_SIZE - CELL_SIZE / 2;
   const maxX = minX + CELL_SIZE;
   const minY = cell.gridY * CELL_SIZE - CELL_SIZE / 2;
   const maxY = minY + CELL_SIZE;
-  const dx = localX < minX ? minX - localX : localX > maxX ? localX - maxX : 0;
-  const dy = localY < minY ? minY - localY : localY > maxY ? localY - maxY : 0;
-  const dz = enemyCellWorldHeight(enemy, cell) - (origin.z ?? 0);
+  const dx = localOrigin.x < minX ? minX - localOrigin.x : localOrigin.x > maxX ? localOrigin.x - maxX : 0;
+  const dy = localOrigin.y < minY ? minY - localOrigin.y : localOrigin.y > maxY ? localOrigin.y - maxY : 0;
+  const dz = enemyCellWorldHeight(enemy, cell) - originZ;
   return Math.hypot(dx * scale, dy * scale, dz) <= radius;
 }
 
