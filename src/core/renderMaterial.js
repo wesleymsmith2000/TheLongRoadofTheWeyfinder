@@ -136,6 +136,8 @@ export function normalizeRenderMaterial(source = {}, fallback = {}) {
     texture: {
       ...DEFAULT_RENDER_MATERIAL.texture,
       ...texture,
+      type: texture.type === 'atlas' ? 'atlas' : 'procedural',
+      atlasAssetId: typeof texture.atlasAssetId === 'string' ? texture.atlasAssetId : null,
       pattern: normalizeTexturePattern(texture.pattern),
       coordinateMode: normalizeCoordinateMode(texture.coordinateMode),
       scale: finiteOr(texture.scale, DEFAULT_RENDER_MATERIAL.texture.scale),
@@ -425,6 +427,8 @@ function validateTextureFields(texture, label, errors) {
     errors.push(`${label} must be an object when provided.`);
     return;
   }
+  if (texture.type != null && !['procedural', 'atlas'].includes(texture.type)) errors.push(`${label}.type must be procedural or atlas when provided.`);
+  if (texture.atlasAssetId != null && !isNonEmptyString(texture.atlasAssetId)) errors.push(`${label}.atlasAssetId must be a non-empty string when provided.`);
   if (texture.pattern != null && !MATERIAL_TEXTURE_PATTERNS.includes(texture.pattern)) errors.push(`${label}.pattern must be one of: ${MATERIAL_TEXTURE_PATTERNS.join(', ')}.`);
   if (texture.coordinateMode != null && !MATERIAL_TEXTURE_COORDINATE_MODES.includes(texture.coordinateMode)) {
     errors.push(`${label}.coordinateMode must be one of: ${MATERIAL_TEXTURE_COORDINATE_MODES.join(', ')}.`);

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "image.material.texture_atlas_1",
+  "kind": "image",
+  "displayName": "Preliminary Material Texture Atlas 1",
+  "path": "assets/images/texture_atlas_1.png",
+  "nativeSize": [1536, 1024],
+  "tags": ["material", "texture", "atlas", "prototype"]
+}

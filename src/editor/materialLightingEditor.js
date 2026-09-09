@@ -22,6 +22,7 @@ import phosphorTrailGreen from '../../content/materials/phosphor_trail_green.jso
 import steppesDay from '../../content/lighting/steppes_day.json' with { type: 'json' };
 import steppesMoonlight from '../../content/lighting/steppes_moonlight.json' with { type: 'json' };
 import voidDarkness from '../../content/lighting/void_darkness.json' with { type: 'json' };
+import textureAtlasUrl from '../../assets/images/texture_atlas_1.png?url';
 
 const canvas = document.querySelector('#previewCanvas');
 const context = canvas.getContext('2d');
@@ -39,6 +40,8 @@ const fields = Object.fromEntries(
     'displayNameInput',
     'tagsInput',
     'albedoInput',
+    'textureSourceSelect',
+    'textureAtlasInput',
     'texturePatternSelect',
     'textureScaleInput',
     'textureStrengthInput',
@@ -74,6 +77,9 @@ const fields = Object.fromEntries(
 
 let material = normalizeMaterialDefinition(moonlitBeaconMaterial);
 let lighting = normalizeLightingPresetDefinition(steppesDay);
+const textureAtlasImage = new Image();
+textureAtlasImage.src = textureAtlasUrl;
+textureAtlasImage.addEventListener('load', render);
 
 bindBuildVersion();
 populateSelect(fields.materialSelect, materialExamples.map((entry) => [entry.assetId, entry.displayName ?? entry.assetId]));
@@ -124,6 +130,8 @@ function syncMaterialFields() {
   fields.displayNameInput.value = material.displayName;
   fields.tagsInput.value = material.tags.join(', ');
   fields.albedoInput.value = material.render.albedo;
+  fields.textureSourceSelect.value = material.render.texture.type === 'atlas' ? 'atlas' : 'procedural';
+  fields.textureAtlasInput.value = material.render.texture.atlasAssetId ?? 'image.material.texture_atlas_1';
   fields.texturePatternSelect.value = material.render.texture.pattern;
   fields.textureScaleInput.value = material.render.texture.scale;
   fields.textureStrengthInput.value = material.render.texture.strength;
@@ -174,7 +182,8 @@ function materialFromFields() {
     render: {
       albedo: fields.albedoInput.value,
       texture: {
-        type: 'procedural',
+        type: fields.textureSourceSelect.value,
+        atlasAssetId: clean(fields.textureAtlasInput.value) || undefined,
         pattern: fields.texturePatternSelect.value,
         coordinateMode: fields.coordinateModeSelect.value,
         scale: finiteNumber(fields.textureScaleInput.value, 1),
@@ -249,6 +258,7 @@ function drawPreview() {
 
   drawCluster(72, 70, 5, 66);
   drawComparisonStrip(448, 74, 164, 72);
+  drawAtlasSample(448, 340, 164, 92);
   drawHiddenMessage(82, 470, 250, 96);
   drawPhosphorTrail(402, 464, 220, 110);
   drawLabels();
@@ -281,6 +291,13 @@ function drawMicroTexture(px, py, size, cellX, cellY, band, charge) {
   const step = size / 4;
   for (let y = 0; y < 4; y += 1) {
     for (let x = 0; x < 4; x += 1) {
+      if (material.render.texture.type === 'atlas' && textureAtlasImage.complete && textureAtlasImage.naturalWidth > 0) {
+        const sx = positiveModulo(cellX * 17 + x * 29 + material.render.texture.seedOffset, Math.max(1, textureAtlasImage.naturalWidth - 24));
+        const sy = positiveModulo(cellY * 19 + y * 31 + material.render.texture.seedOffset, Math.max(1, textureAtlasImage.naturalHeight - 24));
+        context.globalAlpha = 0.5 * material.render.texture.strength;
+        context.drawImage(textureAtlasImage, sx, sy, 24, 24, px + x * step, py + y * step, step, step);
+        continue;
+      }
       context.fillStyle = previewMaterialColor(material, lighting, {
         x: cellX * 4 + x,
         y: cellY * 4 + y,
@@ -293,6 +310,19 @@ function drawMicroTexture(px, py, size, cellX, cellY, band, charge) {
     }
   }
   context.globalAlpha = 1;
+}
+
+function drawAtlasSample(x, y, width, height) {
+  context.fillStyle = '#050707';
+  context.fillRect(x, y, width, height);
+  if (textureAtlasImage.complete && textureAtlasImage.naturalWidth > 0) {
+    context.globalAlpha = material.render.texture.type === 'atlas' ? 0.92 : 0.36;
+    context.drawImage(textureAtlasImage, 0, 0, textureAtlasImage.naturalWidth, textureAtlasImage.naturalHeight, x, y, width, height);
+    context.globalAlpha = 1;
+  }
+  context.strokeStyle = 'rgb(244 238 228 / 0.18)';
+  context.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+  label(material.render.texture.atlasAssetId ?? 'image.material.texture_atlas_1', x + 8, y + 24);
 }
 
 function drawComparisonStrip(x, y, width, rowHeight) {
@@ -338,6 +368,7 @@ function drawPhosphorTrail(x, y, width, height) {
 function drawLabels() {
   label('5x5 continuous material sample', 72, 50);
   label('reflective vs emissive lighting presets', 448, 50);
+  label('preliminary texture atlas', 448, 322);
   label('hidden message preview', 82, 450);
   label('phosphor trail timeline', 402, 450);
 }
@@ -440,6 +471,10 @@ function parseBands(value) {
 
 function clean(value) {
   return String(value ?? '').trim();
+}
+
+function positiveModulo(value, modulus) {
+  return ((value % modulus) + modulus) % modulus;
 }
 
 function finiteNumber(value, fallback) {

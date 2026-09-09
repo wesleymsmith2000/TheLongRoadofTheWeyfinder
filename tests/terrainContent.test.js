@@ -7,6 +7,7 @@ import coreGroundSetsAtlas from '../content/resources/terrain/atlas.terrain_1_co
 import pathsEdgesTransitionsAtlas from '../content/resources/terrain/atlas.terrain_2_paths_edges_transitions.json' with { type: 'json' };
 import wideRoadsPathsAtlas from '../content/resources/terrain/atlas.terrain_3_wide_roads_paths.json' with { type: 'json' };
 import environmentLandformsWaterAtlas from '../content/resources/terrain/atlas.terrain_4_environment_landforms_water.json' with { type: 'json' };
+import materialTextureAtlas from '../content/resources/materials/image.material.texture_atlas_1.json' with { type: 'json' };
 import ghostForestGroundMaterial from '../content/terrain/materials/ghost_forest_ground.json' with { type: 'json' };
 import ghostForestPathMaterial from '../content/terrain/materials/ghost_forest_path.json' with { type: 'json' };
 import ghostForestSlipperyMossMaterial from '../content/terrain/materials/ghost_forest_slippery_moss.json' with { type: 'json' };
@@ -80,6 +81,12 @@ test('terrain atlas metadata matches source image dimensions and sprite rects', 
   assert.equal(Boolean(pathsEdgesTransitionsAtlas.sprites['ghost_forest.path_turn']), true);
   assert.equal(Boolean(coreGroundSetsAtlas.sprites['ghost_forest.ground_a']), true);
   assert.equal(Boolean(environmentLandformsWaterAtlas.semanticMasks.wet), true);
+});
+
+test('material texture atlas resource metadata matches the preliminary source image', () => {
+  const size = pngSize(path.join(process.cwd(), materialTextureAtlas.path));
+  assert.deepEqual(materialTextureAtlas.nativeSize, [size.width, size.height]);
+  assert.equal(materialTextureAtlas.tags.includes('texture'), true);
 });
 
 test('ghost forest tile render assets resolve to atlas sprite references', () => {

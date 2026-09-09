@@ -242,6 +242,16 @@
               <label>Albedo <input id="albedoInput" type="color" /></label>
               <label>Texture Pattern <select id="texturePatternSelect"></select></label>
             </div>
+            <div class="split">
+              <label>
+                Texture Source
+                <select id="textureSourceSelect">
+                  <option value="procedural">Procedural</option>
+                  <option value="atlas">Atlas Reference</option>
+                </select>
+              </label>
+              <label>Atlas Asset ID <input id="textureAtlasInput" autocomplete="off" /></label>
+            </div>
             <div class="triple">
               <label>Scale <input id="textureScaleInput" type="number" min="0" step="0.01" /></label>
               <label>Strength <input id="textureStrengthInput" type="number" min="0" max="1" step="0.01" /></label>

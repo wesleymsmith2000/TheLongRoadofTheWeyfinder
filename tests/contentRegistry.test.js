@@ -8,6 +8,7 @@ import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' w
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 import trackingFlechetteSprite from '../content/resources/weapons/sprite.weapon.tracking_flechette.json' with { type: 'json' };
 import mortarPlayerShellSprite from '../content/resources/weapons/sprite.weapon.mortar_player_shell.json' with { type: 'json' };
+import materialTextureAtlas from '../content/resources/materials/image.material.texture_atlas_1.json' with { type: 'json' };
 import fateGoldGlitterMaterial from '../content/materials/fate_gold_glitter.json' with { type: 'json' };
 import moonlitBeaconMaterial from '../content/materials/moonlit_beacon_material.json' with { type: 'json' };
 import ghostForestGroundMaterial from '../content/terrain/materials/ghost_forest_ground.json' with { type: 'json' };
@@ -61,6 +62,15 @@ test('content registry accepts weapon image resource descriptors', () => {
   assert.equal(flechette.assetId, 'sprite.weapon.tracking_flechette');
   assert.equal(mortar.path, 'assets/images/weapons/mortar_player_shell.png');
   assert.equal(getAvailableContent(registry, 'image', { tag: 'weapon' }).length, 2);
+});
+
+test('content registry accepts the preliminary material texture atlas image', () => {
+  const registry = createContentRegistry();
+  const atlas = registerContentAsset(registry, 'image', materialTextureAtlas, canonPackManifest.packId);
+
+  assert.equal(atlas.assetId, 'image.material.texture_atlas_1');
+  assert.deepEqual(atlas.nativeSize, [1536, 1024]);
+  assert.equal(getAvailableContent(registry, 'image', { tag: 'texture' }).length, 1);
 });
 
 test('content registry rejects image resources with malformed native sizes', () => {

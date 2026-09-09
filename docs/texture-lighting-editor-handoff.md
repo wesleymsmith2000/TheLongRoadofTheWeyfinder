@@ -96,6 +96,16 @@ content/lighting/steppes_moonlight.json
 content/lighting/void_darkness.json
 ```
 
+Preliminary image atlas resource:
+
+```text
+assetId: image.material.texture_atlas_1
+path: assets/images/texture_atlas_1.png
+nativeSize: 1536 x 1024
+```
+
+This atlas is registered as a content image resource in `canon.prototype0`; runtime sampling still uses procedural material textures in v0.1. The next atlas pass should add material texture frame metadata before any per-cell atlas clipping is attempted.
+
 ## Level Lighting Fields
 
 Levels may define:
