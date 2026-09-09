@@ -19,6 +19,7 @@ Start here:
 - [Creator Suite Local Modules Handoff](./creator-suite-local-modules-handoff.md)
 - [Creator Suite User Guide](./creator-suite-user-guide.md)
 - [Choice Vignette Encounter Editor Handoff](./choice-vignette-encounter-editor-handoff.md)
+- [Texture And Lighting Editor Handoff](./texture-lighting-editor-handoff.md)
 - [Mesh Voxelizer Editor Handoff](./mesh-voxelizer-editor-handoff.md)
 - [Weapon Loadout And Flechette Handoff](./weapon-loadout-and-flechette-handoff.md)
 - [Elevation Enemy And Loadout Editor Handoff](./elevation-enemy-loadout-editor-handoff.md)

@@ -113,6 +113,8 @@ Current manifest asset keys:
 - `statusEffects`
 - `enemyArchetypes`
 - `behaviors`
+- `materials`
+- `lightingPresets`
 - `encounters`
 - `routes`
 - `levels`
@@ -125,7 +127,7 @@ Current manifest asset keys:
 
 Resource entries may be paths to resource JSON files or inline descriptors. Image resource descriptors should include an `assetId` and either `path` or `uri`. Weapon and pattern projectile `sprite.assetId` values should match entries in `assets.images` when the image is packaged with the content pack.
 
-Terrain material and tile entries may also be paths or inline descriptors. Levels can refer to a terrain pack with `terrain.packId`, or to explicit material/tile assets through `terrain.materials` and `terrain.tiles`.
+Material and lighting preset entries may also be paths or inline descriptors. Terrain material and tile entries may also be paths or inline descriptors. Levels can refer to a terrain pack with `terrain.packId`, or to explicit material/tile assets through `terrain.materials` and `terrain.tiles`.
 
 ## Canon And Community
 

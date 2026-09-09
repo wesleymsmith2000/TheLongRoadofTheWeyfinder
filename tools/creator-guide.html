@@ -173,7 +173,7 @@
       <header class="topbar">
         <div class="title">
           <h1>Creator Guide</h1>
-          <p>Practical workflow notes for building constructs, enemies, weapons, patterns, levels, and encounters.</p>
+          <p>Practical workflow notes for building constructs, enemies, weapons, patterns, levels, encounters, and materials.</p>
         </div>
         <div class="actions">
           <span class="build-version" data-build-version></span>
@@ -185,6 +185,7 @@
           <a href="./weapon-pattern-lab.html"><button type="button">Weapons</button></a>
           <a href="./level-editor.html"><button type="button">Levels</button></a>
           <a href="./encounter-editor.html"><button type="button">Encounters</button></a>
+          <a href="./material-lighting-editor.html"><button type="button">Materials</button></a>
         </div>
       </header>
       <section class="content">
@@ -270,6 +271,19 @@
               <li><code>pausePolicy</code> tells runtime whether gameplay continues, traversal holds, or the full loop pauses while choices are active.</li>
               <li>Choices can transition to another state, resolve the encounter, select a route branch, apply immediate effects, and schedule repercussions.</li>
               <li>Level triggers can reference encounter assets with <code>kind: "encounter"</code> and <code>assetRef</code>.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Material Lighting Editor</h2>
+          <div class="body">
+            <ul>
+              <li>Material JSON uses the same <code>render</code> fields consumed by the runtime renderer: albedo, procedural texture, shading, emissive response, fluorescence, phosphorescence, and pseudo-height.</li>
+              <li><code>Texture Source</code> can keep the material procedural or attach the preliminary atlas resource <code>image.material.texture_atlas_1</code> for later renderer sampling.</li>
+              <li>The preview shows a continuous 5x5 sample so grain, weave, scorch, and mottle patterns do not restart on every microvoxel.</li>
+              <li><code>Excitation</code> switches spectral bands for UV, blue, red, and white-light puzzle checks. Fluorescent materials glow only under matching bands.</li>
+              <li><code>Scrub Seconds</code> previews phosphor afterglow decay after a short exposure.</li>
+              <li>Lighting preset JSON can be downloaded separately and referenced by levels or encounter effects such as <code>setLightingPreset</code> and <code>transitionLightingPreset</code>.</li>
             </ul>
           </div>
         </section>

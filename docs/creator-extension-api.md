@@ -53,12 +53,14 @@ Initial content kinds:
 - `statusEffects`: named effect descriptors for hazards, bullets, weapons, biomes, shields, and future module states
 - `enemyArchetypes`: editor-facing enemy model descriptors that bind constructs, patterns, entry behavior, palette, and known runtime factories
 - `behaviors`: declarative movement/targeting/state primitives
+- `materials`: shared visual material definitions with renderer-facing `render` fields
+- `lightingPresets`: reusable environment lighting states for levels, biomes, and encounters
 - `encounters`: choice vignettes, route decisions, in-world interactions, state graphs, and delayed repercussions
 - `routes`: road topology and stage flow
 - `levels`: scenario-level coordination of backgrounds, route turns, obstacles, waves, and triggers
 - `playerAccount`: player-owned unlock and saved-loadout data, provided by the game account/profile layer
 
-`constructs`, `weapons`, `patterns`, `levels`, and `encounters` are partially implemented today. Other kinds are reserved so file layouts and manifests do not need to be redesigned later.
+`constructs`, `weapons`, `patterns`, `levels`, `encounters`, `materials`, and `lightingPresets` are partially implemented today. Other kinds are reserved so file layouts and manifests do not need to be redesigned later.
 `enemyArchetypes` is implemented as a descriptor layer in Prototype 0; some enemy runtime behavior is still code-owned until encounter and behavior assets mature.
 
 ## Metadata
@@ -875,6 +877,78 @@ Current dependency kinds:
 - `voxelModel`
 
 Level triggers currently validate as data only. Runtime event dispatch, voiceover playback, and trigger UX are future work.
+
+## Current Material And Lighting Contract
+
+Shared material and lighting helpers live in:
+
+```text
+src/core/renderMaterial.js
+tools/material-lighting-editor.html
+src/editor/materialLightingEditor.js
+```
+
+Material assets use ordinary content metadata plus a renderer-facing `render` object:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "assetId": "material.moonlit_beacon",
+  "materialId": "moonlit.beacon",
+  "displayName": "Moonlit Beacon Material",
+  "render": {
+    "albedo": "#6fd7ff",
+    "texture": {
+      "type": "procedural",
+      "atlasAssetId": "image.material.texture_atlas_1",
+      "pattern": "diagonal_weave",
+      "coordinateMode": "WORLD_SPACE",
+      "scale": 0.42,
+      "strength": 0.22,
+      "seedOffset": 41
+    },
+    "shading": {
+      "ambient": 0.5,
+      "diffuse": 0.72,
+      "roughness": 0.28,
+      "metallic": 0.05,
+      "reflectivity": 0.48
+    },
+    "emissive": {
+      "color": "#8ff6ff",
+      "intensity": 0.68,
+      "lightRadius": 96
+    },
+    "fluorescence": {
+      "enabled": false,
+      "excitationBands": []
+    },
+    "phosphorescence": {
+      "enabled": false,
+      "excitationBands": []
+    },
+    "pseudoHeight": 2
+  }
+}
+```
+
+Lighting presets are separate assets so levels and encounters can reference semantic lighting states:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "assetId": "lighting.preset.steppes_moonlight",
+  "presetId": "STEPPES_MOONLIGHT",
+  "ambientIntensity": 0.28,
+  "keyLightDirection": { "x": 0.42, "y": -0.9 },
+  "keyLightIntensity": 0.35,
+  "keyLightColor": "#c9d8ff",
+  "darknessOverlay": 0.48,
+  "dynamicLightScale": 1.25
+}
+```
+
+The preliminary atlas resource is `image.material.texture_atlas_1` at `assets/images/texture_atlas_1.png`. Procedural sampling remains the runtime fallback until atlas frame metadata and renderer sampling are finalized.
 
 ## Current Encounter Contract
 

@@ -24,7 +24,8 @@ tools/creator-guide.html
 6. Use `Projectile / Weapon / Pattern` to tune weapon and projectile JSON.
 7. Use `Levels` to assemble route, background, wave, obstacle, and trigger descriptors.
 8. Use `Encounters` to author choice vignettes, route decisions, world-hold interactions, and delayed repercussions.
-9. Download JSON assets or import/export module folders through the suite.
+9. Use `Materials / Lighting` to author render materials, spectral puzzle responses, and reusable lighting presets.
+10. Download JSON assets or import/export module folders through the suite.
 
 ## Construct Loading
 
@@ -75,6 +76,15 @@ The Encounter Editor emits first-class `encounter` assets for the content regist
 
 Level triggers can reference an encounter with `kind: "encounter"` and `assetRef`. The registry treats referenced encounters as required dependencies unless the trigger sets `required: false`.
 
+## Material Lighting Editor
+
+The Material Lighting Editor writes runtime-ready material JSON and lighting preset JSON.
+
+- Materials use `render` fields from `src/core/renderMaterial.js`: albedo, procedural texture, atlas metadata, shading, emissive response, fluorescence, phosphorescence, and pseudo-height.
+- The canvas preview shows a continuous 5x5 material cluster, lighting preset comparison, atlas thumbnail, hidden fluorescent message preview, and phosphorescent trail timeline.
+- Spectral bands are named puzzle bands such as `UV`, `BLUE`, `RED`, and `BROAD_WHITE`; they are not full spectroscopy.
+- Phosphorescence remains static content plus runtime charge state. The editor previews charge/decay but does not store live charge in material definitions.
+
 ## Current Limits
 
-Editor-authored constructs, enemy archetypes, patterns, weapons, levels, encounters, and resources can be validated and packaged now. The gameplay runner still needs small runtime adapters before every advanced descriptor field becomes active behavior.
+Editor-authored constructs, enemy archetypes, patterns, weapons, levels, encounters, materials, lighting presets, and resources can be validated and packaged now. The gameplay runner still needs small runtime adapters before every advanced descriptor field becomes active behavior.
