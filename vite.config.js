@@ -14,6 +14,7 @@ export default defineConfig({
         enemyEditor: resolve(root, 'tools/enemy-editor.html'),
         weaponPatternLab: resolve(root, 'tools/weapon-pattern-lab.html'),
         levelEditor: resolve(root, 'tools/level-editor.html'),
+        encounterEditor: resolve(root, 'tools/encounter-editor.html'),
         meshVoxelizer: resolve(root, 'tools/mesh-voxelizer.html'),
       },
     },

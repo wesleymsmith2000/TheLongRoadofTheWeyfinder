@@ -16,6 +16,7 @@ test('level dependency collection includes referenced waves, patterns, and trigg
     ['basic_turret'],
   );
   assert.equal(dependencies.some((dependency) => dependency.kind === 'pattern' && dependency.assetId === 'enemy_aimed_shot'), true);
+  assert.equal(dependencies.some((dependency) => dependency.kind === 'encounter' && dependency.assetId === 'encounter.moonlit_beacon_choice_vignette'), true);
   assert.equal(dependencies.some((dependency) => dependency.kind === 'sound' && dependency.assetId === 'voiceover.prototype0.intro' && dependency.required === false), true);
 });
 
@@ -43,4 +44,14 @@ test('level validation warns for declared external pack dependencies', () => {
   });
   assert.equal(report.valid, true);
   assert.equal(report.warnings.some((warning) => warning.includes('Pack dependency resolution')), true);
+});
+
+test('level validation requires encounter trigger asset references', () => {
+  const report = validateLevelDefinition({
+    ...prototypeLevelDefinition,
+    triggers: [{ id: 'choice-without-asset', kind: 'encounter', atDistance: 120 }],
+  });
+
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('assetRef is required for encounter triggers')), true);
 });

@@ -49,7 +49,7 @@
       "../resources/terrain/image.terrain_2_spritesheet.json"
     ],
     "behaviors": [],
-    "encounters": [],
+    "encounters": ["../encounters/moonlit_beacon_choice_vignette.json"],
     "routes": [],
     "levels": ["../levels/prototype0_road_trial.json"]
   }

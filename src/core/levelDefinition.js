@@ -5,7 +5,7 @@ export const LEVEL_BACKGROUND_MODES = ['procedural', 'prebaked', 'mixed'];
 export const LEVEL_BACKGROUND_SOURCES = ['procedural', 'image', 'video', 'canvas'];
 export const LEVEL_TERRAIN_MODES = ['procedural'];
 export const LEVEL_OBSTACLE_KINDS = ['procedural_field', 'construct', 'hazard', 'decor'];
-export const LEVEL_TRIGGER_KINDS = ['voiceover', 'cue', 'music', 'scripted_event'];
+export const LEVEL_TRIGGER_KINDS = ['voiceover', 'cue', 'music', 'scripted_event', 'encounter'];
 export const LEVEL_DEPENDENCY_KINDS = [
   'pack',
   'construct',
@@ -62,7 +62,9 @@ export function collectLevelDependencies(definition) {
     if (obstacle.assetRef) dependencies.push({ kind: obstacle.kind === 'construct' ? 'construct' : 'voxelModel', assetId: obstacle.assetRef, required: obstacle.kind === 'construct' || obstacle.required === true });
   }
   for (const trigger of definition.triggers ?? []) {
-    if (trigger.assetRef) dependencies.push({ kind: trigger.kind === 'music' ? 'music' : 'sound', assetId: trigger.assetRef, required: trigger.required === true });
+    if (!trigger.assetRef) continue;
+    if (trigger.kind === 'encounter') dependencies.push({ kind: 'encounter', assetId: trigger.assetRef, required: trigger.required !== false });
+    else dependencies.push({ kind: trigger.kind === 'music' ? 'music' : 'sound', assetId: trigger.assetRef, required: trigger.required === true });
   }
   return uniqueDependencies(dependencies);
 }
@@ -244,6 +246,7 @@ function validateTriggers(triggers, errors, warnings) {
     if (!LEVEL_TRIGGER_KINDS.includes(trigger.kind)) errors.push(`${label}.kind must be one of: ${LEVEL_TRIGGER_KINDS.join(', ')}.`);
     validateFiniteNumber(trigger.atDistance, `${label}.atDistance`, errors, { min: 0 });
     if (trigger.kind === 'voiceover' && !isNonEmptyString(trigger.assetRef)) warnings.push(`${label} voiceover trigger should reference an audio asset.`);
+    if (trigger.kind === 'encounter' && !isNonEmptyString(trigger.assetRef)) errors.push(`${label}.assetRef is required for encounter triggers.`);
   }
 }
 

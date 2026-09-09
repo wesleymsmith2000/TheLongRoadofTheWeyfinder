@@ -166,6 +166,24 @@ test('loose local status effect assets are grouped into packs', () => {
   assert.deepEqual(bundle.manifests[0].assets.statusEffects, ['fire.json']);
 });
 
+test('loose local encounter assets are grouped into packs', () => {
+  const bundle = createLocalContentBundleFromFiles(
+    [
+      file('choice.json', {
+        schemaVersion: '0.1',
+        assetId: 'community.choice',
+        trigger: { type: 'manual' },
+        initialState: 'start',
+        states: [{ id: 'start', presentationMode: 'MODAL_CHOICE_PAUSED', pausePolicy: 'FULL_PAUSE', choices: [{ id: 'ok', label: 'OK', resolves: true }] }],
+      }),
+    ],
+    { packId: 'local.encounters' },
+  );
+
+  assert.equal(bundle.assets[0].kind, 'encounter');
+  assert.deepEqual(bundle.manifests[0].assets.encounters, ['choice.json']);
+});
+
 test('example prototype module set imports as a local content pack', () => {
   const files = readJsonFiles(join(process.cwd(), 'content', 'examples', 'prototype0-module-set'));
   const bundle = createLocalContentBundleFromFiles(files);

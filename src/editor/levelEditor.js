@@ -159,12 +159,14 @@ function resizeTriggers(triggers, count) {
   const target = Math.max(0, Math.floor(count || 0));
   const next = clone(triggers);
   while (next.length < target) {
+    const index = next.length;
+    const triggerKind = ['cue', 'voiceover', 'encounter'][index % 3];
     next.push({
-      id: `trigger-${next.length + 1}`,
-      kind: next.length % 2 === 0 ? 'cue' : 'voiceover',
-      atDistance: 80 + next.length * 300,
-      assetRef: next.length % 2 === 0 ? undefined : `voiceover.${next.length + 1}`,
-      message: next.length % 2 === 0 ? 'Cue event' : undefined,
+      id: `trigger-${index + 1}`,
+      kind: triggerKind,
+      atDistance: 80 + index * 300,
+      assetRef: triggerKind === 'voiceover' ? `voiceover.${index + 1}` : triggerKind === 'encounter' ? 'encounter.moonlit_beacon_choice_vignette' : undefined,
+      message: triggerKind === 'cue' ? 'Cue event' : undefined,
       once: true,
     });
   }
@@ -244,7 +246,7 @@ function drawRoute(points) {
 function drawDistanceEvents(points) {
   for (const wave of level.waves ?? []) drawEvent(points, wave.atDistance, '#ff8f70', wave.id);
   for (const obstacle of level.obstacles ?? []) drawEvent(points, obstacle.atDistance, '#9ca8ff', obstacle.id);
-  for (const trigger of level.triggers ?? []) drawEvent(points, trigger.atDistance, '#6fe0bf', trigger.id);
+  for (const trigger of level.triggers ?? []) drawEvent(points, trigger.atDistance, trigger.kind === 'encounter' ? '#f7c06a' : '#6fe0bf', trigger.id);
 }
 
 function drawEvent(points, distance, color, label) {
@@ -266,11 +268,15 @@ function renderStatus() {
   const report = validateLevelDefinition(level);
   const lines = [
     `<span><strong>${report.valid ? 'Valid level asset' : 'Level needs changes'}</strong></span>`,
-    `<span>${level.route?.segments?.length ?? 0} route segments, ${level.waves?.length ?? 0} waves, ${level.triggers?.length ?? 0} triggers</span>`,
+    `<span>${level.route?.segments?.length ?? 0} route segments, ${level.waves?.length ?? 0} waves, ${level.triggers?.length ?? 0} triggers, ${encounterTriggerCount()} encounters</span>`,
   ];
   lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
   lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));
   statusPanel.innerHTML = lines.join('');
+}
+
+function encounterTriggerCount() {
+  return (level.triggers ?? []).filter((trigger) => trigger.kind === 'encounter').length;
 }
 
 function renderDependencies() {

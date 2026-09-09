@@ -153,6 +153,7 @@ export function inferContentKind(definition) {
   if (isContentPackManifest(definition)) return 'pack';
   if (Array.isArray(definition.archetypes)) return 'enemyArchetype';
   if (STATUS_EFFECT_TYPES.includes(definition.type)) return 'statusEffect';
+  if (definition.initialState && definition.states && definition.trigger) return 'encounter';
   if (definition.emitter) return 'pattern';
   if (definition.projectile && definition.ammo != null) return 'weapon';
   if (definition.materialId && definition.physics) return 'terrainMaterial';

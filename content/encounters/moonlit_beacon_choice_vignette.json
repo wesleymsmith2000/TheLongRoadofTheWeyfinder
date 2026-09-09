@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "encounter.moonlit_beacon_choice_vignette",
+  "displayName": "Moonlit Beacon Choice Vignette",
+  "author": "Weyfinder prototype",
+  "provenance": "Starter choice-vignette asset for editor/runtime orchestration.",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["choice", "vignette", "route-fork", "road", "fate", "prototype"],
+  "trigger": {
+    "type": "route_distance",
+    "atDistance": 430
+  },
+  "initialState": "day_presentation",
+  "states": [
+    {
+      "id": "day_presentation",
+      "presentationMode": "modalChoicePaused",
+      "pausePolicy": "fullPause",
+      "title": "Moonlit Beacon Sign",
+      "body": "The worn sign flickers in the roadlight: Do not ... wait ... Take the road ... left ... shining ...",
+      "choices": [
+        {
+          "id": "bright_left_now",
+          "label": "Take the brightest left road now",
+          "nextState": "route_committed",
+          "routeBranch": {
+            "branchId": "bright_left",
+            "promptLabel": "Bright left",
+            "commitDistance": 120
+          },
+          "effects": [
+            { "type": "selectRouteBranch", "branchId": "bright_left" },
+            { "type": "addChronicleEntry", "entryId": "moonlit_beacon.chose_bright_left_now" }
+          ],
+          "scheduledRepercussions": ["bright_left_later_temptation"],
+          "telemetryTags": ["CHOSE_IMMEDIATELY", "CHOSE_BRIGHTEST"],
+          "directorTags": ["temptation", "uncertainty"]
+        },
+        {
+          "id": "inspect_sign",
+          "label": "Inspect the sign",
+          "nextState": "inspected",
+          "effects": [
+            { "type": "setEncounterVariable", "key": "signCleaned", "value": true },
+            { "type": "revealObjectState", "objectId": "moonlit_beacon_sign", "state": "inspected" }
+          ],
+          "telemetryTags": ["INSPECTED"],
+          "directorTags": ["agency_preservation"]
+        },
+        {
+          "id": "wait_for_moonrise",
+          "label": "Wait until moonrise",
+          "nextState": "moon_reveal",
+          "effects": [
+            { "type": "advanceTime", "marker": "moonrise" },
+            { "type": "changeMusicState", "state": "SUSPICION", "fade": 2 },
+            { "type": "revealObjectState", "objectId": "moonlit_beacon_sign", "state": "moonlit" }
+          ],
+          "telemetryTags": ["WAITED"],
+          "directorTags": ["attention_cost", "agency_preservation"]
+        }
+      ]
+    },
+    {
+      "id": "inspected",
+      "presentationMode": "worldHoldInteraction",
+      "pausePolicy": "traversalHold",
+      "title": "Cleaned Inscription",
+      "body": "Dust and salt come away under your glove. More words surface, but the warning still feels unfinished.",
+      "choices": [
+        {
+          "id": "return_to_day_choice",
+          "label": "Choose with what you know",
+          "nextState": "day_presentation",
+          "telemetryTags": ["RECONSIDERED"]
+        },
+        {
+          "id": "wait_after_inspection",
+          "label": "Wait for moonrise",
+          "nextState": "moon_reveal",
+          "effects": [
+            { "type": "advanceTime", "marker": "moonrise" },
+            { "type": "changeMusicState", "state": "ATTENTION", "fade": 1.5 },
+            { "type": "revealObjectState", "objectId": "moonlit_beacon_sign", "state": "moonlit" }
+          ],
+          "telemetryTags": ["WAITED", "SAW_MOON_REVEAL"]
+        }
+      ]
+    },
+    {
+      "id": "moon_reveal",
+      "presentationMode": "modalChoicePaused",
+      "pausePolicy": "fullPause",
+      "title": "Moonlit Inscription",
+      "body": "Do not let the glitter of gold deceive you. Wait for the clarity of moonlight, and follow the road left still shining as a beacon through the night.",
+      "effects": [
+        { "type": "changeMusicState", "state": "ROAD_ATTENTION", "fade": 2 },
+        { "type": "revealObjectState", "objectId": "road_glow", "state": "left_beacon" }
+      ],
+      "choices": [
+        {
+          "id": "left_still_shining",
+          "label": "Follow the left road still shining",
+          "nextState": "route_committed",
+          "routeBranch": {
+            "branchId": "left_beacon",
+            "promptLabel": "Left beacon",
+            "commitDistance": 120
+          },
+          "effects": [
+            { "type": "selectRouteBranch", "branchId": "left_beacon" },
+            { "type": "addChronicleEntry", "entryId": "moonlit_beacon.followed_moonlit_warning" }
+          ],
+          "telemetryTags": ["SAW_MOON_REVEAL", "RECONSIDERED"],
+          "directorTags": ["agency_preservation", "road_significance"]
+        }
+      ]
+    },
+    {
+      "id": "route_committed",
+      "presentationMode": "liveRouteChoice",
+      "pausePolicy": "none",
+      "title": "Road Committed",
+      "body": "The road accepts the choice.",
+      "effects": [
+        { "type": "changeMusicState", "state": "AFTERIMAGE", "fade": 3 }
+      ],
+      "choices": [
+        {
+          "id": "continue",
+          "label": "Continue",
+          "resolve": true
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "id": "inspect_moonlit_beacon_sign",
+      "type": "interact_button",
+      "anchor": "socket:roadside.sign",
+      "radius": 96,
+      "prompt": "Inspect sign",
+      "inputAction": "INTERACT",
+      "requiresStop": true,
+      "toState": "inspected"
+    }
+  ],
+  "repercussions": [
+    {
+      "id": "bright_left_later_temptation",
+      "trigger": {
+        "type": "after_route_distance",
+        "distance": 1800
+      },
+      "effects": [
+        { "type": "scheduleEncounter", "encounterId": "fate.false_sanctuary.01" },
+        { "type": "addDirectorInfluence", "director": "fate", "amount": 0.12 }
+      ],
+      "oneShot": true,
+      "debugLabel": "Bright left route later temptation"
+    }
+  ],
+  "telemetryHooks": ["CHOSE_IMMEDIATELY", "CHOSE_BRIGHTEST", "INSPECTED", "WAITED", "SAW_MOON_REVEAL", "RECONSIDERED"],
+  "directorHooks": ["road_significance", "fate_significance", "agency_preservation", "temptation", "uncertainty", "attention_cost"]
+}

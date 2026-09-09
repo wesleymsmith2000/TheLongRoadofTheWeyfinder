@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import canonPackManifest from '../content/packs/canon.prototype0.json' with { type: 'json' };
 import basicTurretDefinition from '../content/constructs/basic_turret.json' with { type: 'json' };
+import moonlitBeaconEncounter from '../content/encounters/moonlit_beacon_choice_vignette.json' with { type: 'json' };
 import prototypeLevelDefinition from '../content/levels/prototype0_road_trial.json' with { type: 'json' };
 import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
@@ -78,6 +79,14 @@ test('content registry accepts terrain material and tile assets', () => {
   assert.equal(getAvailableContent(registry, 'terrainTile', { tag: 'ground' }).length, 1);
 });
 
+test('content registry validates encounter assets', () => {
+  const registry = createContentRegistry();
+  const encounter = registerContentAsset(registry, 'encounter', moonlitBeaconEncounter, canonPackManifest.packId);
+
+  assert.equal(encounter.assetId, 'encounter.moonlit_beacon_choice_vignette');
+  assert.equal(getAvailableContent(registry, 'encounter', { tag: 'choice' }).length, 1);
+});
+
 test('weapon validation accepts arcing projectile fields', () => {
   const registry = createContentRegistry();
   const mortar = registerContentAsset(
@@ -116,6 +125,7 @@ test('level dependency resolution reports missing simulation assets before play'
   assert.equal(report.ok, false);
   assert.equal(report.missing.some((dependency) => dependency.kind === 'construct' && dependency.assetId === 'basic_turret'), true);
   assert.equal(report.missing.some((dependency) => dependency.kind === 'pattern' && dependency.assetId === 'enemy_aimed_shot'), true);
+  assert.equal(report.missing.some((dependency) => dependency.kind === 'encounter' && dependency.assetId === 'encounter.moonlit_beacon_choice_vignette'), true);
 });
 
 test('instantiateLevel returns a validated level package once required dependencies are registered', () => {
@@ -124,6 +134,7 @@ test('instantiateLevel returns a validated level package once required dependenc
   registerContentAsset(registry, 'construct', basicTurretDefinition, canonPackManifest.packId);
   registerContentAsset(registry, 'pattern', aimedPatternDefinition, canonPackManifest.packId);
   registerContentAsset(registry, 'pattern', radialPatternDefinition, canonPackManifest.packId);
+  registerContentAsset(registry, 'encounter', moonlitBeaconEncounter, canonPackManifest.packId);
   registerContentAsset(registry, 'level', prototypeLevelDefinition, canonPackManifest.packId);
 
   const runPackage = instantiateLevel('prototype0_road_trial', registry, 1147);
@@ -139,6 +150,7 @@ test('optional level resources warn instead of blocking dependency resolution', 
   registerContentAsset(registry, 'construct', basicTurretDefinition, canonPackManifest.packId);
   registerContentAsset(registry, 'pattern', aimedPatternDefinition, canonPackManifest.packId);
   registerContentAsset(registry, 'pattern', radialPatternDefinition, canonPackManifest.packId);
+  registerContentAsset(registry, 'encounter', moonlitBeaconEncounter, canonPackManifest.packId);
   registerContentAsset(registry, 'level', prototypeLevelDefinition, canonPackManifest.packId);
 
   const report = resolveContentDependencies([{ kind: 'level', assetId: 'prototype0_road_trial' }], registry);

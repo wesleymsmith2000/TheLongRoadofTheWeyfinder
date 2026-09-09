@@ -98,6 +98,13 @@
       "atDistance": 430,
       "message": "Road turning left",
       "once": true
+    },
+    {
+      "id": "moonlit-beacon-choice",
+      "kind": "encounter",
+      "atDistance": 430,
+      "assetRef": "encounter.moonlit_beacon_choice_vignette",
+      "once": true
     }
   ]
 }

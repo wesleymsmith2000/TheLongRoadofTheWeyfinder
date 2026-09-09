@@ -23,7 +23,8 @@ tools/creator-guide.html
 5. Use `Enemies` to assign constructs, firing patterns, movement profiles, aggregate behavior, and cell animations.
 6. Use `Projectile / Weapon / Pattern` to tune weapon and projectile JSON.
 7. Use `Levels` to assemble route, background, wave, obstacle, and trigger descriptors.
-8. Download JSON assets or import/export module folders through the suite.
+8. Use `Encounters` to author choice vignettes, route decisions, world-hold interactions, and delayed repercussions.
+9. Download JSON assets or import/export module folders through the suite.
 
 ## Construct Loading
 
@@ -62,4 +63,18 @@ Downloaded constructs emit the preferred nested `poseRig` shape. Imported alias 
 
 ## Current Limits
 
-Editor-authored constructs, enemy archetypes, patterns, weapons, levels, and resources can be validated and packaged now. The gameplay runner still needs small runtime adapters before every advanced descriptor field becomes active behavior.
+## Encounter Editor
+
+The Encounter Editor emits first-class `encounter` assets for the content registry.
+
+- `trigger` defines how an encounter starts, such as route distance, interaction button, collision, projectile hit, or manual/scripted launch.
+- `states` define presentation mode, pause policy, text, choices, entry effects, and exit effects.
+- `choices` can transition to another state, resolve the encounter, bind to a route branch, apply immediate effects, emit telemetry tags, or schedule repercussions.
+- `interactions` define in-world prompts and anchors for world-hold encounters.
+- `repercussions` define delayed consequences such as later route-distance events, next-level events, timers, or run-end effects.
+
+Level triggers can reference an encounter with `kind: "encounter"` and `assetRef`. The registry treats referenced encounters as required dependencies unless the trigger sets `required: false`.
+
+## Current Limits
+
+Editor-authored constructs, enemy archetypes, patterns, weapons, levels, encounters, and resources can be validated and packaged now. The gameplay runner still needs small runtime adapters before every advanced descriptor field becomes active behavior.

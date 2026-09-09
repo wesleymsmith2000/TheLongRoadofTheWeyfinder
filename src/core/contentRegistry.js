@@ -1,5 +1,6 @@
 import { validateConstructDefinition } from './constructDefinition.js';
 import { CANON_STATUSES, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
+import { validateEncounterDefinition } from './encounterDefinition.js';
 import { collectLevelDependencies, validateLevelDefinition } from './levelDefinition.js';
 import { validateEnemyArchetypePack } from './enemyArchetypeDefinition.js';
 import { validatePatternDefinition } from './patternDefinition.js';
@@ -70,6 +71,7 @@ const VALIDATORS = Object.freeze({
   pattern: validatePatternDefinition,
   statusEffect: validateStatusEffectDefinition,
   enemyArchetype: validateEnemyArchetypePack,
+  encounter: validateEncounterDefinition,
   level: validateLevelDefinition,
   terrainMaterial: validateTerrainMaterialDefinition,
   terrainTile: validateTerrainTileDefinition,

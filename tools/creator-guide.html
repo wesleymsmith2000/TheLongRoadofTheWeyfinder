@@ -173,7 +173,7 @@
       <header class="topbar">
         <div class="title">
           <h1>Creator Guide</h1>
-          <p>Practical workflow notes for building constructs, enemies, weapons, patterns, and levels.</p>
+          <p>Practical workflow notes for building constructs, enemies, weapons, patterns, levels, and encounters.</p>
         </div>
         <div class="actions">
           <span class="build-version" data-build-version></span>
@@ -184,6 +184,7 @@
           <a href="./enemy-editor.html"><button type="button">Enemies</button></a>
           <a href="./weapon-pattern-lab.html"><button type="button">Weapons</button></a>
           <a href="./level-editor.html"><button type="button">Levels</button></a>
+          <a href="./encounter-editor.html"><button type="button">Encounters</button></a>
         </div>
       </header>
       <section class="content">
@@ -257,6 +258,18 @@
               <li><code>Patterns</code> are firing behaviors. Use the Weapon + Pattern Lab to tune projectile shape, timing, spread, arcs, and status effects.</li>
               <li><code>Movement</code>, <code>Aggregate</code>, and <code>Cell Animation</code> are editor descriptors for richer enemies such as walkers, phased enemies, carriers, and bosses.</li>
               <li>Selectors such as <code>type:armor</code>, <code>role:supportLeg</code>, or <code>all</code> choose which cells an animation affects.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Encounter Editor</h2>
+          <div class="body">
+            <ul>
+              <li>Encounter JSON describes choice vignettes, live route decisions, in-world interactions, and delayed repercussions as data.</li>
+              <li><code>presentationMode</code> selects <code>liveRouteChoice</code>, <code>modalChoicePaused</code>, or <code>worldHoldInteraction</code>.</li>
+              <li><code>pausePolicy</code> tells runtime whether gameplay continues, traversal holds, or the full loop pauses while choices are active.</li>
+              <li>Choices can transition to another state, resolve the encounter, select a route branch, apply immediate effects, and schedule repercussions.</li>
+              <li>Level triggers can reference encounter assets with <code>kind: "encounter"</code> and <code>assetRef</code>.</li>
             </ul>
           </div>
         </section>

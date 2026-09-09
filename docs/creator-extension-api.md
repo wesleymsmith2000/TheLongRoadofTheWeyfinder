@@ -53,12 +53,12 @@ Initial content kinds:
 - `statusEffects`: named effect descriptors for hazards, bullets, weapons, biomes, shields, and future module states
 - `enemyArchetypes`: editor-facing enemy model descriptors that bind constructs, patterns, entry behavior, palette, and known runtime factories
 - `behaviors`: declarative movement/targeting/state primitives
-- `encounters`: enemy groups, spawn timing, route-relative placement
+- `encounters`: choice vignettes, route decisions, in-world interactions, state graphs, and delayed repercussions
 - `routes`: road topology and stage flow
 - `levels`: scenario-level coordination of backgrounds, route turns, obstacles, waves, and triggers
 - `playerAccount`: player-owned unlock and saved-loadout data, provided by the game account/profile layer
 
-`constructs`, `weapons`, `patterns`, and `levels` are partially implemented today. Other kinds are reserved so file layouts and manifests do not need to be redesigned later.
+`constructs`, `weapons`, `patterns`, `levels`, and `encounters` are partially implemented today. Other kinds are reserved so file layouts and manifests do not need to be redesigned later.
 `enemyArchetypes` is implemented as a descriptor layer in Prototype 0; some enemy runtime behavior is still code-owned until encounter and behavior assets mature.
 
 ## Metadata
@@ -876,7 +876,78 @@ Current dependency kinds:
 
 Level triggers currently validate as data only. Runtime event dispatch, voiceover playback, and trigger UX are future work.
 
-The first content registry slice is implemented in `src/core/contentRegistry.js`. It validates pack manifests, registers immutable construct/weapon/pattern/level/resource definitions, lists available content by kind, resolves level dependencies, and refuses to instantiate a level package while required dependencies are missing. It is not a full runtime level runner yet.
+## Current Encounter Contract
+
+Encounter assets live under:
+
+```text
+content/encounters/
+```
+
+Current runtime/editor entry points:
+
+```text
+src/core/encounterDefinition.js
+src/editor/encounterEditor.js
+tools/encounter-editor.html
+```
+
+A minimal encounter:
+
+```json
+{
+  "schemaVersion": "0.1",
+  "assetId": "encounter.moonlit_beacon_choice_vignette",
+  "canonStatus": "EXPERIMENTAL",
+  "trigger": { "type": "route_distance", "atDistance": 430 },
+  "initialState": "day_presentation",
+  "states": [
+    {
+      "id": "day_presentation",
+      "presentationMode": "modalChoicePaused",
+      "pausePolicy": "fullPause",
+      "title": "Moonlit Beacon Sign",
+      "body": "The sign offers an uncertain warning.",
+      "choices": [
+        {
+          "id": "inspect_sign",
+          "label": "Inspect the sign",
+          "nextState": "inspected",
+          "telemetryTags": ["INSPECTED"]
+        }
+      ]
+    }
+  ],
+  "interactions": [],
+  "repercussions": []
+}
+```
+
+Current encounter registries are exported from `src/core/encounterDefinition.js`:
+
+- `ENCOUNTER_TRIGGER_TYPES`
+- `ENCOUNTER_PRESENTATION_MODES`
+- `ENCOUNTER_PAUSE_POLICIES`
+- `ENCOUNTER_EFFECT_TYPES`
+- `ENCOUNTER_CONDITION_TYPES`
+- `ENCOUNTER_REPERCUSSION_TRIGGER_TYPES`
+- `ENCOUNTER_MUSIC_STATES`
+
+Level triggers can reference encounter assets:
+
+```json
+{
+  "id": "moonlit-beacon-choice",
+  "kind": "encounter",
+  "atDistance": 430,
+  "assetRef": "encounter.moonlit_beacon_choice_vignette",
+  "once": true
+}
+```
+
+Encounter triggers are required level dependencies by default. If an encounter is optional, set `required: false` on the level trigger.
+
+The first content registry slice is implemented in `src/core/contentRegistry.js`. It validates pack manifests, registers immutable construct/weapon/pattern/encounter/level/resource definitions, lists available content by kind, resolves level dependencies, and refuses to instantiate a level package while required dependencies are missing. It is not a full runtime level runner yet.
 
 For main-game coordination details, see:
 
