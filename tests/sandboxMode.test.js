@@ -41,6 +41,29 @@ test('sandbox can schedule the runtime zeppelin boss archetype', () => {
   assert.equal(queue[0].enemy.archetypeId, 'boss.zeppelin.prototype0');
 });
 
+test('sandbox can schedule the octopus boss archetype alias as a real boss', () => {
+  const definition = sandboxDefinitionFromEnemy('boss.octopus.prototype0', { count: 1, interval: 0 });
+  const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(13));
+  assert.equal(queue.length, 1);
+  assert.equal(queue[0].enemy.kind, 'boss');
+  assert.equal(queue[0].enemy.assetId, 'boss.octopus.prototype0');
+  assert.equal(queue[0].enemy.archetypeId, 'boss.octagon.prototype0');
+  assert.equal(queue[0].enemy.arms.length, 8);
+});
+
+test('sandbox schedules linked inchworm head and body segments together', () => {
+  const definition = sandboxDefinitionFromEnemy('inchworm_carrier.freedoms_pass', { count: 1, interval: 0, level: 1 });
+  const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(17));
+  const headEntries = queue.filter((entry) => entry.enemy.archetypeId === 'inchworm_carrier.freedoms_pass');
+  const segmentEntries = queue.filter((entry) => entry.enemy.archetypeId === 'inchworm_segment.freedoms_pass');
+  assert.equal(headEntries.length, 1);
+  assert.equal(segmentEntries.length >= 4, true);
+  assert.equal(headEntries[0].enemy.inchworm.role, 'head');
+  assert.equal(headEntries[0].enemy.inchworm.segmentIds.length, segmentEntries.length);
+  assert.equal(segmentEntries.every((entry) => entry.at === headEntries[0].at), true);
+  assert.equal(segmentEntries.every((entry) => entry.enemy.inchworm.suppressDeathBlast), true);
+});
+
 test('sandbox runtime fires scripted events and avoids normal level completion', () => {
   const game = createGame(1147, {
     sandbox: {

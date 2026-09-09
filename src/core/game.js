@@ -611,15 +611,16 @@ function createSandboxSpawnEntries(road, spawns, rng, options = {}) {
       const laneOffset = sandboxLaneOffset(spawn, index, count, rng);
       const roadY = spawn.roadY ?? sandboxRoadY(spawn, road);
       const world = roadOffsetToWorld({ x: laneOffset, y: roadY }, road);
-      const enemy = createSandboxEnemy(spawn, world.x, world.y, road, options);
       const at = Math.max(0, (options.timeOffset ?? 0) + (spawn.at ?? 0) + index * interval);
-      entries.push({ at, enemy, markerShown: false, type: enemy.kind ?? spawn.kind ?? 'standard', sandbox: true, source: spawn.id });
+      for (const enemy of createSandboxEnemies(spawn, world.x, world.y, road, { ...options, spawnIndex: index })) {
+        entries.push({ at, enemy, markerShown: false, type: enemy.kind ?? spawn.kind ?? 'standard', sandbox: true, source: spawn.id });
+      }
     }
   }
   return entries;
 }
 
-function createSandboxEnemy(spawn, x, y, road, options = {}) {
+function createSandboxEnemies(spawn, x, y, road, options = {}) {
   const archetype = sandboxArchetypeForSpawn(spawn, options.enemyArchetypes ?? []);
   const kind = spawn.kind ?? 'standard';
   const enemy = archetype ? createEnemyForArchetype(archetype, x, y, kind) : createEnemy(x, y);
@@ -630,8 +631,16 @@ function createSandboxEnemy(spawn, x, y, road, options = {}) {
   const speed = spawn.speed ?? (spawn.entry === 'behind' ? 155 : 24);
   enemy.vx = direction.x * speed;
   enemy.vy = direction.y * speed;
-  applyEnemyLevelUpgrades(enemy, spawn.level ?? options.level ?? 1);
-  return enemy;
+  const level = spawn.level ?? options.level ?? 1;
+  applyEnemyLevelUpgrades(enemy, level);
+  const enemies =
+    archetype?.id === 'inchworm_carrier.freedoms_pass'
+      ? createLinkedInchwormEnemies(enemy, archetype, road, level, options.spawnIndex ?? 0)
+      : [enemy];
+  for (const spawned of enemies) {
+    spawned.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
+  }
+  return enemies;
 }
 
 function sandboxArchetypeForSpawn(spawn, extraArchetypes = []) {
@@ -821,6 +830,7 @@ function createEnemyForArchetype(archetype, x, y, kind) {
   const factory = archetype.runtimeFactory;
   if (factory === 'createMortarSkiffEnemy') return createMortarSkiffEnemy(x, y);
   if (factory === 'createZeppelinBossEnemy') return createZeppelinBossEnemy(x, y);
+  if (factory === 'createBossEnemy') return createBossEnemy(x, y);
   if (factory === 'createPirateShipEnemy') return createPirateShipEnemy(x, y, { kind });
   if (factory === 'createEnhancedPirateShipEnemy') return createEnhancedPirateShipEnemy(x, y);
   if (factory === 'createEnhancedEnemy') return createEnhancedEnemy(x, y);
