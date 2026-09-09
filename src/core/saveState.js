@@ -1,4 +1,5 @@
 import { CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isPlainObject } from './contentSchema.js';
+import { hydrateEncounterRuntime, serializeEncounterRuntime } from './encounterRuntime.js';
 
 export const SAVE_STATE_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const SAVE_STATE_KIND = 'weyfinder.prototype0.save';
@@ -21,6 +22,7 @@ export function createSaveState(game, playerAccount, options = {}) {
     targetingMode: game.targetingMode ?? 'mixed',
     targetingAi: structuredClone(game.targetingAi ?? {}),
     music: structuredClone(game.music ?? {}),
+    encounters: serializeEncounterRuntime(game.encounters),
   };
   return signSavePayload(payload);
 }
@@ -70,6 +72,7 @@ export function applySaveStateToGame(game, saveState) {
   game.targetingMode = typeof payload.targetingMode === 'string' ? payload.targetingMode : game.targetingMode;
   if (isPlainObject(payload.targetingAi)) game.targetingAi = structuredClone(payload.targetingAi);
   if (isPlainObject(payload.music)) game.music = structuredClone(payload.music);
+  if (isPlainObject(payload.encounters)) game.encounters = hydrateEncounterRuntime(payload.encounters);
   game.levelComplete = false;
   game.gameOver = false;
   game.paused = true;

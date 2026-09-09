@@ -79,6 +79,7 @@ Event types:
 - `addScrap`: adds to current scrap.
 - `setTargetingMode`: accepts `manual`, `guided`, or `mixed`.
 - `message`: writes a sandbox status message.
+- `encounter`: starts a choice/vignette encounter. Use `encounter` for an inline encounter definition, or `encounterId` for a definition already registered in runtime content. See [Choice Vignette Encounter Runtime Handoff](./choice-vignette-encounter-runtime-handoff.md).
 - `complete`: arms completion and immediately shows the level-complete screen.
 
 ## Local Content

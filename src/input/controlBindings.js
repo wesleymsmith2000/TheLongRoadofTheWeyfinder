@@ -20,6 +20,10 @@ export const CONTROL_ACTIONS = [
   { id: 'secondaryFire', label: 'Fire Secondary', keyboard: ['Space', 'ShiftLeft', 'ShiftRight'], gamepad: [10, 11] },
   { id: 'targetPrevious', label: 'Previous AI Target', keyboard: [], gamepad: [6] },
   { id: 'targetNext', label: 'Next AI Target', keyboard: ['Tab'], gamepad: [7] },
+  { id: 'encounterConfirm', label: 'Confirm Encounter Choice', keyboard: ['Enter'], gamepad: [0] },
+  { id: 'encounterCancel', label: 'Cancel Encounter Choice', keyboard: ['Backspace'], gamepad: [1] },
+  { id: 'encounterChoiceLeft', label: 'Previous Encounter Choice', keyboard: ['BracketLeft'], gamepad: [14] },
+  { id: 'encounterChoiceRight', label: 'Next Encounter Choice', keyboard: ['BracketRight'], gamepad: [15] },
   { id: 'dodge', label: 'Dodge / Boost', keyboard: [], gamepad: [1] },
   { id: 'cursorClick', label: 'Virtual Cursor Click', keyboard: [], gamepad: [0, 1] },
 ];
@@ -57,8 +61,12 @@ export function keyLabel(code) {
   if (code === 'Space') return 'Space';
   if (code === 'Escape') return 'Esc';
   if (code === 'Tab') return 'Tab';
+  if (code === 'Enter') return 'Enter';
+  if (code === 'Backspace') return 'Backspace';
   if (code === 'Backquote') return '`';
   if (code === 'Slash') return '/';
+  if (code === 'BracketLeft') return '[';
+  if (code === 'BracketRight') return ']';
   if (code.startsWith('Arrow')) return code.replace('Arrow', '');
   if (code.startsWith('Shift')) return code.replace('Shift', 'Shift ');
   return code;

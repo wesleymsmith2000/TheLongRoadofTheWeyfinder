@@ -66,6 +66,7 @@ import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, validateSandboxDefinition } from './sandboxMode.js';
 import { createProceduralRoadRoute } from './roadRoute.js';
 import { createWalkerStridePoseRig } from './poseAnimation.js';
+import { beginEncounter, createEncounterRuntimeState, encounterPausePolicy, stepEncounters } from './encounterRuntime.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
@@ -306,6 +307,7 @@ export function createGame(seed = 1147, options = {}) {
     guidedTargetId: null,
     targetingAi: createTargetingAiState(options.targetingAi),
     playerDamageShake: { timer: 0, lostCells: 0 },
+    encounters: createEncounterRuntimeState(options.encounters ?? []),
     sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options.enemyArchetypes) : null,
   };
 }
@@ -324,12 +326,14 @@ export function stepGame(game, input, dt) {
     return game;
   }
   game.time += dt;
+  stepEncounters(game, input, dt);
   if (input.resetPressed) {
     return createGame(1147, {
       vehicleDefinition: game.vehicleDefinition,
       levelMusic: game.levelMusic,
       sandbox: game.sandbox?.definition,
       enemyArchetypes: game.sandbox?.enemyArchetypes,
+      encounters: Object.values(game.encounters?.definitions ?? {}),
     });
   }
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
@@ -344,11 +348,16 @@ export function stepGame(game, input, dt) {
   }
   if (input.fireTogglePressed) game.autofire = !game.autofire;
   game.inputFireHeld = Boolean(input.fireHeld);
+  stepSandboxEvents(game);
+
+  const encounterPolicy = encounterPausePolicy(game);
+  if (!encounterPolicy.advanceTerrain || !encounterPolicy.advanceEnemies || !encounterPolicy.advanceProjectiles || !encounterPolicy.advanceVehicle) {
+    return stepEncounterHeldGame(game, input, dt, encounterPolicy);
+  }
 
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
   applyRoadTurnDizziness(game, roadDelta.turnAngle);
-  stepSandboxEvents(game);
   stepEnemySpawner(game, dt);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   stepVehicle(game.vehicle, input, dt, game.road.heading, game.upgrades, game.terrainSample);
@@ -397,6 +406,19 @@ export function stepGame(game, input, dt) {
   stepVictoryBanner(game, arenaClear, dt);
   if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
   stepProceduralMusic(game, dt);
+  return game;
+}
+
+function stepEncounterHeldGame(game, input, dt, policy) {
+  if (input.fireTogglePressed) game.autofire = !game.autofire;
+  game.inputFireHeld = false;
+  if (policy.advanceAmbient) {
+    game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
+    stepSmokeParticles(game, dt);
+    stepGroundBeamScorchParticles(game, dt);
+  }
+  stepRoadCamera(game.camera, game.road, game.vehicle, dt);
+  if (policy.advanceMusic) stepProceduralMusic(game, dt);
   return game;
 }
 
@@ -560,6 +582,12 @@ function applySandboxEvent(game, event, elapsed) {
     game.sandbox.completeRequested = true;
     game.sandbox.lastMessage = `${event.id}: completion armed.`;
     if (!game.levelComplete) finishLevel(game);
+  } else if (event.type === 'encounter') {
+    beginEncounter(game, event.encounter ?? event.encounterId, {
+      presentationMode: event.presentationMode,
+      pausePolicy: event.pausePolicy,
+    });
+    game.sandbox.lastMessage = `${event.id}: encounter started.`;
   } else if (event.text) {
     game.sandbox.lastMessage = event.text;
   }

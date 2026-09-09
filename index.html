@@ -245,6 +245,86 @@
         opacity: 0.45;
       }
 
+      .encounter-vignette {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        background:
+          radial-gradient(circle at 50% 35%, rgb(64 76 72 / 0.32), transparent 38%),
+          rgb(4 7 8 / 0.58);
+        color: #fff6e7;
+        pointer-events: auto;
+        z-index: 26;
+      }
+
+      .encounter-panel {
+        width: min(620px, calc(100vw - 28px));
+        max-height: calc(100vh - 36px);
+        overflow: auto;
+        padding: 18px;
+        border: 1px solid rgb(244 238 228 / 0.28);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.94);
+        box-shadow: 0 18px 42px rgb(0 0 0 / 0.42);
+      }
+
+      .encounter-speaker {
+        min-height: 16px;
+        color: #83f7ff;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .encounter-panel h2 {
+        margin: 4px 0 10px;
+        font-size: 24px;
+        line-height: 1.08;
+      }
+
+      .encounter-panel p {
+        margin: 0 0 12px;
+        color: #e5d9c2;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .encounter-prompt {
+        margin: 14px 0 8px;
+        color: #f7c06a;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .encounter-choices {
+        display: grid;
+        gap: 8px;
+      }
+
+      .encounter-choices button {
+        min-height: 44px;
+        padding: 8px 12px;
+        border: 1px solid rgb(244 238 228 / 0.28);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.8);
+        color: #f4eee4;
+        font-size: 15px;
+        font-weight: 760;
+        text-align: left;
+      }
+
+      .encounter-choices button.selected,
+      .encounter-choices button:hover {
+        border-color: rgb(131 247 255 / 0.82);
+        background: rgb(37 59 58 / 0.84);
+      }
+
+      .encounter-choices button:disabled {
+        opacity: 0.48;
+      }
+
       .level-complete-content {
         width: min(520px, calc(100vw - 28px));
         max-height: calc(100vh - 24px);
@@ -1454,6 +1534,16 @@
           font-size: 12px;
         }
 
+        .encounter-vignette {
+          align-items: end;
+          padding: 10px;
+        }
+
+        .encounter-panel {
+          width: 100%;
+          padding: 14px;
+        }
+
         .sandbox-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -1737,6 +1827,15 @@
         <button id="sandboxRefresh" type="button">Refresh Content</button>
       </div>
       <div id="sandboxStatus" class="sandbox-status" aria-live="polite"></div>
+    </div>
+    <div id="encounterVignette" class="encounter-vignette hidden" aria-hidden="true">
+      <section class="encounter-panel" role="dialog" aria-modal="true" aria-labelledby="encounterTitle">
+        <div id="encounterSpeaker" class="encounter-speaker"></div>
+        <h2 id="encounterTitle">The Road Pauses</h2>
+        <p id="encounterBody"></p>
+        <div id="encounterPrompt" class="encounter-prompt"></div>
+        <div id="encounterChoices" class="encounter-choices"></div>
+      </section>
     </div>
     <div id="achievementsPanel" class="achievements-panel hidden">
       <h2>Achievements</h2>

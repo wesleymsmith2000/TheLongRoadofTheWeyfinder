@@ -49,6 +49,9 @@ export function createKeyboardInput(target = window, bindings = {}) {
         secondaryCycle: actionPressed(pressed, controlBindings.secondaryLeft) ? -1 : actionPressed(pressed, controlBindings.secondaryRight) ? 1 : 0,
         secondaryFirePressed: actionPressed(pressed, controlBindings.secondaryFire),
         targetCycle: actionPressed(pressed, controlBindings.targetPrevious) ? -1 : actionPressed(pressed, controlBindings.targetNext) ? 1 : 0,
+        encounterConfirmPressed: actionPressed(pressed, controlBindings.encounterConfirm),
+        encounterCancelPressed: actionPressed(pressed, controlBindings.encounterCancel),
+        encounterChoiceDelta: actionPressed(pressed, controlBindings.encounterChoiceLeft) ? -1 : actionPressed(pressed, controlBindings.encounterChoiceRight) ? 1 : 0,
       };
       pressed.clear();
       return snapshot;
@@ -109,5 +112,9 @@ function preventedKeys(bindings) {
     ...bindings.sandboxToggle,
     ...bindings.gunnerToggle,
     ...bindings.aiLeadToggle,
+    ...bindings.encounterConfirm,
+    ...bindings.encounterCancel,
+    ...bindings.encounterChoiceLeft,
+    ...bindings.encounterChoiceRight,
   ]);
 }

@@ -47,6 +47,8 @@ import {
 } from './core/economy.js';
 import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairTargetOptions } from './core/vehicle.js';
 import { DEFAULT_SANDBOX_DEFINITION, sandboxDefinitionFromEnemy, validateSandboxDefinition } from './core/sandboxMode.js';
+import { beginEncounter, activeEncounterView, chooseEncounterChoice } from './core/encounterRuntime.js';
+import { normalizeEncounterDefinition, validateEncounterDefinition } from './core/encounterDefinition.js';
 import levelCompleteBannerArt from '../assets/images/level_complete_banner.png';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import bossDefeatedBannerArt from '../assets/images/boss_defeated_banner.png';
@@ -216,6 +218,12 @@ const sandboxScriptRun = document.querySelector('#sandboxScriptRun');
 const sandboxStop = document.querySelector('#sandboxStop');
 const sandboxRefresh = document.querySelector('#sandboxRefresh');
 const sandboxStatus = document.querySelector('#sandboxStatus');
+const encounterVignette = document.querySelector('#encounterVignette');
+const encounterSpeaker = document.querySelector('#encounterSpeaker');
+const encounterTitle = document.querySelector('#encounterTitle');
+const encounterBody = document.querySelector('#encounterBody');
+const encounterPrompt = document.querySelector('#encounterPrompt');
+const encounterChoices = document.querySelector('#encounterChoices');
 const controlConfigToggle = document.querySelector('#controlConfigToggle');
 const controlConfigPanel = document.querySelector('#controlConfigPanel');
 const controlConfigList = document.querySelector('#controlConfigList');
@@ -331,6 +339,8 @@ let previous = performance.now();
 let awaitingLaunch = true;
 let titleActive = true;
 let activeMusicTrack = null;
+let pendingEncounterChoiceId = null;
+let lastEncounterViewKey = '';
 const musicAudio = new Audio();
 musicAudio.loop = true;
 musicAudio.volume = BASE_MUSIC_VOLUME;
@@ -368,6 +378,7 @@ if (buildVersionTag) buildVersionTag.textContent = BUILD_VERSION;
 if (titleVersionTag) titleVersionTag.textContent = BUILD_VERSION;
 exposeLocalContentModuleApi();
 exposeSandboxApi();
+exposeEncounterApi();
 exposeProceduralMusicApi();
 populateUpgradeSelect();
 populateSandboxEnemySelect();
@@ -421,6 +432,8 @@ function frame(now) {
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
   const targetCycle = keyInput.targetCycle || padInput.targetCycle || targetPreviousPressed.consume() * -1 || targetNextPressed.consume();
+  const encounterChoiceId = pendingEncounterChoiceId;
+  pendingEncounterChoiceId = null;
   if (keyInput.gunnerTogglePressed || padInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
   if (aiLeadTogglePressed) toggleAiShotLeading();
   updatePadReticle(padReticle, padInput, dt);
@@ -470,6 +483,10 @@ function frame(now) {
     targetingMode: targetingModeSelect.value,
     targetCycle,
     aiShotLeading,
+    encounterConfirmPressed: keyInput.encounterConfirmPressed || padInput.encounterConfirmPressed,
+    encounterCancelPressed: keyInput.encounterCancelPressed || padInput.encounterCancelPressed,
+    encounterChoiceDelta: keyInput.encounterChoiceDelta || padInput.encounterChoiceDelta,
+    encounterChoiceId,
   };
   if (
     input.shopRepairPressed ||
@@ -506,6 +523,7 @@ function frame(now) {
     gameOver.classList.toggle('hidden', !game.gameOver);
     levelComplete.classList.toggle('hidden', !game.levelComplete);
     syncVictoryBanner();
+    syncEncounterVignette();
     syncProgressHud();
     syncSandboxUi();
     refreshAchievementAwards();
@@ -945,6 +963,50 @@ function syncVictoryBanner() {
   victoryBanner.style.backgroundPosition = `${column * 33.3333}% ${row * 100}%`;
 }
 
+function syncEncounterVignette() {
+  if (!encounterVignette) return;
+  const view = activeEncounterView(game);
+  const visible =
+    Boolean(view) &&
+    (view.presentationMode === 'modalChoicePaused' || view.presentationMode === 'worldHoldInteraction') &&
+    !awaitingLaunch &&
+    !titleActive;
+  encounterVignette.classList.toggle('hidden', !visible);
+  encounterVignette.setAttribute('aria-hidden', String(!visible));
+  if (!visible) {
+    lastEncounterViewKey = '';
+    return;
+  }
+  const viewKey = JSON.stringify({
+    instanceId: view.instanceId,
+    stateId: view.stateId,
+    body: view.body,
+    choices: view.choices.map((choice) => [choice.id, choice.label, choice.available]),
+    selectedChoiceIndex: view.selectedChoiceIndex,
+  });
+  if (viewKey === lastEncounterViewKey) return;
+  lastEncounterViewKey = viewKey;
+  encounterSpeaker.textContent = view.speaker || '';
+  encounterSpeaker.hidden = !view.speaker;
+  encounterTitle.textContent = view.title || 'The Road Pauses';
+  encounterBody.textContent = view.body || '';
+  encounterPrompt.textContent = view.prompt || '';
+  encounterChoices.replaceChildren(
+    ...view.choices.map((choice, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = index === view.selectedChoiceIndex ? 'selected' : '';
+      button.disabled = choice.available === false;
+      button.setAttribute('aria-current', String(index === view.selectedChoiceIndex));
+      button.textContent = choice.disabledReason ? `${choice.label} - ${choice.disabledReason}` : choice.label;
+      button.addEventListener('click', () => {
+        pendingEncounterChoiceId = choice.id;
+      });
+      return button;
+    }),
+  );
+}
+
 function syncMusic(forcePlay = false) {
   const musicPlan = game.music ?? { baseTrack: game.currentMusic, layerVolumes: {} };
   const cue = consumeProceduralMusicCue(game.music);
@@ -1263,6 +1325,26 @@ function exposeSandboxApi() {
   });
 }
 
+function exposeEncounterApi() {
+  window.WeyfinderEncounters = Object.freeze({
+    normalize: normalizeEncounterDefinition,
+    validate: validateEncounterDefinition,
+    start(definitionOrId, options = {}) {
+      const instance = beginEncounter(game, definitionOrId, options);
+      return structuredClone(instance);
+    },
+    choose(choiceId) {
+      const view = activeEncounterView(game);
+      if (!view) return { ok: false, reason: 'inactive' };
+      return chooseEncounterChoice(game, view.instanceId, choiceId);
+    },
+    current() {
+      const view = activeEncounterView(game);
+      return view ? structuredClone(view) : null;
+    },
+  });
+}
+
 function exposeProceduralMusicApi() {
   window.WeyfinderMusic = Object.freeze({
     snapshot() {
@@ -1356,7 +1438,8 @@ function isVirtualPointerEnabled() {
     !controlsPanel.classList.contains('hidden') ||
     !controlConfigPanel.classList.contains('hidden') ||
     !achievementsPanel.classList.contains('hidden') ||
-    !sandboxPanel.classList.contains('hidden')
+    !sandboxPanel.classList.contains('hidden') ||
+    !encounterVignette.classList.contains('hidden')
   );
 }
 

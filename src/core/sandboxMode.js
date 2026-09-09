@@ -1,7 +1,8 @@
 import { CONTENT_SCHEMA_VERSION, isPlainObject } from './contentSchema.js';
+import { validateEncounterDefinition } from './encounterDefinition.js';
 
 export const SANDBOX_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
-export const SANDBOX_EVENT_TYPES = ['spawn', 'clearEnemies', 'setScrap', 'addScrap', 'setTargetingMode', 'message', 'complete'];
+export const SANDBOX_EVENT_TYPES = ['spawn', 'clearEnemies', 'setScrap', 'addScrap', 'setTargetingMode', 'message', 'encounter', 'complete'];
 
 export const DEFAULT_SANDBOX_DEFINITION = Object.freeze({
   schemaVersion: SANDBOX_SCHEMA_VERSION,
@@ -98,6 +99,7 @@ export function validateSandboxDefinition(definition) {
     if (event.type === 'spawn') {
       for (const [spawnIndex, spawn] of event.spawns.entries()) validateSpawn(spawn, `events[${index}].spawns[${spawnIndex}]`, errors);
     }
+    if (event.type === 'encounter') validateEncounterEvent(event, `events[${index}]`, errors);
   }
   return { valid: errors.length === 0, errors, warnings, definition: normalized };
 }
@@ -141,6 +143,10 @@ function normalizeEvents(events) {
         text: nonEmptyString(event.text ?? event.message, ''),
         value: finiteNumber(event.value, 0),
         mode: nonEmptyString(event.mode, null),
+        presentationMode: nonEmptyString(event.presentationMode, null),
+        pausePolicy: isPlainObject(event.pausePolicy) ? structuredClone(event.pausePolicy) : nonEmptyString(event.pausePolicy, null),
+        encounterId: nonEmptyString(event.encounterId, null),
+        encounter: isPlainObject(event.encounter) ? structuredClone(event.encounter) : null,
         spawns: normalizeSpawns(event.spawns ?? (type === 'spawn' ? [event] : [])),
       };
     })
@@ -152,6 +158,17 @@ function validateSpawn(spawn, label, errors) {
   if (!spawn.archetype && !spawn.construct) errors.push(`${label} must include archetype, enemy, or construct.`);
   if (spawn.count < 1) errors.push(`${label}.count must be at least 1.`);
   if (spawn.interval < 0) errors.push(`${label}.interval must be zero or greater.`);
+}
+
+function validateEncounterEvent(event, label, errors) {
+  if (!event.encounter && !event.encounterId) {
+    errors.push(`${label} must include encounter or encounterId.`);
+    return;
+  }
+  if (event.encounter) {
+    const report = validateEncounterDefinition(event.encounter);
+    if (!report.valid) errors.push(`${label}.encounter is invalid: ${report.errors.join(' ')}`);
+  }
 }
 
 function nonEmptyString(value, fallback) {
