@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Material Lighting Editor - The Long Road of the Weyfinder</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #111616;
+        color: #f4eee4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #111616;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid rgb(244 238 228 / 0.22);
+        border-radius: 8px;
+        background: rgb(8 11 11 / 0.58);
+        color: #f4eee4;
+        font-weight: 760;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: rgb(111 224 191 / 0.62);
+      }
+
+      .shell {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgb(244 238 228 / 0.12);
+        background: rgb(8 11 11 / 0.62);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      p {
+        margin: 3px 0 0;
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .actions,
+      .tool-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .build-version {
+        display: inline-grid;
+        place-items: center;
+        min-height: 36px;
+        padding: 0 10px;
+        border: 1px solid rgb(244 238 228 / 0.16);
+        border-radius: 8px;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(300px, 390px) minmax(360px, 1fr) minmax(320px, 430px);
+        gap: 12px;
+        padding: 12px;
+        min-height: 0;
+      }
+
+      .panel {
+        min-width: 0;
+        min-height: 0;
+        border: 1px solid rgb(244 238 228 / 0.14);
+        border-radius: 8px;
+        background: rgb(20 23 24 / 0.74);
+        overflow: hidden;
+      }
+
+      .panel h2 {
+        margin: 0;
+        padding: 12px;
+        border-bottom: 1px solid rgb(244 238 228 / 0.12);
+        font-size: 13px;
+      }
+
+      .form,
+      .preview,
+      .output {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 5px;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 680;
+      }
+
+      input,
+      select,
+      textarea {
+        min-height: 36px;
+        width: 100%;
+        border: 1px solid rgb(244 238 228 / 0.18);
+        border-radius: 8px;
+        background: #111616;
+        color: #f4eee4;
+        padding: 8px 10px;
+      }
+
+      input[type="color"] {
+        padding: 2px;
+      }
+
+      input[type="checkbox"] {
+        width: auto;
+        min-height: auto;
+      }
+
+      textarea {
+        min-height: 250px;
+        resize: vertical;
+        font-family: "Cascadia Code", Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .triple {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      canvas {
+        width: 100%;
+        max-width: 720px;
+        aspect-ratio: 1;
+        border: 1px solid rgb(244 238 228 / 0.14);
+        border-radius: 8px;
+        background: #070a0a;
+      }
+
+      .status {
+        display: grid;
+        gap: 5px;
+        color: #d7ceb8;
+        font-size: 12px;
+      }
+
+      .error {
+        color: #ff9b89;
+      }
+
+      .warning {
+        color: #f7c06a;
+      }
+
+      @media (max-width: 1180px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Material Lighting Editor</h1>
+          <p>Author render materials, spectral behavior, dynamic lights, and reusable lighting presets.</p>
+        </div>
+        <div class="actions">
+          <span class="build-version" data-build-version></span>
+          <a href="../"><button type="button">Game</button></a>
+          <a href="./creator-suite.html"><button type="button">Suite</button></a>
+          <a href="./creator-guide.html"><button type="button">Guide</button></a>
+          <button id="resetButton" type="button">Reset</button>
+          <button id="downloadMaterialButton" type="button">Download Material</button>
+          <button id="downloadLightingButton" type="button">Download Lighting</button>
+        </div>
+      </header>
+      <section class="workspace">
+        <aside class="panel">
+          <h2>Material</h2>
+          <div class="form">
+            <label>
+              Load Example
+              <select id="materialSelect"></select>
+            </label>
+            <div class="split">
+              <label>Asset ID <input id="assetIdInput" autocomplete="off" /></label>
+              <label>Material ID <input id="materialIdInput" autocomplete="off" /></label>
+            </div>
+            <label>Display Name <input id="displayNameInput" autocomplete="off" /></label>
+            <label>Tags <input id="tagsInput" autocomplete="off" /></label>
+            <div class="split">
+              <label>Albedo <input id="albedoInput" type="color" /></label>
+              <label>Texture Pattern <select id="texturePatternSelect"></select></label>
+            </div>
+            <div class="triple">
+              <label>Scale <input id="textureScaleInput" type="number" min="0" step="0.01" /></label>
+              <label>Strength <input id="textureStrengthInput" type="number" min="0" max="1" step="0.01" /></label>
+              <label>Seed <input id="textureSeedInput" type="number" step="1" /></label>
+            </div>
+            <div class="split">
+              <label>Coordinate Mode <select id="coordinateModeSelect"></select></label>
+              <label>Pseudo Height <input id="pseudoHeightInput" type="number" min="0" max="3" step="1" /></label>
+            </div>
+            <div class="triple">
+              <label>Ambient <input id="ambientInput" type="number" min="0" step="0.01" /></label>
+              <label>Diffuse <input id="diffuseInput" type="number" min="0" step="0.01" /></label>
+              <label>Reflectivity <input id="reflectivityInput" type="number" min="0" step="0.01" /></label>
+            </div>
+            <div class="split">
+              <label>Emissive Color <input id="emissiveColorInput" type="color" /></label>
+              <label>Emissive Intensity <input id="emissiveIntensityInput" type="number" min="0" step="0.01" /></label>
+            </div>
+            <div class="split">
+              <label>Light Radius <input id="lightRadiusInput" type="number" min="0" step="1" /></label>
+              <label>Pulse Period <input id="pulsePeriodInput" type="number" min="0" step="0.1" /></label>
+            </div>
+          </div>
+          <h2>Spectral Response</h2>
+          <div class="form">
+            <label class="checkbox-row"><input id="fluorescenceEnabledInput" type="checkbox" /> Fluorescence enabled</label>
+            <div class="split">
+              <label>Fluorescent Bands <input id="fluorescenceBandsInput" autocomplete="off" placeholder="UV, VIOLET" /></label>
+              <label>Emission Color <input id="fluorescenceColorInput" type="color" /></label>
+            </div>
+            <div class="split">
+              <label>Emission Intensity <input id="fluorescenceIntensityInput" type="number" min="0" step="0.01" /></label>
+              <label>Threshold <input id="fluorescenceThresholdInput" type="number" min="0" max="1" step="0.01" /></label>
+            </div>
+            <label class="checkbox-row"><input id="phosphorescenceEnabledInput" type="checkbox" /> Phosphorescence enabled</label>
+            <div class="split">
+              <label>Phosphor Bands <input id="phosphorescenceBandsInput" autocomplete="off" placeholder="UV, BLUE" /></label>
+              <label>Emission Color <input id="phosphorescenceColorInput" type="color" /></label>
+            </div>
+            <div class="triple">
+              <label>Charge Rate <input id="chargeRateInput" type="number" min="0" step="0.01" /></label>
+              <label>Half-Life <input id="decayHalfLifeInput" type="number" min="0.001" step="0.1" /></label>
+              <label>Granularity <select id="chargeGranularitySelect"></select></label>
+            </div>
+          </div>
+        </aside>
+        <section class="panel">
+          <h2>Preview</h2>
+          <div class="preview">
+            <div class="triple">
+              <label>Lighting <select id="lightingSelect"></select></label>
+              <label>Excitation <select id="excitationBandSelect"></select></label>
+              <label>Debug View <select id="debugModeSelect"></select></label>
+            </div>
+            <div class="triple">
+              <label>Light X <input id="lightXInput" type="number" step="0.1" /></label>
+              <label>Light Y <input id="lightYInput" type="number" step="0.1" /></label>
+              <label>Scrub Seconds <input id="timelineInput" type="number" min="0" max="12" step="0.25" /></label>
+            </div>
+            <canvas id="previewCanvas" width="720" height="720" aria-label="Material lighting preview"></canvas>
+            <div id="statusPanel" class="status"></div>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>Runtime JSON</h2>
+          <div class="output">
+            <label>Material JSON <textarea id="materialJsonOutput" spellcheck="false"></textarea></label>
+            <div class="tool-row">
+              <button id="applyMaterialJsonButton" type="button">Apply Material JSON</button>
+              <button id="copyMaterialJsonButton" type="button">Copy Material JSON</button>
+            </div>
+            <label>Lighting Preset JSON <textarea id="lightingJsonOutput" spellcheck="false"></textarea></label>
+            <div class="tool-row">
+              <button id="applyLightingJsonButton" type="button">Apply Lighting JSON</button>
+              <button id="copyLightingJsonButton" type="button">Copy Lighting JSON</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/src/editor/materialLightingEditor.js"></script>
+  </body>
+</html>

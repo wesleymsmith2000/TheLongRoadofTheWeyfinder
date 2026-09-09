@@ -269,6 +269,7 @@ export function createGame(seed = 1147, options = {}) {
     levelMusic,
     currentMusic,
     music: createProceduralMusicState({ baseTrack: currentMusic }),
+    environmentLighting: options.environmentLighting ?? options.lighting ?? 'DAY',
     vehicleDefinition,
     vehicle,
     road,

@@ -156,7 +156,9 @@ export function inferContentKind(definition) {
   if (definition.initialState && definition.states && definition.trigger) return 'encounter';
   if (definition.emitter) return 'pattern';
   if (definition.projectile && definition.ammo != null) return 'weapon';
+  if (definition.presetId && definition.keyLightDirection) return 'lightingPreset';
   if (definition.materialId && definition.physics) return 'terrainMaterial';
+  if (definition.materialId && definition.render) return 'material';
   if (definition.biome && definition.sockets && definition.semantic) return 'terrainTile';
   if (definition.background && definition.route) return 'level';
   if (Array.isArray(definition.cells) && Array.isArray(definition.connections)) return 'construct';

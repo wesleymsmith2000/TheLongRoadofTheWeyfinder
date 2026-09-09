@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "material.moonlit_beacon",
+  "materialId": "moonlit.beacon",
+  "displayName": "Moonlit Beacon Material",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["beacon", "emissive", "encounter", "moonlit"],
+  "render": {
+    "albedo": "#6fd7ff",
+    "texture": {
+      "type": "procedural",
+      "pattern": "diagonal_weave",
+      "coordinateMode": "WORLD_SPACE",
+      "scale": 0.42,
+      "strength": 0.22,
+      "seedOffset": 41,
+      "orientation": 18
+    },
+    "shading": {
+      "ambient": 0.5,
+      "diffuse": 0.72,
+      "roughness": 0.28,
+      "metallic": 0.05,
+      "reflectivity": 0.48
+    },
+    "emissive": {
+      "color": "#8ff6ff",
+      "intensity": 0.68,
+      "lightRadius": 96,
+      "pulsePeriod": 3.2,
+      "flicker": 0.05
+    },
+    "pseudoHeight": 2
+  },
+  "lightSource": {
+    "type": "pulse",
+    "color": "#8ff6ff",
+    "radius": 112,
+    "intensity": 0.9,
+    "falloff": 1.25,
+    "pulsePeriod": 3.2,
+    "flicker": 0.03,
+    "spectralBand": "BROAD_WHITE",
+    "priority": "CRITICAL",
+    "semanticImportance": "Moonlit beacon path marker"
+  }
+}

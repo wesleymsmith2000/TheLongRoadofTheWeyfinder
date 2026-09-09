@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "material.fate_gold_glitter",
+  "materialId": "fate.gold_glitter",
+  "displayName": "Fate Gold Glitter",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["reflective", "decoy", "moonlit"],
+  "render": {
+    "albedo": "#d8b24a",
+    "texture": {
+      "type": "procedural",
+      "pattern": "speckle",
+      "coordinateMode": "WORLD_SPACE",
+      "scale": 0.9,
+      "strength": 0.5,
+      "seedOffset": 73
+    },
+    "shading": {
+      "ambient": 0.34,
+      "diffuse": 0.86,
+      "roughness": 0.18,
+      "metallic": 0.7,
+      "reflectivity": 1.15
+    },
+    "emissive": {
+      "color": null,
+      "intensity": 0
+    },
+    "pseudoHeight": 1
+  }
+}

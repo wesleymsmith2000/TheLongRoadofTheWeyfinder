@@ -1,4 +1,5 @@
 import { CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
+import { normalizeRenderMaterial, validateRenderMaterialFields } from './renderMaterial.js';
 
 export const SAFE_TERRAIN_MATERIAL = Object.freeze({
   schemaVersion: CONTENT_SCHEMA_VERSION,
@@ -16,6 +17,13 @@ export const SAFE_TERRAIN_MATERIAL = Object.freeze({
     conductivity: 0,
   }),
   hazardTags: Object.freeze([]),
+  render: Object.freeze({
+    albedo: '#242826',
+    texture: Object.freeze({ type: 'procedural', pattern: 'noise', scale: 0.18, strength: 0.08, seedOffset: 0 }),
+    shading: Object.freeze({ ambient: 0.45, diffuse: 0.72, roughness: 0.9, metallic: 0, reflectivity: 0.04 }),
+    emissive: Object.freeze({ color: null, intensity: 0 }),
+    pseudoHeight: 0,
+  }),
 });
 
 export const SAFE_TERRAIN_SAMPLE = Object.freeze({
@@ -43,6 +51,7 @@ export function validateTerrainMaterialDefinition(definition) {
   if (!isNonEmptyString(definition.materialId)) errors.push('materialId must be a non-empty string.');
   validatePhysics(definition.physics, errors);
   validateSystems(definition.systems, errors);
+  errors.push(...validateRenderMaterialFields(definition.render, 'render'));
   if (definition.hazardTags != null && !isStringArray(definition.hazardTags)) errors.push('hazardTags must be an array of strings when provided.');
   return { valid: errors.length === 0, errors, warnings };
 }
@@ -66,6 +75,7 @@ export function normalizeTerrainMaterialDefinition(definition) {
       conductivity: finiteOrDefault(definition.systems?.conductivity, SAFE_TERRAIN_MATERIAL.systems.conductivity),
     },
     hazardTags: [...(definition.hazardTags ?? [])],
+    render: normalizeRenderMaterial({ ...definition, render: definition.render }, SAFE_TERRAIN_MATERIAL.render),
   });
 }
 
@@ -91,6 +101,7 @@ export function materialToSample(material = SAFE_TERRAIN_MATERIAL, overrides = {
     ignitionRisk: material.systems.ignitionRisk,
     conductivity: material.systems.conductivity,
     hazardTags: material.hazardTags,
+    render: material.render,
     ...overrides,
   };
 }

@@ -73,6 +73,7 @@ test('performance diagnostics expose mobile DPR cap and runtime toggles', () => 
   assert.equal(diagnostics.monitorMode(), 'full');
   assert.equal(diagnostics.effectiveDpr(3), 1.5);
   assert.deepEqual(diagnostics.set({ noSfx: true, dprMode: '1' }).noSfx, true);
+  assert.equal(diagnostics.set({ disableDynamicLighting: true }).disableDynamicLighting, true);
   assert.equal(effectiveDpr(3, 'native'), 3);
   assert.equal(effectiveDpr(3, '1'), 1);
 });

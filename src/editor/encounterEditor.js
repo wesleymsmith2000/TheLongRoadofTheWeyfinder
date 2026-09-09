@@ -266,6 +266,12 @@ function defaultEffect(type) {
   if (type === 'addChronicleEntry') return { type, entryId: `${encounter.assetId}.choice` };
   if (type === 'addDirectorInfluence') return { type, director: 'route', amount: 0.1 };
   if (type === 'setTerrainHold') return { type, hold: true };
+  if (type === 'setLightingPreset') return { type, presetId: 'MOONLIGHT' };
+  if (type === 'transitionLightingPreset') return { type, presetId: 'MOONLIGHT', duration: 2 };
+  if (type === 'enableLight' || type === 'disableLight') return { type, lightId: 'light.beacon' };
+  if (type === 'changeLightBand') return { type, lightId: 'light.beacon', spectralBand: 'UV' };
+  if (type === 'revealFluorescentLayer') return { type, targetId: 'layer.hidden_message' };
+  if (type === 'chargeMaterial' || type === 'clearPhosphorCharge') return { type, targetId: 'material.phosphor_trail_green' };
   if (type === 'revealObjectState') return { type, objectId: 'object.beacon', state: 'revealed' };
   if (type === 'scheduleEncounter') return { type, encounterId: 'encounter.followup' };
   if (type === 'spawnEncounter') return { type, encounterId: 'encounter.followup' };

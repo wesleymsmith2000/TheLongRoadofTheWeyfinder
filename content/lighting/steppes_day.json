@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "lighting.preset.steppes_day",
+  "presetId": "STEPPES_DAY",
+  "displayName": "Steppes Day",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["day", "steppes", "encounter"],
+  "ambientIntensity": 0.92,
+  "keyLightDirection": { "x": -0.7, "y": -0.7 },
+  "keyLightIntensity": 0.78,
+  "keyLightColor": "#fff1c8",
+  "darknessOverlay": 0.025,
+  "darknessColor": "#07090d",
+  "dynamicLightScale": 0.65
+}

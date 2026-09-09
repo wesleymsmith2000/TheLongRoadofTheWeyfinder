@@ -4,6 +4,7 @@ import { validateEncounterDefinition } from './encounterDefinition.js';
 import { collectLevelDependencies, validateLevelDefinition } from './levelDefinition.js';
 import { validateEnemyArchetypePack } from './enemyArchetypeDefinition.js';
 import { validatePatternDefinition } from './patternDefinition.js';
+import { validateLightingPresetDefinition, validateMaterialDefinition } from './renderMaterial.js';
 import { validateStatusEffectDefinition } from './statusEffects.js';
 import { validateTerrainMaterialDefinition } from './terrainMaterial.js';
 import { validateTerrainTileDefinition } from './terrainTileDefinition.js';
@@ -16,6 +17,8 @@ export const CONTENT_ASSET_KINDS = [
   'statusEffect',
   'enemyArchetype',
   'behavior',
+  'material',
+  'lightingPreset',
   'encounter',
   'route',
   'level',
@@ -33,6 +36,8 @@ export const CONTENT_MANIFEST_ASSET_KEYS = [
   'statusEffects',
   'enemyArchetypes',
   'behaviors',
+  'materials',
+  'lightingPresets',
   'encounters',
   'routes',
   'levels',
@@ -52,6 +57,8 @@ const KIND_TO_MANIFEST_KEY = Object.freeze({
   statusEffect: 'statusEffects',
   enemyArchetype: 'enemyArchetypes',
   behavior: 'behaviors',
+  material: 'materials',
+  lightingPreset: 'lightingPresets',
   encounter: 'encounters',
   route: 'routes',
   level: 'levels',
@@ -71,6 +78,8 @@ const VALIDATORS = Object.freeze({
   pattern: validatePatternDefinition,
   statusEffect: validateStatusEffectDefinition,
   enemyArchetype: validateEnemyArchetypePack,
+  material: validateMaterialDefinition,
+  lightingPreset: validateLightingPresetDefinition,
   encounter: validateEncounterDefinition,
   level: validateLevelDefinition,
   terrainMaterial: validateTerrainMaterialDefinition,

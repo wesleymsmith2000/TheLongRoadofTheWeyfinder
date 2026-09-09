@@ -1,4 +1,5 @@
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
+import { LIGHTING_PRESETS } from './renderMaterial.js';
 
 export const LEVEL_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const LEVEL_BACKGROUND_MODES = ['procedural', 'prebaked', 'mixed'];
@@ -12,6 +13,8 @@ export const LEVEL_DEPENDENCY_KINDS = [
   'weapon',
   'pattern',
   'behavior',
+  'material',
+  'lightingPreset',
   'encounter',
   'route',
   'level',
@@ -31,6 +34,7 @@ export function validateLevelDefinition(definition) {
   validateMetadata(definition, errors, warnings);
   validateDependencies(definition.dependencies, errors, warnings);
   validateBackground(definition.background, errors, warnings);
+  validateLighting(definition.lighting, errors);
   validateTerrain(definition.terrain, errors, warnings);
   validateRoute(definition.route, errors, warnings);
   validateObstacles(definition.obstacles ?? [], errors, warnings);
@@ -79,7 +83,7 @@ export function createLevelPackagePlan(definition) {
     dependencies: collectLevelDependencies(definition),
     assetGroups: {
       simulation: ['construct', 'weapon', 'pattern', 'behavior', 'encounter', 'route', 'level'],
-      resources: ['image', 'sound', 'music', 'voxelModel'],
+      resources: ['material', 'lightingPreset', 'image', 'sound', 'music', 'voxelModel'],
       packs: ['pack'],
     },
   };
@@ -138,6 +142,28 @@ function validateBackground(background, errors, warnings) {
     if (layer.source === 'procedural' && !isNonEmptyString(layer.generator)) errors.push(`${label}.generator is required for procedural layers.`);
     if (layer.source !== 'procedural' && !isNonEmptyString(layer.assetRef)) errors.push(`${label}.assetRef is required for prebaked layers.`);
     validateFiniteNumber(layer.parallax ?? 1, `${label}.parallax`, errors, { min: 0 });
+  }
+}
+
+function validateLighting(lighting, errors) {
+  if (lighting == null) return;
+  if (!isPlainObject(lighting)) {
+    errors.push('lighting must be an object when provided.');
+    return;
+  }
+  if (lighting.preset != null && !Object.hasOwn(LIGHTING_PRESETS, String(lighting.preset).toUpperCase())) {
+    errors.push(`lighting.preset must be one of: ${Object.keys(LIGHTING_PRESETS).join(', ')}.`);
+  }
+  for (const key of ['ambientIntensity', 'keyLightIntensity', 'darknessOverlay', 'dynamicLightScale']) {
+    if (lighting[key] != null) validateFiniteNumber(lighting[key], `lighting.${key}`, errors, { min: 0 });
+  }
+  if (lighting.keyLightDirection != null) {
+    if (!isPlainObject(lighting.keyLightDirection)) {
+      errors.push('lighting.keyLightDirection must be an object when provided.');
+    } else {
+      validateFiniteNumber(lighting.keyLightDirection.x ?? 0, 'lighting.keyLightDirection.x', errors);
+      validateFiniteNumber(lighting.keyLightDirection.y ?? -1, 'lighting.keyLightDirection.y', errors);
+    }
   }
 }
 

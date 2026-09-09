@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "material.phosphor_trail_green",
+  "materialId": "trail.phosphor_green",
+  "displayName": "Phosphor Trail Green",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["phosphorescent", "trail", "puzzle", "uv", "blue"],
+  "render": {
+    "albedo": "#253128",
+    "texture": {
+      "type": "procedural",
+      "pattern": "grain",
+      "coordinateMode": "WORLD_SPACE",
+      "scale": 0.34,
+      "strength": 0.18,
+      "seedOffset": 104,
+      "orientation": 8
+    },
+    "shading": {
+      "ambient": 0.26,
+      "diffuse": 0.56,
+      "roughness": 0.82,
+      "metallic": 0,
+      "reflectivity": 0.04
+    },
+    "phosphorescence": {
+      "enabled": true,
+      "excitationBands": ["UV", "BLUE"],
+      "emissionColor": "#9dff7a",
+      "maxCharge": 1,
+      "chargeRate": 0.82,
+      "decayHalfLife": 4,
+      "minimumVisibleCharge": 0.08,
+      "chargeGranularity": "CELL"
+    },
+    "pseudoHeight": 1
+  }
+}

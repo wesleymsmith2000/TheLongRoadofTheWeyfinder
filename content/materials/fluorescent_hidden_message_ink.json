@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "material.fluorescent_hidden_message_ink",
+  "materialId": "clue.fluorescent_hidden_message_ink",
+  "displayName": "Fluorescent Hidden Message Ink",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["fluorescent", "hidden-message", "puzzle", "uv"],
+  "render": {
+    "albedo": "#24302e",
+    "texture": {
+      "type": "procedural",
+      "pattern": "mottle",
+      "coordinateMode": "CELL_LOCAL",
+      "scale": 0.55,
+      "strength": 0.08,
+      "seedOffset": 19
+    },
+    "shading": {
+      "ambient": 0.3,
+      "diffuse": 0.5,
+      "roughness": 0.92,
+      "metallic": 0,
+      "reflectivity": 0.02
+    },
+    "emissive": {
+      "color": null,
+      "intensity": 0
+    },
+    "fluorescence": {
+      "enabled": true,
+      "excitationBands": ["UV", "VIOLET"],
+      "emissionColor": "#53ffd8",
+      "emissionIntensity": 1.05,
+      "threshold": 0.28
+    },
+    "pseudoHeight": 0
+  }
+}

@@ -7,6 +7,7 @@ export const PERFORMANCE_DIAGNOSTIC_DEFAULTS = Object.freeze({
   dprMode: 'native',
   simpleBossRender: false,
   noProjectileRender: false,
+  disableDynamicLighting: false,
   freezeTerrainStreaming: false,
   disableCollisions: false,
   disableArmDetonationFx: false,

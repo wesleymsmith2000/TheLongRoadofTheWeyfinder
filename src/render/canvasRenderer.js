@@ -1,6 +1,8 @@
 import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { cameraViewScale } from '../core/camera.js';
+import { collectDynamicLights, DEFAULT_DYNAMIC_LIGHT_BUDGET } from '../core/dynamicLighting.js';
 import { applyCellPoseTransform, evaluatePoseRig } from '../core/poseAnimation.js';
+import { computeVoxelSurfaceLight, normalizeRenderMaterial, resolveEnvironmentLighting, sampleMaterialVariation, shadeMaterialColor } from '../core/renderMaterial.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
 import { createPerformanceDiagnostics } from '../debug/performanceConfig.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
@@ -44,6 +46,7 @@ const ROLE_SHADE = {
 
 const VIEW_ANGLE_DEGREES = 25;
 const HEIGHT_SCREEN_Y_SCALE = Math.cos((VIEW_ANGLE_DEGREES * Math.PI) / 180) / Math.cos(Math.PI / 4);
+const CELL_SPRITE_CACHE_MAX = 512;
 
 const CANON_IMAGE_URLS = new Map([
   ['sprite.weapon.tracking_flechette', trackingFlechetteUrl],
@@ -96,6 +99,8 @@ export class CanvasRenderer {
     this.terrainRenderer = new TerrainRenderer(createTerrainAtlasLibrary());
     this.imageAssets = createImageAssetLibrary();
     this.diagnostics = options.diagnostics ?? createPerformanceDiagnostics();
+    this.cellSpriteCache = new Map();
+    this.lightBuffer = document.createElement('canvas');
     this.pixelRatio = 1;
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -127,18 +132,113 @@ export class CanvasRenderer {
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
     drawZeppelinHarpoonPowerups(ctx, game.enemies, game.time);
-    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics);
+    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics, this.cellSpriteCache);
     drawSmokeParticles(ctx, game.smokeParticles);
     if (!diagnostics.noProjectileRender) {
       drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
       drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
     }
-    drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets);
+    drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets, this.cellSpriteCache, game.environmentLighting);
     drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
+    if (!diagnostics.disableDynamicLighting) drawDynamicLightingComposite(ctx, game, w, h, this.lightBuffer, diagnostics);
     if (debug.visible) drawDebugOverlay(ctx, game);
   }
+}
+
+function drawDynamicLightingComposite(ctx, game, w, h, lightBuffer, diagnostics = {}) {
+  const environment = resolveEnvironmentLighting(game?.environmentLighting ?? game?.lighting ?? 'DAY');
+  if (environment.darknessOverlay > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.72, environment.darknessOverlay);
+    ctx.fillStyle = environment.darknessColor;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+
+  const lights = collectDynamicLights(game, {
+    maxLights: diagnostics.simpleBossRender ? 12 : DEFAULT_DYNAMIC_LIGHT_BUDGET,
+  });
+  if (lights.length === 0) return;
+
+  const scale = lightingBufferScale(diagnostics);
+  const bw = Math.max(1, Math.ceil(w * scale));
+  const bh = Math.max(1, Math.ceil(h * scale));
+  if (lightBuffer.width !== bw || lightBuffer.height !== bh) {
+    lightBuffer.width = bw;
+    lightBuffer.height = bh;
+  }
+  const lctx = lightBuffer.getContext('2d');
+  lctx.setTransform(1, 0, 0, 1, 0, 0);
+  lctx.clearRect(0, 0, bw, bh);
+  lctx.globalCompositeOperation = 'lighter';
+  const viewScale = cameraViewScale({ width: w, height: h });
+  for (const light of lights) {
+    const screen = worldLightToBuffer(light, game.camera, w, h, viewScale, scale);
+    if (screen.radius <= 1 || screen.x + screen.radius < 0 || screen.x - screen.radius > bw || screen.y + screen.radius < 0 || screen.y - screen.radius > bh) continue;
+    drawBufferedLight(lctx, screen, light, game.time ?? 0);
+  }
+  lctx.globalCompositeOperation = 'source-over';
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.92;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(lightBuffer, 0, 0, w, h);
+  ctx.restore();
+}
+
+function lightingBufferScale(diagnostics) {
+  if (diagnostics.dprMode === '1') return 0.2;
+  if (diagnostics.simpleBossRender) return 0.18;
+  return 0.25;
+}
+
+function worldLightToBuffer(light, camera, w, h, viewScale, bufferScale) {
+  const cameraX = camera?.x ?? 0;
+  const cameraY = camera?.y ?? 0;
+  const shakeX = camera?.shake?.offsetX ?? 0;
+  const shakeY = camera?.shake?.offsetY ?? 0;
+  return {
+    x: (w / 2 + (light.x - cameraX + shakeX) * viewScale) * bufferScale,
+    y: (h * 0.58 + (light.y - cameraY + shakeY) * viewScale) * bufferScale,
+    radius: light.radius * viewScale * bufferScale,
+  };
+}
+
+function drawBufferedLight(ctx, screen, light, time) {
+  const flicker = light.flicker ? 1 + Math.sin(time * 37 + light.x * 0.03) * light.flicker : 1;
+  const alpha = Math.min(0.9, light.intensity * 0.42 * flicker);
+  ctx.save();
+  if (light.type === 'spot' && Number.isFinite(light.direction)) {
+    ctx.beginPath();
+    ctx.moveTo(screen.x, screen.y);
+    ctx.arc(screen.x, screen.y, screen.radius, light.direction - light.coneAngle / 2, light.direction + light.coneAngle / 2);
+    ctx.closePath();
+    ctx.clip();
+  }
+  const gradient = ctx.createRadialGradient(screen.x, screen.y, 0, screen.x, screen.y, screen.radius);
+  gradient.addColorStop(0, colorWithAlpha(light.color, alpha));
+  gradient.addColorStop(0.45, colorWithAlpha(light.color, alpha * 0.38));
+  gradient.addColorStop(1, colorWithAlpha(light.color, 0));
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(screen.x, screen.y, screen.radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function colorWithAlpha(color, alpha) {
+  const rgb = parseHexColor(color);
+  if (!rgb) return `rgb(255 241 200 / ${Math.max(0, Math.min(1, alpha)).toFixed(3)})`;
+  return `rgb(${rgb.r} ${rgb.g} ${rgb.b} / ${Math.max(0, Math.min(1, alpha)).toFixed(3)})`;
+}
+
+function parseHexColor(color) {
+  if (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color)) return null;
+  const n = Number.parseInt(color.slice(1), 16);
+  return { r: n >> 16, g: (n >> 8) & 255, b: n & 255 };
 }
 
 function drawIncomingMarkers(ctx, markers = [], time = 0) {
@@ -308,7 +408,7 @@ function drawRoadLane(ctx, road) {
   ctx.restore();
 }
 
-function drawVehicle(ctx, vehicle, boost, time, imageAssets) {
+function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = null, environmentLighting = 'DAY') {
   ctx.save();
   ctx.translate(vehicle.x, vehicle.y);
   ctx.rotate(vehicle.heading);
@@ -320,7 +420,7 @@ function drawVehicle(ctx, vehicle, boost, time, imageAssets) {
   for (const cell of attached) {
     const posed = applyCellPoseTransform(cell, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE }, poseTransforms);
     const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
-    drawCell(ctx, cell, posed.x, posed.y - projectHeight(layerLift + (posed.z ?? 0)), 1, COLORS, posed.rotation);
+    drawCell(ctx, cell, posed.x, posed.y - projectHeight(layerLift + (posed.z ?? 0)), 1, COLORS, posed.rotation, { cellSpriteCache, environmentLighting });
   }
   drawTurret(ctx, vehicle);
   drawComMarker(ctx, vehicle.centerOfMass);
@@ -379,16 +479,29 @@ function drawDetachedPiece(ctx, piece) {
   ctx.restore();
 }
 
-function drawCell(ctx, cell, x, y, alpha, palette = COLORS, renderRotation = cell.renderRotation) {
-  const unit = CELL_SIZE / VOXELS;
-  const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
-  const depth = projectHeight(CELL_SIZE * 0.11);
-  const shadowOffset = CELL_SIZE * 0.15;
-  const gap = unit <= 1.25 ? 0 : Math.min(0.5, unit * 0.11);
+function drawCell(ctx, cell, x, y, alpha, palette = COLORS, renderRotation = cell.renderRotation, renderOptions = {}) {
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.translate(x, y);
   if (Number.isFinite(renderRotation) && Math.abs(renderRotation) > 0.000001) ctx.rotate(renderRotation);
+  const cached = renderOptions.cellSpriteCache && intactCell(cell) ? getCachedCellSprite(cell, palette, renderOptions) : null;
+  if (cached) {
+    ctx.drawImage(cached.canvas, -cached.anchorX, -cached.anchorY);
+    ctx.restore();
+    return;
+  }
+  drawCellMicrovoxels(ctx, cell, palette, renderOptions);
+  ctx.restore();
+}
+
+function drawCellMicrovoxels(ctx, cell, palette = COLORS, renderOptions = {}) {
+  const unit = CELL_SIZE / VOXELS;
+  const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
+  const material = normalizeRenderMaterial(cell, { id: cell.material ?? cell.type, albedo: base });
+  const environment = resolveEnvironmentLighting(renderOptions.environmentLighting ?? 'DAY');
+  const depth = projectHeight(CELL_SIZE * (0.08 + material.pseudoHeight * 0.035));
+  const shadowOffset = CELL_SIZE * 0.15;
+  const gap = unit <= 1.25 ? 0 : Math.min(0.5, unit * 0.11);
   ctx.fillStyle = palette.shadow ?? COLORS.shadow;
   ctx.fillRect(-CELL_SIZE / 2 + shadowOffset, -CELL_SIZE / 2 + shadowOffset * 1.6, CELL_SIZE, CELL_SIZE);
   for (let vy = VOXELS - 1; vy >= 0; vy -= 1) {
@@ -400,18 +513,122 @@ function drawCell(ctx, cell, x, y, alpha, palette = COLORS, renderRotation = cel
       const py = -CELL_SIZE / 2 + vy * unit;
       const lift = depth + fraction * depth;
       const width = Math.max(1, unit - gap * 2);
-      ctx.fillStyle = shade(base, ROLE_SHADE[voxel.role] ?? 0);
+      const surface = computeVoxelSurfaceLight(cell.mask, vx, vy, environment);
+      const variation = sampleMaterialVariation(material, cell.gridX * VOXELS + vx, cell.gridY * VOXELS + vy);
+      const shadeAmount =
+        (ROLE_SHADE[voxel.role] ?? 0) +
+        variation * 42 +
+        surface.directional * environment.keyLightIntensity * material.shading.diffuse * 34 -
+        surface.ao * 18 +
+        material.emissive.intensity * 32;
+      ctx.fillStyle = shadeMaterialColor(material.albedo, shadeAmount);
       ctx.fillRect(px + gap, py + gap - lift, width, width);
-      ctx.fillStyle = shade(base, -36);
-      ctx.fillRect(px + gap, py + unit - gap * 2 - lift, width, Math.max(1, depth * 0.65));
+      if (!isVoxelOccupied(cell.mask, vx, vy + 1)) {
+        ctx.fillStyle = shadeMaterialColor(material.albedo, -44 - surface.ao * 20);
+        ctx.fillRect(px + gap, py + unit - gap * 2 - lift, width, Math.max(1, depth * 0.65));
+      }
+      if (!isVoxelOccupied(cell.mask, vx + 1, vy)) {
+        ctx.fillStyle = shadeMaterialColor(material.albedo, -30 - surface.ao * 18);
+        ctx.fillRect(px + unit - gap * 2, py + gap - lift + Math.max(1, depth * 0.22), Math.max(1, depth * 0.45), width);
+      }
       ctx.fillStyle = 'rgb(255 255 255 / 0.12)';
       ctx.fillRect(px + gap * 1.5, py + gap * 1.5 - lift, Math.max(1, unit - gap * 3), Math.max(1, depth * 0.3));
+      if (material.emissive.intensity > 0 && material.emissive.color) {
+        ctx.globalAlpha *= 0.72;
+        ctx.fillStyle = material.emissive.color;
+        ctx.fillRect(px + gap, py + gap - lift, width, width);
+        ctx.globalAlpha /= 0.72;
+      }
     }
   }
   ctx.strokeStyle = cell.type === 'core' ? '#fff4a8' : 'rgb(255 255 255 / 0.16)';
   ctx.lineWidth = 1;
   ctx.strokeRect(-CELL_SIZE / 2, -CELL_SIZE / 2 - depth, CELL_SIZE, CELL_SIZE);
-  ctx.restore();
+}
+
+function getCachedCellSprite(cell, palette, renderOptions) {
+  const cache = renderOptions.cellSpriteCache;
+  const key = cellSpriteCacheKey(cell, palette, renderOptions.environmentLighting);
+  const cached = cache.get(key);
+  if (cached) return cached;
+  if (cache.size >= CELL_SPRITE_CACHE_MAX) cache.delete(cache.keys().next().value);
+  const sprite = buildCellSprite(cell, palette, renderOptions);
+  cache.set(key, sprite);
+  return sprite;
+}
+
+function buildCellSprite(cell, palette, renderOptions) {
+  const material = normalizeRenderMaterial(cell, { id: cell.material ?? cell.type, albedo: palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1' });
+  const depth = projectHeight(CELL_SIZE * (0.08 + material.pseudoHeight * 0.035));
+  const shadowOffset = CELL_SIZE * 0.15;
+  const pad = Math.ceil(Math.max(3, depth * 3 + shadowOffset * 2));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(CELL_SIZE + pad * 2 + depth);
+  canvas.height = Math.ceil(CELL_SIZE + pad * 2 + depth * 3 + shadowOffset * 2);
+  const ctx = canvas.getContext('2d');
+  const anchorX = pad + CELL_SIZE / 2;
+  const anchorY = pad + CELL_SIZE / 2 + depth * 2;
+  ctx.translate(anchorX, anchorY);
+  drawCellMicrovoxels(ctx, cell, palette, renderOptions);
+  return { canvas, anchorX, anchorY };
+}
+
+function cellSpriteCacheKey(cell, palette, environmentLighting) {
+  const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
+  const material = normalizeRenderMaterial(cell, { id: cell.material ?? cell.type, albedo: base });
+  const environment = resolveEnvironmentLighting(environmentLighting ?? 'DAY');
+  return [
+    cell.type,
+    cell.material ?? '',
+    cell.gridX,
+    cell.gridY,
+    base,
+    material.albedo,
+    material.texture.pattern,
+    material.texture.scale,
+    material.texture.strength,
+    material.texture.seedOffset,
+    material.pseudoHeight,
+    Math.round(environment.keyLightDirection.x * 10),
+    Math.round(environment.keyLightDirection.y * 10),
+    Math.round(environment.keyLightIntensity * 10),
+    intactMaskSignature(cell),
+  ].join('|');
+}
+
+function intactCell(cell) {
+  if (!cell?.mask || cell.state?.destroyed) return false;
+  for (const row of cell.mask) {
+    for (const voxel of row) {
+      if (voxel.role !== Roles.EMPTY && voxel.hp < voxel.maxHp) return false;
+    }
+  }
+  return true;
+}
+
+function intactMaskSignature(cell) {
+  let hash = 2166136261;
+  for (const row of cell.mask ?? []) {
+    for (const voxel of row) {
+      hash = Math.imul(hash ^ roleCode(voxel.role), 16777619);
+      hash = Math.imul(hash ^ Math.round(voxel.maxHp * 10), 16777619);
+    }
+  }
+  return hash >>> 0;
+}
+
+function roleCode(role) {
+  if (role === Roles.ARMOR) return 2;
+  if (role === Roles.ANCHOR) return 3;
+  if (role === Roles.WIRE) return 4;
+  if (role === Roles.DEVICE) return 5;
+  if (role === Roles.EMPTY) return 0;
+  return 1;
+}
+
+function isVoxelOccupied(mask, x, y) {
+  const voxel = mask?.[y]?.[x];
+  return Boolean(voxel && voxel.hp > 0);
 }
 
 function sortedRenderableCells(entity, includeCell) {
@@ -473,7 +690,7 @@ function drawComMarker(ctx, com) {
   ctx.stroke();
 }
 
-function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}) {
+function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCache = null) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
@@ -517,6 +734,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}) {
         enemy.destroyed ? 0.35 : 1,
         palette,
         posed.rotation,
+        { cellSpriteCache, environmentLighting: game?.environmentLighting },
       );
     }
   }

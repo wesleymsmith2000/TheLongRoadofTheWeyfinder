@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "lighting.preset.void_darkness",
+  "presetId": "VOID_DARKNESS",
+  "displayName": "Void Darkness",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["void", "darkness", "puzzle"],
+  "ambientIntensity": 0.06,
+  "keyLightDirection": { "x": 0, "y": -1 },
+  "keyLightIntensity": 0.08,
+  "keyLightColor": "#97a6ff",
+  "darknessOverlay": 0.76,
+  "darknessColor": "#010106",
+  "dynamicLightScale": 1.7
+}

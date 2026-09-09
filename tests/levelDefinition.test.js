@@ -46,6 +46,30 @@ test('level validation warns for declared external pack dependencies', () => {
   assert.equal(report.warnings.some((warning) => warning.includes('Pack dependency resolution')), true);
 });
 
+test('level validation accepts optional lighting presets', () => {
+  const report = validateLevelDefinition({
+    ...prototypeLevelDefinition,
+    lighting: {
+      preset: 'MOONLIGHT',
+      ambientIntensity: 0.42,
+      keyLightDirection: { x: -0.5, y: -1 },
+      darknessOverlay: 0.3,
+    },
+  });
+
+  assert.equal(report.valid, true);
+});
+
+test('level validation rejects unknown lighting presets', () => {
+  const report = validateLevelDefinition({
+    ...prototypeLevelDefinition,
+    lighting: { preset: 'FULL_WEBGL_RAY_TRACING' },
+  });
+
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('lighting.preset')), true);
+});
+
 test('level validation requires encounter trigger asset references', () => {
   const report = validateLevelDefinition({
     ...prototypeLevelDefinition,

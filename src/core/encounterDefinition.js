@@ -20,6 +20,14 @@ export const ENCOUNTER_EFFECT_TYPES = [
   'addChronicleEntry',
   'addDirectorInfluence',
   'setTerrainHold',
+  'setLightingPreset',
+  'transitionLightingPreset',
+  'enableLight',
+  'disableLight',
+  'changeLightBand',
+  'revealFluorescentLayer',
+  'chargeMaterial',
+  'clearPhosphorCharge',
   'showText',
   'revealObjectState',
 ];
@@ -34,6 +42,11 @@ export const ENCOUNTER_CONDITION_TYPES = [
   'chronicleHas',
   'directorInfluenceAbove',
   'routeBranchSelected',
+  'materialIsExcited',
+  'phosphorChargeAbove',
+  'lightBandPresent',
+  'lightIntensityAbove',
+  'objectIlluminatedBy',
 ];
 export const ENCOUNTER_REPERCUSSION_TRIGGER_TYPES = ['after_route_distance', 'next_level', 'enter_biome', 'timer', 'after_event', 'resource_threshold', 'run_end'];
 export const ENCOUNTER_MUSIC_STATES = ['TRAVEL', 'ATTENTION', 'SUSPICION', 'MANIFESTATION', 'AFTERIMAGE', 'ROAD_ATTENTION', 'FATE_ATTENTION'];
@@ -400,6 +413,15 @@ function validateEffects(effects, label, errors, warnings) {
     }
     if (effect.type === 'setEncounterVariable' && !isNonEmptyString(effect.key)) errors.push(`${entryLabel}.key is required for setEncounterVariable.`);
     if ((effect.type === 'giveResource' || effect.type === 'consumeResource') && !isNonEmptyString(effect.resource)) errors.push(`${entryLabel}.resource is required for ${effect.type}.`);
+    if ((effect.type === 'setLightingPreset' || effect.type === 'transitionLightingPreset') && !isNonEmptyString(effect.presetId)) {
+      errors.push(`${entryLabel}.presetId is required for ${effect.type}.`);
+    }
+    if ((effect.type === 'enableLight' || effect.type === 'disableLight' || effect.type === 'changeLightBand') && !isNonEmptyString(effect.lightId)) {
+      errors.push(`${entryLabel}.lightId is required for ${effect.type}.`);
+    }
+    if ((effect.type === 'revealFluorescentLayer' || effect.type === 'chargeMaterial' || effect.type === 'clearPhosphorCharge') && !isNonEmptyString(effect.targetId)) {
+      errors.push(`${entryLabel}.targetId is required for ${effect.type}.`);
+    }
   }
 }
 

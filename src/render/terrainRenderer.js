@@ -1,4 +1,5 @@
 import { tilesPerChunk } from '../core/terrainConfig.js';
+import { normalizeRenderMaterial, sampleMaterialVariation, shadeMaterialColor } from '../core/renderMaterial.js';
 
 const MATERIAL_COLORS = Object.freeze({
   'ghost_forest.ground': '#1d2a24',
@@ -9,6 +10,16 @@ const MATERIAL_COLORS = Object.freeze({
   'ghost_forest.deep_water': '#123f58',
   'ghost_forest.ravine_floor': '#16191e',
   'safe.default': '#242826',
+});
+
+const TERRAIN_RENDER_MATERIALS = Object.freeze({
+  'ghost_forest.ground': Object.freeze({ albedo: '#1d2a24', texture: Object.freeze({ type: 'procedural', pattern: 'mottle', scale: 0.22, strength: 0.16, seedOffset: 10 }) }),
+  'ghost_forest.path': Object.freeze({ albedo: '#3b3830', texture: Object.freeze({ type: 'procedural', pattern: 'grain', scale: 0.16, strength: 0.13, seedOffset: 20 }) }),
+  'ghost_forest.slippery_moss': Object.freeze({ albedo: '#3e7368', texture: Object.freeze({ type: 'procedural', pattern: 'speckle', scale: 0.3, strength: 0.18, seedOffset: 30 }) }),
+  'ghost_forest.beach_sand': Object.freeze({ albedo: '#9f946a', texture: Object.freeze({ type: 'procedural', pattern: 'strata', scale: 0.12, strength: 0.12, seedOffset: 40 }) }),
+  'ghost_forest.shallow_water': Object.freeze({ albedo: '#2e6f7a', texture: Object.freeze({ type: 'procedural', pattern: 'diagonal_weave', scale: 0.11, strength: 0.1, seedOffset: 50 }) }),
+  'ghost_forest.deep_water': Object.freeze({ albedo: '#123f58', texture: Object.freeze({ type: 'procedural', pattern: 'diagonal_weave', scale: 0.09, strength: 0.11, seedOffset: 60 }) }),
+  'ghost_forest.ravine_floor': Object.freeze({ albedo: '#16191e', texture: Object.freeze({ type: 'procedural', pattern: 'scorch', scale: 0.2, strength: 0.14, seedOffset: 70 }) }),
 });
 
 export class TerrainRenderer {
@@ -63,10 +74,17 @@ function drawTile(ctx, tile, x, y, size, atlasLibrary) {
   const isRoad = tile.tags.includes('road');
   if (drawProceduralFeatureTile(ctx, tile, x, y, size, atlasLibrary)) return;
   if (drawAtlasTile(ctx, tile, x, y, size, atlasLibrary)) return;
-  ctx.fillStyle = MATERIAL_COLORS[baseMaterial] ?? MATERIAL_COLORS['safe.default'];
+  ctx.fillStyle = terrainMaterialColor(tile, baseMaterial);
   ctx.fillRect(x, y, size, size);
   drawGroundVariation(ctx, tile, x, y, size);
   if (isRoad) drawRoadShape(ctx, tile, x, y, size);
+}
+
+function terrainMaterialColor(tile, materialId) {
+  const fallback = MATERIAL_COLORS[materialId] ?? MATERIAL_COLORS['safe.default'];
+  const material = normalizeRenderMaterial({ materialId, render: TERRAIN_RENDER_MATERIALS[materialId] }, { id: materialId, albedo: fallback });
+  const variation = sampleMaterialVariation(material, tile.worldTileX, tile.worldTileY);
+  return shadeMaterialColor(material.albedo, variation * 44);
 }
 
 function drawProceduralFeatureTile(ctx, tile, x, y, size, atlasLibrary) {

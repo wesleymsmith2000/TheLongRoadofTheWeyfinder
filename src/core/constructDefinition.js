@@ -2,6 +2,7 @@ import { createCell } from './cell.js';
 import { coreDistanceMap, createConnection, OPPOSITE } from './connections.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { normalizePoseRig, validatePoseRig } from './poseAnimation.js';
+import { validateRenderMaterialFields } from './renderMaterial.js';
 
 export const CONSTRUCT_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export { CANON_STATUSES };
@@ -52,6 +53,7 @@ export function validateConstructDefinition(definition) {
     if (!Number.isInteger(cell.gridX)) errors.push(`${label}.gridX must be an integer.`);
     if (!Number.isInteger(cell.gridY)) errors.push(`${label}.gridY must be an integer.`);
     if (cell.gridZ != null && !Number.isInteger(cell.gridZ)) errors.push(`${label}.gridZ must be an integer when provided.`);
+    errors.push(...validateRenderMaterialFields(cell.render, `${label}.render`));
     if (Number.isInteger(cell.gridX) && Number.isInteger(cell.gridY) && (cell.gridZ == null || Number.isInteger(cell.gridZ))) {
       const key = `${cell.gridX},${cell.gridY},${cell.gridZ ?? 0}`;
       if (occupied.has(key)) errors.push(`Multiple cells occupy grid position ${key}.`);

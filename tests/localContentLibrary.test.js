@@ -184,6 +184,41 @@ test('loose local encounter assets are grouped into packs', () => {
   assert.deepEqual(bundle.manifests[0].assets.encounters, ['choice.json']);
 });
 
+test('loose local visual material assets are grouped into packs', () => {
+  const bundle = createLocalContentBundleFromFiles(
+    [
+      file('beacon-material.json', {
+        schemaVersion: '0.1',
+        assetId: 'material.community_beacon',
+        materialId: 'community.beacon',
+        render: { albedo: '#8ff6ff', emissive: { color: '#8ff6ff', intensity: 0.5 } },
+      }),
+    ],
+    { packId: 'local.materials' },
+  );
+
+  assert.equal(bundle.assets[0].kind, 'material');
+  assert.deepEqual(bundle.manifests[0].assets.materials, ['beacon-material.json']);
+});
+
+test('loose local lighting preset assets are grouped into packs', () => {
+  const bundle = createLocalContentBundleFromFiles(
+    [
+      file('moonlight.json', {
+        schemaVersion: '0.1',
+        assetId: 'lighting.community_moonlight',
+        presetId: 'COMMUNITY_MOONLIGHT',
+        keyLightDirection: { x: -0.5, y: -1 },
+        keyLightColor: '#c9d8ff',
+      }),
+    ],
+    { packId: 'local.lighting' },
+  );
+
+  assert.equal(bundle.assets[0].kind, 'lightingPreset');
+  assert.deepEqual(bundle.manifests[0].assets.lightingPresets, ['moonlight.json']);
+});
+
 test('example prototype module set imports as a local content pack', () => {
   const files = readJsonFiles(join(process.cwd(), 'content', 'examples', 'prototype0-module-set'));
   const bundle = createLocalContentBundleFromFiles(files);

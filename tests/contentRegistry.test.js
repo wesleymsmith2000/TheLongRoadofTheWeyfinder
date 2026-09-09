@@ -8,6 +8,8 @@ import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' w
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 import trackingFlechetteSprite from '../content/resources/weapons/sprite.weapon.tracking_flechette.json' with { type: 'json' };
 import mortarPlayerShellSprite from '../content/resources/weapons/sprite.weapon.mortar_player_shell.json' with { type: 'json' };
+import fateGoldGlitterMaterial from '../content/materials/fate_gold_glitter.json' with { type: 'json' };
+import moonlitBeaconMaterial from '../content/materials/moonlit_beacon_material.json' with { type: 'json' };
 import ghostForestGroundMaterial from '../content/terrain/materials/ghost_forest_ground.json' with { type: 'json' };
 import ghostForestFloorTile from '../content/terrain/tiles/ghost_forest_floor.json' with { type: 'json' };
 import {
@@ -77,6 +79,33 @@ test('content registry accepts terrain material and tile assets', () => {
   assert.equal(material.materialId, 'ghost_forest.ground');
   assert.equal(tile.assetId, 'terrain.tile.ghost_forest.floor');
   assert.equal(getAvailableContent(registry, 'terrainTile', { tag: 'ground' }).length, 1);
+});
+
+test('content registry accepts visual materials and lighting presets', () => {
+  const registry = createContentRegistry();
+  const gold = registerContentAsset(registry, 'material', fateGoldGlitterMaterial, 'test.pack');
+  const beacon = registerContentAsset(registry, 'material', moonlitBeaconMaterial, 'test.pack');
+  const moonlight = registerContentAsset(
+    registry,
+    'lightingPreset',
+    {
+      schemaVersion: '0.1',
+      assetId: 'lighting.preset.steppes_moonlight',
+      presetId: 'STEPPES_MOONLIGHT',
+      keyLightDirection: { x: -0.5, y: -1 },
+      keyLightColor: '#c9d8ff',
+      ambientIntensity: 0.32,
+      keyLightIntensity: 0.42,
+      darknessOverlay: 0.38,
+      dynamicLightScale: 1.2,
+    },
+    'test.pack',
+  );
+
+  assert.equal(gold.materialId, 'fate.gold_glitter');
+  assert.equal(beacon.lightSource.priority, 'CRITICAL');
+  assert.equal(moonlight.presetId, 'STEPPES_MOONLIGHT');
+  assert.equal(getAvailableContent(registry, 'material', { tag: 'moonlit' }).length, 2);
 });
 
 test('content registry validates encounter assets', () => {

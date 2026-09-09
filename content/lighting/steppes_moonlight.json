@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "lighting.preset.steppes_moonlight",
+  "presetId": "STEPPES_MOONLIGHT",
+  "displayName": "Steppes Moonlight",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["moonlight", "steppes", "encounter"],
+  "ambientIntensity": 0.28,
+  "keyLightDirection": { "x": 0.42, "y": -0.9 },
+  "keyLightIntensity": 0.35,
+  "keyLightColor": "#c9d8ff",
+  "darknessOverlay": 0.48,
+  "darknessColor": "#03070d",
+  "dynamicLightScale": 1.25
+}

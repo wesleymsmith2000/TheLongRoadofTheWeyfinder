@@ -74,6 +74,29 @@ test('construct presentation metadata is preserved without replacing cells', () 
   assert.equal(construct.connections.length, startingVehicleDefinition.connections.length);
 });
 
+test('construct cell render metadata validates and instantiates', () => {
+  const construct = instantiateConstruct({
+    ...startingVehicleDefinition,
+    cells: [
+      { id: 'core', type: 'core', gridX: 0, gridY: 0, render: { albedo: '#728094', texture: { pattern: 'mottle', strength: 0.2 }, emissive: { color: '#bffcff', intensity: 0.5 }, pseudoHeight: 2 } },
+    ],
+    connections: [],
+  });
+
+  assert.equal(construct.cells[0].render.albedo, '#728094');
+  assert.equal(construct.cells[0].render.emissive.intensity, 0.5);
+});
+
+test('construct validation rejects malformed render color metadata', () => {
+  const report = validateConstructDefinition({
+    ...startingVehicleDefinition,
+    cells: [{ id: 'core', type: 'core', gridX: 0, gridY: 0, render: { albedo: 'blue' } }],
+    connections: [],
+  });
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('cells[0].render.albedo')), true);
+});
+
 test('construct definitions support stacked gridZ cells and vertical connections', () => {
   const layered = {
     ...startingVehicleDefinition,
