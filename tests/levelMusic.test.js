@@ -19,6 +19,7 @@ test('level music rotates through the default soundtrack list', () => {
 test('steppes of apollon skoteinos music is staged for future zone wiring', () => {
   assert.deepEqual(STEPPES_OF_APOLLON_SKOTEINOS_MUSIC, [
     'SteppesOfApollonSkoteinos_TheObviousRoad_1',
+    'SteppesOfApollonSkoteinos_TheObviousRoad_2',
     'SteppesOfApollonSkoteinos_MirageOfTruth_1',
     'SteppesOfApollonSkoteinos_MirageOfTruth_2',
     'SteppesOfApollonSkoteinos_DarkenedApollo_1',

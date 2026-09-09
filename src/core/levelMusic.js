@@ -37,6 +37,7 @@ export const DEFAULT_LEVEL_MUSIC = [
 
 export const STEPPES_OF_APOLLON_SKOTEINOS_MUSIC = [
   'SteppesOfApollonSkoteinos_TheObviousRoad_1',
+  'SteppesOfApollonSkoteinos_TheObviousRoad_2',
   'SteppesOfApollonSkoteinos_MirageOfTruth_1',
   'SteppesOfApollonSkoteinos_MirageOfTruth_2',
   'SteppesOfApollonSkoteinos_DarkenedApollo_1',

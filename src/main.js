@@ -92,6 +92,7 @@ import steppesEclipseBoss2Music from '../assets/music/SteppesOfApollonSkoteinos_
 import steppesMirageOfTruth1Music from '../assets/music/SteppesOfApollonSkoteinos_MirageOfTruth_1.mp3';
 import steppesMirageOfTruth2Music from '../assets/music/SteppesOfApollonSkoteinos_MirageOfTruth_2.mp3';
 import steppesTheObviousRoad1Music from '../assets/music/SteppesOfApollonSkoteinos_TheObviousRoad_1.mp3';
+import steppesTheObviousRoad2Music from '../assets/music/SteppesOfApollonSkoteinos_TheObviousRoad_2.mp3';
 import theWeyfindersRoad1Music from '../assets/music/TheWeyfindersRoad_1.mp3';
 import theWeyfindersRoad2Music from '../assets/music/TheWeyfindersRoad_2.mp3';
 import theWeyfindersRoad3Music from '../assets/music/TheWeyfindersRoad_3.mp3';
@@ -146,6 +147,7 @@ const MUSIC_URLS = {
   SteppesOfApollonSkoteinos_MirageOfTruth_1: steppesMirageOfTruth1Music,
   SteppesOfApollonSkoteinos_MirageOfTruth_2: steppesMirageOfTruth2Music,
   SteppesOfApollonSkoteinos_TheObviousRoad_1: steppesTheObviousRoad1Music,
+  SteppesOfApollonSkoteinos_TheObviousRoad_2: steppesTheObviousRoad2Music,
   TheWeyfindersRoad_1: theWeyfindersRoad1Music,
   TheWeyfindersRoad_2: theWeyfindersRoad2Music,
   TheWeyfindersRoad_3: theWeyfindersRoad3Music,
