@@ -85,6 +85,13 @@ import shadowedRoadBoss1Music from '../assets/music/ShadowedRoad_BossFight_1.mp3
 import shadowedRoadBoss2Music from '../assets/music/ShadowedRoad_BossFight_2.mp3';
 import starlightRoad1Music from '../assets/music/StarlightRoad_1.mp3';
 import starlightRoad2Music from '../assets/music/StarlightRoad_2.mp3';
+import steppesDarkenedApollo1Music from '../assets/music/SteppesOfApollonSkoteinos_DarkenedApollo_1.mp3';
+import steppesDarkenedApollo2Music from '../assets/music/SteppesOfApollonSkoteinos_DarkenedApollo_2.mp3';
+import steppesEclipseBoss1Music from '../assets/music/SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_1.mp3';
+import steppesEclipseBoss2Music from '../assets/music/SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_2.mp3';
+import steppesMirageOfTruth1Music from '../assets/music/SteppesOfApollonSkoteinos_MirageOfTruth_1.mp3';
+import steppesMirageOfTruth2Music from '../assets/music/SteppesOfApollonSkoteinos_MirageOfTruth_2.mp3';
+import steppesTheObviousRoad1Music from '../assets/music/SteppesOfApollonSkoteinos_TheObviousRoad_1.mp3';
 import theWeyfindersRoad1Music from '../assets/music/TheWeyfindersRoad_1.mp3';
 import theWeyfindersRoad2Music from '../assets/music/TheWeyfindersRoad_2.mp3';
 import theWeyfindersRoad3Music from '../assets/music/TheWeyfindersRoad_3.mp3';
@@ -132,6 +139,13 @@ const MUSIC_URLS = {
   ShadowedRoad_BossFight_2: shadowedRoadBoss2Music,
   StarlightRoad_1: starlightRoad1Music,
   StarlightRoad_2: starlightRoad2Music,
+  SteppesOfApollonSkoteinos_DarkenedApollo_1: steppesDarkenedApollo1Music,
+  SteppesOfApollonSkoteinos_DarkenedApollo_2: steppesDarkenedApollo2Music,
+  SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_1: steppesEclipseBoss1Music,
+  SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_2: steppesEclipseBoss2Music,
+  SteppesOfApollonSkoteinos_MirageOfTruth_1: steppesMirageOfTruth1Music,
+  SteppesOfApollonSkoteinos_MirageOfTruth_2: steppesMirageOfTruth2Music,
+  SteppesOfApollonSkoteinos_TheObviousRoad_1: steppesTheObviousRoad1Music,
   TheWeyfindersRoad_1: theWeyfindersRoad1Music,
   TheWeyfindersRoad_2: theWeyfindersRoad2Music,
   TheWeyfindersRoad_3: theWeyfindersRoad3Music,

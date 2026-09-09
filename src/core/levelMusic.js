@@ -35,6 +35,16 @@ export const DEFAULT_LEVEL_MUSIC = [
   'FreedomsPass_BossFight',
 ];
 
+export const STEPPES_OF_APOLLON_SKOTEINOS_MUSIC = [
+  'SteppesOfApollonSkoteinos_TheObviousRoad_1',
+  'SteppesOfApollonSkoteinos_MirageOfTruth_1',
+  'SteppesOfApollonSkoteinos_MirageOfTruth_2',
+  'SteppesOfApollonSkoteinos_DarkenedApollo_1',
+  'SteppesOfApollonSkoteinos_DarkenedApollo_2',
+  'SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_1',
+  'SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_2',
+];
+
 export function musicForLevel(level, tracks = DEFAULT_LEVEL_MUSIC) {
   if (!Array.isArray(tracks) || tracks.length === 0) return null;
   const index = Math.max(0, level - 1) % tracks.length;

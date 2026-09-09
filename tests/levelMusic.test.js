@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, createLevelEnemies, isBossLevel, stepGame } from '../src/core/game.js';
-import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from '../src/core/levelMusic.js';
+import { DEFAULT_LEVEL_MUSIC, STEPPES_OF_APOLLON_SKOTEINOS_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from '../src/core/levelMusic.js';
 
 test('boss levels are selected by boss soundtrack names', () => {
   const tracks = ['road-a', 'BossFight_alpha', 'road-b', 'SomeBossTheme'];
@@ -14,6 +14,20 @@ test('boss levels are selected by boss soundtrack names', () => {
 test('level music rotates through the default soundtrack list', () => {
   assert.equal(musicForLevel(1), DEFAULT_LEVEL_MUSIC[0]);
   assert.equal(musicForLevel(DEFAULT_LEVEL_MUSIC.length + 1), DEFAULT_LEVEL_MUSIC[0]);
+});
+
+test('steppes of apollon skoteinos music is staged for future zone wiring', () => {
+  assert.deepEqual(STEPPES_OF_APOLLON_SKOTEINOS_MUSIC, [
+    'SteppesOfApollonSkoteinos_TheObviousRoad_1',
+    'SteppesOfApollonSkoteinos_MirageOfTruth_1',
+    'SteppesOfApollonSkoteinos_MirageOfTruth_2',
+    'SteppesOfApollonSkoteinos_DarkenedApollo_1',
+    'SteppesOfApollonSkoteinos_DarkenedApollo_2',
+    'SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_1',
+    'SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_2',
+  ]);
+  assert.equal(STEPPES_OF_APOLLON_SKOTEINOS_MUSIC.every((track) => DEFAULT_LEVEL_MUSIC.includes(track)), false);
+  assert.equal(isBossMusic('SteppesOfApollonSkoteinos_EclipseOfTheFalseSun_BossFight_1'), true);
 });
 
 test('boss soundtrack levels add a boss and cut standard enemy count', () => {
