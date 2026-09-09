@@ -987,14 +987,16 @@ test('boss arm attack mix can schedule and fire a tracking laser', () => {
   assert.notDeepEqual(initialTarget, lockedTarget);
 });
 
-test('octopus boss arm destruction drops partial scrap, smoke, and phases out briefly', () => {
+test('octopus boss arm destruction drops partial scrap then delays before inking and evasive phase', () => {
   const game = createGame();
   game.autofire = false;
   const boss = createBossEnemy(game.vehicle.x + 140, game.vehicle.y);
+  boss.armUnfurl = 1;
   game.enemies = [boss];
   game.enemySpawnQueue = [];
   game.scrapPickups = [];
   game.smokeParticles = [];
+  game.enemyProjectiles = [];
   const armCells = boss.cells.filter((cell) => cell.id.startsWith('arm-0-'));
   for (const voxel of armCells[0].mask.flat()) voxel.hp = 0;
   recalculateCell(armCells[0]);
@@ -1006,10 +1008,18 @@ test('octopus boss arm destruction drops partial scrap, smoke, and phases out br
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
   assert.equal(boss.arms[0].detonated, true);
-  assert.equal(boss.phasedOut, true);
-  assert.equal(boss.armPhaseOutTimer > 1.8, true);
+  assert.equal(boss.phasedOut, false);
+  assert.equal(boss.octopusEvade.phase, 'delay');
+  assert.equal(boss.octopusEvade.timer > 0.45, true);
   assert.equal(game.scrapPickups.length >= Math.floor(remainingLiveVoxels / 4) - 1, true);
   assert.equal(game.smokeParticles.some((particle) => particle.color === '#050506' || particle.color === '#1b1718'), true);
+
+  for (let index = 0; index < 40; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(boss.octopusEvade.phase, 'run');
+  assert.equal(boss.phasedOut, true);
+  assert.equal(boss.armUnfurl < 1, true);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'boss-laser' || projectile.weapon === 'boss-tentacle'), false);
 });
 
 test('octopus boss plays ouch scared and anger reactions after limb loss', () => {
@@ -1029,7 +1039,7 @@ test('octopus boss plays ouch scared and anger reactions after limb loss', () =>
   assert.equal(boss.octopusArmReaction.timer > 3.4, true);
   assert.equal(boss.octopusRetreat, undefined);
 
-  boss.armPhaseOutTimer = 0;
+  boss.octopusEvade = null;
   for (let index = 0; index < 70; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(boss.octopusArmReaction.timer < 2.6, true);
   for (let index = 0; index < 80; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
@@ -1056,7 +1066,7 @@ test('octopus boss can retreat and clear the fight after all limbs are lost', ()
   assert.equal(boss.octopusRetreat.phase, 'panic');
   assert.equal(boss.destroyed, false);
 
-  boss.armPhaseOutTimer = 0;
+  boss.octopusEvade = null;
   boss.octopusRetreat.timer = 0;
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(boss.octopusRetreat.phase, 'retreat');
@@ -1090,12 +1100,38 @@ test('octopus boss core loss starts an internal destruction sequence before fina
   assert.equal(eventsBefore.length, 0);
   assert.equal(boss.destroyed, false);
   assert.equal(Boolean(boss.internalDestruction), true);
+  assert.equal((boss.internalDestruction.cues?.length ?? 0) > 0, true);
+  assert.equal(boss.phasedOut, true);
   assert.equal(consumeSoundEvents(game).some((event) => event.id.startsWith('boss-internal-explosion')), true);
 
   for (let index = 0; index < 220 && !boss.destroyed; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(boss.destroyed, true);
   assert.equal(boss.internalDestructionComplete, true);
-  assert.equal(consumeSoundEvents(game).some((event) => event.id.startsWith('boss-main-explosion')), true);
+  assert.equal(boss.escaped, true);
+  assert.equal(boss.renderAlpha, 0);
+  assert.equal(game.smokeParticles.some((particle) => particle.color === '#050506' || particle.color === '#1b1718'), true);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id.startsWith('boss-main-explosion')), false);
+});
+
+test('phased enemies do not fire unless explicitly allowed', () => {
+  const game = createGame();
+  game.autofire = false;
+  const enemy = createEnemy(game.vehicle.x + 100, game.vehicle.y);
+  enemy.phasedOut = true;
+  for (const pattern of enemy.patterns) pattern.timer = 0;
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.enemyProjectiles.length, 0);
+
+  enemy.canFireWhilePhased = true;
+  for (const pattern of enemy.patterns) pattern.timer = 0;
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.enemyProjectiles.length > 0, true);
 });
 
 test('multileg walkers fire red STA missiles that lock a descent point without tracking', () => {

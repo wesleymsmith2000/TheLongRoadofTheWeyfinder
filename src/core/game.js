@@ -140,7 +140,9 @@ const ZEPPELIN_GROUND_LASER_FIRE_SECONDS = 3;
 const ZEPPELIN_GROUND_LASER_SEQUENCE_COOLDOWN = 15;
 const ZEPPELIN_GROUND_LASER_LENGTH = CELL_SIZE * 54;
 const BOSS_INTERNAL_DESTRUCTION_SECONDS = 3.2;
-const OCTOPUS_ARM_PHASE_SECONDS = 2;
+const OCTOPUS_ARM_PHASE_DELAY_SECONDS = 0.55;
+const OCTOPUS_ARM_EVADE_RUN_SECONDS = 1.6;
+const OCTOPUS_ARM_EVADE_DEPHASE_SECONDS = 1.15;
 const OCTOPUS_ARM_REACTION_OUCH_SECONDS = 0.9;
 const OCTOPUS_ARM_REACTION_SCARED_SECONDS = 1.1;
 const OCTOPUS_ARM_REACTION_ANGER_SECONDS = 1.6;
@@ -210,6 +212,7 @@ const TARGETING_AI_BASE_WOBBLE = 18;
 const MAX_SMOKE_PARTICLES = 180;
 const MAX_GROUND_BEAM_SCORCH_PARTICLES = 72;
 const MAX_DETACHED_SUPPORT_SCRAP = 24;
+const OCTOPUS_DESTRUCTION_CUE_CODEPOINTS = [0x1f622, 0x1f623, 0x1f621, 0x1f92f, 0x1fae5];
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
@@ -1682,7 +1685,7 @@ function stepEnemy(game, enemy, dt) {
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
   if (enemy.kind === 'zeppelinBoss') stepZeppelinBoss(game, enemy, dt);
   if (enemy.destroyed) return;
-  if ((enemy.patterns?.length ?? 0) > 0 && !walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
+  if (enemyCanFire(enemy) && (enemy.patterns?.length ?? 0) > 0 && !walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
   updateEnemyCollisionRotation(enemy, game.time);
   enemy.x += enemy.vx * dt;
@@ -1786,10 +1789,11 @@ function stepHopperFrog(game, enemy, dt) {
   enemy.vx += direction.x * HOPPER_FROG_HOP_IMPULSE * enemyMovementUpgradeScale(enemy);
   enemy.vy += direction.y * HOPPER_FROG_HOP_IMPULSE * enemyMovementUpgradeScale(enemy);
   enemy.hopTimer = game.rng.range(0.65, 1.25);
-  fireShortEnemyBeam(game, enemy, '#f26cff', 0.65);
+  if (enemyCanFire(enemy)) fireShortEnemyBeam(game, enemy, '#f26cff', 0.65);
 }
 
 function stepMortarBoat(game, enemy, dt) {
+  if (!enemyCanFire(enemy)) return;
   enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.2, 2.4)) - dt * enemyAttackRateUpgradeScale(enemy);
   if (enemy.artilleryTimer > 0) return;
   enemy.artilleryTimer = game.rng.range(4.8, 7.2);
@@ -1812,6 +1816,7 @@ function stepMortarSkiff(game, enemy, dt) {
   enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
   enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
 
+  if (!enemyCanFire(enemy)) return;
   enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.4, 2.6)) - dt * enemyAttackRateUpgradeScale(enemy);
   if (enemy.artilleryTimer > 0) return;
   enemy.artilleryTimer = game.rng.range(2.8, 4.4);
@@ -1854,7 +1859,7 @@ function stepWalkerEnemy(game, enemy, dt) {
 function stepWalkerStaMissile(game, enemy, dt) {
   const source = walkerBeamSource(enemy);
   const fireScale = walkerSweepFireScale(enemy, source);
-  if (!source || fireScale <= 0) return;
+  if (!source || fireScale <= 0 || !enemyCanFire(enemy)) return;
 
   enemy.walkerStaCooldown = Math.max(0, (enemy.walkerStaCooldown ?? game.rng.range(0.7, 1.8)) - dt * fireScale);
   if (enemy.walkerStaCooldown > 0) return;
@@ -1901,7 +1906,7 @@ function fireWalkerStaMissile(game, enemy, source) {
 function stepGroundedWalkerSpiralMissiles(game, enemy, dt) {
   const source = walkerBeamSource(enemy);
   const fireScale = walkerSweepFireScale(enemy, source);
-  if (!source || fireScale <= 0) return;
+  if (!source || fireScale <= 0 || !enemyCanFire(enemy)) return;
 
   enemy.walkerGroundedSpiralCooldown = Math.max(0, (enemy.walkerGroundedSpiralCooldown ?? game.rng.range(0.25, 0.8)) - dt * fireScale);
   if (enemy.walkerGroundedSpiralCooldown > 0) return;
@@ -1956,7 +1961,7 @@ function fireGroundedWalkerSpiralMissile(game, enemy, source) {
 function stepGroundedWalkerRepulsor(game, enemy, dt) {
   const source = walkerBeamSource(enemy);
   const fireScale = walkerSweepFireScale(enemy, source);
-  if (!source || fireScale <= 0 || enemyBeamIsActive(game, enemy, 'walker-repulsor-beam')) return;
+  if (!source || fireScale <= 0 || !enemyCanFire(enemy) || enemyBeamIsActive(game, enemy, 'walker-repulsor-beam')) return;
 
   enemy.walkerRepulsorCooldown = Math.max(0, (enemy.walkerRepulsorCooldown ?? game.rng.range(0.35, 1)) - dt * fireScale);
   if (enemy.walkerRepulsorCooldown > 0) return;
@@ -1993,7 +1998,7 @@ function stepGroundedWalkerRepulsor(game, enemy, dt) {
 function stepWalkerSweepBeam(game, enemy, dt) {
   const source = walkerBeamSource(enemy);
   const fireScale = walkerSweepFireScale(enemy, source);
-  if (!source || fireScale <= 0) {
+  if (!source || fireScale <= 0 || !enemyCanFire(enemy)) {
     enemy.walkerSweepWarning = null;
     return;
   }
@@ -2591,6 +2596,10 @@ function activeZeppelinSummonedWalkers(game, zeppelin) {
 }
 
 function stepZeppelinCannons(game, enemy, state, dt) {
+  if (!enemyCanFire(enemy)) {
+    state.laserWarning = null;
+    return;
+  }
   const sources = zeppelinCannonSources(enemy);
   if (sources.length === 0) return;
   state.atsCooldown = Math.max(0, (state.atsCooldown ?? 1.4) - dt * enemyFireTimerScale(enemy));
@@ -2982,6 +2991,7 @@ function stepEnhancedEnemy(game, enemy, dt) {
 
 function stepBossEnemy(game, boss, dt) {
   stepOctopusArmReaction(boss, dt);
+  if (stepOctopusEvade(game, boss, dt)) return;
   if ((boss.armPhaseOutTimer ?? 0) > 0) {
     boss.armPhaseOutTimer = Math.max(0, boss.armPhaseOutTimer - dt);
     boss.phasedOut = true;
@@ -3003,6 +3013,10 @@ function stepBossEnemy(game, boss, dt) {
   boss.renderAlpha = 1;
   updateBossArmUnfurl(game, boss, dt);
   steerBossBackToViewArea(game, boss, dt);
+  if (!enemyCanFire(boss)) {
+    boss.centerPulseTimer = Math.max(boss.centerPulseTimer ?? 0, 1);
+    return;
+  }
   boss.centerPulseTimer -= dt * enemyCoreTimerScale(boss);
   stepBossArms(game, boss, dt);
   if (boss.centerPulseTimer <= 0) {
@@ -3015,6 +3029,70 @@ function stepOctopusArmReaction(boss, dt) {
   if (!boss.octopusArmReaction) return;
   boss.octopusArmReaction.timer = Math.max(0, boss.octopusArmReaction.timer - dt);
   if (boss.octopusArmReaction.timer <= 0) boss.octopusArmReaction = null;
+}
+
+function stepOctopusEvade(game, boss, dt) {
+  const state = boss.octopusEvade;
+  if (!state) return false;
+  boss.centerPulseTimer = Math.max(boss.centerPulseTimer ?? 0, 1);
+  boss.bossAngerTimer = 0;
+  state.timer = Math.max(0, state.timer - dt);
+
+  if (state.phase === 'delay') {
+    boss.phasedOut = false;
+    boss.renderAlpha = 1;
+    boss.vx *= Math.pow(0.04, dt);
+    boss.vy *= Math.pow(0.04, dt);
+    if (state.timer > 0) return true;
+    state.phase = 'run';
+    state.timer = OCTOPUS_ARM_EVADE_RUN_SECONDS;
+    state.duration = OCTOPUS_ARM_EVADE_RUN_SECONDS;
+    boss.phasedOut = true;
+    cancelBossArmAttacks(boss);
+    spawnBlackSmokeCloud(game, boss, 58);
+    emitRandomBossInternalExplosionSound(game);
+    return true;
+  }
+
+  if (state.phase === 'run') {
+    boss.phasedOut = true;
+    const pulse = Math.sin(game.time * 20) * 0.5 + 0.5;
+    boss.renderAlpha = 0.14 + pulse * 0.16;
+    boss.armUnfurl = clamp((boss.armUnfurl ?? 1) - dt * 2.7, 0.08, 1);
+    const target = roadOffsetToWorld(state.targetOffset, game.road);
+    const direction = directionFromTo(boss, target);
+    const desiredSpeed = OCTOPUS_RETREAT_SPEED * 1.25 * enemyMovementUpgradeScale(boss);
+    const steer = clamp(4.2 * dt, 0, 1);
+    boss.vx += (direction.x * desiredSpeed - boss.vx) * steer;
+    boss.vy += (direction.y * desiredSpeed - boss.vy) * steer;
+    boss.x += boss.vx * dt;
+    boss.y += boss.vy * dt;
+    boss.vx *= Math.pow(0.78, dt);
+    boss.vy *= Math.pow(0.78, dt);
+    if (game.rng.chance(14 * dt)) spawnBlackSmokeCloud(game, boss, 2);
+    if (state.timer > 0 && distanceSquared(boss, target) > (CELL_SIZE * 5.5) ** 2) return true;
+    state.phase = 'dephase';
+    state.timer = OCTOPUS_ARM_EVADE_DEPHASE_SECONDS;
+    state.duration = OCTOPUS_ARM_EVADE_DEPHASE_SECONDS;
+    boss.vx *= 0.12;
+    boss.vy *= 0.12;
+    spawnBlackSmokeCloud(game, boss, 20);
+    return true;
+  }
+
+  boss.phasedOut = true;
+  const progress = 1 - clamp(state.timer / Math.max(0.001, state.duration), 0, 1);
+  boss.renderAlpha = 0.2 + progress * 0.8;
+  boss.armUnfurl = clamp((boss.armUnfurl ?? 0.08) + dt * 1.15, 0.08, 1);
+  boss.vx *= Math.pow(0.08, dt);
+  boss.vy *= Math.pow(0.08, dt);
+  if (state.timer > 0) return true;
+  boss.octopusEvade = null;
+  boss.phasedOut = false;
+  boss.renderAlpha = 1;
+  boss.armUnfurl = 1;
+  boss.bossAngerTimer = 1.8;
+  return false;
 }
 
 function stepOctopusRetreat(game, boss, dt) {
@@ -3040,9 +3118,14 @@ function stepOctopusRetreat(game, boss, dt) {
     };
     spawnBlackSmokeCloud(game, boss, 62);
     emitRandomBossInternalExplosionSound(game);
+    boss.armUnfurl = 0;
+    boss.phasedOut = true;
+    cancelBossArmAttacks(boss);
     return;
   }
 
+  boss.phasedOut = true;
+  boss.armUnfurl = clamp((boss.armUnfurl ?? 0) - dt * 0.8, 0, 1);
   boss.renderAlpha = 0.58 + (Math.sin(game.time * 18) * 0.5 + 0.5) * 0.28;
   const target = roadOffsetToWorld(state.targetOffset, game.road);
   const direction = directionFromTo(boss, target);
@@ -3103,6 +3186,7 @@ function stepBossArms(game, boss, dt) {
     arm.phase += dt * game.rng.range(5.2, 8.4);
     arm.aim.x += (game.vehicle.x - arm.aim.x) * 0.18 * dt + Math.cos(arm.phase) * 32 * dt;
     arm.aim.y += (game.vehicle.y - arm.aim.y) * 0.18 * dt + Math.sin(arm.phase * 0.7) * 32 * dt;
+    if (!enemyCanFire(boss) || boss.octopusEvade || boss.octopusRetreat || boss.internalDestruction) continue;
     if ((boss.armUnfurl ?? 1) < 0.55) continue;
     fireBossNoduleShots(game, boss, arm, dt);
     if (stepBossLaser(game, boss, arm, dt)) continue;
@@ -3254,8 +3338,6 @@ function detonateBrokenBossArm(game, boss, arm) {
       y: boss.y + arm.direction.y * CELL_SIZE * 8,
     }, 34);
   }
-  boss.armPhaseOutTimer = OCTOPUS_ARM_PHASE_SECONDS;
-  boss.phasedOut = true;
   for (const cell of cells) {
     const origin = { x: boss.x + cell.gridX * CELL_SIZE, y: boss.y + cell.gridY * CELL_SIZE };
     for (const voxel of cell.mask.flat()) voxel.hp = 0;
@@ -3286,6 +3368,7 @@ function detonateBrokenBossArm(game, boss, arm) {
   }
   startOctopusArmReaction(boss);
   updateEnemyDestroyedAfterArmLoss(game, boss);
+  if (!boss.octopusRetreat && !boss.internalDestruction) startOctopusArmLossEvade(game, boss);
   return true;
 }
 
@@ -3312,6 +3395,9 @@ function updateEnemyDestroyedAfterArmLoss(game, boss) {
 
 function startOctopusNakedRetreat(game, boss) {
   if (boss.octopusRetreat || boss.destroyed || boss.internalDestruction) return;
+  boss.octopusEvade = null;
+  boss.armPhaseOutTimer = 0;
+  cancelBossArmAttacks(boss);
   boss.octopusRetreat = {
     phase: 'panic',
     timer: OCTOPUS_NAKED_PANIC_SECONDS,
@@ -3321,6 +3407,27 @@ function startOctopusNakedRetreat(game, boss) {
   boss.centerPulseTimer = Math.max(boss.centerPulseTimer ?? 0, OCTOPUS_NAKED_PANIC_SECONDS + 1);
   boss.vx *= 0.08;
   boss.vy *= 0.08;
+}
+
+function startOctopusArmLossEvade(game, boss) {
+  if (boss.octopusEvade || boss.octopusRetreat || boss.destroyed || boss.internalDestruction) return;
+  const offset = worldToRoadOffset(boss, game.road);
+  const targetOffset = {
+    x: clamp(offset.x + game.rng.range(-game.road.halfWidth * 0.42, game.road.halfWidth * 0.42), -game.road.halfWidth * 0.48, game.road.halfWidth * 0.48),
+    y: clamp(offset.y + game.rng.range(-game.road.halfHeight * 0.26, game.road.halfHeight * 0.26), -game.road.halfHeight * 0.44, game.road.halfHeight * 0.08),
+  };
+  boss.octopusEvade = {
+    phase: 'delay',
+    timer: OCTOPUS_ARM_PHASE_DELAY_SECONDS,
+    duration: OCTOPUS_ARM_PHASE_DELAY_SECONDS,
+    targetOffset,
+  };
+  boss.bossAngerTimer = 0;
+  boss.centerPulseTimer = Math.max(boss.centerPulseTimer ?? 0, OCTOPUS_ARM_PHASE_DELAY_SECONDS + OCTOPUS_ARM_EVADE_RUN_SECONDS + OCTOPUS_ARM_EVADE_DEPHASE_SECONDS + 0.4);
+}
+
+function cancelBossArmAttacks(boss) {
+  for (const arm of boss.arms ?? []) arm.laser = null;
 }
 
 function spawnBossArmPartialScrap(game, boss, cells) {
@@ -3357,11 +3464,16 @@ function startBossInternalDestruction(game, boss) {
   boss.destroyed = false;
   boss.phasedOut = false;
   boss.renderAlpha = 1;
+  boss.octopusEvade = null;
+  boss.octopusRetreat = null;
+  cancelBossArmAttacks(boss);
   boss.internalDestruction = {
     timer: BOSS_INTERNAL_DESTRUCTION_SECONDS,
     duration: BOSS_INTERNAL_DESTRUCTION_SECONDS,
     soundTimer: 0,
     smokeTimer: 0,
+    cueTimer: isOctopusBoss(boss) ? 0 : null,
+    cues: isOctopusBoss(boss) ? [] : undefined,
   };
   boss.vx *= 0.25;
   boss.vy *= 0.25;
@@ -3376,21 +3488,62 @@ function stepBossInternalDestruction(game, boss, dt) {
   state.smokeTimer -= dt;
   boss.vx *= Math.pow(0.08, dt);
   boss.vy *= Math.pow(0.08, dt);
-  boss.renderAlpha = 0.72 + (Math.sin(game.time * 24) * 0.5 + 0.5) * 0.28;
+  if (isOctopusBoss(boss)) {
+    stepOctopusInternalDestructionCues(game, boss, state, dt);
+    boss.phasedOut = true;
+    boss.armUnfurl = clamp((boss.armUnfurl ?? 1) - dt * 0.55, 0, 1);
+    const progress = 1 - clamp(state.timer / Math.max(0.001, state.duration), 0, 1);
+    const flicker = (Math.sin(game.time * 24) * 0.5 + 0.5) * 0.16;
+    boss.renderAlpha = clamp(1 - progress * 0.9 + flicker, 0.06, 1);
+  } else {
+    boss.renderAlpha = 0.72 + (Math.sin(game.time * 24) * 0.5 + 0.5) * 0.28;
+  }
   if (state.soundTimer <= 0) {
     emitRandomBossInternalExplosionSound(game);
     state.soundTimer = game.rng.range(0.32, 0.58);
   }
   if (state.smokeTimer <= 0) {
-    spawnBossInternalBlastEffect(game, boss);
+    if (isOctopusBoss(boss)) spawnBlackSmokeCloud(game, boss, 7);
+    else spawnBossInternalBlastEffect(game, boss);
     state.smokeTimer = game.rng.range(0.08, 0.18);
   }
   if (state.timer > 0) return;
   boss.internalDestruction = null;
   boss.internalDestructionComplete = true;
   boss.destroyed = true;
-  boss.renderAlpha = 1;
-  explodeEnemy(game, boss);
+  if (isOctopusBoss(boss)) {
+    boss.renderAlpha = 0;
+    boss.escaped = true;
+    recordEnemyDefeat(game.score, boss);
+    game.scrapPickups.push(...enemyDeathPickups(game, boss));
+    spawnBlackSmokeCloud(game, boss, 70);
+  } else {
+    boss.renderAlpha = 1;
+    explodeEnemy(game, boss);
+  }
+}
+
+function stepOctopusInternalDestructionCues(game, boss, state, dt) {
+  state.cues ??= [];
+  for (let index = state.cues.length - 1; index >= 0; index -= 1) {
+    const cue = state.cues[index];
+    cue.age = (cue.age ?? 0) + dt;
+    if (cue.age >= cue.lifetime) state.cues.splice(index, 1);
+  }
+  state.cueTimer = (state.cueTimer ?? 0) - dt;
+  if (state.cueTimer > 0) return;
+  state.cueTimer = game.rng.range(0.09, 0.18);
+  const codePoint = OCTOPUS_DESTRUCTION_CUE_CODEPOINTS[Math.floor(game.rng.range(0, OCTOPUS_DESTRUCTION_CUE_CODEPOINTS.length))] ?? 0x1f622;
+  state.cues.push({
+    text: String.fromCodePoint(codePoint),
+    age: 0,
+    lifetime: 2,
+    x: game.rng.range(-boss.radius * 0.16, boss.radius * 0.16),
+    y: -Math.max(CELL_SIZE * 2.6, boss.radius * 0.28) + game.rng.range(-CELL_SIZE * 0.4, CELL_SIZE * 0.25),
+    rise: game.rng.range(CELL_SIZE * 1.2, CELL_SIZE * 2.2),
+    size: game.rng.range(CELL_SIZE * 0.74, CELL_SIZE * 1.02),
+    growth: 3,
+  });
 }
 
 function spawnBossInternalBlastEffect(game, boss) {
@@ -3591,6 +3744,10 @@ function fireBossNoduleShots(game, boss, arm, dt) {
     );
     emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
   }
+}
+
+function enemyCanFire(enemy) {
+  return !enemy?.phasedOut || enemy.canFireWhilePhased === true;
 }
 
 function enemyFireTimerScale(enemy) {
@@ -5215,6 +5372,10 @@ function createRewardPickup(game, origin, kind, overrides = {}) {
 
 function bossUsesInternalDestruction(enemy) {
   return enemy?.kind === 'boss' || enemy?.kind === 'zeppelinBoss';
+}
+
+function isOctopusBoss(enemy) {
+  return enemy?.kind === 'boss' && (enemy.assetId === 'boss.octopus.prototype0' || enemy.archetypeId === 'boss.octagon.prototype0');
 }
 
 function detonatePhantomOverload(game, enemy) {

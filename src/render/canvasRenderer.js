@@ -1135,6 +1135,13 @@ function drawWalkerAngerCue(ctx, enemy, time) {
 
 function drawBossReactionCue(ctx, enemy, time) {
   if (enemy.kind !== 'boss' || enemy.destroyed) return;
+  if (enemy.internalDestruction?.cues?.length > 0) {
+    drawFloatingCueQueue(ctx, enemy.internalDestruction.cues, {
+      color: '#fff1a8',
+      stroke: 'rgb(0 0 0 / 0.72)',
+    });
+    return;
+  }
   const armReactionText = octopusArmReactionText(enemy.octopusArmReaction);
   if (armReactionText) {
     drawFloatingCueText(ctx, armReactionText, enemy, time, {
@@ -1142,20 +1149,31 @@ function drawBossReactionCue(ctx, enemy, time) {
       size: 0.88,
       pulseSpeed: 13,
       yScale: 0.38,
+      timer: enemy.octopusArmReaction.timer,
+      duration: enemy.octopusArmReaction.duration,
+      growth: 3,
+      fade: true,
+      rise: CELL_SIZE * 2.3,
     });
     return;
   }
   if (enemy.octopusRetreat?.phase === 'panic') {
-    drawFloatingCueText(ctx, '?! 😰😳', enemy, time, {
+    const scared = `${String.fromCodePoint(0x1f630)}${String.fromCodePoint(0x1f633)}`;
+    drawFloatingCueText(ctx, `?! ${scared}`, enemy, time, {
       color: '#fff1a8',
       size: 0.88,
       pulseSpeed: 10,
       yScale: 0.38,
+      timer: enemy.octopusRetreat.timer,
+      duration: enemy.octopusRetreat.duration,
+      growth: 3,
+      fade: true,
+      rise: CELL_SIZE * 2.1,
     });
     return;
   }
   if (enemy.octopusRetreat?.phase === 'retreat') {
-    drawFloatingCueText(ctx, '💨', enemy, time, {
+    drawFloatingCueText(ctx, String.fromCodePoint(0x1f4a8), enemy, time, {
       color: '#2b2b2c',
       size: 0.95,
       pulseSpeed: 8,
@@ -1164,7 +1182,7 @@ function drawBossReactionCue(ctx, enemy, time) {
     return;
   }
   if ((enemy.bossAngerTimer ?? 0) > 0) {
-    drawFloatingCueText(ctx, '😡💢', enemy, time, {
+    drawFloatingCueText(ctx, `${String.fromCodePoint(0x1f621)}${String.fromCodePoint(0x1f4a2)}`, enemy, time, {
       color: '#ff3b30',
       size: 0.82,
       pulseSpeed: 13,
@@ -1187,17 +1205,45 @@ function octopusArmReactionText(reaction) {
 
 function drawFloatingCueText(ctx, text, enemy, time, options = {}) {
   const pulse = Math.sin(time * (options.pulseSpeed ?? 10)) * 0.5 + 0.5;
+  const duration = options.duration ?? 0;
+  const progress = duration > 0 ? Math.max(0, Math.min(1, 1 - (options.timer ?? 0) / duration)) : 0;
+  const growth = 1 + ((options.growth ?? 1) - 1) * progress;
+  const alphaFade = options.fade ? 1 - progress : 1;
   ctx.save();
-  ctx.globalAlpha *= options.alpha ?? 0.85;
-  ctx.font = `${Math.max(14, CELL_SIZE * ((options.size ?? 0.8) + pulse * 0.12))}px system-ui, sans-serif`;
+  ctx.globalAlpha *= (options.alpha ?? 0.85) * alphaFade;
+  ctx.font = `${Math.max(14, CELL_SIZE * ((options.size ?? 0.8) + pulse * 0.12) * growth)}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgb(0 0 0 / 0.68)';
   ctx.fillStyle = options.color ?? '#fff1a8';
-  const y = -Math.max(CELL_SIZE * 3.2, enemy.radius * (options.yScale ?? 0.36));
+  const y = -Math.max(CELL_SIZE * 3.2, enemy.radius * (options.yScale ?? 0.36)) - (options.rise ?? 0) * progress;
   ctx.strokeText(text, 0, y);
   ctx.fillText(text, 0, y);
+  ctx.restore();
+}
+
+function drawFloatingCueQueue(ctx, cues, options = {}) {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = options.stroke ?? 'rgb(0 0 0 / 0.68)';
+  ctx.fillStyle = options.color ?? '#fff1a8';
+  for (const cue of cues) {
+    const progress = Math.max(0, Math.min(1, (cue.age ?? 0) / Math.max(0.001, cue.lifetime ?? 1)));
+    const growth = 1 + ((cue.growth ?? 1) - 1) * progress;
+    const alpha = (options.alpha ?? 0.9) * (1 - progress);
+    if (alpha <= 0.01) continue;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.font = `${Math.max(14, (cue.size ?? CELL_SIZE * 0.8) * growth)}px system-ui, sans-serif`;
+    const x = cue.x ?? 0;
+    const y = (cue.y ?? -CELL_SIZE * 3) - (cue.rise ?? CELL_SIZE * 1.5) * progress;
+    ctx.strokeText(cue.text ?? '?', x, y);
+    ctx.fillText(cue.text ?? '?', x, y);
+    ctx.restore();
+  }
   ctx.restore();
 }
 
