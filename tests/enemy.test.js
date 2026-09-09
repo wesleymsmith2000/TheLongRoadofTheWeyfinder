@@ -354,11 +354,22 @@ test('walker fall events play an internal collapse animation before grounded rec
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
   assert.equal(Boolean(enemy.walkerFallAnimation), true);
+  assert.equal(enemy.walkerFallAnimation.hangSeconds, 5);
   assert.equal(enemy.walkerSweepWarning, null);
   assert.equal(consumeSoundEvents(game).some((event) => event.id.startsWith('boss-internal-explosion')), true);
 
   let sawFallEffect = false;
-  for (let index = 0; index < 90; index += 1) {
+  for (let index = 0; index < 70; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(Boolean(enemy.walkerFallAnimation), true);
+  assert.equal(enemy.walkerFallAnimation.progress, 0);
+  assert.equal(enemy.walkerFallAnimation.cues.some((cue) => cue.text === '?'), true);
+
+  for (let index = 0; index < 130; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(Boolean(enemy.walkerFallAnimation), true);
+  assert.equal(enemy.walkerFallAnimation.progress, 0);
+  assert.equal(enemy.walkerFallAnimation.cues.some((cue) => cue.text !== '?'), true);
+
+  for (let index = 0; index < 220; index += 1) {
     stepGame(game, { gunnerEnabled: false }, 1 / 60);
     sawFallEffect ||= game.enemyProjectiles.some((projectile) => projectile.weapon === 'walker-internal-blast' || projectile.weapon === 'walker-fall-impact');
   }
@@ -915,7 +926,7 @@ test('octopus boss arm destruction drops partial scrap, smoke, and phases out br
   assert.equal(game.smokeParticles.some((particle) => particle.color === '#050506' || particle.color === '#1b1718'), true);
 });
 
-test('octopus boss shows anger after limb loss', () => {
+test('octopus boss plays ouch scared and anger reactions after limb loss', () => {
   const game = createGame();
   game.autofire = false;
   const boss = createBossEnemy(game.vehicle.x + 140, game.vehicle.y);
@@ -928,8 +939,15 @@ test('octopus boss shows anger after limb loss', () => {
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
   assert.equal(boss.arms[0].detonated, true);
-  assert.equal(boss.bossAngerTimer > 1.4, true);
+  assert.equal(boss.octopusArmReaction.duration > 3.5, true);
+  assert.equal(boss.octopusArmReaction.timer > 3.4, true);
   assert.equal(boss.octopusRetreat, undefined);
+
+  boss.armPhaseOutTimer = 0;
+  for (let index = 0; index < 70; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.octopusArmReaction.timer < 2.6, true);
+  for (let index = 0; index < 80; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(boss.octopusArmReaction.timer <= boss.octopusArmReaction.angerSeconds, true);
 });
 
 test('octopus boss can retreat and clear the fight after all limbs are lost', () => {

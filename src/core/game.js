@@ -137,7 +137,10 @@ const ZEPPELIN_GROUND_LASER_SEQUENCE_COOLDOWN = 15;
 const ZEPPELIN_GROUND_LASER_LENGTH = CELL_SIZE * 54;
 const BOSS_INTERNAL_DESTRUCTION_SECONDS = 3.2;
 const OCTOPUS_ARM_PHASE_SECONDS = 2;
-const OCTOPUS_ARM_ANGER_SECONDS = 1.6;
+const OCTOPUS_ARM_REACTION_OUCH_SECONDS = 0.9;
+const OCTOPUS_ARM_REACTION_SCARED_SECONDS = 1.1;
+const OCTOPUS_ARM_REACTION_ANGER_SECONDS = 1.6;
+const OCTOPUS_ARM_REACTION_SECONDS = OCTOPUS_ARM_REACTION_OUCH_SECONDS + OCTOPUS_ARM_REACTION_SCARED_SECONDS + OCTOPUS_ARM_REACTION_ANGER_SECONDS;
 const OCTOPUS_NAKED_PANIC_SECONDS = 10;
 const OCTOPUS_RETREAT_SPEED = 118;
 const OCTOPUS_RETREAT_EXIT_MARGIN = CELL_SIZE * 12;
@@ -151,8 +154,9 @@ const WALKER_STA_GRAVITY = 330;
 const WALKER_STA_VERTICAL_VELOCITY = 245;
 const WALKER_STA_DIRECT_DESCENT_SECONDS = 0.78;
 const WALKER_STA_BLAST_RADIUS = CELL_SIZE * 4.5;
-const WALKER_FALL_ANIMATION_SECONDS = 1.25;
-const WALKER_FALL_HANG_SECONDS = 0.34;
+const WALKER_FALL_DROP_SECONDS = 1.25;
+const WALKER_FALL_HANG_SECONDS = 5;
+const WALKER_FALL_ANIMATION_SECONDS = WALKER_FALL_HANG_SECONDS + WALKER_FALL_DROP_SECONDS;
 const WALKER_FALL_IMPACT_PROGRESS = 0.82;
 const WALKER_FALL_ANGER_SECONDS = 2.4;
 const WALKER_STA_MISSILE_SPRITE = {
@@ -2884,6 +2888,7 @@ function stepEnhancedEnemy(game, enemy, dt) {
 }
 
 function stepBossEnemy(game, boss, dt) {
+  stepOctopusArmReaction(boss, dt);
   if ((boss.armPhaseOutTimer ?? 0) > 0) {
     boss.armPhaseOutTimer = Math.max(0, boss.armPhaseOutTimer - dt);
     boss.phasedOut = true;
@@ -2911,6 +2916,12 @@ function stepBossEnemy(game, boss, dt) {
     fireBossCenterPulse(game, boss);
     boss.centerPulseTimer = 6.8;
   }
+}
+
+function stepOctopusArmReaction(boss, dt) {
+  if (!boss.octopusArmReaction) return;
+  boss.octopusArmReaction.timer = Math.max(0, boss.octopusArmReaction.timer - dt);
+  if (boss.octopusArmReaction.timer <= 0) boss.octopusArmReaction = null;
 }
 
 function stepOctopusRetreat(game, boss, dt) {
@@ -3180,9 +3191,20 @@ function detonateBrokenBossArm(game, boss, arm) {
       }
     }
   }
-  boss.bossAngerTimer = OCTOPUS_ARM_ANGER_SECONDS;
+  startOctopusArmReaction(boss);
   updateEnemyDestroyedAfterArmLoss(game, boss);
   return true;
+}
+
+function startOctopusArmReaction(boss) {
+  boss.octopusArmReaction = {
+    timer: OCTOPUS_ARM_REACTION_SECONDS,
+    duration: OCTOPUS_ARM_REACTION_SECONDS,
+    ouchSeconds: OCTOPUS_ARM_REACTION_OUCH_SECONDS,
+    scaredSeconds: OCTOPUS_ARM_REACTION_SCARED_SECONDS,
+    angerSeconds: OCTOPUS_ARM_REACTION_ANGER_SECONDS,
+  };
+  boss.bossAngerTimer = 0;
 }
 
 function updateEnemyDestroyedAfterArmLoss(game, boss) {
@@ -4710,6 +4732,8 @@ function startWalkerFallAnimation(game, enemy, event) {
     fallAngle: angle + side * Math.PI / 2,
     blastTimer: 0,
     soundTimer: 0,
+    cueTimer: 0,
+    cues: [],
     impacted: false,
   };
   enemy.walkerSweepWarning = null;
@@ -4733,6 +4757,7 @@ function stepWalkerFallAnimation(game, enemy, dt) {
   enemy.vy *= Math.pow(0.03, dt);
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
+  stepWalkerFallCues(game, enemy, state, elapsed, dt);
 
   if (elapsed >= state.hangSeconds) {
     state.soundTimer -= dt;
@@ -4763,6 +4788,37 @@ function stepWalkerFallAnimation(game, enemy, dt) {
   enemy.walkerGroundedSpiralCooldown = 0;
   enemy.walkerRepulsorCooldown = 0;
   for (const pattern of enemy.patterns ?? []) pattern.timer = Math.min(pattern.timer ?? 0, 0);
+}
+
+function stepWalkerFallCues(game, enemy, state, elapsed, dt) {
+  state.cues ??= [];
+  for (let index = state.cues.length - 1; index >= 0; index -= 1) {
+    const cue = state.cues[index];
+    cue.age = (cue.age ?? 0) + dt;
+    if (cue.age >= cue.lifetime) state.cues.splice(index, 1);
+  }
+  if (elapsed >= state.hangSeconds) return;
+  state.cueTimer -= dt;
+  const panic = elapsed >= 3;
+  if (state.cueTimer > 0) return;
+  state.cueTimer = panic ? game.rng.range(0.07, 0.14) : game.rng.range(0.34, 0.52);
+  const text = panic ? walkerPanicCueText(game.rng) : '?';
+  state.cues.push({
+    text,
+    age: 0,
+    lifetime: 2,
+    x: game.rng.range(-enemy.radius * 0.18, enemy.radius * 0.18),
+    y: -Math.max(CELL_SIZE * 2.6, enemy.radius * 0.3) + game.rng.range(-CELL_SIZE * 0.45, CELL_SIZE * 0.2),
+    rise: game.rng.range(CELL_SIZE * 1.1, CELL_SIZE * 1.9),
+    size: game.rng.range(CELL_SIZE * 0.72, CELL_SIZE * 0.98),
+  });
+}
+
+function walkerPanicCueText(rng) {
+  const scream = String.fromCodePoint(0x1f631);
+  const dizzyFace = String.fromCodePoint(0x1f635);
+  const choices = ['!', '!!', '!?', scream, dizzyFace];
+  return choices[Math.floor(rng.range(0, choices.length))] ?? '!';
 }
 
 function spawnWalkerFallInternalBlastEffect(game, enemy) {

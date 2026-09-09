@@ -829,21 +829,28 @@ function walkerFallVisualState(state) {
 function drawWalkerFallCue(ctx, enemy, time) {
   const state = enemy.walkerFallAnimation;
   if (!state || enemy.destroyed) return;
-  const elapsed = state.duration - state.timer;
-  const cueEnd = (state.hangSeconds ?? 0.34) + 0.28;
-  if (elapsed > cueEnd) return;
-  const pulse = Math.sin(time * 18) * 0.5 + 0.5;
+  const cues = state.cues ?? [];
+  if (cues.length === 0) return;
   ctx.save();
-  ctx.globalAlpha *= 0.65 + pulse * 0.25;
-  ctx.font = `${Math.max(14, CELL_SIZE * 1.05)}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgb(0 0 0 / 0.62)';
   ctx.fillStyle = '#fff1a8';
-  const y = -Math.max(CELL_SIZE * 2.6, enemy.radius * 0.28);
-  ctx.strokeText('?!', 0, y);
-  ctx.fillText('?!', 0, y);
+  for (const cue of cues) {
+    const age = Math.max(0, cue.age ?? 0);
+    const riseProgress = Math.min(1, age / 1);
+    const fadeProgress = Math.max(0, Math.min(1, (age - 1) / 1));
+    const scale = 1 + riseProgress;
+    ctx.save();
+    ctx.globalAlpha *= 1 - fadeProgress;
+    ctx.font = `${Math.max(12, (cue.size ?? CELL_SIZE * 0.82) * scale)}px system-ui, sans-serif`;
+    const x = cue.x ?? 0;
+    const y = (cue.y ?? -Math.max(CELL_SIZE * 2.6, enemy.radius * 0.28)) - (cue.rise ?? CELL_SIZE * 1.4) * riseProgress;
+    ctx.strokeText(cue.text ?? '?', x, y);
+    ctx.fillText(cue.text ?? '?', x, y);
+    ctx.restore();
+  }
   ctx.restore();
 }
 
@@ -866,6 +873,16 @@ function drawWalkerAngerCue(ctx, enemy, time) {
 
 function drawBossReactionCue(ctx, enemy, time) {
   if (enemy.kind !== 'boss' || enemy.destroyed) return;
+  const armReactionText = octopusArmReactionText(enemy.octopusArmReaction);
+  if (armReactionText) {
+    drawFloatingCueText(ctx, armReactionText, enemy, time, {
+      color: '#fff1a8',
+      size: 0.88,
+      pulseSpeed: 13,
+      yScale: 0.38,
+    });
+    return;
+  }
   if (enemy.octopusRetreat?.phase === 'panic') {
     drawFloatingCueText(ctx, '?! 😰😳', enemy, time, {
       color: '#fff1a8',
@@ -892,6 +909,18 @@ function drawBossReactionCue(ctx, enemy, time) {
       yScale: 0.36,
     });
   }
+}
+
+function octopusArmReactionText(reaction) {
+  if (!reaction) return '';
+  const elapsed = (reaction.duration ?? 0) - (reaction.timer ?? 0);
+  if (elapsed < (reaction.ouchSeconds ?? 0.9)) {
+    return `${String.fromCodePoint(0x1f623)} ${String.fromCodePoint(0x1f4a5)}`;
+  }
+  if (elapsed < (reaction.ouchSeconds ?? 0.9) + (reaction.scaredSeconds ?? 1.1)) {
+    return `${String.fromCodePoint(0x1f630)} ${String.fromCodePoint(0x1f631)}`;
+  }
+  return `${String.fromCodePoint(0x1f621)} ${String.fromCodePoint(0x1f4a2)}`;
 }
 
 function drawFloatingCueText(ctx, text, enemy, time, options = {}) {
