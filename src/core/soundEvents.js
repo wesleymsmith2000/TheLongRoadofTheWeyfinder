@@ -11,6 +11,7 @@ export const SOUND_EVENTS = {
   BOSS_MAIN_EXPLOSION_1: 'boss-main-explosion-1',
   BOSS_MAIN_EXPLOSION_2: 'boss-main-explosion-2',
   STAGE_VICTORY: 'stage-victory',
+  MOTH_COUNTDOWN: 'moth-countdown',
 };
 
 export function emitSoundEvent(game, id) {

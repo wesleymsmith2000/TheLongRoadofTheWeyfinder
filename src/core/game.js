@@ -116,6 +116,7 @@ const MOTH_BOMBER_DIVE_ACCELERATION = 420;
 const MOTH_BOMBER_DIVE_SPEED = 315;
 const MOTH_BOMBER_FUSE_SECONDS = 3;
 const MOTH_BOMBER_HOVER_Z = CELL_LAYER_HEIGHT * 0.65;
+const MOTH_BOMBER_EDGE_TURN_SECONDS = 0.22;
 const MOTH_BOMBER_FRIENDLY_FIRE_IGNORE_TAGS = ['inchworm', 'moth'];
 const ZEPPELIN_HARPOON_CHARGE_SECONDS = 2;
 const ZEPPELIN_HARPOON_FIELD_SECONDS = 10;
@@ -2294,15 +2295,33 @@ function stepMothBomber(game, enemy, dt) {
     orbitSign: game.rng.chance(0.5) ? 1 : -1,
     diveTarget: null,
     diveAngle: 0,
+    edgeTurnTimer: 0,
+    edgeReactionTimer: 0,
+    countdownSecond: null,
   };
   enemy.mothBomber = state;
   if (state.detonated) return;
 
   state.fuseRemaining = Math.max(0, (state.fuseRemaining ?? MOTH_BOMBER_FUSE_SECONDS) - dt);
+  state.edgeReactionTimer = Math.max(0, (state.edgeReactionTimer ?? 0) - dt);
+  const countdownSecond = Math.max(0, Math.ceil(state.fuseRemaining));
+  if (countdownSecond > 0 && countdownSecond !== state.countdownSecond) {
+    state.countdownSecond = countdownSecond;
+    emitSoundEvent(game, SOUND_EVENTS.MOTH_COUNTDOWN);
+  }
   if (state.fuseRemaining <= 0) {
     detonateMothBomber(game, enemy);
     return;
   }
+
+  if ((state.edgeTurnTimer ?? 0) > 0) {
+    state.edgeTurnTimer = Math.max(0, state.edgeTurnTimer - dt);
+    enemy.vx = 0;
+    enemy.vy = 0;
+    enemy.visualHeading = state.diveAngle ?? Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+    return;
+  }
+  if (redirectMothFromPlayAreaEdge(game, enemy, state)) return;
 
   if (state.phase !== 'dive') {
     state.timer -= dt * enemyAttackRateUpgradeScale(enemy);
@@ -2352,6 +2371,35 @@ function stepMothBomber(game, enemy, dt) {
     }
   }
   if (state.phase === 'dive') enemy.visualHeading = state.diveAngle;
+}
+
+function redirectMothFromPlayAreaEdge(game, enemy, state) {
+  const offset = worldToRoadOffset(enemy, game.road);
+  const visualScale = enemy.radiusIncludesVisualScale ? 1 : enemy.visualScale ?? 1;
+  const visualRadius = Math.max(CELL_SIZE * 0.75, (enemy.radius ?? CELL_SIZE) * visualScale);
+  const halfWidth = Math.max(CELL_SIZE, game.road.halfWidth - visualRadius * 0.9);
+  const halfHeight = Math.max(CELL_SIZE, game.road.halfHeight - visualRadius * 0.9);
+  const clamped = {
+    x: clamp(offset.x, -halfWidth, halfWidth),
+    y: clamp(offset.y, -halfHeight, halfHeight),
+  };
+  if (Math.abs(clamped.x - offset.x) <= 0.001 && Math.abs(clamped.y - offset.y) <= 0.001) return false;
+
+  const world = roadOffsetToWorld(clamped, game.road);
+  enemy.x = world.x;
+  enemy.y = world.y;
+  enemy.vx = 0;
+  enemy.vy = 0;
+  state.phase = 'dive';
+  state.diveTarget = {
+    x: game.vehicle.x + game.vehicle.vx * 0.12,
+    y: game.vehicle.y + game.vehicle.vy * 0.12,
+  };
+  state.diveAngle = Math.atan2(state.diveTarget.y - enemy.y, state.diveTarget.x - enemy.x);
+  state.edgeTurnTimer = MOTH_BOMBER_EDGE_TURN_SECONDS;
+  state.edgeReactionTimer = 0.85;
+  enemy.visualHeading = state.diveAngle;
+  return true;
 }
 
 function detonateMothBomber(game, enemy) {

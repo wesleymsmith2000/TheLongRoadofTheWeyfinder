@@ -22,6 +22,7 @@ import { createGame, createLevelEnemies, stepGame } from '../src/core/game.js';
 import { recalculateCell } from '../src/core/cell.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE, Roles, VOXELS } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
+import { roadOffsetToWorld, worldToRoadOffset } from '../src/core/camera.js';
 import enemyAimedShotDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import mothBomberConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.moth_bomber_sculpted.json' with { type: 'json' };
 
@@ -399,6 +400,7 @@ test('inchworm carriers spawn sculpted hovering moth bombers without module doub
   assert.equal(moth.moduleLinearScale, undefined);
   assert.equal(moth.elevation.canBeHitByGroundFire, true);
   assert.equal(moth.visualScale, 0.62);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.MOTH_COUNTDOWN), true);
 });
 
 test('moth bomber fuse explosion damages nearby non-moth enemies', () => {
@@ -425,6 +427,43 @@ test('moth bomber fuse explosion damages nearby non-moth enemies', () => {
   assert.equal(moth.destroyed, true);
   assert.equal(after < before, true);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'moth-scatter-mortar'), true);
+});
+
+test('moth bombers stop at the play area edge and charge back toward the player', () => {
+  const game = createGame();
+  game.autofire = false;
+  const outside = roadOffsetToWorld({ x: game.road.halfWidth + CELL_SIZE * 6, y: 0 }, game.road);
+  const moth = createEnemy(outside.x, outside.y, mothBomberConstruct, [], { moduleScale: 1 });
+  moth.archetypeId = 'moth_bomber.freedoms_pass';
+  moth.visualScale = 0.62;
+  moth.mothBomber = {
+    phase: 'dive',
+    fuseRemaining: 2.4,
+    orbitSign: 1,
+    diveTarget: { x: outside.x + CELL_SIZE * 10, y: outside.y },
+    diveAngle: 0,
+    edgeTurnTimer: 0,
+  };
+  game.enemies = [moth];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const clampedOffset = worldToRoadOffset(moth, game.road);
+  assert.equal(Math.abs(clampedOffset.x) < game.road.halfWidth, true);
+  assert.equal(moth.vx, 0);
+  assert.equal(moth.vy, 0);
+  assert.equal(moth.mothBomber.phase, 'dive');
+  assert.equal(moth.mothBomber.edgeTurnTimer > 0, true);
+  assert.equal(moth.mothBomber.edgeReactionTimer > 0, true);
+
+  for (let index = 0; index < 20; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const toPlayer = {
+    x: game.vehicle.x - moth.x,
+    y: game.vehicle.y - moth.y,
+  };
+  assert.equal(moth.vx * toPlayer.x + moth.vy * toPlayer.y > 0, true);
 });
 
 test('blast radius includes walker layer height when damaging raised cells', () => {

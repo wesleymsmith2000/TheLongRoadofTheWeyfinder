@@ -104,6 +104,7 @@ import errorBuzz2Sound from '../assets/sounds/ErrorBuzz2.mp3';
 import errorClickSound from '../assets/sounds/ErrorClick.mp3';
 import particleBeamSound from '../assets/sounds/ParticleBeam.mp3';
 import rocketAccelerateSound from '../assets/sounds/RocketAccelerate.mp3';
+import toggleSwitchClick2Sound from '../assets/sounds/Toggle Switch Click 2.mp3';
 import victoryTone1Sound from '../assets/sounds/VictoryTone1.mp3';
 import bossInternalExplosion1Sound from '../assets/sounds/boss__internal_explosion_1.mp3';
 import bossInternalExplosion2Sound from '../assets/sounds/boss__internal_explosion_2.mp3';
@@ -175,6 +176,7 @@ const SOUND_URLS = {
   [SOUND_EVENTS.BOSS_MAIN_EXPLOSION_1]: bossMainExplosion1Sound,
   [SOUND_EVENTS.BOSS_MAIN_EXPLOSION_2]: bossMainExplosion2Sound,
   [SOUND_EVENTS.STAGE_VICTORY]: victoryTone1Sound,
+  [SOUND_EVENTS.MOTH_COUNTDOWN]: toggleSwitchClick2Sound,
 };
 
 const canvas = document.querySelector('#game');
@@ -369,6 +371,7 @@ const SOUND_MIN_INTERVAL_MS = new Map([
   [SOUND_EVENTS.ENEMY_BULLET, 55],
   [SOUND_EVENTS.ENEMY_BEAM, 90],
   [SOUND_EVENTS.PLAYER_MAIN_GUN, 35],
+  [SOUND_EVENTS.MOTH_COUNTDOWN, 120],
 ]);
 const padReticle = {
   x: window.innerWidth / 2,
