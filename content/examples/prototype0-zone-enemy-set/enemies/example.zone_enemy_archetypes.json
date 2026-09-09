@@ -297,13 +297,13 @@
       "construct": "example.construct.moth_bomber_sculpted",
       "patterns": [],
       "zone": "FreedomsPass",
-      "entry": { "kind": "airStrafe", "direction": "roadForward", "speed": 210, "warningLeadSeconds": 0.4 },
+      "entry": { "kind": "airStrafe", "direction": "roadForward", "speed": 112, "warningLeadSeconds": 0.4 },
       "palette": { "core": "#f4eee4", "armor": "#b9d990", "gun": "#ff7a1a" },
       "presentation": {
         "variant": "mothBomber"
       },
-      "movementProfiles": [{ "id": "fast-suicide-flight", "kind": "flyStrafe", "target": "player", "speed": 230, "minZ": 18, "maxZ": 80 }],
-      "detonation": { "trigger": "contactPlayerOrConstruct", "damage": 18, "radiusCells": 2.5, "friendlyFireTagsIgnored": ["inchworm", "moth"] },
+      "movementProfiles": [{ "id": "low-hover-fuse", "kind": "flyStrafe", "target": "player", "speed": 112, "minZ": 4, "maxZ": 6, "duration": 3 }],
+      "detonation": { "trigger": "fuse", "fuseSeconds": 3, "damage": 18, "radiusCells": 2.5, "friendlyFireTagsIgnored": ["inchworm", "moth"] },
       "editable": ["construct", "entry", "palette", "movementProfiles", "detonation"]
     }
   ]

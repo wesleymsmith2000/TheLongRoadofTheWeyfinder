@@ -791,7 +791,10 @@ function drawEnemyPresentationOverlay(ctx, enemy, palette, time) {
     drawPulsingEyeGuns(ctx, [-CELL_SIZE * 0.58, CELL_SIZE * 0.58], -CELL_SIZE * 0.68, time, '#ff2638', 1.15);
   }
   if (variant === 'heavyMortarBoat') drawMortarBoatDeckGun(ctx, time, palette);
-  if (variant === 'mothBomber') drawMothFlicker(ctx, time, palette);
+  if (variant === 'mothBomber') {
+    drawMothFlicker(ctx, time, palette);
+    drawMothBomberCountdown(ctx, enemy, time);
+  }
 }
 
 function drawPulsingEyeGuns(ctx, xs, y, time, color, scale = 1) {
@@ -909,6 +912,34 @@ function drawMothFlicker(ctx, time, palette) {
   ctx.beginPath();
   ctx.arc(0, 0, CELL_SIZE * (0.55 + flicker * 0.18), 0, Math.PI * 2);
   ctx.stroke();
+  ctx.restore();
+}
+
+function drawMothBomberCountdown(ctx, enemy, time) {
+  const remaining = Math.max(0, enemy.mothBomber?.fuseRemaining ?? 3);
+  const countdown = String(Math.max(0, Math.ceil(remaining)));
+  const bomb = String.fromCodePoint(0x1f4a3);
+  const devil = String.fromCodePoint(0x1f608);
+  const buzzX = Math.sin(time * 61) * CELL_SIZE * 0.08 + Math.sin(time * 113) * CELL_SIZE * 0.04;
+  const buzzY = Math.cos(time * 73) * CELL_SIZE * 0.06;
+  const urgency = 1 - Math.min(1, remaining / 3);
+  const baseY = -Math.max(CELL_SIZE * 3.1, enemy.radius * 1.15);
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgb(0 0 0 / 0.72)';
+  ctx.fillStyle = '#fff2b8';
+  ctx.font = `${Math.max(11, CELL_SIZE * 1.35)}px system-ui, sans-serif`;
+  ctx.strokeText(`${bomb} ${devil}`, 0, baseY);
+  ctx.fillText(`${bomb} ${devil}`, 0, baseY);
+
+  ctx.font = `700 ${Math.max(13, CELL_SIZE * (1.45 + urgency * 0.28))}px system-ui, sans-serif`;
+  ctx.shadowColor = '#ff1e2d';
+  ctx.shadowBlur = 8 + urgency * 10;
+  ctx.fillStyle = '#ff2538';
+  ctx.strokeText(countdown, buzzX, baseY + CELL_SIZE * 1.55 + buzzY);
+  ctx.fillText(countdown, buzzX, baseY + CELL_SIZE * 1.55 + buzzY);
   ctx.restore();
 }
 

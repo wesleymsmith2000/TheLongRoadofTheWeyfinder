@@ -400,13 +400,13 @@
       "construct": "basic_turret",
       "patterns": [],
       "zone": "FreedomsPass",
-      "entry": { "kind": "airStrafe", "direction": "roadForward", "speed": 180 },
+      "entry": { "kind": "airStrafe", "direction": "roadForward", "speed": 112 },
       "palette": { "core": "#f4eee4", "armor": "#b9d990", "gun": "#ff7a1a" },
       "presentation": {
         "variant": "mothBomber"
       },
-      "movementProfiles": [{ "id": "fast-suicide-flight", "kind": "flyStrafe", "target": "player", "speed": 210, "minZ": 20, "maxZ": 70 }],
-      "detonation": { "trigger": "contactPlayer", "damage": 18, "radiusCells": 2.5 },
+      "movementProfiles": [{ "id": "low-hover-fuse", "kind": "flyStrafe", "target": "player", "speed": 112, "minZ": 4, "maxZ": 6, "duration": 3 }],
+      "detonation": { "trigger": "fuse", "fuseSeconds": 3, "damage": 18, "radiusCells": 2.5, "friendlyFireTagsIgnored": ["inchworm", "moth"] },
       "editable": ["construct", "entry", "palette", "movementProfiles", "detonation"]
     },
     {

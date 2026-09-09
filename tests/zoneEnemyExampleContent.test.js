@@ -90,7 +90,8 @@ test('zone enemy examples preserve requested advanced behavior descriptors', () 
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').construct, 'example.construct.inchworm_head_sculpted');
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').aggregate.parts[1].construct, 'example.construct.inchworm_body_segment_sculpted');
   assert.equal(byId.get('example.inchworm_carrier.freedoms_pass').eyeGuns.repelsIncomingProjectiles, true);
-  assert.equal(byId.get('example.moth_bomber.freedoms_pass').detonation.trigger, 'contactPlayerOrConstruct');
+  assert.equal(byId.get('example.moth_bomber.freedoms_pass').detonation.trigger, 'fuse');
+  assert.equal(byId.get('example.moth_bomber.freedoms_pass').detonation.fuseSeconds, 3);
   assert.equal(byId.get('example.walker_cannon_boss.twilight_crossroads').construct, 'example.construct.burly_walker_boss_body_sculpted');
   assert.equal(byId.get('example.walker_cannon_boss.twilight_crossroads').aggregate.kind, 'multiPartBoss');
   assert.equal(byId.get('example.walker_cannon_boss.twilight_crossroads').aggregate.parts.filter((part) => part.role === 'rotatableCannon').length, 3);

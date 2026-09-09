@@ -112,8 +112,11 @@ const MORTAR_LEVEL_5_RADIUS_MULTIPLIER = (Math.sqrt(1.05)) ** 5;
 const MORTAR_LEVEL_5_DAMAGE_MULTIPLIER = 1.05 ** 5;
 const MOTH_BOMBER_BLAST_RADIUS = ENEMY_MORTAR_BASE_BLAST_RADIUS * MORTAR_LEVEL_5_RADIUS_MULTIPLIER;
 const MOTH_BOMBER_BLAST_DAMAGE = 4.5 * MORTAR_LEVEL_5_DAMAGE_MULTIPLIER;
-const MOTH_BOMBER_DIVE_ACCELERATION = 620;
-const MOTH_BOMBER_DIVE_SPEED = 430;
+const MOTH_BOMBER_DIVE_ACCELERATION = 420;
+const MOTH_BOMBER_DIVE_SPEED = 315;
+const MOTH_BOMBER_FUSE_SECONDS = 3;
+const MOTH_BOMBER_HOVER_Z = CELL_LAYER_HEIGHT * 0.65;
+const MOTH_BOMBER_FRIENDLY_FIRE_IGNORE_TAGS = ['inchworm', 'moth'];
 const ZEPPELIN_HARPOON_CHARGE_SECONDS = 2;
 const ZEPPELIN_HARPOON_FIELD_SECONDS = 10;
 const ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS = 15;
@@ -2237,11 +2240,11 @@ function stepInchwormCarrier(game, enemy, dt) {
     moth.displayName = 'Freedoms Pass Moth Bomber';
     moth.palette = { core: '#f4eee4', armor: '#b9d990', gun: '#ff7a1a' };
   }
-  moth.elevation = { z: 35, canBeHitByGroundFire: true, arcCollision: true };
-  moth.radius *= 0.7;
+  moth.elevation = { z: MOTH_BOMBER_HOVER_Z, canBeHitByGroundFire: true, arcCollision: true };
+  moth.visualScale = Math.min(moth.visualScale ?? 1, 0.62);
   const direction = directionFromTo(moth, game.vehicle);
-  moth.vx = direction.x * 170 * enemyMovementUpgradeScale(enemy);
-  moth.vy = direction.y * 170 * enemyMovementUpgradeScale(enemy);
+  moth.vx = direction.x * 112 * enemyMovementUpgradeScale(enemy);
+  moth.vy = direction.y * 112 * enemyMovementUpgradeScale(enemy);
   applyEnemyLevelUpgrades(moth, game.level);
   game.enemies.push(moth);
 }
@@ -2279,18 +2282,27 @@ function stepInchwormSegment(enemy, dt) {
 
 function stepMothBomber(game, enemy, dt) {
   enemy.patterns = [];
-  enemy.elevation ??= { z: 35, canBeHitByGroundFire: true, arcCollision: true };
-  enemy.visualScale = Math.min(enemy.visualScale ?? 1, 0.75);
+  enemy.elevation ??= { z: MOTH_BOMBER_HOVER_Z, canBeHitByGroundFire: true, arcCollision: true };
+  enemy.elevation.z = MOTH_BOMBER_HOVER_Z + Math.sin(game.time * 13 + (enemy.targetId ?? 0)) * CELL_LAYER_HEIGHT * 0.12;
+  enemy.elevation.canBeHitByGroundFire = true;
+  enemy.elevation.arcCollision = true;
+  enemy.visualScale = Math.min(enemy.visualScale ?? 1, 0.62);
   const state = enemy.mothBomber ?? {
     phase: 'orbit',
-    timer: game.rng.range(1.1, 2.1),
+    fuseRemaining: MOTH_BOMBER_FUSE_SECONDS,
+    timer: game.rng.range(0.85, 1.35),
     orbitSign: game.rng.chance(0.5) ? 1 : -1,
     diveTarget: null,
     diveAngle: 0,
-    diveTimer: 0,
   };
   enemy.mothBomber = state;
   if (state.detonated) return;
+
+  state.fuseRemaining = Math.max(0, (state.fuseRemaining ?? MOTH_BOMBER_FUSE_SECONDS) - dt);
+  if (state.fuseRemaining <= 0) {
+    detonateMothBomber(game, enemy);
+    return;
+  }
 
   if (state.phase !== 'dive') {
     state.timer -= dt * enemyAttackRateUpgradeScale(enemy);
@@ -2305,8 +2317,8 @@ function stepMothBomber(game, enemy, dt) {
       y: behind.y + Math.sin(aim + Math.PI / 2) * side,
     };
     const direction = directionFromTo(enemy, target);
-    const desiredSpeed = 122 * enemyMovementUpgradeScale(enemy);
-    const steer = clamp(4.8 * dt, 0, 1);
+    const desiredSpeed = 74 * enemyMovementUpgradeScale(enemy);
+    const steer = clamp(3.6 * dt, 0, 1);
     enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
     enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
     enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
@@ -2318,25 +2330,28 @@ function stepMothBomber(game, enemy, dt) {
       y: game.vehicle.y + game.vehicle.vy * 0.22,
     };
     state.diveAngle = Math.atan2(state.diveTarget.y - enemy.y, state.diveTarget.x - enemy.x);
-    state.diveTimer = 1.65;
-    const speed = Math.max(120, Math.hypot(enemy.vx, enemy.vy));
+    const speed = Math.max(78, Math.hypot(enemy.vx, enemy.vy));
     enemy.vx = Math.cos(state.diveAngle) * speed;
     enemy.vy = Math.sin(state.diveAngle) * speed;
   }
 
-  state.diveTimer -= dt;
-  enemy.vx += Math.cos(state.diveAngle) * MOTH_BOMBER_DIVE_ACCELERATION * dt * enemyMovementUpgradeScale(enemy);
-  enemy.vy += Math.sin(state.diveAngle) * MOTH_BOMBER_DIVE_ACCELERATION * dt * enemyMovementUpgradeScale(enemy);
-  const speed = Math.hypot(enemy.vx, enemy.vy);
-  const maxSpeed = MOTH_BOMBER_DIVE_SPEED * enemyMovementUpgradeScale(enemy);
-  if (speed > maxSpeed) {
-    enemy.vx = (enemy.vx / speed) * maxSpeed;
-    enemy.vy = (enemy.vy / speed) * maxSpeed;
+  if (state.phase === 'dive' && state.diveTarget) {
+    const remainingDistance = Math.hypot(state.diveTarget.x - enemy.x, state.diveTarget.y - enemy.y);
+    if (remainingDistance > CELL_SIZE * 1.15) {
+      enemy.vx += Math.cos(state.diveAngle) * MOTH_BOMBER_DIVE_ACCELERATION * dt * enemyMovementUpgradeScale(enemy);
+      enemy.vy += Math.sin(state.diveAngle) * MOTH_BOMBER_DIVE_ACCELERATION * dt * enemyMovementUpgradeScale(enemy);
+      const speed = Math.hypot(enemy.vx, enemy.vy);
+      const maxSpeed = MOTH_BOMBER_DIVE_SPEED * enemyMovementUpgradeScale(enemy);
+      if (speed > maxSpeed) {
+        enemy.vx = (enemy.vx / speed) * maxSpeed;
+        enemy.vy = (enemy.vy / speed) * maxSpeed;
+      }
+    } else {
+      enemy.vx *= Math.pow(0.12, dt);
+      enemy.vy *= Math.pow(0.12, dt);
+    }
   }
-  enemy.visualHeading = state.diveAngle;
-  if (state.diveTimer <= 0 || distanceSquared(enemy, state.diveTarget) <= (CELL_SIZE * 1.9) ** 2 || distanceSquared(enemy, game.vehicle) <= (CELL_SIZE * 3.4) ** 2) {
-    detonateMothBomber(game, enemy);
-  }
+  if (state.phase === 'dive') enemy.visualHeading = state.diveAngle;
 }
 
 function detonateMothBomber(game, enemy) {
@@ -2355,8 +2370,10 @@ function detonateMothBomber(game, enemy) {
       impulse: 0,
       lifetime: 0.22,
       color: '#ff8a3d',
+      sourceEnemy: enemy,
     }),
   );
+  damageEnemiesFromMothBlast(game, enemy, origin);
   if (distanceSquared(game.vehicle, origin) <= (MOTH_BOMBER_BLAST_RADIUS + CELL_SIZE * 3.8) ** 2) {
     applyVehicleDamage(game.vehicle, origin, MOTH_BOMBER_BLAST_RADIUS, MOTH_BOMBER_BLAST_DAMAGE, 92, directionFromTo(origin, game.vehicle));
   }
@@ -2374,10 +2391,27 @@ function detonateMothBomber(game, enemy) {
       blastRadius: MOTH_BOMBER_BLAST_RADIUS,
       blastDamage: MOTH_BOMBER_BLAST_DAMAGE,
       blastImpulse: 52,
+      enemyIgnoreTags: MOTH_BOMBER_FRIENDLY_FIRE_IGNORE_TAGS,
     });
   }
   enemy.destroyed = true;
   explodeEnemy(game, enemy);
+}
+
+function damageEnemiesFromMothBlast(game, sourceEnemy, origin) {
+  for (const target of activeEnemies(game)) {
+    if (target === sourceEnemy || enemyHasAnyTag(target, MOTH_BOMBER_FRIENDLY_FIRE_IGNORE_TAGS)) continue;
+    if (distanceSquared(target, origin) > (target.radius + MOTH_BOMBER_BLAST_RADIUS) ** 2) continue;
+    const hit = applyEnemyBlastDamage(target, origin, {
+      maxVoxelDistance: Math.max(1, MOTH_BOMBER_BLAST_RADIUS / VOXEL_SIZE),
+      closeVoxelDistance: 3,
+      closePenetration: 2,
+      farPenetration: 1,
+      damage: MOTH_BOMBER_BLAST_DAMAGE,
+    });
+    if (hit.destroyedNow) explodeEnemy(game, target);
+    knockEnemyFromPoint(target, origin, target.radius + MOTH_BOMBER_BLAST_RADIUS, 52);
+  }
 }
 
 function stepZeppelinBoss(game, enemy, dt) {
@@ -3449,10 +3483,12 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {})
     targetHint: { x: target.x, y: target.y },
     detonateAtTarget: true,
     arcFlightTime: flightTime,
+    sourceEnemy: options.sourceEnemy ?? enemy,
     blastOnExpire: {
       radius: options.blastRadius ?? ENEMY_SINGLE_MORTAR_BLAST_RADIUS,
       damage: (options.blastDamage ?? 4.5) * enemyDamageUpgradeScale(enemy),
       impulse: options.blastImpulse ?? 34,
+      enemyIgnoreTags: options.enemyIgnoreTags ?? [],
     },
   });
   game.enemyProjectiles.push(shell);
@@ -4264,6 +4300,7 @@ function spawnEnemyPulseBlast(game, projectile) {
   ];
   for (const enemy of activeEnemies(game)) {
     if (projectile.sourceEnemy?.kind === 'zeppelinBoss' && enemy.kind === 'zeppelinBoss') continue;
+    if (enemyHasAnyTag(enemy, blast.enemyIgnoreTags ?? [])) continue;
     if (distanceSquared(enemy, projectile) > (enemy.radius + blast.radius) ** 2) continue;
     const hit = applyEnemyBlastDamage(enemy, projectile, {
       maxVoxelDistance: Math.max(1, blast.radius / VOXEL_SIZE),
@@ -4280,6 +4317,22 @@ function spawnEnemyPulseBlast(game, projectile) {
   }
   shakeCameraFromExplosion(game, projectile, blast.radius, blast.impulse ?? blast.damage ?? 0);
   return effects;
+}
+
+function enemyHasAnyTag(enemy, tags = []) {
+  if (!Array.isArray(tags) || tags.length === 0) return false;
+  const archetype = enemy.archetypeId ? getEnemyArchetype(enemy.archetypeId) : null;
+  const haystack = [
+    enemy.archetypeId,
+    enemy.assetId,
+    enemy.displayName,
+    ...(archetype?.tags ?? []),
+    ...(enemy.tags ?? []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return tags.some((tag) => haystack.includes(String(tag).toLowerCase()));
 }
 
 function shakeCameraFromExplosion(game, origin, radius, strength) {

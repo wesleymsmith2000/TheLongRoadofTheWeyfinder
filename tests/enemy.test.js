@@ -23,6 +23,7 @@ import { recalculateCell } from '../src/core/cell.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE, Roles, VOXELS } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 import enemyAimedShotDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
+import mothBomberConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.moth_bomber_sculpted.json' with { type: 'json' };
 
 const SINGLE_CORE_ENEMY = {
   schemaVersion: '0.1',
@@ -378,6 +379,52 @@ test('walker fall events play an internal collapse animation before grounded rec
   assert.equal(enemy.walkerAngerTimer > 0, true);
   assert.equal(enemy.walkerSweepWarning, null);
   assert.equal(sawFallEffect, true);
+});
+
+test('inchworm carriers spawn sculpted hovering moth bombers without module doubling', () => {
+  const game = createGame();
+  game.autofire = false;
+  const carrier = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
+  carrier.archetypeId = 'inchworm_carrier.freedoms_pass';
+  carrier.spawnTimer = 0.01;
+  game.enemies = [carrier];
+  game.enemySpawnQueue = [];
+
+  for (let index = 0; index < 4; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const moth = game.enemies.find((enemy) => enemy.archetypeId === 'moth_bomber.freedoms_pass');
+  assert.equal(Boolean(moth), true);
+  assert.equal(moth.assetId, 'example.construct.moth_bomber_sculpted');
+  assert.equal(moth.cells.length, mothBomberConstruct.cells.length);
+  assert.equal(moth.moduleLinearScale, undefined);
+  assert.equal(moth.elevation.canBeHitByGroundFire, true);
+  assert.equal(moth.visualScale, 0.62);
+});
+
+test('moth bomber fuse explosion damages nearby non-moth enemies', () => {
+  const game = createGame();
+  game.autofire = false;
+  const moth = createEnemy(0, 0, mothBomberConstruct, [], { moduleScale: 1 });
+  moth.archetypeId = 'moth_bomber.freedoms_pass';
+  moth.mothBomber = {
+    phase: 'dive',
+    fuseRemaining: 0.05,
+    orbitSign: 1,
+    diveTarget: { x: 0, y: 0 },
+    diveAngle: 0,
+  };
+  const target = createEnemy(CELL_SIZE * 2, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
+  game.enemies = [moth, target];
+  game.enemySpawnQueue = [];
+  const core = target.cells.find((cell) => cell.type === 'core');
+  const before = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+
+  for (let index = 0; index < 4; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const after = core.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(moth.destroyed, true);
+  assert.equal(after < before, true);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'moth-scatter-mortar'), true);
 });
 
 test('blast radius includes walker layer height when damaging raised cells', () => {
