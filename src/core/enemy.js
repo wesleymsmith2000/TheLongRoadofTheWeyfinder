@@ -221,14 +221,16 @@ export function createPirateBossEnemy(x, y) {
   let sideIndex = 0;
   for (const side of [-1, 1]) {
     for (let xOffset = -8; xOffset <= 6; xOffset += 2) {
-      addCell(`pirate-boss-side-gun-${sideIndex++}`, 'gun', xOffset, side * 5, 'pirateBossSideGun', sideGunCarve);
+      const cell = addCell(`pirate-boss-side-gun-${sideIndex++}`, 'gun', xOffset, side * 5, 'pirateBossSideGun', sideGunCarve);
+      cell.damageGroup = side < 0 ? 'pirateBossPortBroadside' : 'pirateBossStarboardBroadside';
     }
   }
 
   let frontIndex = 0;
   for (let yOffset = -2; yOffset <= 1; yOffset += 1) {
     for (let xOffset = 9; xOffset <= 12; xOffset += 1) {
-      addCell(`pirate-boss-front-gun-${frontIndex++}`, 'gun', xOffset, yOffset, 'pirateBossFrontGun', sideGunCarve);
+      const cell = addCell(`pirate-boss-front-gun-${frontIndex++}`, 'gun', xOffset, yOffset, 'pirateBossFrontGun', sideGunCarve);
+      cell.damageGroup = 'pirateBossFrontGunPod';
     }
   }
 
@@ -236,15 +238,16 @@ export function createPirateBossEnemy(x, y) {
   for (const centerY of [-2, 2]) {
     for (let yOffset = centerY; yOffset <= centerY + 1; yOffset += 1) {
       for (let xOffset = -12; xOffset <= -11; xOffset += 1) {
-        addCell(`pirate-boss-rear-gun-${rearIndex++}`, 'gun', xOffset, yOffset, 'pirateBossRearGun', sideGunCarve);
+        const cell = addCell(`pirate-boss-rear-gun-${rearIndex++}`, 'gun', xOffset, yOffset, 'pirateBossRearGun', sideGunCarve);
+        cell.damageGroup = centerY < 0 ? 'pirateBossRearPortGunPod' : 'pirateBossRearStarboardGunPod';
       }
     }
   }
 
   for (const cell of cells) {
-    if (cell.type === 'armor') multiplyCellVoxelHp(cell, 2.4);
-    if (cell.type === 'core') multiplyCellVoxelHp(cell, 3.5);
-    if (cell.type === 'gun') multiplyCellVoxelHp(cell, cell.role === 'pirateBossFrontGun' ? 2.2 : 1.65);
+    if (cell.type === 'armor') multiplyCellVoxelHp(cell, 1.55);
+    if (cell.type === 'core') multiplyCellVoxelHp(cell, 2.4);
+    if (cell.type === 'gun') multiplyCellVoxelHp(cell, cell.role === 'pirateBossFrontGun' ? 1.55 : 1.25);
   }
 
   const enemy = annotateConstructRuntimeMetadata({
@@ -1352,9 +1355,27 @@ function enemyCellIsPhasedCore(enemy, cell) {
   return pirateBossCoreProtected(enemy) && cell?.role === 'pirateBossCore';
 }
 
-function pirateBossCoreProtected(enemy) {
+export function pirateBossCoreProtected(enemy) {
   if (enemy?.kind !== 'pirateBoss') return false;
-  return (enemy.cells ?? []).filter((cell) => cell.type === 'gun' && !cell.state?.destroyed).length >= 2;
+  return livePirateBossGunPodCount(enemy) >= 2;
+}
+
+export function livePirateBossGunPodCount(enemy) {
+  const groups = new Map();
+  for (const cell of enemy?.cells ?? []) {
+    if (cell.type !== 'gun') continue;
+    const group = cell.damageGroup ?? cell.role ?? cell.id;
+    if (!groups.has(group)) groups.set(group, { total: 0, live: 0 });
+    const entry = groups.get(group);
+    entry.total += 1;
+    if (!cell.state?.destroyed) entry.live += 1;
+  }
+  let livePods = 0;
+  for (const group of groups.values()) {
+    const requiredLiveCells = Math.max(1, Math.ceil(group.total * 0.35));
+    if (group.live >= requiredLiveCells) livePods += 1;
+  }
+  return livePods;
 }
 
 function cachedEnemyCellsForDirectDamage(enemy, options = {}) {

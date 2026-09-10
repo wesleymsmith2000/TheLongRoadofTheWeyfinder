@@ -213,6 +213,38 @@ test('pirate dreadnought core phases in after gun losses', () => {
   assert.equal(vulnerableHit.hit, true);
 });
 
+test('pirate dreadnought core protection counts functional gun pods, not stray gun cells', () => {
+  const boss = createPirateBossEnemy(0, 0);
+  const core = boss.cells.find((cell) => cell.role === 'pirateBossCore');
+  for (const gun of boss.cells.filter((cell) => cell.type === 'gun' && cell.damageGroup !== 'pirateBossFrontGunPod')) {
+    for (const voxel of gun.mask.flat()) voxel.hp = 0;
+    recalculateCell(gun);
+  }
+
+  const hit = applyEnemyDamage(boss, createProjectile(core.gridX * CELL_SIZE, core.gridY * CELL_SIZE, 0, 0, {
+    damage: 14,
+    radius: 2,
+    team: 'player',
+  }));
+
+  assert.equal(hit.hit, true);
+});
+
+test('pirate dreadnought armor can be visibly chipped by strong impacts', () => {
+  const boss = createPirateBossEnemy(0, 0);
+  const armor = boss.cells.find((cell) => cell.role === 'pirateBossHull' && Math.abs(cell.gridX) <= 1 && cell.gridY === -5);
+  const before = armor.mask.flat().filter((voxel) => voxel.hp > 0).length;
+  const hit = applyEnemyDamage(boss, createProjectile(armor.gridX * CELL_SIZE, armor.gridY * CELL_SIZE, 0, 0, {
+    damage: 36,
+    radius: 2,
+    team: 'player',
+  }));
+  const after = armor.mask.flat().filter((voxel) => voxel.hp > 0).length;
+
+  assert.equal(hit.hit, true);
+  assert.equal(after < before, true);
+});
+
 test('enemy destruction is detected when core is shredded', () => {
   const enemy = createEnemy(0, 0);
   for (let i = 0; i < 6; i += 1) {

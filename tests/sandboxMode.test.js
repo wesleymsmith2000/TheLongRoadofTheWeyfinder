@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createGame, createSandboxEnemySchedule, stepGame } from '../src/core/game.js';
 import { Rng } from '../src/core/rng.js';
 import { sandboxDefinitionFromEnemy, validateSandboxDefinition } from '../src/core/sandboxMode.js';
+import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 const ROAD = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
 
@@ -40,6 +41,7 @@ test('sandbox race strafe enemies spawn from the side and keep finite motion', (
   assert.equal(queue[0].enemy.archetypeId, 'weyfinder_road_flechette_racer.prototype0');
   assert.equal(Math.abs(queue[0].enemy.y) > ROAD.halfWidth, true);
   assert.equal(Number.isFinite(queue[0].enemy.carRuntime.side), true);
+  assert.equal(queue[0].enemy.renderHeadingOffset, Math.PI / 2);
 
   const game = createGame(1147, { sandbox: definition });
   game.autofire = false;
@@ -51,6 +53,17 @@ test('sandbox race strafe enemies spawn from the side and keep finite motion', (
   assert.equal(Number.isFinite(racer.vy), true);
   assert.equal(game.gameOver, false);
   assert.equal(game.vehicle.alive, true);
+});
+
+test('sandbox initial pirate ships play their randomized warning barks', () => {
+  const definition = sandboxDefinitionFromEnemy('pirate_ship.prototype0', { count: 1, interval: 0 });
+  const game = createGame(1147, { sandbox: definition });
+  const sounds = consumeSoundEvents(game).map((event) => event.id);
+  assert.equal(
+    sounds.some((id) => [SOUND_EVENTS.PIRATE_YARGH, SOUND_EVENTS.PIRATE_BROADSIDE, SOUND_EVENTS.PIRATE_AVAST].includes(id)),
+    true,
+  );
+  assert.equal(game.enemies[0].entranceBarkPlayed, true);
 });
 
 test('sandbox can schedule the runtime zeppelin boss archetype', () => {

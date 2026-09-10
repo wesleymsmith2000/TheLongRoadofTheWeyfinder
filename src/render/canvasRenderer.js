@@ -1,4 +1,5 @@
 import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
+import { livePirateBossGunPodCount } from '../core/enemy.js';
 import { cameraViewScale } from '../core/camera.js';
 import { collectDynamicLights, DEFAULT_DYNAMIC_LIGHT_BUDGET } from '../core/dynamicLighting.js';
 import { applyCellPoseTransform, evaluatePoseRig } from '../core/poseAnimation.js';
@@ -710,6 +711,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
   if (diagnostics.simpleBossRender && (enemy.kind === 'boss' || enemy.kind === 'zeppelinBoss' || enemy.kind === 'pirateBoss' || enemy.kind === 'roadBossCar')) {
     drawSimpleBossDiagnostic(ctx, enemy);
     ctx.restore();
+    drawEnemyBillboardCues(ctx, enemy, time, fallVisual);
     return;
   }
   drawEnemyPresentationUnderlay(ctx, enemy, time);
@@ -741,11 +743,6 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
   }
   drawEnemyPresentationOverlay(ctx, enemy, palette, time);
   drawPirateShipFlair(ctx, enemy, palette, time);
-  drawDizzySwirl(ctx, enemy, time);
-  drawWalkerFallCue(ctx, enemy, time);
-  drawWalkerAngerCue(ctx, enemy, time);
-  drawGenericEnemyReactionCues(ctx, enemy);
-  drawBossReactionCue(ctx, enemy, time);
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
   } else if (enemy.kind === 'boss') {
@@ -754,6 +751,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
     drawBossOutline(ctx, enemy, time);
   }
   ctx.restore();
+  drawEnemyBillboardCues(ctx, enemy, time, fallVisual);
 }
 
 function drawSimpleBossDiagnostic(ctx, enemy) {
@@ -770,8 +768,22 @@ function drawSimpleBossDiagnostic(ctx, enemy) {
   ctx.restore();
 }
 
+function drawEnemyBillboardCues(ctx, enemy, time, fallVisual = null) {
+  if (enemy.destroyed && !enemy.internalDestruction) return;
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y - projectHeight(enemyBaseElevation(enemy) + (fallVisual?.lift ?? 0)));
+  drawDizzySwirl(ctx, enemy, time);
+  drawMothBomberCountdown(ctx, enemy, time);
+  drawWalkerFallCue(ctx, enemy, time);
+  drawWalkerAngerCue(ctx, enemy, time);
+  drawGenericEnemyReactionCues(ctx, enemy);
+  drawBossReactionCue(ctx, enemy, time);
+  ctx.restore();
+}
+
 function pirateBossCoreIsPhased(enemy) {
-  return (enemy.cells ?? []).filter((cell) => cell.type === 'gun' && !cell.state?.destroyed).length >= 2;
+  if (typeof enemy.pirateBoss?.coreProtected === 'boolean') return enemy.pirateBoss.coreProtected;
+  return livePirateBossGunPodCount(enemy) >= 2;
 }
 
 function drawGenericEnemyReactionCues(ctx, enemy) {
@@ -807,7 +819,6 @@ function drawEnemyPresentationOverlay(ctx, enemy, palette, time) {
   if (variant === 'heavyMortarBoat') drawMortarBoatDeckGun(ctx, time, palette);
   if (variant === 'mothBomber') {
     drawMothFlicker(ctx, time, palette);
-    drawMothBomberCountdown(ctx, enemy, time);
   }
 }
 
@@ -930,6 +941,7 @@ function drawMothFlicker(ctx, time, palette) {
 }
 
 function drawMothBomberCountdown(ctx, enemy, time) {
+  if (enemy.presentation?.variant !== 'mothBomber' || enemy.destroyed) return;
   const remaining = Math.max(0, enemy.mothBomber?.fuseRemaining ?? 3);
   const countdown = String(Math.max(0, Math.ceil(remaining)));
   const bomb = String.fromCodePoint(0x1f4a3);
@@ -1024,6 +1036,7 @@ function enemyLiveCellBounds(enemy) {
 }
 
 function enemyRenderRotation(enemy, time) {
+  if (Number.isFinite(enemy.renderHeadingOffset) && Number.isFinite(enemy.visualHeading)) return enemy.visualHeading + enemy.renderHeadingOffset;
   if (Number.isFinite(enemy.collisionRotation)) return enemy.collisionRotation;
   if (enemy.silhouette !== 'pirateShip') return 0;
   let heading = enemy.visualHeading ?? Math.PI / 2;

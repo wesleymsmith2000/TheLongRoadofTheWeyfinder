@@ -37,6 +37,7 @@ import {
   enemyEngineEfficiency,
   enemyGunEfficiency,
   harvestEnemyScrap,
+  livePirateBossGunPodCount,
   traceEnemyVoxelBeam,
   traceEnemyVoxelRay,
 } from './enemy.js';
@@ -354,7 +355,7 @@ export function createGame(seed = 1147, options = {}) {
     : createLevelEnemySchedule(road, startLevel, levelMusic, rng);
   const initialSpawns = dequeueReadySpawns(enemySpawnQueue, 0);
   const currentMusic = sandboxDefinition ? options.music ?? 'Sandbox' : musicForLevel(startLevel, levelMusic);
-  return {
+  const game = {
     rng,
     levelMusic,
     currentMusic,
@@ -405,6 +406,10 @@ export function createGame(seed = 1147, options = {}) {
     encounters: createEncounterRuntimeState(options.encounters ?? []),
     sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options.enemyArchetypes) : null,
   };
+  if (sandboxDefinition) {
+    for (const enemy of initialSpawns) triggerEnemyEntranceBark(game, enemy, 'warning');
+  }
+  return game;
 }
 
 export function stepGame(game, input, dt) {
@@ -950,6 +955,7 @@ function configureRaceStrafeEntry(enemy, archetype, road, spawnSide, speedOverri
   };
   enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+  enemy.renderHeadingOffset = Math.PI / 2;
 }
 
 function zoneNameFromTrack(trackName = '') {
@@ -2739,6 +2745,7 @@ function stepRoadBossCarStrafe(game, enemy, state, dt) {
   enemy.vy += (desired.y - enemy.vy) * steer;
   enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+  enemy.renderHeadingOffset ??= Math.PI / 2;
 }
 
 function toggleRoadBossCarPhase(game, enemy, state) {
@@ -3061,7 +3068,9 @@ function stepPirateBossGunLossReactions(game, enemy, state) {
   const lostCount = previous.filter((id) => !liveIds.has(id)).length;
   for (let index = 0; index < Math.min(3, lostCount); index += 1) triggerEnemyReactionCue(game, enemy, 'gunDestroyed');
   state.liveGunIds = [...liveIds];
-  if (liveGuns.length < 2 && !state.noQuarterPlayed) {
+  state.liveGunPods = livePirateBossGunPodCount(enemy);
+  state.coreProtected = state.liveGunPods >= 2;
+  if (!state.coreProtected && !state.noQuarterPlayed) {
     state.noQuarterPlayed = true;
     triggerEnemyReactionCue(game, enemy, 'corePhasedIn');
   }
