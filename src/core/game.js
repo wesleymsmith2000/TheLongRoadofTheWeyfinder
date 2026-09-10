@@ -145,6 +145,8 @@ const ZEPPELIN_GROUND_LASER_LOCK_SECONDS = 2;
 const ZEPPELIN_GROUND_LASER_FIRE_SECONDS = 3;
 const ZEPPELIN_GROUND_LASER_SEQUENCE_COOLDOWN = 15;
 const ZEPPELIN_GROUND_LASER_LENGTH = CELL_SIZE * 54;
+const ZEPPELIN_WALKER_ROUT_SPEED = 215;
+const ZEPPELIN_WALKER_ROUT_CUE_INTERVAL = 0.32;
 const BOSS_INTERNAL_DESTRUCTION_SECONDS = 3.2;
 const OCTOPUS_ARM_PHASE_DELAY_SECONDS = 0.55;
 const OCTOPUS_ARM_EVADE_RUN_SECONDS = 1.6;
@@ -248,6 +250,14 @@ const PIRATE_ENTRANCE_CUE_TEXTS = [
 const PIRATE_GUN_LOSS_CUE_TEXTS = [
   `${String.fromCodePoint(0x1f623)} !`,
   `${String.fromCodePoint(0x1f621)} ${String.fromCodePoint(0x1f4a2)}`,
+];
+const ZEPPELIN_WALKER_ROUT_CUES = [
+  String.fromCodePoint(0x1f92f),
+  String.fromCodePoint(0x1f62d),
+  String.fromCodePoint(0x1f61f),
+  String.fromCodePoint(0x1f630),
+  String.fromCodePoint(0x1f628),
+  String.fromCodePoint(0x1f631),
 ];
 const CAR_SPINOUT_CUE_TEXTS = [
   `${String.fromCodePoint(0x1f635)} ${String.fromCodePoint(0x1f615)}`,
@@ -1947,6 +1957,10 @@ function stepEnemy(game, enemy, dt) {
     }
     return;
   }
+  if (enemy.zeppelinWalkerRout) {
+    stepZeppelinWalkerRout(game, enemy, dt);
+    return;
+  }
   if ((enemy.dizzyTimer ?? 0) > 0) {
     stepDizzyEnemy(enemy, dt);
     return;
@@ -3434,6 +3448,102 @@ function activeZeppelinSummonedWalkers(game, zeppelin) {
   return activeEnemies(game).filter((enemy) => enemy.summonedByZeppelin === id && isWalkerEnemy(enemy));
 }
 
+function startZeppelinWalkerRout(game, zeppelin) {
+  for (const walker of activeZeppelinSummonedWalkers(game, zeppelin)) {
+    const direction = zeppelinWalkerRoutDirection(game, walker);
+    walker.zeppelinWalkerRout = {
+      direction,
+      phase: 'panic',
+      cueIndex: 0,
+      cueTimer: 0,
+      speed: ZEPPELIN_WALKER_ROUT_SPEED * enemyMovementUpgradeScale(walker),
+    };
+    walker.patterns = [];
+    walker.walkerSweepWarning = null;
+    walker.walkerStaCooldown = 999;
+    walker.walkerBeamCooldown = 999;
+    walker.walkerGroundedSpiralCooldown = 999;
+    walker.walkerRepulsorCooldown = 999;
+    walker.dropNoScrap = true;
+  }
+  for (const projectile of game.enemyProjectiles) {
+    if (projectile.sourceEnemy?.summonedByZeppelin !== (zeppelin.assetId ?? zeppelin.archetypeId ?? 'boss.zeppelin.prototype0')) continue;
+    projectile.lifetime = 0;
+  }
+}
+
+function stepZeppelinWalkerRout(game, walker, dt) {
+  const state = walker.zeppelinWalkerRout;
+  state.cueTimer -= dt;
+  if (state.cueTimer <= 0 && state.cueIndex < ZEPPELIN_WALKER_ROUT_CUES.length) {
+    addEnemyReactionCue(walker, ZEPPELIN_WALKER_ROUT_CUES[state.cueIndex], {
+      duration: 1.25,
+      rise: CELL_SIZE * 1.9,
+      size: CELL_SIZE * 0.95,
+      growth: 2.4,
+      x: game.rng.range(-walker.radius * 0.16, walker.radius * 0.16),
+      y: -Math.max(CELL_SIZE * 2.9, walker.radius * 0.34),
+    });
+    state.cueIndex += 1;
+    state.cueTimer = ZEPPELIN_WALKER_ROUT_CUE_INTERVAL;
+  } else if (state.cueTimer <= 0 && state.phase !== 'flee') {
+    state.phase = 'flee';
+  }
+  if (state.phase !== 'flee') {
+    walker.vx *= Math.pow(0.14, dt);
+    walker.vy *= Math.pow(0.14, dt);
+    walker.x += walker.vx * dt;
+    walker.y += walker.vy * dt;
+    updateEnemyCollisionRotation(walker, game.time);
+    return;
+  }
+  const steer = clamp(4.2 * dt, 0, 1);
+  walker.vx += (state.direction.x * state.speed - walker.vx) * steer;
+  walker.vy += (state.direction.y * state.speed - walker.vy) * steer;
+  walker.x += walker.vx * dt;
+  walker.y += walker.vy * dt;
+  walker.vx *= Math.pow(0.9, dt);
+  walker.vy *= Math.pow(0.9, dt);
+  if (Math.hypot(walker.vx, walker.vy) > 2) walker.visualHeading = Math.atan2(walker.vy, walker.vx);
+  updateEnemyCollisionRotation(walker, game.time);
+  if (!zeppelinWalkerHasLeftPlayArea(game, walker)) return;
+  walker.destroyed = true;
+  walker.escaped = true;
+  walker.explosionStart = null;
+  recordEnemyDefeat(game.score, walker);
+}
+
+function zeppelinWalkerRoutDirection(game, walker) {
+  const offset = worldToRoadOffset(walker, game.road);
+  const xRatio = Math.abs(offset.x) / Math.max(1, game.road.halfWidth);
+  const yRatio = Math.abs(offset.y) / Math.max(1, game.road.halfHeight);
+  let local = xRatio >= yRatio
+    ? { x: offset.x >= 0 ? 1 : -1, y: 0 }
+    : { x: 0, y: offset.y >= 0 ? 1 : -1 };
+  if (xRatio < 0.12 && yRatio < 0.12) {
+    const away = directionFromTo(game.vehicle, walker);
+    local = worldDirectionToRoad(away, game.road);
+  }
+  const world = roadDirectionToWorld(local.x, local.y, game.road);
+  const length = Math.hypot(world.x, world.y) || 1;
+  return { x: world.x / length, y: world.y / length };
+}
+
+function worldDirectionToRoad(direction, road) {
+  const cos = Math.cos(road.heading);
+  const sin = Math.sin(road.heading);
+  return {
+    x: direction.x * cos + direction.y * sin,
+    y: -direction.x * sin + direction.y * cos,
+  };
+}
+
+function zeppelinWalkerHasLeftPlayArea(game, walker) {
+  const offset = worldToRoadOffset(walker, game.road);
+  const margin = Math.max(CELL_SIZE * 8, walker.radius ?? CELL_SIZE);
+  return Math.abs(offset.x) > game.road.halfWidth + margin || Math.abs(offset.y) > game.road.halfHeight + margin;
+}
+
 function stepZeppelinCannons(game, enemy, state, dt) {
   if (!enemyCanFire(enemy)) {
     state.laserWarning = null;
@@ -4366,6 +4476,7 @@ function stepBossInternalDestruction(game, boss, dt) {
   } else {
     boss.renderAlpha = 1;
     explodeEnemy(game, boss);
+    if (boss.kind === 'zeppelinBoss') startZeppelinWalkerRout(game, boss);
   }
 }
 

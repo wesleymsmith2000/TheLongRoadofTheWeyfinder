@@ -1719,6 +1719,53 @@ test('zeppelin internal destruction waits until one third of lining is punctured
   assert.equal(boss.zeppelin.meltdownTimer < 3.2, true);
 });
 
+test('zeppelin defeat routs remaining summoned walkers off the play area', () => {
+  const game = createGame();
+  game.autofire = false;
+  const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 24, game.vehicle.y);
+  boss.zeppelin.atsCooldown = 99;
+  boss.zeppelin.laserCooldown = 99;
+  boss.zeppelin.harpoonSpawnTimer = 99;
+  const walker = createEnemy(game.road.x + game.road.halfWidth - CELL_SIZE * 2, game.road.y);
+  walker.archetypeId = 'starlight_walker.prototype0';
+  walker.summonedByZeppelin = boss.assetId;
+  walker.dropProfile = 'zeppelinWalker';
+  game.enemies = [boss, walker];
+  game.enemySpawnQueue = [];
+  boss.destroyed = true;
+
+  for (let index = 0; index < 240 && !walker.zeppelinWalkerRout; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(Boolean(walker.zeppelinWalkerRout), true);
+  assert.equal(walker.reactionCueQueue.some((cue) => cue.text === String.fromCodePoint(0x1f92f)), true);
+  assert.equal(walker.patterns.length, 0);
+
+  const seenCues = [];
+  for (let index = 0; index < 180 && walker.zeppelinWalkerRout.phase !== 'flee'; index += 1) {
+    for (const cue of walker.reactionCueQueue) {
+      if (!seenCues.includes(cue.text)) seenCues.push(cue.text);
+    }
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
+
+  assert.deepEqual(seenCues, [
+    String.fromCodePoint(0x1f92f),
+    String.fromCodePoint(0x1f62d),
+    String.fromCodePoint(0x1f61f),
+    String.fromCodePoint(0x1f630),
+    String.fromCodePoint(0x1f628),
+    String.fromCodePoint(0x1f631),
+  ]);
+  assert.equal(walker.zeppelinWalkerRout.phase, 'flee');
+
+  for (let index = 0; index < 180 && !walker.destroyed; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(walker.destroyed, true);
+  assert.equal(walker.escaped, true);
+  assert.equal(walker.explosionStart, null);
+  assert.equal(game.score.enemyDefeats['starlight_walker.prototype0'], 1);
+});
+
 test('zeppelin harpoon powerups spawn, expire, and trigger harpoon charge when collected', () => {
   const game = createGame();
   game.autofire = false;
