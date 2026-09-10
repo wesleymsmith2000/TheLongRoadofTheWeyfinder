@@ -709,15 +709,22 @@ function createSandboxSpawnEntries(road, spawns, rng, options = {}) {
 function createSandboxEnemies(spawn, x, y, road, options = {}) {
   const archetype = sandboxArchetypeForSpawn(spawn, options.enemyArchetypes ?? []);
   const kind = spawn.kind ?? 'standard';
-  const enemy = archetype ? createEnemyForArchetype(archetype, x, y, kind) : createEnemy(x, y);
+  const sideStrafeEntry = archetypeUsesRaceStrafe(archetype);
+  const raceStrafeSide = sideStrafeEntry ? sandboxRaceStrafeSpawnSide(spawn, options.spawnIndex ?? 0) : 0;
+  const spawnPoint = sideStrafeEntry ? sandboxRaceStrafeSpawnPoint(x, y, road, raceStrafeSide, options.spawnIndex ?? 0) : { x, y };
+  const enemy = archetype ? createEnemyForArchetype(archetype, spawnPoint.x, spawnPoint.y, kind) : createEnemy(spawnPoint.x, spawnPoint.y);
   if (archetype) applyArchetypeRuntimeMetadata(enemy, archetype);
   enemy.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
   applyDefaultEnemyCueHooks(enemy);
-  const velocitySign = spawn.entry === 'behind' ? -1 : 1;
-  const direction = roadDirectionToWorld(0, velocitySign, road);
-  const speed = spawn.speed ?? (spawn.entry === 'behind' ? 155 : 24);
-  enemy.vx = direction.x * speed;
-  enemy.vy = direction.y * speed;
+  if (sideStrafeEntry) {
+    configureRaceStrafeEntry(enemy, archetype, road, raceStrafeSide, spawn.speed, 0.45);
+  } else {
+    const velocitySign = spawn.entry === 'behind' ? -1 : 1;
+    const direction = roadDirectionToWorld(0, velocitySign, road);
+    const speed = spawn.speed ?? (spawn.entry === 'behind' ? 155 : 24);
+    enemy.vx = direction.x * speed;
+    enemy.vy = direction.y * speed;
+  }
   const level = spawn.level ?? options.level ?? 1;
   applyEnemyLevelUpgrades(enemy, level);
   const enemies =
@@ -728,6 +735,18 @@ function createSandboxEnemies(spawn, x, y, road, options = {}) {
     spawned.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
   }
   return enemies;
+}
+
+function sandboxRaceStrafeSpawnSide(spawn, index = 0) {
+  if (spawn.side === 'right' || spawn.entry === 'right') return 1;
+  if (spawn.side === 'left' || spawn.entry === 'left') return -1;
+  return index % 2 === 0 ? -1 : 1;
+}
+
+function sandboxRaceStrafeSpawnPoint(x, y, road, side, index = 0) {
+  const offset = worldToRoadOffset({ x, y }, road);
+  const row = Math.floor(index / 2) * 35;
+  return roadOffsetToWorld({ x: side * (road.halfWidth + 85 + row), y: offset.y }, road);
 }
 
 function sandboxArchetypeForSpawn(spawn, extraArchetypes = []) {
@@ -809,13 +828,7 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
     if (archetype) applyArchetypeRuntimeMetadata(enemy, archetype);
     else applyDefaultEnemyCueHooks(enemy);
     if (sideStrafeEntry) {
-      const velocity = roadDirectionToWorld(-spawnSide, 0, road);
-      const speed = archetype.entry?.speed ?? archetype.carBehavior?.speed ?? RACE_CAR_STRAFE_SPEED;
-      enemy.vx = velocity.x * speed;
-      enemy.vy = velocity.y * speed;
-      enemy.carRuntime = { side: -spawnSide, flechetteCooldown: 0.25 };
-      enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
-      enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+      configureRaceStrafeEntry(enemy, archetype, road, spawnSide, null, 0.25);
     } else if (kind === 'enhanced') {
       enemy.palette = enhancedEnemyPaletteForMusic(currentMusic);
       const velocity = roadDirectionToWorld(0, -1, road);
@@ -923,6 +936,20 @@ function zoneArchetypeForMusic(trackName, kind, index) {
 function archetypeUsesRaceStrafe(archetype) {
   const behavior = archetype?.carBehavior;
   return Boolean(behavior && (behavior.movement ?? behavior.kind) === 'raceStrafe');
+}
+
+function configureRaceStrafeEntry(enemy, archetype, road, spawnSide, speedOverride = null, flechetteCooldown = 0.25) {
+  const velocity = roadDirectionToWorld(-spawnSide, 0, road);
+  const speed = speedOverride ?? archetype?.entry?.speed ?? archetype?.carBehavior?.speed ?? RACE_CAR_STRAFE_SPEED;
+  enemy.vx = velocity.x * speed;
+  enemy.vy = velocity.y * speed;
+  enemy.carRuntime = {
+    ...(enemy.carRuntime ?? {}),
+    side: -spawnSide,
+    flechetteCooldown: Math.max(enemy.carRuntime?.flechetteCooldown ?? 0, flechetteCooldown),
+  };
+  enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
 }
 
 function zoneNameFromTrack(trackName = '') {
@@ -2848,10 +2875,9 @@ function stepRaceCarEnemy(game, enemy, dt) {
   const config = enemy.carBehavior;
   if (!config || (config.movement ?? config.kind) !== 'raceStrafe') return;
   enemy.patterns = [];
-  const state = enemy.carRuntime ?? {
-    side: game.rng.chance(0.5) ? 1 : -1,
-    flechetteCooldown: game.rng.range(0.15, 0.45),
-  };
+  const state = enemy.carRuntime ?? {};
+  if (!Number.isFinite(state.side) || state.side === 0) state.side = game.rng.chance(0.5) ? 1 : -1;
+  if (!Number.isFinite(state.flechetteCooldown)) state.flechetteCooldown = game.rng.range(0.15, 0.45);
   enemy.carRuntime = state;
   const offset = worldToRoadOffset(enemy, game.road);
   const exitMargin = Math.max(enemy.radius ?? CELL_SIZE, CELL_SIZE * 5);

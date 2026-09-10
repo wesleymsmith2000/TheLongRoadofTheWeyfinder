@@ -33,6 +33,26 @@ test('sandbox schedules include one queued spawn per requested count', () => {
   assert.equal(queue.every((entry) => entry.enemy.archetypeId === 'mortar_skiff.prototype0'), true);
 });
 
+test('sandbox race strafe enemies spawn from the side and keep finite motion', () => {
+  const definition = sandboxDefinitionFromEnemy('weyfinder_road_flechette_racer.prototype0', { count: 1, interval: 0 });
+  const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(19));
+  assert.equal(queue.length, 1);
+  assert.equal(queue[0].enemy.archetypeId, 'weyfinder_road_flechette_racer.prototype0');
+  assert.equal(Math.abs(queue[0].enemy.y) > ROAD.halfWidth, true);
+  assert.equal(Number.isFinite(queue[0].enemy.carRuntime.side), true);
+
+  const game = createGame(1147, { sandbox: definition });
+  game.autofire = false;
+  for (let index = 0; index < 180; index += 1) stepGame(game, { fireHeld: false }, 1 / 60);
+  const racer = game.enemies.find((enemy) => enemy.archetypeId === 'weyfinder_road_flechette_racer.prototype0');
+  assert.equal(Number.isFinite(racer.x), true);
+  assert.equal(Number.isFinite(racer.y), true);
+  assert.equal(Number.isFinite(racer.vx), true);
+  assert.equal(Number.isFinite(racer.vy), true);
+  assert.equal(game.gameOver, false);
+  assert.equal(game.vehicle.alive, true);
+});
+
 test('sandbox can schedule the runtime zeppelin boss archetype', () => {
   const definition = sandboxDefinitionFromEnemy('boss.zeppelin.prototype0', { count: 1, interval: 0 });
   const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(11));
