@@ -8,6 +8,76 @@
   "tags": ["example", "enemy", "zone", "advanced"],
   "archetypes": [
     {
+      "id": "example.weyfinder_road_car.theweyfinders_road",
+      "displayName": "Weyfinder Road Car",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "weyfinder_road_car.prototype0",
+      "construct": "example.construct.weyfinder_road_car_sculpted",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "zone": "TheWeyfindersRoad",
+      "tags": ["weyfinders-road", "car", "wheel-blocks", "dev-lookup:weyfinder-road-car"],
+      "entry": { "kind": "aheadDrift", "direction": "roadForward", "speed": 35 },
+      "palette": { "core": "#f5f5f5", "armor": "#607189", "gun": "#ff8f70", "wheel": "#25282d", "engine": "#6fe0bf" },
+      "presentation": { "variant": "roadCar", "bodyVariant": "standardRoadCar" },
+      "carBehavior": {
+        "kind": "roadDrift",
+        "wheelBlockCells": [2, 2],
+        "armorShellLayers": 1,
+        "engineContactCellsPerWheelBlock": 2,
+        "spinout": { "wheelBlocksDestroyed": 2 }
+      },
+      "editable": ["construct", "patterns", "entry", "palette", "carBehavior"]
+    },
+    {
+      "id": "example.weyfinder_road_armored_car.theweyfinders_road",
+      "displayName": "Weyfinder Road Armored Car",
+      "runtimeFactory": "createEnhancedEnemy",
+      "baseArchetype": "weyfinder_road_armored_car.prototype0",
+      "construct": "example.construct.weyfinder_road_armored_car_sculpted",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "zone": "TheWeyfindersRoad",
+      "tags": ["weyfinders-road", "car", "armored", "wheel-blocks", "dev-lookup:weyfinder-road-armored-car"],
+      "entry": { "kind": "behindCharge", "direction": "roadBehind", "warningLeadSeconds": 2.4, "speed": 310 },
+      "palette": { "core": "#f5f5f5", "armor": "#4f5967", "gun": "#ff8f70", "wheel": "#20242a", "engine": "#6fe0bf" },
+      "presentation": { "variant": "roadCar", "bodyVariant": "armoredRoadCar" },
+      "carBehavior": {
+        "kind": "roadDrift",
+        "wheelBlockCells": [2, 2],
+        "armorShellLayers": 1,
+        "engineContactCellsPerWheelBlock": 2,
+        "spinout": { "wheelBlocksDestroyed": 2 }
+      },
+      "editable": ["construct", "patterns", "entry", "charge", "palette", "carBehavior"]
+    },
+    {
+      "id": "example.weyfinder_road_flechette_racer.theweyfinders_road",
+      "displayName": "Weyfinder Road Flechette Racer",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "weyfinder_road_flechette_racer.prototype0",
+      "construct": "example.construct.weyfinder_road_flechette_racer_sculpted",
+      "patterns": ["enemy_tracking_flechette_strafe"],
+      "zone": "TheWeyfindersRoad",
+      "tags": ["weyfinders-road", "car", "racer", "flechette", "tracking", "dev-lookup:weyfinder-road-flechette-racer"],
+      "entry": { "kind": "airStrafe", "direction": "side", "warningLeadSeconds": 1.4, "speed": 185 },
+      "palette": { "core": "#f5f5f5", "armor": "#56687c", "gun": "#ffd166", "wheel": "#25282d", "engine": "#6fe0bf" },
+      "presentation": { "variant": "sideStrafeFlechetteRacer", "bodyVariant": "racerRoadCar" },
+      "movementProfiles": [
+        { "id": "side-racing-strafe", "kind": "flyStrafe", "target": "player", "speed": 185, "amplitude": 55, "frequency": 0.8 }
+      ],
+      "carBehavior": {
+        "kind": "raceStrafe",
+        "movement": "raceStrafe",
+        "speed": 185,
+        "steer": 4.8,
+        "playerDriftBias": 0.18,
+        "flechetteCooldown": 0.58,
+        "flechettePattern": "enemy_tracking_flechette_strafe",
+        "trackingFlechettes": true,
+        "spinout": { "wheelBlocksDestroyed": 2 }
+      },
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "carBehavior"]
+    },
+    {
       "id": "example.ghost_phase_mob.ghost_forrest",
       "displayName": "Ghost Forrest Phase Mob",
       "runtimeFactory": "createEnemy",
@@ -116,7 +186,15 @@
         "keepsStandardPatterns": true
       },
       "silhouette": { "kind": "pirateShip", "rotation": "movementHeading", "broadsideOnFireSeconds": 0.85, "collision": "unrotatedRuntimeCells" },
-      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "armor", "artillery", "silhouette", "model"]
+      "entranceBarks": {
+        "trigger": "warning",
+        "sounds": ["pirate-yargh", "pirate-broadside", "pirate-avast"],
+        "cues": ["Incoming shells!", "Give em a broadside!", "Yargh!"],
+        "random": true,
+        "duration": 1.8,
+        "growth": 2.2
+      },
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "armor", "artillery", "silhouette", "model", "entranceBarks", "reactionCues"]
     },
     {
       "id": "example.elevated_walker.starlight_road",

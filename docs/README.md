@@ -36,6 +36,8 @@ Start here:
 - [Spidery Walker Alternate Enemy Handoff](./spidery-walker-alt-enemy-handoff.md)
 - [Walker Cannon Boss Editor Handoff](./walker-cannon-boss-editor-handoff.md)
 - [Inchworm Linked Construct Editor Handoff](./inchworm-linked-construct-editor-handoff.md)
+- [Race Car Enemy Runtime Handoff](./race-car-enemy-runtime-handoff.md)
+- [Weyfinder Road Car Enemy Content Handoff](./weyfinder-road-car-enemy-content-handoff.md)
 - [Player Module Voxel And Build Grid Handoff](./player-module-voxel-and-build-grid-handoff.md)
 - [Sandbox Mode Editor Handoff](./sandbox-mode-editor-handoff.md)
 - [Multilayer Cell Model And Voxelizer Handoff](./multilayer-cell-model-and-voxelizer-handoff.md)

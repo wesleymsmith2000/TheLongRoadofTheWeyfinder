@@ -1,0 +1,1865 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "example.construct.weyfinder_road_car_sculpted",
+  "displayName": "Sculpted Weyfinder Road Car Construct",
+  "author": "Weyfinder editor thread",
+  "provenance": "Sculpted enlarged enemy construct example authored for the v1.0.4 4x4-voxel cell pass.",
+  "canonStatus": "COMMUNITY",
+  "tags": [
+    "example",
+    "enemy",
+    "sculpted",
+    "weyfinders-road",
+    "car",
+    "wheel-blocks",
+    "runtime-hook:roadCar",
+    "dev-lookup:weyfinder-road-car"
+  ],
+  "presentation": {
+    "shape": "roadCar",
+    "variant": "standardRoadCar",
+    "notes": "Weyfinder road car with four armor-wrapped 2x2 wheel blocks and engine contact cells."
+  },
+  "cells": [
+    {
+      "id": "roadGun_xn1_yn6",
+      "type": "gun",
+      "gridX": -1,
+      "gridY": -6,
+      "role": "roadGun",
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "road gun"
+      }
+    },
+    {
+      "id": "carArmor_x0_yn6",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -6,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "roadGun_x1_yn6",
+      "type": "gun",
+      "gridX": 1,
+      "gridY": -6,
+      "role": "roadGun",
+      "appearance": {
+        "tint": "#ff8f70",
+        "label": "road gun"
+      }
+    },
+    {
+      "id": "carArmor_xn1_yn5",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -5,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x0_yn5",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -5,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x1_yn5",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -5,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn5_yn4",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn4_yn4",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn3_yn4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn2_yn4",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn1_yn4",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x0_yn4",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x1_yn4",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x2_yn4",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x3_yn4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x4_yn4",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x5_yn4",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn5_yn3",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelBlock_xn4_yn3",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -3,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "wheelBlock_xn3_yn3",
+      "type": "wheel",
+      "gridX": -3,
+      "gridY": -3,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "carArmor_xn2_yn3",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelEngineMount_xn1_yn3",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": -3,
+      "role": "wheelEngineMount",
+      "moduleBlock": "wheel-engine-contact",
+      "damageGroup": "driveTrain",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine contact mount"
+      }
+    },
+    {
+      "id": "carArmor_x0_yn3",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelEngineMount_x1_yn3",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": -3,
+      "role": "wheelEngineMount",
+      "moduleBlock": "wheel-engine-contact",
+      "damageGroup": "driveTrain",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine contact mount"
+      }
+    },
+    {
+      "id": "carArmor_x2_yn3",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelBlock_x3_yn3",
+      "type": "wheel",
+      "gridX": 3,
+      "gridY": -3,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "wheelBlock_x4_yn3",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -3,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "carArmor_x5_yn3",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn5_yn2",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelBlock_xn4_yn2",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": -2,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "wheelBlock_xn3_yn2",
+      "type": "wheel",
+      "gridX": -3,
+      "gridY": -2,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "carArmor_xn2_yn2",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelEngineMount_xn1_yn2",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": -2,
+      "role": "wheelEngineMount",
+      "moduleBlock": "wheel-engine-contact",
+      "damageGroup": "driveTrain",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine contact mount"
+      }
+    },
+    {
+      "id": "carArmor_x0_yn2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelEngineMount_x1_yn2",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": -2,
+      "role": "wheelEngineMount",
+      "moduleBlock": "wheel-engine-contact",
+      "damageGroup": "driveTrain",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine contact mount"
+      }
+    },
+    {
+      "id": "carArmor_x2_yn2",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelBlock_x3_yn2",
+      "type": "wheel",
+      "gridX": 3,
+      "gridY": -2,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "wheelBlock_x4_yn2",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": -2,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "carArmor_x5_yn2",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn5_yn1",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn4_yn1",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn3_yn1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn2_yn1",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn1_yn1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x0_yn1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x1_yn1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x2_yn1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x3_yn1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x4_yn1",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x5_yn1",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": -1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn1_y0",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "core_x0_y0",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "role": "core"
+    },
+    {
+      "id": "carArmor_x1_y0",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn5_y1",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn4_y1",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn3_y1",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn2_y1",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn1_y1",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x0_y1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x1_y1",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x2_y1",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x3_y1",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x4_y1",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x5_y1",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 1,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn5_y2",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelBlock_xn4_y2",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 2,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "wheelBlock_xn3_y2",
+      "type": "wheel",
+      "gridX": -3,
+      "gridY": 2,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "carArmor_xn2_y2",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelEngineMount_xn1_y2",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": 2,
+      "role": "wheelEngineMount",
+      "moduleBlock": "wheel-engine-contact",
+      "damageGroup": "driveTrain",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine contact mount"
+      }
+    },
+    {
+      "id": "carArmor_x0_y2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelEngineMount_x1_y2",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": 2,
+      "role": "wheelEngineMount",
+      "moduleBlock": "wheel-engine-contact",
+      "damageGroup": "driveTrain",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine contact mount"
+      }
+    },
+    {
+      "id": "carArmor_x2_y2",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelBlock_x3_y2",
+      "type": "wheel",
+      "gridX": 3,
+      "gridY": 2,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "wheelBlock_x4_y2",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 2,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "carArmor_x5_y2",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 2,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn5_y3",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelBlock_xn4_y3",
+      "type": "wheel",
+      "gridX": -4,
+      "gridY": 3,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "wheelBlock_xn3_y3",
+      "type": "wheel",
+      "gridX": -3,
+      "gridY": 3,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "carArmor_xn2_y3",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelEngineMount_xn1_y3",
+      "type": "engine",
+      "gridX": -1,
+      "gridY": 3,
+      "role": "wheelEngineMount",
+      "moduleBlock": "wheel-engine-contact",
+      "damageGroup": "driveTrain",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine contact mount"
+      }
+    },
+    {
+      "id": "carArmor_x0_y3",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelEngineMount_x1_y3",
+      "type": "engine",
+      "gridX": 1,
+      "gridY": 3,
+      "role": "wheelEngineMount",
+      "moduleBlock": "wheel-engine-contact",
+      "damageGroup": "driveTrain",
+      "appearance": {
+        "tint": "#6fe0bf",
+        "label": "engine contact mount"
+      }
+    },
+    {
+      "id": "carArmor_x2_y3",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "wheelBlock_x3_y3",
+      "type": "wheel",
+      "gridX": 3,
+      "gridY": 3,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "wheelBlock_x4_y3",
+      "type": "wheel",
+      "gridX": 4,
+      "gridY": 3,
+      "role": "wheelBlock",
+      "moduleBlock": "wheel-2x2",
+      "damageGroup": "wheels",
+      "appearance": {
+        "tint": "#25282d",
+        "label": "2x2 wheel block"
+      }
+    },
+    {
+      "id": "carArmor_x5_y3",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 3,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn5_y4",
+      "type": "armor",
+      "gridX": -5,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn4_y4",
+      "type": "armor",
+      "gridX": -4,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn3_y4",
+      "type": "armor",
+      "gridX": -3,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn2_y4",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn1_y4",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x0_y4",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x1_y4",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x2_y4",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x3_y4",
+      "type": "armor",
+      "gridX": 3,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x4_y4",
+      "type": "armor",
+      "gridX": 4,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x5_y4",
+      "type": "armor",
+      "gridX": 5,
+      "gridY": 4,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_xn1_y5",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 5,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x0_y5",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 5,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    },
+    {
+      "id": "carArmor_x1_y5",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 5,
+      "role": "carArmor",
+      "appearance": {
+        "tint": "#607189",
+        "label": "car armor shell"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "a": "core_x0_y0",
+      "b": "carArmor_x0_yn1",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn1",
+      "b": "carArmor_x1_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x1_yn1",
+      "b": "carArmor_x2_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x2_yn1",
+      "b": "carArmor_x3_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x3_yn1",
+      "b": "carArmor_x4_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x4_yn1",
+      "b": "carArmor_x5_yn1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "core_x0_y0",
+      "b": "carArmor_xn1_y0",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "core_x0_y0",
+      "b": "carArmor_x1_y0",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_y0",
+      "b": "carArmor_xn1_y1",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_y1",
+      "b": "carArmor_x0_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_y1",
+      "b": "carArmor_x1_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x1_y1",
+      "b": "carArmor_x2_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x2_y1",
+      "b": "carArmor_x3_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x3_y1",
+      "b": "carArmor_x4_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x4_y1",
+      "b": "carArmor_x5_y1",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_y1",
+      "b": "wheelEngineMount_xn1_y2",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_xn1_y2",
+      "b": "carArmor_x0_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_y2",
+      "b": "wheelEngineMount_x1_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_x1_y2",
+      "b": "carArmor_x2_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x2_y2",
+      "b": "wheelBlock_x3_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_x3_y2",
+      "b": "wheelBlock_x4_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_x4_y2",
+      "b": "carArmor_x5_y2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_xn1_y2",
+      "b": "wheelEngineMount_xn1_y3",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_xn1_y3",
+      "b": "carArmor_x0_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_y3",
+      "b": "wheelEngineMount_x1_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_x1_y3",
+      "b": "carArmor_x2_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x2_y3",
+      "b": "wheelBlock_x3_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_x3_y3",
+      "b": "wheelBlock_x4_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_x4_y3",
+      "b": "carArmor_x5_y3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_xn1_y3",
+      "b": "carArmor_xn1_y4",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_y4",
+      "b": "carArmor_x0_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_y4",
+      "b": "carArmor_x1_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x1_y4",
+      "b": "carArmor_x2_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x2_y4",
+      "b": "carArmor_x3_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x3_y4",
+      "b": "carArmor_x4_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x4_y4",
+      "b": "carArmor_x5_y4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_y4",
+      "b": "carArmor_xn1_y5",
+      "aSide": "bottom",
+      "bSide": "top",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_y5",
+      "b": "carArmor_x0_y5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_y5",
+      "b": "carArmor_x1_y5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn1",
+      "b": "carArmor_x0_yn2",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn2",
+      "b": "wheelEngineMount_x1_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_x1_yn2",
+      "b": "carArmor_x2_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x2_yn2",
+      "b": "wheelBlock_x3_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_x3_yn2",
+      "b": "wheelBlock_x4_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_x4_yn2",
+      "b": "carArmor_x5_yn2",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn1",
+      "b": "carArmor_xn1_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_y1",
+      "b": "carArmor_xn2_y1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_xn1_y2",
+      "b": "carArmor_xn2_y2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_xn1_y3",
+      "b": "carArmor_xn2_y3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_y4",
+      "b": "carArmor_xn2_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn2",
+      "b": "carArmor_x0_yn3",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn3",
+      "b": "wheelEngineMount_x1_yn3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_x1_yn3",
+      "b": "carArmor_x2_yn3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x2_yn3",
+      "b": "wheelBlock_x3_yn3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_x3_yn3",
+      "b": "wheelBlock_x4_yn3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_x4_yn3",
+      "b": "carArmor_x5_yn3",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn2",
+      "b": "wheelEngineMount_xn1_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_yn1",
+      "b": "carArmor_xn2_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn2_y1",
+      "b": "carArmor_xn3_y1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn2_y2",
+      "b": "wheelBlock_xn3_y2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn2_y3",
+      "b": "wheelBlock_xn3_y3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn2_y4",
+      "b": "carArmor_xn3_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn3",
+      "b": "carArmor_x0_yn4",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn4",
+      "b": "carArmor_x1_yn4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x1_yn4",
+      "b": "carArmor_x2_yn4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x2_yn4",
+      "b": "carArmor_x3_yn4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x3_yn4",
+      "b": "carArmor_x4_yn4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x4_yn4",
+      "b": "carArmor_x5_yn4",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn3",
+      "b": "wheelEngineMount_xn1_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_xn1_yn2",
+      "b": "carArmor_xn2_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn2_yn1",
+      "b": "carArmor_xn3_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn3_y1",
+      "b": "carArmor_xn4_y1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_xn3_y2",
+      "b": "wheelBlock_xn4_y2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_xn3_y3",
+      "b": "wheelBlock_xn4_y3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn3_y4",
+      "b": "carArmor_xn4_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn4",
+      "b": "carArmor_x0_yn5",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn5",
+      "b": "carArmor_x1_yn5",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn4",
+      "b": "carArmor_xn1_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelEngineMount_xn1_yn3",
+      "b": "carArmor_xn2_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn2_yn2",
+      "b": "wheelBlock_xn3_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn3_yn1",
+      "b": "carArmor_xn4_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn4_y1",
+      "b": "carArmor_xn5_y1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_xn4_y2",
+      "b": "carArmor_xn5_y2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_xn4_y3",
+      "b": "carArmor_xn5_y3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn4_y4",
+      "b": "carArmor_xn5_y4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn5",
+      "b": "carArmor_x0_yn6",
+      "aSide": "top",
+      "bSide": "bottom",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn6",
+      "b": "roadGun_x1_yn6",
+      "aSide": "right",
+      "bSide": "left",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn5",
+      "b": "carArmor_xn1_yn5",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn1_yn4",
+      "b": "carArmor_xn2_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn2_yn3",
+      "b": "wheelBlock_xn3_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_xn3_yn2",
+      "b": "wheelBlock_xn4_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn4_yn1",
+      "b": "carArmor_xn5_yn1",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_x0_yn6",
+      "b": "roadGun_xn1_yn6",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn2_yn4",
+      "b": "carArmor_xn3_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_xn3_yn3",
+      "b": "wheelBlock_xn4_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_xn4_yn2",
+      "b": "carArmor_xn5_yn2",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn3_yn4",
+      "b": "carArmor_xn4_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "wheelBlock_xn4_yn3",
+      "b": "carArmor_xn5_yn3",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    },
+    {
+      "a": "carArmor_xn4_yn4",
+      "b": "carArmor_xn5_yn4",
+      "aSide": "left",
+      "bSide": "right",
+      "type": "structural"
+    }
+  ],
+  "modules": []
+}

@@ -50,6 +50,159 @@
       "editable": ["construct", "patterns", "entry", "charge", "palette"]
     },
     {
+      "id": "weyfinder_road_car.prototype0",
+      "displayName": "Weyfinder Road Car",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "standard",
+      "construct": "example.construct.weyfinder_road_car_sculpted",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "zone": "TheWeyfindersRoad",
+      "tags": ["weyfinders-road", "car", "wheel-blocks", "dev-lookup:weyfinder-road-car"],
+      "entry": {
+        "kind": "aheadDrift",
+        "direction": "roadForward",
+        "speed": 35
+      },
+      "palette": {
+        "core": "#f5f5f5",
+        "armor": "#607189",
+        "gun": "#ff8f70",
+        "wheel": "#25282d",
+        "engine": "#6fe0bf"
+      },
+      "presentation": {
+        "variant": "roadCar",
+        "bodyVariant": "standardRoadCar"
+      },
+      "carBehavior": {
+        "kind": "roadDrift",
+        "wheelBlockCells": [2, 2],
+        "armorShellLayers": 1,
+        "engineContactCellsPerWheelBlock": 2,
+        "spinout": { "wheelBlocksDestroyed": 2 }
+      },
+      "editable": ["construct", "patterns", "entry", "palette", "carBehavior"]
+    },
+    {
+      "id": "weyfinder_road_armored_car.prototype0",
+      "displayName": "Weyfinder Road Armored Car",
+      "runtimeFactory": "createEnhancedEnemy",
+      "baseArchetype": "enhanced_charger",
+      "construct": "example.construct.weyfinder_road_armored_car_sculpted",
+      "patterns": ["enemy_aimed_shot", "enemy_radial_burst"],
+      "zone": "TheWeyfindersRoad",
+      "tags": ["weyfinders-road", "car", "armored", "wheel-blocks", "dev-lookup:weyfinder-road-armored-car"],
+      "entry": {
+        "kind": "behindCharge",
+        "direction": "roadBehind",
+        "warningLeadSeconds": 2.4,
+        "speed": 310
+      },
+      "palette": {
+        "core": "#f5f5f5",
+        "armor": "#4f5967",
+        "gun": "#ff8f70",
+        "wheel": "#20242a",
+        "engine": "#6fe0bf"
+      },
+      "presentation": {
+        "variant": "roadCar",
+        "bodyVariant": "armoredRoadCar"
+      },
+      "carBehavior": {
+        "kind": "roadDrift",
+        "wheelBlockCells": [2, 2],
+        "armorShellLayers": 1,
+        "engineContactCellsPerWheelBlock": 2,
+        "spinout": { "wheelBlocksDestroyed": 2 }
+      },
+      "charge": {
+        "acceleration": 165,
+        "duration": 1.15,
+        "idleSeconds": [4.2, 7.4],
+        "shieldArcRadians": 0.39269908169872414,
+        "shieldDamage": 16,
+        "shieldImpulse": 230
+      },
+      "editable": ["construct", "patterns", "entry", "charge", "palette", "carBehavior"]
+    },
+    {
+      "id": "weyfinder_road_flechette_racer.prototype0",
+      "displayName": "Weyfinder Road Flechette Racer",
+      "runtimeFactory": "createEnemy",
+      "baseArchetype": "weyfinder_road_car.prototype0",
+      "construct": "example.construct.weyfinder_road_flechette_racer_sculpted",
+      "patterns": ["enemy_tracking_flechette_strafe"],
+      "zone": "TheWeyfindersRoad",
+      "tags": ["weyfinders-road", "car", "racer", "flechette", "tracking", "dev-lookup:weyfinder-road-flechette-racer"],
+      "entry": {
+        "kind": "airStrafe",
+        "direction": "side",
+        "warningLeadSeconds": 1.4,
+        "speed": 185
+      },
+      "palette": {
+        "core": "#f5f5f5",
+        "armor": "#56687c",
+        "gun": "#ffd166",
+        "wheel": "#25282d",
+        "engine": "#6fe0bf"
+      },
+      "presentation": {
+        "variant": "sideStrafeFlechetteRacer",
+        "bodyVariant": "racerRoadCar"
+      },
+      "movementProfiles": [
+        { "id": "side-racing-strafe", "kind": "flyStrafe", "target": "player", "speed": 185, "amplitude": 55, "frequency": 0.8 }
+      ],
+      "carBehavior": {
+        "kind": "raceStrafe",
+        "movement": "raceStrafe",
+        "speed": 185,
+        "steer": 4.8,
+        "playerDriftBias": 0.18,
+        "flechetteCooldown": 0.58,
+        "flechettePattern": "enemy_tracking_flechette_strafe",
+        "trackingFlechettes": true,
+        "spinout": { "wheelBlocksDestroyed": 2 }
+      },
+      "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "carBehavior"]
+    },
+    {
+      "id": "boss.weyfinder_road_hotrod.prototype0",
+      "displayName": "Weyfinder Road Hotrod Boss",
+      "runtimeFactory": "createRoadBossCarEnemy",
+      "baseArchetype": "weyfinder_road_armored_car.prototype0",
+      "construct": "runtime.weyfinder_road_hotrod.prototype0",
+      "patterns": [],
+      "zone": "TheWeyfindersRoad",
+      "tags": ["weyfinders-road", "boss", "car", "blade-barrage", "wheel-blocks", "dev-lookup:weyfinder-road-hotrod-boss"],
+      "entry": { "kind": "aheadBoss", "direction": "roadForward", "warningLeadSeconds": 2.4 },
+      "palette": { "core": "#f5f5f5", "armor": "#56687c", "gun": "#ff8f70", "wheel": "#25282d", "engine": "#6fe0bf" },
+      "presentation": {
+        "variant": "roadCar",
+        "bodyVariant": "bossHotrod",
+        "notes": "Runtime boss: oversized rounded car hull, scaled-up 4x4 wheel pods, side blade launchers, and bullet barrage hardpoints."
+      },
+      "movementProfiles": [
+        { "id": "orbit-player", "kind": "orbitTarget", "target": "player", "speed": 66 },
+        { "id": "u-turn-strafe-run", "kind": "raceStrafe", "target": "player", "speed": 165 }
+      ],
+      "carBehavior": {
+        "kind": "bossRoadster",
+        "wheelBlockCells": [4, 4],
+        "spinout": { "wheelBlocksDestroyed": 2 }
+      },
+      "weaponMix": {
+        "movement": "alternatesOrbitAndUTurnStrafe",
+        "blades": "enemyBladeLauncherBarrage",
+        "bladeScale": 1.5,
+        "bullets": "standardBulletBarrage",
+        "defeatEscapePods": "pirateRoadBoats"
+      },
+      "editable": ["entry", "palette", "presentation", "movementProfiles", "carBehavior", "weaponMix"]
+    },
+    {
       "id": "pirate_ship.prototype0",
       "displayName": "Pirate Ship Prototype",
       "runtimeFactory": "createPirateShipEnemy",
@@ -72,7 +225,15 @@
         "shape": "elongatedHull",
         "cells": ["stern", "portGun", "starboardGun", "core", "bow"]
       },
-      "editable": ["patterns", "entry", "palette", "silhouette", "model"]
+      "entranceBarks": {
+        "trigger": "warning",
+        "sounds": ["pirate-yargh", "pirate-broadside", "pirate-avast"],
+        "cues": ["Yargh!", "Avast!", "Broadside!"],
+        "random": true,
+        "duration": 1.8,
+        "growth": 2.2
+      },
+      "editable": ["patterns", "entry", "palette", "silhouette", "model", "entranceBarks", "reactionCues"]
     },
     {
       "id": "pirate_ram_ship.prototype0",
@@ -107,7 +268,15 @@
         "shieldDamage": 16,
         "shieldImpulse": 230
       },
-      "editable": ["patterns", "entry", "charge", "palette", "silhouette", "model"]
+      "entranceBarks": {
+        "trigger": "warning",
+        "sounds": ["pirate-yargh", "pirate-broadside", "pirate-avast"],
+        "cues": ["Ram speed!", "No quarter!", "Yargh!"],
+        "random": true,
+        "duration": 1.8,
+        "growth": 2.2
+      },
+      "editable": ["patterns", "entry", "charge", "palette", "silhouette", "model", "entranceBarks", "reactionCues"]
     },
     {
       "id": "ghost_fabric.prototype0",
@@ -263,7 +432,15 @@
         "line": "sourceToPredictedTarget",
         "keepsStandardPatterns": true
       },
-      "editable": ["patterns", "entry", "palette", "movementProfiles", "artillery", "silhouette", "model"]
+      "entranceBarks": {
+        "trigger": "warning",
+        "sounds": ["pirate-yargh", "pirate-broadside", "pirate-avast"],
+        "cues": ["Incoming shells!", "Give em a broadside!", "Yargh!"],
+        "random": true,
+        "duration": 1.8,
+        "growth": 2.2
+      },
+      "editable": ["patterns", "entry", "palette", "movementProfiles", "artillery", "silhouette", "model", "entranceBarks", "reactionCues"]
     },
     {
       "id": "starlight_walker.prototype0",
@@ -410,6 +587,60 @@
       "editable": ["construct", "entry", "palette", "movementProfiles", "detonation"]
     },
     {
+      "id": "boss.pirate_dreadnought.prototype0",
+      "displayName": "Pirate Dreadnought Boss",
+      "runtimeFactory": "createPirateBossEnemy",
+      "baseArchetype": "pirate_ship.prototype0",
+      "construct": "runtime.pirate_dreadnought.prototype0",
+      "patterns": [],
+      "zone": "PiratesRoad",
+      "entry": { "kind": "aheadBoss", "direction": "roadForward", "warningLeadSeconds": 2.4 },
+      "palette": { "core": "#f6d260", "armor": "#2a2224", "gun": "#ff7a1a", "trim": "#a33a22" },
+      "silhouette": {
+        "kind": "pirateShip",
+        "rotation": "broadsideOrbit",
+        "broadsideOnFireSeconds": 0.85,
+        "collision": "rotatedRuntimeCells"
+      },
+      "model": {
+        "source": "runtimeFactory",
+        "shape": "giantRamMortarHybrid",
+        "sideGunRows": 2,
+        "frontGunBlockCells": [4, 4],
+        "rearGunBlocks": 2
+      },
+      "entranceBarks": {
+        "trigger": "warning",
+        "sounds": ["pirate-boss-entrance"],
+        "cues": ["No quarter!"],
+        "random": false,
+        "duration": 2.2,
+        "growth": 2.6
+      },
+      "reactionCues": [
+        {
+          "trigger": "gunDestroyed",
+          "texts": ["Ouch!", "Angry!"],
+          "duration": 1.9,
+          "growth": 2.4
+        },
+        {
+          "trigger": "corePhasedIn",
+          "texts": ["No quarter!"],
+          "sound": "pirate-no-quarter",
+          "duration": 2.2,
+          "growth": 2.4
+        }
+      ],
+      "weaponMix": {
+        "front": "alternatingLargeMortar",
+        "rear": "smallLineMortarClusters",
+        "sides": "rangeBasedBroadsideBulletsOrFlechetteSprays",
+        "coreProtectedUntilLiveGunsBelow": 2
+      },
+      "editable": ["patterns", "entry", "palette", "silhouette", "model", "weaponMix", "entranceBarks", "reactionCues"]
+    },
+    {
       "id": "boss.octagon.prototype0",
       "displayName": "Octagon Boss Prototype",
       "runtimeFactory": "createBossEnemy",
@@ -504,7 +735,24 @@
         "accelerationSpreadRadians": 0.04,
         "vanishOffscreen": true
       },
-      "editable": ["palette", "body", "arms", "attackMix", "centerPulse", "entry"]
+      "entranceBarks": {
+        "trigger": "warning",
+        "sounds": ["kraken-enter"],
+        "cues": ["Kraken!"],
+        "random": false,
+        "duration": 2.2,
+        "growth": 2.6
+      },
+      "reactionCues": [
+        {
+          "trigger": "defeated",
+          "texts": ["Vanish!"],
+          "sound": "kraken-defeated",
+          "duration": 2.4,
+          "growth": 3
+        }
+      ],
+      "editable": ["palette", "body", "arms", "attackMix", "centerPulse", "entry", "entranceBarks", "reactionCues"]
     }
   ]
 }

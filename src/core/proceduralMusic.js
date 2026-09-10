@@ -88,7 +88,7 @@ export function consumeProceduralMusicCue(music) {
 export function musicSituationSnapshot(game) {
   const enemies = game.enemies ?? [];
   const activeEnemies = enemies.filter((enemy) => !enemy.destroyed);
-  const bossCount = activeEnemies.filter((enemy) => enemy.kind === 'boss' || enemy.kind === 'zeppelinBoss').length;
+  const bossCount = activeEnemies.filter((enemy) => enemy.kind === 'boss' || enemy.kind === 'zeppelinBoss' || enemy.kind === 'pirateBoss' || enemy.kind === 'roadBossCar').length;
   const warningCount = activeCombatWarnings(activeEnemies);
   return {
     incomingWarnings: game.incomingMarkers?.length ?? 0,

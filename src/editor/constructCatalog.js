@@ -3,6 +3,9 @@ import startingVehicleDefinition from '../../content/constructs/starting_vehicle
 import ghostPhaserConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json' with { type: 'json' };
 import tractorFrogConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
 import heavyMortarBoatConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
+import weyfinderRoadCarConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_car_sculpted.json' with { type: 'json' };
+import weyfinderRoadArmoredCarConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_armored_car_sculpted.json' with { type: 'json' };
+import weyfinderRoadFlechetteRacerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_flechette_racer_sculpted.json' with { type: 'json' };
 import spiderWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
 import spideryWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import burlyWalkerBossBodyConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.burly_walker_boss_body_sculpted.json' with { type: 'json' };
@@ -18,6 +21,9 @@ export const BUILTIN_CONSTRUCT_DEFINITIONS = Object.freeze([
   ghostPhaserConstruct,
   tractorFrogConstruct,
   heavyMortarBoatConstruct,
+  weyfinderRoadCarConstruct,
+  weyfinderRoadArmoredCarConstruct,
+  weyfinderRoadFlechetteRacerConstruct,
   spiderWalkerConstruct,
   spideryWalkerConstruct,
   burlyWalkerBossBodyConstruct,

@@ -21,6 +21,7 @@ test('canon enemy archetype pack validates', () => {
   assert.equal(ENEMY_MOVEMENT_KINDS.includes('phase'), true);
   assert.equal(ENEMY_MOVEMENT_KINDS.includes('hop'), true);
   assert.equal(ENEMY_MOVEMENT_KINDS.includes('flyStrafe'), true);
+  assert.equal(ENEMY_MOVEMENT_KINDS.includes('raceStrafe'), true);
   assert.equal(ENEMY_MOVEMENT_KINDS.includes('walkerLegs'), true);
   assert.equal(ENEMY_AGGREGATE_KINDS.includes('multiPartBoss'), true);
   assert.equal(ENEMY_CELL_ANIMATION_KINDS.includes('fabricWeave'), true);
@@ -52,11 +53,31 @@ test('enemy archetype validation rejects malformed presentation sprite descripto
 
 test('enemy archetype helpers expose editor-facing enemy models', () => {
   const archetypes = listEnemyArchetypes();
-  assert.equal(archetypes.length, 14);
+  assert.equal(archetypes.length, 19);
   assert.deepEqual(
-    archetypes.slice(0, 6).map((archetype) => archetype.id),
-    ['standard', 'enhanced_charger', 'pirate_ship.prototype0', 'pirate_ram_ship.prototype0', 'ghost_fabric.prototype0', 'ghost_phaser.ghost_forrest'],
+    archetypes.slice(0, 9).map((archetype) => archetype.id),
+    [
+      'standard',
+      'enhanced_charger',
+      'weyfinder_road_car.prototype0',
+      'weyfinder_road_armored_car.prototype0',
+      'weyfinder_road_flechette_racer.prototype0',
+      'boss.weyfinder_road_hotrod.prototype0',
+      'pirate_ship.prototype0',
+      'pirate_ram_ship.prototype0',
+      'ghost_fabric.prototype0',
+    ],
   );
+  assert.equal(getEnemyArchetype('weyfinder_road_car.prototype0').construct, 'example.construct.weyfinder_road_car_sculpted');
+  assert.equal(getEnemyArchetype('weyfinder_road_car.prototype0').presentation.variant, 'roadCar');
+  assert.equal(getEnemyArchetype('weyfinder_road_car.prototype0').carBehavior.engineContactCellsPerWheelBlock, 2);
+  assert.equal(getEnemyArchetype('weyfinder_road_armored_car.prototype0').construct, 'example.construct.weyfinder_road_armored_car_sculpted');
+  assert.equal(getEnemyArchetype('weyfinder_road_flechette_racer.prototype0').patterns[0], 'enemy_tracking_flechette_strafe');
+  assert.equal(getEnemyArchetype('weyfinder_road_flechette_racer.prototype0').carBehavior.trackingFlechettes, true);
+  assert.equal(getEnemyArchetype('boss.weyfinder_road_hotrod.prototype0').runtimeFactory, 'createRoadBossCarEnemy');
+  assert.equal(getEnemyArchetype('boss.weyfinder_road_hotrod.prototype0').weaponMix.bladeScale, 1.5);
+  assert.equal(ENEMY_PRESENTATION_VARIANTS.includes('roadCar'), true);
+  assert.equal(ENEMY_PRESENTATION_VARIANTS.includes('sideStrafeFlechetteRacer'), true);
   assert.equal(getEnemyArchetype('pirate_ram_ship.prototype0').silhouette.kind, 'pirateShip');
   assert.equal(getEnemyArchetype('ghost_fabric.prototype0').cellAnimations[0].kind, 'fabricWeave');
   assert.equal(getEnemyArchetype('ghost_phaser.ghost_forrest').phase.intangibleWhenOutOfPhase, true);
@@ -67,6 +88,7 @@ test('enemy archetype helpers expose editor-facing enemy models', () => {
   assert.equal(getEnemyArchetype('hopping_stream_mob.digitized_stream').targeting.preferConditions.includes('targetIsDistracted'), true);
   assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').artillery.weapon, 'mortar');
   assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').presentation.variant, 'heavyMortarBoat');
+  assert.equal(getEnemyArchetype('heavy_mortar_boat.pirates_road').entranceBarks.sounds.includes('pirate-broadside'), true);
   assert.equal(getEnemyArchetype('starlight_walker.prototype0').construct, 'example.construct.spidery_walker_sculpted');
   assert.equal(getEnemyArchetype('starlight_walker.prototype0').aggregate.parts.find((part) => part.id === 'legs').count, 8);
   assert.equal(getEnemyArchetype('starlight_walker.prototype0').elevation.layeredExposure, true);
@@ -81,11 +103,65 @@ test('enemy archetype helpers expose editor-facing enemy models', () => {
   assert.equal(getEnemyArchetype('inchworm_carrier.freedoms_pass').segments.construct, 'example.construct.inchworm_body_segment_sculpted');
   assert.equal(listEnemyArchetypes().every((archetype) => archetype.presentation?.sprite == null), true);
   assert.equal(getEnemyArchetype('boss.octopus.prototype0').displayName, 'Octagon Boss Prototype');
+  assert.equal(getEnemyArchetype('boss.pirate_dreadnought.prototype0').runtimeFactory, 'createPirateBossEnemy');
+  assert.equal(getEnemyArchetype('boss.pirate_dreadnought.prototype0').reactionCues.some((cue) => cue.trigger === 'corePhasedIn'), true);
+  assert.equal(getEnemyArchetype('boss.octagon.prototype0').entranceBarks.sounds[0], 'kraken-enter');
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.some((entry) => entry.id === 'trackingLaser'), true);
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.attackMix.find((entry) => entry.id === 'trackingLaser').telegraphSeconds, 3);
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.beamSource.shutoffWhenDestroyed, true);
   assert.equal(getEnemyArchetype('boss.octagon.prototype0').arms.noduleShots.source, 'liveArmGun');
   assert.deepEqual(editableEnemyKnobs('enhanced_charger'), ['construct', 'patterns', 'entry', 'charge', 'palette']);
+});
+
+test('enemy archetype validation covers entrance barks and reaction cues', () => {
+  const report = validateEnemyArchetypePack({
+    ...canonEnemyArchetypes,
+    archetypes: [
+      {
+        ...canonEnemyArchetypes.archetypes[0],
+        entranceBarks: { trigger: '', sounds: ['pirate-yargh'], cues: 'oops' },
+        reactionCues: [{ trigger: '', texts: 'ouch', sound: 7 }],
+      },
+    ],
+  });
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('entranceBarks.trigger')), true);
+  assert.equal(report.errors.some((error) => error.includes('entranceBarks.cues')), true);
+  assert.equal(report.errors.some((error) => error.includes('reactionCues[0].trigger')), true);
+  assert.equal(report.errors.some((error) => error.includes('reactionCues[0].texts')), true);
+  assert.equal(report.errors.some((error) => error.includes('reactionCues[0].sound')), true);
+});
+
+test('enemy archetype validation covers race car behavior hooks', () => {
+  const report = validateEnemyArchetypePack({
+    ...canonEnemyArchetypes,
+    archetypes: [
+      {
+        ...canonEnemyArchetypes.archetypes[0],
+        movementProfiles: [{ id: 'race', kind: 'raceStrafe', target: 'player', speed: 185 }],
+        carBehavior: {
+          movement: 'raceStrafe',
+          speed: 185,
+          flechetteCooldown: 0.58,
+          spinout: { wheelBlocksDestroyed: 2 },
+        },
+      },
+    ],
+  });
+  assert.equal(report.valid, true);
+
+  const malformed = validateEnemyArchetypePack({
+    ...canonEnemyArchetypes,
+    archetypes: [
+      {
+        ...canonEnemyArchetypes.archetypes[0],
+        carBehavior: { movement: 'hoverCar', spinout: 'bad' },
+      },
+    ],
+  });
+  assert.equal(malformed.valid, false);
+  assert.equal(malformed.errors.some((error) => error.includes('carBehavior.movement')), true);
+  assert.equal(malformed.errors.some((error) => error.includes('carBehavior.spinout')), true);
 });
 
 test('enemy archetype validation rejects unavailable runtime factories', () => {

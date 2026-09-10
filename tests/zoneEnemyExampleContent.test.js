@@ -11,6 +11,9 @@ import inchwormEyeMiniBeam from '../content/examples/prototype0-zone-enemy-set/p
 import ghostPhaserConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json' with { type: 'json' };
 import tractorFrogConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
 import heavyMortarBoatConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
+import weyfinderRoadCarConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_car_sculpted.json' with { type: 'json' };
+import weyfinderRoadArmoredCarConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_armored_car_sculpted.json' with { type: 'json' };
+import weyfinderRoadFlechetteRacerConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_flechette_racer_sculpted.json' with { type: 'json' };
 import spiderWalkerConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
 import spideryWalkerConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import burlyWalkerBossBodyConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.burly_walker_boss_body_sculpted.json' with { type: 'json' };
@@ -39,6 +42,9 @@ const constructs = [
   ghostPhaserConstruct,
   tractorFrogConstruct,
   heavyMortarBoatConstruct,
+  weyfinderRoadCarConstruct,
+  weyfinderRoadArmoredCarConstruct,
+  weyfinderRoadFlechetteRacerConstruct,
   spiderWalkerConstruct,
   spideryWalkerConstruct,
   burlyWalkerBossBodyConstruct,
@@ -75,6 +81,11 @@ test('zone enemy example content pack validates for editor import', () => {
 
 test('zone enemy examples preserve requested advanced behavior descriptors', () => {
   const byId = new Map(zoneEnemyArchetypes.archetypes.map((archetype) => [archetype.id, archetype]));
+  assert.equal(byId.get('example.weyfinder_road_car.theweyfinders_road').construct, 'example.construct.weyfinder_road_car_sculpted');
+  assert.equal(byId.get('example.weyfinder_road_car.theweyfinders_road').carBehavior.engineContactCellsPerWheelBlock, 2);
+  assert.equal(byId.get('example.weyfinder_road_armored_car.theweyfinders_road').construct, 'example.construct.weyfinder_road_armored_car_sculpted');
+  assert.equal(byId.get('example.weyfinder_road_flechette_racer.theweyfinders_road').patterns[0], 'enemy_tracking_flechette_strafe');
+  assert.equal(byId.get('example.weyfinder_road_flechette_racer.theweyfinders_road').carBehavior.trackingFlechettes, true);
   assert.equal(byId.get('example.ghost_phase_mob.ghost_forrest').phase.onHit.cancelFireSequence, true);
   assert.equal(byId.get('example.ghost_phase_mob.ghost_forrest').fireSequence.shots, 16);
   assert.equal(byId.get('example.tractor_frog.digitized_stream').tractorBeam.scrapHealPerPiece, 8);
@@ -117,6 +128,11 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   const spideryWalker = byId.get('example.construct.spidery_walker_sculpted');
   const bossWalkerBody = byId.get('example.construct.burly_walker_boss_body_sculpted');
   const rotatableBossCannon = byId.get('example.construct.rotatable_boss_cannon_sculpted');
+  const roadCars = [
+    byId.get('example.construct.weyfinder_road_car_sculpted'),
+    byId.get('example.construct.weyfinder_road_armored_car_sculpted'),
+    byId.get('example.construct.weyfinder_road_flechette_racer_sculpted'),
+  ];
   const walkerSupportLegs = spiderWalker.cells.filter((cell) => cell.role === 'supportLeg');
   const walkerLegJoints = spiderWalker.cells.filter((cell) => cell.role === 'legJoint');
   const walkerLegArmor = spiderWalker.cells.filter((cell) => cell.role === 'legArmor');
@@ -134,6 +150,13 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   assert.equal(byId.get('example.construct.ghost_phaser_sculpted').cells.length >= 32, true);
   assert.equal(byId.get('example.construct.tractor_frog_sculpted').cells.length >= 32, true);
   assert.equal(byId.get('example.construct.heavy_mortar_boat_sculpted').cells.length >= 32, true);
+  for (const car of roadCars) {
+    assert.equal(car.cells.filter((cell) => cell.role === 'wheelBlock' && cell.type === 'wheel').length, 16, car.assetId);
+    assert.equal(car.cells.filter((cell) => cell.role === 'wheelEngineMount' && cell.type === 'engine').length, 8, car.assetId);
+    assert.equal(car.tags.includes('wheel-blocks'), true, car.assetId);
+    assert.equal(car.tags.some((tag) => tag.startsWith('dev-lookup:weyfinder-road-')), true, car.assetId);
+  }
+  assert.equal(byId.get('example.construct.weyfinder_road_flechette_racer_sculpted').cells.filter((cell) => cell.role === 'flechetteRack').length >= 3, true);
   assert.equal(walkerSupportLegs.length, 96);
   assert.equal(walkerSupportLegs.every((cell) => cell.type === 'wheel'), true);
   assert.deepEqual(walkerSupportLegLayers, [0, 1, 2, 3, 4, 5]);

@@ -16,6 +16,7 @@ import exampleStaMissileDefinition from '../content/examples/prototype0-module-s
 import exampleOrbOfBladesDefinition from '../content/examples/prototype0-module-set/weapons/example.orb_of_blades.json' with { type: 'json' };
 import aimedPatternDefinition from '../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../content/patterns/enemy_radial_burst.json' with { type: 'json' };
+import trackingFlechetteStrafePatternDefinition from '../content/patterns/enemy_tracking_flechette_strafe.json' with { type: 'json' };
 import mortarLinePatternDefinition from '../content/examples/prototype0-zone-enemy-set/patterns/example.mortar_line_7.json' with { type: 'json' };
 import buzzardTrailingMortarDefinition from '../content/examples/prototype0-zone-enemy-set/patterns/example.buzzard_trailing_mortar.json' with { type: 'json' };
 import { createPatternState, firePattern, validatePatternDefinition } from '../src/core/patternDefinition.js';
@@ -113,12 +114,20 @@ test('weapon validation rejects invalid destructible projectile shape data', () 
 });
 
 test('canon enemy pattern assets validate and create timed pattern state', () => {
-  for (const definition of [aimedPatternDefinition, radialPatternDefinition]) {
+  for (const definition of [aimedPatternDefinition, radialPatternDefinition, trackingFlechetteStrafePatternDefinition]) {
     const report = validatePatternDefinition(definition);
     assert.equal(report.valid, true);
     const state = createPatternState(definition);
     assert.equal(state.timer, definition.initialDelay);
   }
+});
+
+test('tracking flechette strafe pattern emits delayed homing projectiles', () => {
+  const projectiles = firePattern(trackingFlechetteStrafePatternDefinition, { x: 0, y: 0 }, { x: 100, y: 0 }, new Rng(1));
+  assert.equal(projectiles.length, 3);
+  assert.equal(projectiles.every((projectile) => projectile.behavior === 'homing'), true);
+  assert.equal(projectiles.every((projectile) => projectile.delayBeforeAcceleration === 0.35), true);
+  assert.equal(projectiles.every((projectile) => projectile.sprite.assetId === 'sprite.weapon.tracking_flechette'), true);
 });
 
 test('aimed pattern emits projectile toward target with deterministic spread', () => {

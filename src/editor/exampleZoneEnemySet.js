@@ -9,6 +9,9 @@ import inchwormEyeMiniBeam from '../../content/examples/prototype0-zone-enemy-se
 import ghostPhaserConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json' with { type: 'json' };
 import tractorFrogConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
 import heavyMortarBoatConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
+import weyfinderRoadCarConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_car_sculpted.json' with { type: 'json' };
+import weyfinderRoadArmoredCarConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_armored_car_sculpted.json' with { type: 'json' };
+import weyfinderRoadFlechetteRacerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_flechette_racer_sculpted.json' with { type: 'json' };
 import spiderWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
 import spideryWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import burlyWalkerBossBodyConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.burly_walker_boss_body_sculpted.json' with { type: 'json' };
@@ -26,6 +29,9 @@ export const EXAMPLE_ZONE_ENEMY_SET_BUNDLE = Object.freeze({
     { kind: 'construct', definition: ghostPhaserConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: tractorFrogConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: heavyMortarBoatConstruct, sourcePack: manifest.packId },
+    { kind: 'construct', definition: weyfinderRoadCarConstruct, sourcePack: manifest.packId },
+    { kind: 'construct', definition: weyfinderRoadArmoredCarConstruct, sourcePack: manifest.packId },
+    { kind: 'construct', definition: weyfinderRoadFlechetteRacerConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: spiderWalkerConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: spideryWalkerConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: burlyWalkerBossBodyConstruct, sourcePack: manifest.packId },
@@ -49,6 +55,9 @@ export const EXAMPLE_ZONE_ENEMY_SET_BUNDLE = Object.freeze({
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json', name: 'example.construct.ghost_phaser_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json', name: 'example.construct.tractor_frog_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json', name: 'example.construct.heavy_mortar_boat_sculpted.json' },
+    { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_car_sculpted.json', name: 'example.construct.weyfinder_road_car_sculpted.json' },
+    { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_armored_car_sculpted.json', name: 'example.construct.weyfinder_road_armored_car_sculpted.json' },
+    { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_flechette_racer_sculpted.json', name: 'example.construct.weyfinder_road_flechette_racer_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json', name: 'example.construct.spider_walker_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json', name: 'example.construct.spidery_walker_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.burly_walker_boss_body_sculpted.json', name: 'example.construct.burly_walker_boss_body_sculpted.json' },

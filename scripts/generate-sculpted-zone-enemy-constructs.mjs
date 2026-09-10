@@ -68,6 +68,72 @@ const SHAPES = [
     ],
   },
   {
+    assetId: 'example.construct.weyfinder_road_car_sculpted',
+    displayName: 'Sculpted Weyfinder Road Car Construct',
+    tags: ['weyfinders-road', 'car', 'wheel-blocks', 'runtime-hook:roadCar', 'dev-lookup:weyfinder-road-car'],
+    x0: -5,
+    y0: -6,
+    rows: [
+      '....gag....',
+      '....aaa....',
+      'aaaaaaaaaaa',
+      'awwaeaeawwa',
+      'awwaeaeawwa',
+      'aaaaaaaaaaa',
+      '....aca....',
+      'aaaaaaaaaaa',
+      'awwaeaeawwa',
+      'awwaeaeawwa',
+      'aaaaaaaaaaa',
+      '....aaa....',
+    ],
+  },
+  {
+    assetId: 'example.construct.weyfinder_road_armored_car_sculpted',
+    displayName: 'Sculpted Weyfinder Road Armored Car Construct',
+    tags: ['weyfinders-road', 'car', 'armored', 'wheel-blocks', 'runtime-hook:roadCar', 'dev-lookup:weyfinder-road-armored-car'],
+    x0: -6,
+    y0: -7,
+    rows: [
+      '.....gag.....',
+      '....aaaaa....',
+      '..aaaaaaaaa..',
+      '.awwaeaeawwa.',
+      '.awwaeaeawwa.',
+      '..aaaaaaaaa..',
+      '...agacaga...',
+      '..aaaaaaaaa..',
+      '.awwaeaeawwa.',
+      '.awwaeaeawwa.',
+      '..aaaaaaaaa..',
+      '....aaaaa....',
+      '.....aaa.....',
+    ],
+  },
+  {
+    assetId: 'example.construct.weyfinder_road_flechette_racer_sculpted',
+    displayName: 'Sculpted Weyfinder Road Flechette Racer Construct',
+    tags: ['weyfinders-road', 'car', 'racer', 'flechette', 'wheel-blocks', 'runtime-hook:sideStrafeFlechetteRacer', 'dev-lookup:weyfinder-road-flechette-racer'],
+    x0: -5,
+    y0: -7,
+    rows: [
+      '.....g.....',
+      '....aaa....',
+      '...aagaa...',
+      'aaaaaaaaaaa',
+      'awwaeaeawwa',
+      'awwaeaeawwa',
+      'aaaaaaaaaaa',
+      '...gacag...',
+      'aaaaaaaaaaa',
+      'awwaeaeawwa',
+      'awwaeaeawwa',
+      'aaaaaaaaaaa',
+      '...aagaa...',
+      '....aaa....',
+    ],
+  },
+  {
     assetId: 'example.construct.spider_walker_sculpted',
     displayName: 'Sculpted Burly Four Leg Walker Construct',
     tags: ['walker', 'burly-four-leg', 'starlight-road', 'twilight-crossroads', 'runtime-hook:walkerLegs', 'dev-lookup:walker-burly-four-leg'],
@@ -608,6 +674,11 @@ function roleFor(shape, type, gridX, gridY, gridZ = 0) {
   if (shape.assetId.includes('rotatable_boss_cannon') && type === 'engine') return 'rotationJoint';
   if (shape.assetId.includes('rotatable_boss_cannon') && type === 'gun') return 'cannonBarrel';
   if (shape.assetId.includes('rotatable_boss_cannon') && type === 'armor') return 'cannonHousing';
+  if (shape.assetId.includes('weyfinder_road') && type === 'wheel') return 'wheelBlock';
+  if (shape.assetId.includes('weyfinder_road') && type === 'engine') return 'wheelEngineMount';
+  if (shape.assetId.includes('weyfinder_road_flechette') && type === 'gun') return 'flechetteRack';
+  if (shape.assetId.includes('weyfinder_road') && type === 'gun') return 'roadGun';
+  if (shape.assetId.includes('weyfinder_road') && type === 'armor') return 'carArmor';
   if (shape.assetId.includes('burly_walker_boss_body') && type === 'utility') return 'cannonMount';
   if (shape.assetId.includes('walker') && type === 'wheel') return 'supportLeg';
   if (shape.assetId.includes('walker') && type === 'engine') return 'legJoint';
@@ -639,6 +710,11 @@ function appearanceFor(shape, cell) {
   if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'rotationJoint') return { tint: '#6fe0bf', label: 'rotation joint' };
   if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'cannonBarrel') return { tint: '#ff8f70', label: 'cannon barrel' };
   if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'cannonHousing') return { tint: '#59636b', label: 'cannon housing' };
+  if (shape.assetId.includes('weyfinder_road') && cell.role === 'wheelBlock') return { tint: '#25282d', label: '2x2 wheel block' };
+  if (shape.assetId.includes('weyfinder_road') && cell.role === 'wheelEngineMount') return { tint: '#6fe0bf', label: 'engine contact mount' };
+  if (shape.assetId.includes('weyfinder_road_flechette') && cell.role === 'flechetteRack') return { tint: '#ffd166', label: 'tracking flechette rack' };
+  if (shape.assetId.includes('weyfinder_road') && cell.role === 'roadGun') return { tint: '#ff8f70', label: 'road gun' };
+  if (shape.assetId.includes('weyfinder_road') && cell.role === 'carArmor') return { tint: '#607189', label: 'car armor shell' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'eyeGun' && cell.slot === 'leftEye') return { tint: '#ff2d1a', emissive: true, label: 'red eye' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'eyeGun' && cell.slot === 'rightEye') return { tint: '#ff8a1f', emissive: true, label: 'orange eye' };
   if (shape.assetId.includes('inchworm_head') && cell.role === 'mandible') return { tint: '#8ba866', label: 'pinser mandible' };
@@ -655,6 +731,12 @@ function metadataFor(shape, cell) {
   if (shape.assetId.includes('rotatable_boss_cannon') && cell.role === 'mountSocket') {
     return { acceptsAttachment: 'cannonMount', rotation: 'runtimeControlled' };
   }
+  if (shape.assetId.includes('weyfinder_road') && cell.role === 'wheelBlock') {
+    return { moduleBlock: 'wheel-2x2', damageGroup: 'wheels' };
+  }
+  if (shape.assetId.includes('weyfinder_road') && cell.role === 'wheelEngineMount') {
+    return { moduleBlock: 'wheel-engine-contact', damageGroup: 'driveTrain' };
+  }
   if (shape.assetId.includes('inchworm_head') && cell.role === 'eyeGun') return { slot: cell.gridX < 0 ? 'leftEye' : 'rightEye' };
   if (shape.assetId.includes('inchworm_body_segment') && cell.role === 'core') return { role: 'segmentCore' };
   return null;
@@ -666,6 +748,15 @@ function presentationFor(shape) {
   }
   if (shape.assetId.includes('inchworm_body_segment')) {
     return { shape: 'roundedOrb', relativeScale: 1, notes: 'Compound enemy segment: rounded shell, nubby legs, top moth launch node.' };
+  }
+  if (shape.assetId.includes('weyfinder_road_flechette')) {
+    return { shape: 'roadCar', variant: 'sideStrafeFlechetteRacer', notes: 'Side-entry racer with 2x2 wheel blocks, armor-wrapped wheel pods, and tracking flechette racks.' };
+  }
+  if (shape.assetId.includes('weyfinder_road_armored')) {
+    return { shape: 'roadCar', variant: 'armoredRoadCar', notes: 'Burlier Weyfinder road car with armor-wrapped 2x2 wheel pods and engine contact cells.' };
+  }
+  if (shape.assetId.includes('weyfinder_road')) {
+    return { shape: 'roadCar', variant: 'standardRoadCar', notes: 'Weyfinder road car with four armor-wrapped 2x2 wheel blocks and engine contact cells.' };
   }
   return undefined;
 }

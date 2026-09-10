@@ -10,6 +10,7 @@ import {
 } from '../core/enemyArchetypeDefinition.js';
 import aimedPatternDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import radialPatternDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
+import trackingFlechetteStrafeDefinition from '../../content/patterns/enemy_tracking_flechette_strafe.json' with { type: 'json' };
 import ghostPhaseHomingRadial from '../../content/examples/prototype0-zone-enemy-set/patterns/example.ghost_phase_homing_radial.json' with { type: 'json' };
 import frogTractorBeam from '../../content/examples/prototype0-zone-enemy-set/patterns/example.frog_tractor_beam.json' with { type: 'json' };
 import frogShortLaser from '../../content/examples/prototype0-zone-enemy-set/patterns/example.frog_short_laser.json' with { type: 'json' };
@@ -96,6 +97,7 @@ const TEMPLATE_ARCHETYPES = [...CANON_ENEMY_ARCHETYPE_PACK.archetypes, ...zoneEn
 const PATTERN_DEFINITIONS = [
   aimedPatternDefinition,
   radialPatternDefinition,
+  trackingFlechetteStrafeDefinition,
   ghostPhaseHomingRadial,
   frogTractorBeam,
   frogShortLaser,

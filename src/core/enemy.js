@@ -181,6 +181,207 @@ export function createMortarSkiffEnemy(x, y) {
   });
 }
 
+export function createPirateBossEnemy(x, y) {
+  const cells = [];
+  const byKey = new Map();
+  const addCell = (id, type, gridX, gridY, role = undefined, carve = null) => {
+    const key = `${gridX},${gridY},0`;
+    const existing = byKey.get(key);
+    const cell = createCell(id, type, gridX, gridY);
+    if (role) cell.role = role;
+    if (carve) carveVoxelMask(cell, carve);
+    recalculateCell(cell);
+    if (existing) {
+      cells[cells.indexOf(existing)] = cell;
+      byKey.set(key, cell);
+    } else {
+      cells.push(cell);
+      byKey.set(key, cell);
+    }
+    return cell;
+  };
+
+  let armorIndex = 0;
+  for (let yOffset = -5; yOffset <= 5; yOffset += 1) {
+    for (let xOffset = -12; xOffset <= 12; xOffset += 1) {
+      const normalized = (xOffset * xOffset) / (12.5 * 12.5) + (yOffset * yOffset) / (5.8 * 5.8);
+      if (normalized > 1) continue;
+      const bowTaper = xOffset > 7 && Math.abs(yOffset) > 4 - (xOffset - 7) * 0.42;
+      if (bowTaper) continue;
+      addCell(`pirate-boss-hull-${armorIndex++}`, 'armor', xOffset, yOffset, 'pirateBossHull');
+    }
+  }
+
+  for (let yOffset = -1; yOffset <= 0; yOffset += 1) {
+    for (let xOffset = -1; xOffset <= 0; xOffset += 1) {
+      addCell(`pirate-boss-core-${xOffset + 1}-${yOffset + 1}`, 'core', xOffset, yOffset, 'pirateBossCore');
+    }
+  }
+
+  let sideIndex = 0;
+  for (const side of [-1, 1]) {
+    for (let xOffset = -8; xOffset <= 6; xOffset += 2) {
+      addCell(`pirate-boss-side-gun-${sideIndex++}`, 'gun', xOffset, side * 5, 'pirateBossSideGun', sideGunCarve);
+    }
+  }
+
+  let frontIndex = 0;
+  for (let yOffset = -2; yOffset <= 1; yOffset += 1) {
+    for (let xOffset = 9; xOffset <= 12; xOffset += 1) {
+      addCell(`pirate-boss-front-gun-${frontIndex++}`, 'gun', xOffset, yOffset, 'pirateBossFrontGun', sideGunCarve);
+    }
+  }
+
+  let rearIndex = 0;
+  for (const centerY of [-2, 2]) {
+    for (let yOffset = centerY; yOffset <= centerY + 1; yOffset += 1) {
+      for (let xOffset = -12; xOffset <= -11; xOffset += 1) {
+        addCell(`pirate-boss-rear-gun-${rearIndex++}`, 'gun', xOffset, yOffset, 'pirateBossRearGun', sideGunCarve);
+      }
+    }
+  }
+
+  for (const cell of cells) {
+    if (cell.type === 'armor') multiplyCellVoxelHp(cell, 2.4);
+    if (cell.type === 'core') multiplyCellVoxelHp(cell, 3.5);
+    if (cell.type === 'gun') multiplyCellVoxelHp(cell, cell.role === 'pirateBossFrontGun' ? 2.2 : 1.65);
+  }
+
+  const enemy = annotateConstructRuntimeMetadata({
+    assetId: 'boss.pirate_dreadnought.prototype0',
+    kind: 'pirateBoss',
+    archetypeId: 'boss.pirate_dreadnought.prototype0',
+    displayName: 'Pirate Dreadnought Boss',
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    radius: constructRadius(cells),
+    patterns: [],
+    cells,
+    connections: moduleAdjacencyConnections(cells),
+    damageTaken: 0,
+    destroyed: false,
+    explosionStart: null,
+    silhouette: 'pirateShip',
+    ramBulkhead: true,
+    visualHeading: Math.PI / 2,
+    pirateBoss: {
+      orbitSide: 1,
+      mortarCooldown: 1.1,
+      sideCooldown: 0.35,
+      sideIndex: 0,
+      noQuarterPlayed: false,
+      liveGunIds: cells.filter((cell) => cell.type === 'gun').map((cell) => cell.id),
+    },
+  });
+  return enemy;
+}
+
+export function createRoadBossCarEnemy(x, y) {
+  const cells = [];
+  const byKey = new Map();
+  const addCell = (id, type, gridX, gridY, role = undefined, carve = null, extra = {}) => {
+    const key = `${gridX},${gridY},0`;
+    const existing = byKey.get(key);
+    const cell = createCell(id, type, gridX, gridY);
+    if (role) cell.role = role;
+    Object.assign(cell, extra);
+    if (carve) carveVoxelMask(cell, carve);
+    recalculateCell(cell);
+    if (existing) {
+      cells[cells.indexOf(existing)] = cell;
+      byKey.set(key, cell);
+    } else {
+      cells.push(cell);
+      byKey.set(key, cell);
+    }
+    return cell;
+  };
+
+  let armorIndex = 0;
+  for (let yOffset = -7; yOffset <= 7; yOffset += 1) {
+    for (let xOffset = -15; xOffset <= 15; xOffset += 1) {
+      const normalized = (xOffset * xOffset) / (15.4 * 15.4) + (yOffset * yOffset) / (7.4 * 7.4);
+      if (normalized > 1) continue;
+      addCell(`road-boss-hull-${armorIndex++}`, 'armor', xOffset, yOffset, 'roadBossCarHull');
+    }
+  }
+
+  for (let yOffset = -1; yOffset <= 0; yOffset += 1) {
+    for (let xOffset = -1; xOffset <= 0; xOffset += 1) {
+      addCell(`road-boss-core-${xOffset + 1}-${yOffset + 1}`, 'core', xOffset, yOffset, 'roadBossCarCore');
+    }
+  }
+
+  let wheelIndex = 0;
+  for (const [label, centerX, centerY] of [
+    ['front-left', 9, -7],
+    ['front-right', 9, 4],
+    ['rear-left', -10, -7],
+    ['rear-right', -10, 4],
+  ]) {
+    for (let yOffset = 0; yOffset < 4; yOffset += 1) {
+      for (let xOffset = 0; xOffset < 4; xOffset += 1) {
+        addCell(`road-boss-wheel-${wheelIndex++}`, 'wheel', centerX + xOffset, centerY + yOffset, 'roadBossWheel', roundedWheelCarve, {
+          wheelBlockId: label,
+          damageGroup: 'wheels',
+        });
+      }
+    }
+  }
+
+  let bladeIndex = 0;
+  for (const side of [-1, 1]) {
+    for (let xOffset = -6; xOffset <= 7; xOffset += 2) {
+      addCell(`road-boss-blade-${bladeIndex++}`, 'gun', xOffset, side * 7, 'roadBossBladeLauncher', sideGunCarve);
+    }
+  }
+
+  let bulletIndex = 0;
+  for (let xOffset = -11; xOffset <= 11; xOffset += 2) {
+    addCell(`road-boss-bullet-top-${bulletIndex++}`, 'gun', xOffset, -5, 'roadBossBulletGun', sideGunCarve);
+    addCell(`road-boss-bullet-bottom-${bulletIndex++}`, 'gun', xOffset, 5, 'roadBossBulletGun', sideGunCarve);
+  }
+
+  for (const cell of cells) {
+    if (cell.type === 'armor') multiplyCellVoxelHp(cell, 2.75);
+    if (cell.type === 'core') multiplyCellVoxelHp(cell, 4.2);
+    if (cell.type === 'wheel') multiplyCellVoxelHp(cell, 3);
+    if (cell.type === 'gun') multiplyCellVoxelHp(cell, cell.role === 'roadBossBladeLauncher' ? 2.1 : 1.7);
+  }
+
+  const enemy = annotateConstructRuntimeMetadata({
+    assetId: 'boss.weyfinder_road_hotrod.prototype0',
+    kind: 'roadBossCar',
+    archetypeId: 'boss.weyfinder_road_hotrod.prototype0',
+    displayName: 'Weyfinder Road Hotrod Boss',
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    radius: constructRadius(cells),
+    patterns: [],
+    cells,
+    connections: moduleAdjacencyConnections(cells),
+    damageTaken: 0,
+    destroyed: false,
+    explosionStart: null,
+    visualHeading: Math.PI / 2,
+    carBehavior: { kind: 'bossRoadster', spinout: { wheelBlocksDestroyed: 2 } },
+    roadBossCar: {
+      phase: 'orbit',
+      phaseTimer: 5.5,
+      orbitSide: 1,
+      strafeSide: 1,
+      bladeCooldown: 0.8,
+      bulletCooldown: 0.25,
+      gunIndex: 0,
+    },
+  });
+  return enemy;
+}
+
 export function createBossEnemy(x, y, rng) {
   const cells = [];
   const connections = [];
@@ -516,6 +717,11 @@ function sideGunCarve(x, y) {
   return y >= 1 && y <= VOXELS - 2 && x >= 1 && x <= VOXELS - 2;
 }
 
+function roundedWheelCarve(x, y) {
+  const center = (VOXELS - 1) / 2;
+  return Math.hypot(x - center, y - center) <= VOXELS * 0.48;
+}
+
 function spikeCarve(x, y, cell) {
   const center = (VOXELS - 1) / 2;
   const width = cell.gridX < 0 ? VOXELS - x : x + 1;
@@ -558,6 +764,7 @@ export function applyEnemyDamage(enemy, projectile) {
   for (const candidate of candidateCells) {
     if (candidate.state.destroyed) continue;
     if (zeppelinGlancingHit && (candidate.type === 'core' || candidate.role === 'zeppelinCore')) continue;
+    if (enemyCellIsPhasedCore(enemy, candidate)) continue;
     const minX = candidate.gridX * CELL_SIZE - CELL_SIZE / 2;
     const minY = candidate.gridY * CELL_SIZE - CELL_SIZE / 2;
     if (localX < minX || localX > minX + CELL_SIZE || localY < minY || localY > minY + CELL_SIZE) continue;
@@ -672,6 +879,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   const farPenetration = options.farPenetration ?? 1;
   const damage = (options.damage ?? 18) * enemyIncomingDamageScale(enemy, { behavior: 'blast', team: origin?.team, weapon: origin?.weapon });
   const zeppelinGlancingHit = enemy.kind === 'zeppelinBoss' && !enemy.harpoonField;
+  const phasedCoreProtected = pirateBossCoreProtected(enemy);
   const wasDestroyed = enemy.destroyed;
   let hit = false;
   let removed = 0;
@@ -690,6 +898,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
     blastRadiusWorld,
     shellDepths,
     zeppelinGlancingHit,
+    phasedCoreProtected,
   });
   const hitCells = new Set();
 
@@ -715,6 +924,7 @@ export function applyEnemyBlastDamage(enemy, origin, options = {}) {
   for (const cell of enemy.cells) {
     if (cell.state.destroyed) continue;
     if (zeppelinGlancingHit && (cell.type === 'core' || cell.role === 'zeppelinCore')) continue;
+    if (phasedCoreProtected && cell.role === 'pirateBossCore') continue;
     if (!hitCells.has(cell) && enemyCellIntersectsBlastLocal(enemy, cell, localOrigin, originZ, blastRadiusWorld)) {
       const fallback = applyEnemyBlastFallback(enemy, cell, origin, {
         damage,
@@ -751,6 +961,7 @@ function enemyBlastVoxelCandidates(enemy, options) {
   for (const cell of enemy.cells) {
     if (cell.state.destroyed) continue;
     if (options.zeppelinGlancingHit && (cell.type === 'core' || cell.role === 'zeppelinCore')) continue;
+    if (options.phasedCoreProtected && cell.role === 'pirateBossCore') continue;
     if (!enemyCellIntersectsBlastLocal(enemy, cell, options.localOrigin, options.originZ, options.blastRadiusWorld + unit * options.scale)) continue;
     const z = enemyCellWorldHeight(enemy, cell);
     const dz = z - options.originZ;
@@ -981,6 +1192,7 @@ function findEnemyVoxelAt(enemies, worldPoint, options = {}) {
     const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
     for (const cell of cachedEnemyCellsForDirectDamage(enemy, options)) {
       if (cell.state.destroyed) continue;
+      if (enemyCellIsPhasedCore(enemy, cell)) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
       const cellLocalY = localY - cell.gridY * CELL_SIZE;
       if (Math.abs(cellLocalX) > CELL_SIZE / 2 || Math.abs(cellLocalY) > CELL_SIZE / 2) continue;
@@ -1028,6 +1240,7 @@ function findEnemyCellAt(enemies, worldPoint, options = {}) {
     const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
     for (const cell of cachedEnemyCellsForDirectDamage(enemy, options)) {
       if (cell.state.destroyed) continue;
+      if (enemyCellIsPhasedCore(enemy, cell)) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
       const cellLocalY = localY - cell.gridY * CELL_SIZE;
       if (Math.abs(cellLocalX) > CELL_SIZE / 2 || Math.abs(cellLocalY) > CELL_SIZE / 2) continue;
@@ -1133,6 +1346,15 @@ function enemyCellsForDirectDamage(enemy, options = {}) {
       const layerSort = (options.topFirst ? cellLayer(b) - cellLayer(a) : cellLayer(a) - cellLayer(b));
       return layerSort || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id);
     });
+}
+
+function enemyCellIsPhasedCore(enemy, cell) {
+  return pirateBossCoreProtected(enemy) && cell?.role === 'pirateBossCore';
+}
+
+function pirateBossCoreProtected(enemy) {
+  if (enemy?.kind !== 'pirateBoss') return false;
+  return (enemy.cells ?? []).filter((cell) => cell.type === 'gun' && !cell.state?.destroyed).length >= 2;
 }
 
 function cachedEnemyCellsForDirectDamage(enemy, options = {}) {

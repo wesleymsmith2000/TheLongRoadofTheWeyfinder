@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy_tracking_flechette_strafe",
+  "displayName": "Enemy Tracking Flechette Strafe",
+  "author": "Weyfinder editor thread",
+  "provenance": "Level-three Weyfinder Road side racer pattern derived from the delayed homing flechette behavior used by octopus-style attacks.",
+  "canonStatus": "CANON",
+  "tags": ["enemy", "flechette", "tracking", "strafe", "weyfinders-road"],
+  "initialDelay": 0.25,
+  "interval": 0.22,
+  "emitter": {
+    "kind": "aimed",
+    "target": "player",
+    "count": 3,
+    "speed": 92,
+    "spreadRadians": 0.18,
+    "projectile": {
+      "team": "enemy",
+      "weapon": "enemy-tracking-flechette",
+      "behavior": "homing",
+      "radius": 1.6,
+      "color": "#ffd166",
+      "sprite": {
+        "assetId": "sprite.weapon.tracking_flechette",
+        "path": "assets/images/weapons/tracking_flechette.png",
+        "sourceSheet": "assets/stylesheets/weapons__Flechettes__sprite_stylesheet.png",
+        "nativeSize": [66, 25],
+        "displaySize": [11, 4],
+        "anchor": [0.5, 0.5],
+        "alignToVelocity": true
+      },
+      "damage": 5.5,
+      "impulse": 38,
+      "lifetime": 4.2,
+      "delayBeforeAcceleration": 0.35,
+      "stopBeforeAcceleration": true,
+      "acceleration": 450,
+      "accelerationDuration": 3,
+      "maxSpeed": 825,
+      "accelerationSpreadRadians": 0.04,
+      "pierce": 1,
+      "pierceDamageScale": 0.75,
+      "pierceDamageFalloff": 0.65
+    }
+  }
+}

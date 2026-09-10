@@ -25,6 +25,8 @@ import {
   applyEnemyVoxelDamage,
   createBossEnemy,
   createEnemy,
+  createPirateBossEnemy,
+  createRoadBossCarEnemy,
   createZeppelinBossEnemy,
   createEnhancedEnemy,
   createEnhancedPirateShipEnemy,
@@ -77,6 +79,9 @@ import startingVehicleDefinition from '../../content/constructs/starting_vehicle
 import ghostPhaserSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.ghost_phaser_sculpted.json' with { type: 'json' };
 import tractorFrogSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.tractor_frog_sculpted.json' with { type: 'json' };
 import heavyMortarBoatSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.heavy_mortar_boat_sculpted.json' with { type: 'json' };
+import weyfinderRoadCarSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_car_sculpted.json' with { type: 'json' };
+import weyfinderRoadArmoredCarSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_armored_car_sculpted.json' with { type: 'json' };
+import weyfinderRoadFlechetteRacerSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.weyfinder_road_flechette_racer_sculpted.json' with { type: 'json' };
 import spiderWalkerSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spider_walker_sculpted.json' with { type: 'json' };
 import spideryWalkerSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import scrapBuzzardSculptedDefinition from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
@@ -150,6 +155,19 @@ const OCTOPUS_ARM_REACTION_SECONDS = OCTOPUS_ARM_REACTION_OUCH_SECONDS + OCTOPUS
 const OCTOPUS_NAKED_PANIC_SECONDS = 10;
 const OCTOPUS_RETREAT_SPEED = 118;
 const OCTOPUS_RETREAT_EXIT_MARGIN = CELL_SIZE * 12;
+const PIRATE_BOSS_ORBIT_SPEED = 58;
+const PIRATE_BOSS_FRONT_MORTAR_RADIUS = ENEMY_MORTAR_BASE_BLAST_RADIUS * 2;
+const PIRATE_BOSS_SIDE_LONG_RANGE = CELL_SIZE * 26;
+const PIRATE_BOSS_SHIP_LENGTH = CELL_SIZE * 25;
+const ROAD_BOSS_CAR_ORBIT_SPEED = 66;
+const ROAD_BOSS_CAR_STRAFE_SPEED = 165;
+const ROAD_BOSS_CAR_ORBIT_SECONDS = 5.5;
+const ROAD_BOSS_CAR_STRAFE_SECONDS = 6.5;
+const ROAD_BOSS_CAR_ESCAPE_PODS = 5;
+const RACE_CAR_STRAFE_SPEED = 185;
+const RACE_CAR_FLECHETTE_COOLDOWN = 0.58;
+const RACE_CAR_SPINOUT_SECONDS = 3;
+const RACE_CAR_PANIC_SECONDS = 1;
 const LIVE_TERRAIN_CHUNK_GENERATION_BUDGET = 1;
 const WALKER_SWEEP_BEAM_CHARGE_SECONDS = 1.35;
 const WALKER_SWEEP_BEAM_FIRE_SECONDS = 4;
@@ -194,6 +212,9 @@ const RUNTIME_SCULPTED_CONSTRUCTS = {
   'ghost_phaser.ghost_forrest': ghostPhaserSculptedDefinition,
   'hopping_stream_mob.digitized_stream': tractorFrogSculptedDefinition,
   'heavy_mortar_boat.pirates_road': heavyMortarBoatSculptedDefinition,
+  'weyfinder_road_car.prototype0': weyfinderRoadCarSculptedDefinition,
+  'weyfinder_road_armored_car.prototype0': weyfinderRoadArmoredCarSculptedDefinition,
+  'weyfinder_road_flechette_racer.prototype0': weyfinderRoadFlechetteRacerSculptedDefinition,
   'starlight_walker.prototype0': spideryWalkerSculptedDefinition,
   'twilight_walker.prototype0': spiderWalkerSculptedDefinition,
   'scrap_buzzard.shadowed_desert': scrapBuzzardSculptedDefinition,
@@ -213,6 +234,35 @@ const MAX_SMOKE_PARTICLES = 180;
 const MAX_GROUND_BEAM_SCORCH_PARTICLES = 72;
 const MAX_DETACHED_SUPPORT_SCRAP = 24;
 const OCTOPUS_DESTRUCTION_CUE_CODEPOINTS = [0x1f622, 0x1f623, 0x1f621, 0x1f92f, 0x1fae5];
+const PIRATE_ENTRANCE_SOUND_IDS = [
+  SOUND_EVENTS.PIRATE_YARGH,
+  SOUND_EVENTS.PIRATE_BROADSIDE,
+  SOUND_EVENTS.PIRATE_AVAST,
+];
+const PIRATE_ENTRANCE_CUE_TEXTS = [
+  `${String.fromCodePoint(0x2620)} !`,
+  `${String.fromCodePoint(0x2694)} !`,
+  'Yargh!',
+];
+const PIRATE_GUN_LOSS_CUE_TEXTS = [
+  `${String.fromCodePoint(0x1f623)} !`,
+  `${String.fromCodePoint(0x1f621)} ${String.fromCodePoint(0x1f4a2)}`,
+];
+const CAR_SPINOUT_CUE_TEXTS = [
+  `${String.fromCodePoint(0x1f635)} ${String.fromCodePoint(0x1f615)}`,
+  `${String.fromCodePoint(0x1f4ab)} ?`,
+];
+const CAR_PANIC_CUE_TEXTS = [
+  `${String.fromCodePoint(0x1f623)} !`,
+  `${String.fromCodePoint(0x1f631)} !`,
+];
+const ROAD_BOSS_DESTRUCTION_CUE_TEXTS = [
+  String.fromCodePoint(0x1f621),
+  String.fromCodePoint(0x1f615),
+  String.fromCodePoint(0x1f623),
+  '!',
+];
+const ROAD_BOSS_TAUNT_CUE_TEXT = String.fromCodePoint(0x1f61b);
 const RUNTIME_ENEMY_ARCHETYPES = {
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
@@ -225,6 +275,39 @@ const RUNTIME_ENEMY_ARCHETYPES = {
     displayName: 'Prototype Zeppelin Boss',
     zone: 'StarlightRoad',
     runtimeFactory: 'createZeppelinBossEnemy',
+  },
+  'boss.weyfinder_road_hotrod.prototype0': {
+    id: 'boss.weyfinder_road_hotrod.prototype0',
+    displayName: 'Weyfinder Road Hotrod Boss',
+    zone: 'TheWeyfindersRoad',
+    runtimeFactory: 'createRoadBossCarEnemy',
+  },
+  'boss.pirate_dreadnought.prototype0': {
+    id: 'boss.pirate_dreadnought.prototype0',
+    displayName: 'Pirate Dreadnought Boss',
+    zone: 'PiratesRoad',
+    runtimeFactory: 'createPirateBossEnemy',
+    entranceBarks: {
+      trigger: 'warning',
+      sounds: [SOUND_EVENTS.PIRATE_BOSS_ENTRANCE],
+      cues: [`${String.fromCodePoint(0x2620)} No quarter!`],
+      random: false,
+    },
+    reactionCues: [
+      {
+        trigger: 'gunDestroyed',
+        texts: PIRATE_GUN_LOSS_CUE_TEXTS,
+        duration: 1.9,
+        rise: CELL_SIZE * 1.7,
+        growth: 2.4,
+      },
+      {
+        trigger: 'corePhasedIn',
+        texts: [`${String.fromCodePoint(0x1f621)} No quarter!`],
+        sound: SOUND_EVENTS.PIRATE_NO_QUARTER,
+        duration: 2.2,
+      },
+    ],
   },
 };
 const MORTAR_ENEMY_SHELL_SPRITE = {
@@ -629,6 +712,7 @@ function createSandboxEnemies(spawn, x, y, road, options = {}) {
   const enemy = archetype ? createEnemyForArchetype(archetype, x, y, kind) : createEnemy(x, y);
   if (archetype) applyArchetypeRuntimeMetadata(enemy, archetype);
   enemy.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
+  applyDefaultEnemyCueHooks(enemy);
   const velocitySign = spawn.entry === 'behind' ? -1 : 1;
   const direction = roadDirectionToWorld(0, velocitySign, road);
   const speed = spawn.speed ?? (spawn.entry === 'behind' ? 155 : 24);
@@ -704,8 +788,11 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
     const row = Math.floor(i / 4) * 35;
     const kind = i < standardCount ? 'standard' : 'enhanced';
     const archetype = zoneArchetypeForMusic(currentMusic, kind, i);
-    const offset =
-      kind === 'enhanced'
+    const sideStrafeEntry = archetypeUsesRaceStrafe(archetype);
+    const spawnSide = i % 2 === 0 ? -1 : 1;
+    const offset = sideStrafeEntry
+      ? { x: spawnSide * (road.halfWidth + 85 + row), y: spread }
+      : kind === 'enhanced'
         ? { x: spread, y: road.halfHeight + 47.5 + row }
         : { x: spread, y: -road.halfHeight - 47.5 - row };
     const world = roadOffsetToWorld(offset, road);
@@ -720,7 +807,16 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
           ? createPirateShipEnemy(world.x, world.y)
           : createEnemy(world.x, world.y);
     if (archetype) applyArchetypeRuntimeMetadata(enemy, archetype);
-    if (kind === 'enhanced') {
+    else applyDefaultEnemyCueHooks(enemy);
+    if (sideStrafeEntry) {
+      const velocity = roadDirectionToWorld(-spawnSide, 0, road);
+      const speed = archetype.entry?.speed ?? archetype.carBehavior?.speed ?? RACE_CAR_STRAFE_SPEED;
+      enemy.vx = velocity.x * speed;
+      enemy.vy = velocity.y * speed;
+      enemy.carRuntime = { side: -spawnSide, flechetteCooldown: 0.25 };
+      enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+      enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+    } else if (kind === 'enhanced') {
       enemy.palette = enhancedEnemyPaletteForMusic(currentMusic);
       const velocity = roadDirectionToWorld(0, -1, road);
       enemy.vx = velocity.x * 155;
@@ -744,9 +840,14 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
   }
   if (isBoss) {
     const bossWorld = roadOffsetToWorld({ x: 0, y: -road.halfHeight - 90 }, road);
-    const boss = usesZeppelinBoss(currentMusic)
+    const boss = usesWeyfinderRoadBoss(currentMusic)
+      ? createRoadBossCarEnemy(bossWorld.x, bossWorld.y)
+      : usesPirateBoss(currentMusic)
+      ? createPirateBossEnemy(bossWorld.x, bossWorld.y)
+      : usesZeppelinBoss(currentMusic)
       ? createZeppelinBossEnemy(bossWorld.x, bossWorld.y)
       : createBossEnemy(bossWorld.x, bossWorld.y);
+    applyDefaultEnemyCueHooks(boss);
     boss.vx = roadDirectionToWorld(0, 1, road).x * 18;
     boss.vy = roadDirectionToWorld(0, 1, road).y * 18;
     applyEnemyLevelUpgrades(boss, level);
@@ -792,8 +893,17 @@ function scaleEnemyArmor(enemy, scale) {
 }
 
 function zoneArchetypeForMusic(trackName, kind, index) {
-  if (kind === 'enhanced') return null;
   const zone = zoneNameFromTrack(trackName);
+  if (zone === 'TheWeyfindersRoad') {
+    const ids = kind === 'enhanced'
+      ? ['weyfinder_road_armored_car.prototype0']
+      : /_3$/i.test(trackName)
+        ? ['weyfinder_road_car.prototype0', 'weyfinder_road_flechette_racer.prototype0']
+        : ['weyfinder_road_car.prototype0'];
+    const id = ids[index % ids.length];
+    return getEnemyArchetype(id) ?? RUNTIME_ENEMY_ARCHETYPES[id] ?? null;
+  }
+  if (kind === 'enhanced') return null;
   const ids = {
     GhostForrest: ['ghost_phaser.ghost_forrest'],
     GhostForrestPathway: ['ghost_phaser.ghost_forrest'],
@@ -810,6 +920,11 @@ function zoneArchetypeForMusic(trackName, kind, index) {
   return getEnemyArchetype(id) ?? RUNTIME_ENEMY_ARCHETYPES[id] ?? null;
 }
 
+function archetypeUsesRaceStrafe(archetype) {
+  const behavior = archetype?.carBehavior;
+  return Boolean(behavior && (behavior.movement ?? behavior.kind) === 'raceStrafe');
+}
+
 function zoneNameFromTrack(trackName = '') {
   const match = String(trackName).match(/^([A-Za-z]+(?:[A-Z][a-z]+)*)(?:_|$)/);
   return match?.[1] ?? trackName;
@@ -820,10 +935,20 @@ function usesZeppelinBoss(trackName = '') {
   return zone === 'StarlightRoad' || zone === 'TwilightCrossroads';
 }
 
+function usesPirateBoss(trackName = '') {
+  return zoneNameFromTrack(trackName) === 'PiratesRoad';
+}
+
+function usesWeyfinderRoadBoss(trackName = '') {
+  const name = String(trackName ?? '');
+  return /^BossFight_1$/i.test(name) || (zoneNameFromTrack(name) === 'TheWeyfindersRoad' && isBossMusic(name));
+}
+
 function createEnemyForArchetype(archetype, x, y, kind) {
   const runtimeConstruct = RUNTIME_CONSTRUCT_DEFINITIONS.get(archetype.construct) ?? RUNTIME_SCULPTED_CONSTRUCTS[archetype.id];
   if (runtimeConstruct) {
     const enemy = createEnemy(x, y, runtimeConstruct, undefined, { moduleScale: 1 });
+    if (kind === 'enhanced') enemy.kind = 'enhanced';
     if (archetype.id === 'heavy_mortar_boat.pirates_road') enemy.silhouette = 'pirateShip';
     return enemy;
   }
@@ -832,6 +957,8 @@ function createEnemyForArchetype(archetype, x, y, kind) {
   }
   const factory = archetype.runtimeFactory;
   if (factory === 'createMortarSkiffEnemy') return createMortarSkiffEnemy(x, y);
+  if (factory === 'createRoadBossCarEnemy') return createRoadBossCarEnemy(x, y);
+  if (factory === 'createPirateBossEnemy') return createPirateBossEnemy(x, y);
   if (factory === 'createZeppelinBossEnemy') return createZeppelinBossEnemy(x, y);
   if (factory === 'createBossEnemy') return createBossEnemy(x, y);
   if (factory === 'createPirateShipEnemy') return createPirateShipEnemy(x, y, { kind });
@@ -956,7 +1083,10 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   if (archetype.phase) enemy.phase = structuredClone(archetype.phase);
   if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);
   if (archetype.artillery) enemy.artillery = structuredClone(archetype.artillery);
+  if (archetype.carBehavior) enemy.carBehavior = structuredClone(archetype.carBehavior);
   if (archetype.poseRig) enemy.poseRig = structuredClone(archetype.poseRig);
+  if (archetype.entranceBarks) enemy.entranceBarks = structuredClone(archetype.entranceBarks);
+  if (archetype.reactionCues) enemy.reactionCues = structuredClone(archetype.reactionCues);
   if ((archetype.movementProfiles ?? []).some((profile) => profile.kind === 'walkerLegs')) {
     const animation = archetype.cellAnimations?.find((entry) => entry.kind === 'legStride') ?? {};
     enemy.poseRig ??= createWalkerStridePoseRig(enemy, {
@@ -968,10 +1098,73 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   if (archetype.id === 'hopping_stream_mob.digitized_stream') {
     enemy.hopperVisualBias = HOPPER_FROG_VISUAL_SCALE;
   }
+  applyDefaultEnemyCueHooks(enemy);
+}
+
+function applyDefaultEnemyCueHooks(enemy) {
+  if (isOctopusBoss(enemy)) {
+    enemy.entranceBarks ??= {
+      trigger: 'warning',
+      sounds: [SOUND_EVENTS.KRAKEN_ENTER],
+      cues: [`${String.fromCodePoint(0x1f419)} !`],
+      random: false,
+    };
+    return enemy;
+  }
+  if (enemy.kind === 'pirateBoss') {
+    enemy.entranceBarks ??= {
+      trigger: 'warning',
+      sounds: [SOUND_EVENTS.PIRATE_BOSS_ENTRANCE],
+      cues: [`${String.fromCodePoint(0x2620)} No quarter!`],
+      random: false,
+    };
+    enemy.reactionCues ??= [
+      {
+        trigger: 'gunDestroyed',
+        texts: PIRATE_GUN_LOSS_CUE_TEXTS,
+        duration: 1.9,
+        rise: CELL_SIZE * 1.7,
+        growth: 2.4,
+      },
+      {
+        trigger: 'corePhasedIn',
+        texts: [`${String.fromCodePoint(0x1f621)} No quarter!`],
+        sound: SOUND_EVENTS.PIRATE_NO_QUARTER,
+        duration: 2.2,
+      },
+    ];
+    return enemy;
+  }
+  if (isBoatShapedEnemy(enemy)) {
+    enemy.entranceBarks ??= {
+      trigger: 'warning',
+      sounds: PIRATE_ENTRANCE_SOUND_IDS,
+      cues: PIRATE_ENTRANCE_CUE_TEXTS,
+      random: true,
+    };
+  }
+  if (isCarLikeEnemy(enemy)) {
+    enemy.reactionCues ??= [
+      { trigger: 'carSpinout', texts: CAR_SPINOUT_CUE_TEXTS, duration: 1.8, rise: CELL_SIZE * 1.6, growth: 2.3 },
+      { trigger: 'carPanic', texts: CAR_PANIC_CUE_TEXTS, duration: 1.25, rise: CELL_SIZE * 1.35, growth: 2.2 },
+    ];
+  }
+  return enemy;
+}
+
+function isBoatShapedEnemy(enemy) {
+  const id = `${enemy?.archetypeId ?? ''} ${enemy?.assetId ?? ''} ${enemy?.displayName ?? ''}`.toLowerCase();
+  return enemy?.silhouette === 'pirateShip' || id.includes('pirate') || id.includes('mortar_skiff') || id.includes('mortar boat');
+}
+
+function isCarLikeEnemy(enemy) {
+  if (enemy?.carBehavior) return true;
+  const id = `${enemy?.archetypeId ?? ''} ${enemy?.assetId ?? ''} ${enemy?.displayName ?? ''}`.toLowerCase();
+  return /(^|[._\-\s])(?:racecar|race_car|race-car|race car|car|roadster)(?:$|[._\-\s])/.test(id);
 }
 
 function usesBoatSilhouetteEnemy(trackName, level) {
-  return level <= 6 || /^(?:TheWeyfindersRoad|DigitizedStream|PiratesRoad)_/i.test(trackName ?? '');
+  return /^(?:DigitizedStream|PiratesRoad)_/i.test(trackName ?? '');
 }
 
 export function isBossLevel(level, levelMusic = DEFAULT_LEVEL_MUSIC) {
@@ -988,6 +1181,7 @@ function stepEnemySpawner(game, dt) {
     if (!entry.markerShown && entry.at - elapsed <= SPAWN_WARNING_LEAD) {
       entry.markerShown = true;
       game.incomingMarkers.push(createIncomingMarker(entry.enemy, entry.type));
+      triggerEnemyEntranceBark(game, entry.enemy, 'warning');
     }
   }
   const ready = [];
@@ -1015,6 +1209,54 @@ function createIncomingMarker(enemy, type) {
     age: 0,
     lifetime: SPAWN_WARNING_LEAD + 0.6,
   };
+}
+
+function triggerEnemyEntranceBark(game, enemy, trigger) {
+  const barks = enemy?.entranceBarks;
+  if (!barks || enemy.entranceBarkPlayed || (barks.trigger ?? 'warning') !== trigger) return;
+  enemy.entranceBarkPlayed = true;
+  const soundId = chooseCueValue(game.rng, barks.sounds, barks.random !== false);
+  if (soundId) emitSoundEvent(game, soundId);
+  const text = chooseCueValue(game.rng, barks.cues, barks.random !== false);
+  if (text) addEnemyReactionCue(enemy, text, barks);
+}
+
+function triggerEnemyReactionCue(game, enemy, trigger) {
+  const definition = (enemy?.reactionCues ?? []).find((candidate) => candidate.trigger === trigger);
+  if (!definition) return;
+  const text = chooseCueValue(game.rng, definition.texts ?? definition.cues, definition.random !== false);
+  if (text) addEnemyReactionCue(enemy, text, definition);
+  if (definition.sound) emitSoundEvent(game, definition.sound);
+}
+
+function chooseCueValue(rng, values, random = true) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  if (!random) return values[0];
+  return values[Math.floor((rng?.range(0, values.length) ?? 0))] ?? values[0];
+}
+
+function addEnemyReactionCue(enemy, text, definition = {}) {
+  enemy.reactionCueQueue ??= [];
+  enemy.reactionCueQueue.push({
+    text,
+    age: 0,
+    lifetime: definition.duration ?? 1.8,
+    x: definition.x ?? 0,
+    y: definition.y ?? -Math.max(CELL_SIZE * 2.8, (enemy.radius ?? CELL_SIZE) * 0.34),
+    rise: definition.rise ?? CELL_SIZE * 1.5,
+    size: definition.size ?? CELL_SIZE * 0.92,
+    growth: definition.growth ?? 2.2,
+  });
+}
+
+function stepEnemyCueQueue(enemy, dt) {
+  const queue = enemy.reactionCueQueue;
+  if (!Array.isArray(queue)) return;
+  for (let index = queue.length - 1; index >= 0; index -= 1) {
+    const cue = queue[index];
+    cue.age = (cue.age ?? 0) + dt;
+    if (cue.age >= (cue.lifetime ?? 1)) queue.splice(index, 1);
+  }
 }
 
 function stepIncomingMarkers(game, dt) {
@@ -1659,6 +1901,8 @@ function stepEnemies(game, dt) {
 }
 
 function stepEnemy(game, enemy, dt) {
+  applyDefaultEnemyCueHooks(enemy);
+  stepEnemyCueQueue(enemy, dt);
   if (enemy.internalDestruction) {
     stepBossInternalDestruction(game, enemy, dt);
     return;
@@ -1674,16 +1918,21 @@ function stepEnemy(game, enemy, dt) {
     stepDizzyEnemy(enemy, dt);
     return;
   }
+  if (stepCarSpinout(game, enemy, dt)) return;
   if (enemy.walkerFallAnimation) {
     stepWalkerFallAnimation(game, enemy, dt);
     return;
   }
   enemy.walkerAngerTimer = Math.max(0, (enemy.walkerAngerTimer ?? 0) - dt);
-  if (enemy.kind !== 'zeppelinBoss') steerEnemyBackToLaneCenter(enemy, game.road, dt);
+  if (enemy.kind !== 'zeppelinBoss' && enemy.kind !== 'roadBossCar' && enemy.kind !== 'escapePodBoat') steerEnemyBackToLaneCenter(enemy, game.road, dt);
   stepArchetypeEnemy(game, enemy, dt);
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
+  if (enemy.kind === 'roadBossCar') stepRoadBossCar(game, enemy, dt);
+  if (enemy.kind === 'pirateBoss') stepPirateBoss(game, enemy, dt);
   if (enemy.kind === 'zeppelinBoss') stepZeppelinBoss(game, enemy, dt);
+  if (enemy.kind === 'escapePodBoat') stepEscapePodBoat(game, enemy, dt);
+  triggerEnemyEntranceBark(game, enemy, 'active');
   if (enemy.destroyed) return;
   if (enemyCanFire(enemy) && (enemy.patterns?.length ?? 0) > 0 && !walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
@@ -1704,6 +1953,7 @@ function stepArchetypeEnemy(game, enemy, dt) {
   if (enemy.archetypeId === 'inchworm_carrier.freedoms_pass') stepInchwormCarrier(game, enemy, dt);
   if (enemy.archetypeId === 'inchworm_segment.freedoms_pass') stepInchwormSegment(enemy, dt);
   if (enemy.archetypeId === 'moth_bomber.freedoms_pass') stepMothBomber(game, enemy, dt);
+  if (isCarLikeEnemy(enemy)) stepRaceCarEnemy(game, enemy, dt);
 }
 
 function stepDizzyEnemy(enemy, dt) {
@@ -2211,6 +2461,22 @@ function enemyLocalToWorldPoint(enemy, point) {
   };
 }
 
+function liveEnemyCellWorldCenters(enemy, predicate = () => true) {
+  return (enemy.cells ?? [])
+    .filter((cell) => !cell.state?.destroyed && predicate(cell))
+    .map((cell) => {
+      const localX = cell.gridX * CELL_SIZE;
+      const localY = cell.gridY * CELL_SIZE;
+      return {
+        ...enemyLocalToWorldPoint(enemy, { x: localX, y: localY }),
+        cellId: cell.id,
+        localX,
+        localY,
+        z: enemyCellWorldHeight(enemy, cell),
+      };
+    });
+}
+
 function stepScrapBuzzard(game, enemy, dt) {
   enemy.elevation ??= { z: 110, canBeHitByGroundFire: false, arcCollision: true };
   enemy.renderAlpha = 1;
@@ -2386,6 +2652,544 @@ function stepMothBomber(game, enemy, dt) {
     }
   }
   if (state.phase === 'dive') enemy.visualHeading = state.diveAngle;
+}
+
+function stepRoadBossCar(game, enemy, dt) {
+  const state = enemy.roadBossCar ?? {
+    phase: 'orbit',
+    phaseTimer: ROAD_BOSS_CAR_ORBIT_SECONDS,
+    orbitSide: 1,
+    strafeSide: game.rng.chance(0.5) ? 1 : -1,
+    bladeCooldown: 0.8,
+    bulletCooldown: 0.25,
+    gunIndex: 0,
+  };
+  enemy.roadBossCar = state;
+  enemy.patterns = [];
+  state.phaseTimer = Math.max(0, (state.phaseTimer ?? ROAD_BOSS_CAR_ORBIT_SECONDS) - dt);
+  if (state.phase === 'strafe') stepRoadBossCarStrafe(game, enemy, state, dt);
+  else stepRoadBossCarOrbit(game, enemy, state, dt);
+  if (state.phaseTimer <= 0) toggleRoadBossCarPhase(game, enemy, state);
+  if (!enemyCanFire(enemy)) return;
+  stepRoadBossCarAttacks(game, enemy, state, dt);
+}
+
+function stepRoadBossCarOrbit(game, enemy, state, dt) {
+  const toPlayer = Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+  const orbitDistance = Math.max(CELL_SIZE * 17, enemy.radius * 0.82);
+  const preferred = {
+    x: game.vehicle.x + Math.cos(toPlayer + Math.PI / 2) * orbitDistance * (state.orbitSide ?? 1),
+    y: game.vehicle.y + Math.sin(toPlayer + Math.PI / 2) * orbitDistance * (state.orbitSide ?? 1),
+  };
+  const direction = directionFromTo(enemy, preferred);
+  const desiredSpeed = ROAD_BOSS_CAR_ORBIT_SPEED * enemyMovementUpgradeScale(enemy);
+  const steer = clamp(2.8 * dt, 0, 1);
+  enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
+  enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
+  const movementHeading = Math.atan2(enemy.vy, enemy.vx);
+  enemy.visualHeading = Number.isFinite(movementHeading) ? movementHeading : toPlayer;
+  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+}
+
+function stepRoadBossCarStrafe(game, enemy, state, dt) {
+  const offset = worldToRoadOffset(enemy, game.road);
+  const exitMargin = Math.max(CELL_SIZE * 7, (enemy.radius ?? CELL_SIZE) * 0.34);
+  if (Math.abs(offset.x) > game.road.halfWidth + exitMargin) {
+    state.strafeSide = -(state.strafeSide || 1);
+    state.strafeRoadY = worldToRoadOffset(game.vehicle, game.road).y + game.rng.range(-CELL_SIZE * 5, CELL_SIZE * 5);
+  }
+  state.strafeRoadY ??= worldToRoadOffset(game.vehicle, game.road).y;
+  const sideVector = roadDirectionToWorld(state.strafeSide || 1, 0, game.road);
+  const forwardVector = roadDirectionToWorld(0, 1, game.road);
+  const yCorrection = clamp((state.strafeRoadY - offset.y) * 0.9, -ROAD_BOSS_CAR_STRAFE_SPEED * 0.38, ROAD_BOSS_CAR_STRAFE_SPEED * 0.38);
+  const desiredSpeed = ROAD_BOSS_CAR_STRAFE_SPEED * enemyMovementUpgradeScale(enemy);
+  const desired = {
+    x: sideVector.x * desiredSpeed + forwardVector.x * yCorrection,
+    y: sideVector.y * desiredSpeed + forwardVector.y * yCorrection,
+  };
+  const steer = clamp(3.3 * dt, 0, 1);
+  enemy.vx += (desired.x - enemy.vx) * steer;
+  enemy.vy += (desired.y - enemy.vy) * steer;
+  enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+}
+
+function toggleRoadBossCarPhase(game, enemy, state) {
+  if (state.phase === 'strafe') {
+    state.phase = 'orbit';
+    state.phaseTimer = ROAD_BOSS_CAR_ORBIT_SECONDS;
+    state.orbitSide = -(state.orbitSide || 1);
+    return;
+  }
+  state.phase = 'strafe';
+  state.phaseTimer = ROAD_BOSS_CAR_STRAFE_SECONDS;
+  const offset = worldToRoadOffset(enemy, game.road);
+  state.strafeSide = offset.x >= 0 ? -1 : 1;
+  state.strafeRoadY = worldToRoadOffset(game.vehicle, game.road).y + game.rng.range(-CELL_SIZE * 4, CELL_SIZE * 4);
+}
+
+function stepRoadBossCarAttacks(game, enemy, state, dt) {
+  state.bulletCooldown = Math.max(0, (state.bulletCooldown ?? 0.2) - dt * enemyFireTimerScale(enemy));
+  if (state.bulletCooldown <= 0) {
+    fireRoadBossBulletBarrage(game, enemy, state);
+    state.bulletCooldown = state.phase === 'strafe' ? 0.22 : 0.34;
+  }
+  state.bladeCooldown = Math.max(0, (state.bladeCooldown ?? 0.8) - dt * enemyFireTimerScale(enemy));
+  if (state.bladeCooldown <= 0) {
+    fireRoadBossBladeBarrage(game, enemy, state);
+    state.bladeCooldown = state.phase === 'strafe' ? 1.15 : 1.55;
+  }
+}
+
+function fireRoadBossBulletBarrage(game, enemy, state) {
+  const sources = liveEnemyCellWorldCenters(enemy, (cell) => cell.role === 'roadBossBulletGun' && cell.type === 'gun' && !cell.state?.destroyed);
+  if (sources.length === 0) return;
+  const source = sources[state.gunIndex % sources.length];
+  state.gunIndex = (state.gunIndex + 1) % sources.length;
+  const baseAngle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  for (let index = 0; index < 5; index += 1) {
+    const angle = baseAngle + (index - 2) * 0.075 + game.rng.range(-0.03, 0.03);
+    game.enemyProjectiles.push(createProjectile(source.x, source.y, Math.cos(angle) * 176, Math.sin(angle) * 176, {
+      team: 'enemy',
+      weapon: 'road-boss-bullet',
+      radius: 3,
+      damage: 8.5 * enemyDamageUpgradeScale(enemy),
+      impulse: 56,
+      lifetime: 3.6,
+      angle,
+      sourceEnemy: enemy,
+      sourceCellId: source.cellId,
+    }));
+  }
+  enemy.lastFiredAt = game.time;
+  enemy.attackHeading = baseAngle;
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function fireRoadBossBladeBarrage(game, enemy, state) {
+  const blade = PRIMARY_WEAPON_DEFINITIONS.blade_launcher;
+  const sources = liveEnemyCellWorldCenters(enemy, (cell) => cell.role === 'roadBossBladeLauncher' && cell.type === 'gun' && !cell.state?.destroyed);
+  if (sources.length === 0) return;
+  const source = sources[state.gunIndex % sources.length];
+  state.gunIndex = (state.gunIndex + 1) % sources.length;
+  const baseAngle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  for (let index = 0; index < 3; index += 1) {
+    const angle = baseAngle + (index - 1) * 0.16 + game.rng.range(-0.04, 0.04);
+    game.enemyProjectiles.push(createProjectile(source.x, source.y, Math.cos(angle) * (blade.projectileSpeed * 0.86), Math.sin(angle) * (blade.projectileSpeed * 0.86), {
+      team: 'enemy',
+      weapon: 'road-boss-blade',
+      behavior: blade.behavior,
+      radius: blade.radius * 1.5,
+      damage: blade.damage * 0.8 * enemyDamageUpgradeScale(enemy),
+      impulse: blade.impulse * 1.1,
+      lifetime: blade.lifetime,
+      angle,
+      pierce: blade.pierce,
+      pierceDamageScale: blade.pierceDamageScale,
+      pierceDamageFalloff: blade.pierceDamageFalloff,
+      damagePiercesUntilSpent: blade.damagePiercesUntilSpent,
+      sprite: blade.sprite ? {
+        ...blade.sprite,
+        displaySize: [blade.sprite.displaySize[0] * 1.5, blade.sprite.displaySize[1] * 1.5],
+      } : null,
+      sourceEnemy: enemy,
+      sourceCellId: source.cellId,
+    }));
+  }
+  enemy.lastFiredAt = game.time;
+  enemy.attackHeading = baseAngle;
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function stepEscapePodBoat(game, enemy, dt) {
+  const state = enemy.escapePod ?? {};
+  enemy.escapePod = state;
+  enemy.patterns = [];
+  state.cueTimer = Math.max(0, (state.cueTimer ?? 0) - dt);
+  if (state.cueTimer <= 0) {
+    addEnemyReactionCue(enemy, chooseCueValue(game.rng, [`${String.fromCodePoint(0x2620)} !`, 'Yargh!', ROAD_BOSS_TAUNT_CUE_TEXT], true), {
+      duration: 1.7,
+      rise: CELL_SIZE * 1.5,
+      growth: 2.2,
+    });
+    state.cueTimer = game.rng.range(0.65, 1.05);
+  }
+  const angle = state.heading ?? enemy.visualHeading ?? 0;
+  const speed = (state.speed ?? 120) * enemyMovementUpgradeScale(enemy);
+  enemy.vx += (Math.cos(angle) * speed - enemy.vx) * clamp(4.2 * dt, 0, 1);
+  enemy.vy += (Math.sin(angle) * speed - enemy.vy) * clamp(4.2 * dt, 0, 1);
+  enemy.visualHeading = angle;
+  enemy.collisionRotation = angle - Math.PI / 2;
+  const offset = worldToRoadOffset(enemy, game.road);
+  if (Math.abs(offset.x) > game.road.halfWidth + CELL_SIZE * 24 || Math.abs(offset.y) > game.road.halfHeight + CELL_SIZE * 24) {
+    enemy.destroyed = true;
+    enemy.explosionStart = game.time;
+  }
+}
+
+function stepPirateBoss(game, enemy, dt) {
+  const state = enemy.pirateBoss ?? {
+    orbitSide: 1,
+    mortarCooldown: 1.1,
+    sideCooldown: 0.35,
+    sideIndex: 0,
+    noQuarterPlayed: false,
+    liveGunIds: [],
+  };
+  enemy.pirateBoss = state;
+  stepPirateBossGunLossReactions(game, enemy, state);
+  stepPirateBossMovement(game, enemy, state, dt);
+  if (!enemyCanFire(enemy)) return;
+  stepPirateBossMortars(game, enemy, state, dt);
+  stepPirateBossSideGuns(game, enemy, state, dt);
+}
+
+function stepRaceCarEnemy(game, enemy, dt) {
+  const config = enemy.carBehavior;
+  if (!config || (config.movement ?? config.kind) !== 'raceStrafe') return;
+  enemy.patterns = [];
+  const state = enemy.carRuntime ?? {
+    side: game.rng.chance(0.5) ? 1 : -1,
+    flechetteCooldown: game.rng.range(0.15, 0.45),
+  };
+  enemy.carRuntime = state;
+  const offset = worldToRoadOffset(enemy, game.road);
+  const exitMargin = Math.max(enemy.radius ?? CELL_SIZE, CELL_SIZE * 5);
+  if (offset.x * state.side > game.road.halfWidth + exitMargin) state.side *= -1;
+  const sideVector = roadDirectionToWorld(state.side, 0, game.road);
+  const playerDirection = directionFromTo(enemy, game.vehicle);
+  const desiredSpeed = (config.speed ?? RACE_CAR_STRAFE_SPEED) * enemyMovementUpgradeScale(enemy);
+  const driftBias = config.playerDriftBias ?? 0.18;
+  const desired = {
+    x: sideVector.x * desiredSpeed + playerDirection.x * desiredSpeed * driftBias,
+    y: sideVector.y * desiredSpeed + playerDirection.y * desiredSpeed * driftBias,
+  };
+  const steer = clamp((config.steer ?? 4.8) * dt, 0, 1);
+  enemy.vx += (desired.x - enemy.vx) * steer;
+  enemy.vy += (desired.y - enemy.vy) * steer;
+  enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+
+  if (!enemyCanFire(enemy)) return;
+  state.flechetteCooldown = Math.max(0, (state.flechetteCooldown ?? RACE_CAR_FLECHETTE_COOLDOWN) - dt * enemyFireTimerScale(enemy));
+  if (state.flechetteCooldown > 0) return;
+  state.flechetteCooldown = config.flechetteCooldown ?? RACE_CAR_FLECHETTE_COOLDOWN;
+  fireRaceCarFlechetteStrafe(game, enemy);
+}
+
+function stepCarSpinout(game, enemy, dt) {
+  if (!isCarLikeEnemy(enemy)) return false;
+  const state = enemy.carRuntime ?? {};
+  enemy.carRuntime = state;
+  state.wheelGroups ??= buildWheelBlockGroups(enemy);
+  if (!state.spinout) {
+    const destroyedBlocks = countDestroyedWheelBlockGroups(state.wheelGroups);
+    const threshold = enemy.carBehavior?.spinout?.wheelBlocksDestroyed ?? 2;
+    if (destroyedBlocks <= threshold) return false;
+    startCarSpinout(game, enemy, state);
+  }
+  stepActiveCarSpinout(game, enemy, state, dt);
+  return true;
+}
+
+function startCarSpinout(game, enemy, state) {
+  state.spinout = {
+    phase: 'spin',
+    timer: RACE_CAR_SPINOUT_SECONDS,
+    duration: RACE_CAR_SPINOUT_SECONDS,
+    cueTimer: 0,
+    explosionTimer: 0,
+    spinRate: (state.side || 1) * game.rng.range(Math.PI * 3.2, Math.PI * 4.7),
+  };
+  enemy.patterns = [];
+  triggerEnemyReactionCue(game, enemy, 'carSpinout');
+}
+
+function stepActiveCarSpinout(game, enemy, state, dt) {
+  const spinout = state.spinout;
+  spinout.timer = Math.max(0, spinout.timer - dt);
+  spinout.cueTimer = Math.max(0, (spinout.cueTimer ?? 0) - dt);
+  enemy.vx *= Math.pow(0.34, dt);
+  enemy.vy *= Math.pow(0.34, dt);
+  enemy.x += enemy.vx * dt;
+  enemy.y += enemy.vy * dt;
+  enemy.visualHeading = (enemy.visualHeading ?? 0) + (spinout.spinRate ?? Math.PI * 3.8) * dt;
+  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+  if (spinout.phase === 'spin') {
+    if (spinout.cueTimer <= 0) {
+      triggerEnemyReactionCue(game, enemy, 'carSpinout');
+      spinout.cueTimer = 0.52;
+    }
+    if (spinout.timer > 0) return;
+    spinout.phase = 'panic';
+    spinout.timer = RACE_CAR_PANIC_SECONDS;
+    spinout.duration = RACE_CAR_PANIC_SECONDS;
+    spinout.cueTimer = 0;
+    spinout.explosionTimer = 0;
+    return;
+  }
+
+  spinout.explosionTimer = Math.max(0, (spinout.explosionTimer ?? 0) - dt);
+  if (spinout.explosionTimer <= 0) {
+    emitRandomBossInternalExplosionSound(game);
+    spawnBossInternalBlastEffect(game, enemy);
+    spinout.explosionTimer = game.rng.range(0.15, 0.28);
+  }
+  if (spinout.cueTimer <= 0) {
+    triggerEnemyReactionCue(game, enemy, 'carPanic');
+    spinout.cueTimer = 0.22;
+  }
+  if (spinout.timer > 0) return;
+  enemy.destroyed = true;
+  explodeEnemy(game, enemy);
+}
+
+function buildWheelBlockGroups(enemy) {
+  const wheelCells = (enemy.cells ?? []).filter(isWheelCell);
+  const unvisited = new Set(wheelCells);
+  const groups = [];
+  while (unvisited.size > 0) {
+    const start = unvisited.values().next().value;
+    const queue = [start];
+    const cells = [];
+    unvisited.delete(start);
+    while (queue.length > 0) {
+      const cell = queue.shift();
+      cells.push(cell);
+      for (const neighbor of wheelCells) {
+        if (!unvisited.has(neighbor) || !wheelCellsConnected(enemy, cell, neighbor)) continue;
+        unvisited.delete(neighbor);
+        queue.push(neighbor);
+      }
+    }
+    groups.push({ cells });
+  }
+  return groups;
+}
+
+function isWheelCell(cell) {
+  const marker = `${cell?.type ?? ''} ${cell?.role ?? ''} ${cell?.wheelBlockId ?? ''} ${cell?.damageGroup ?? ''}`.toLowerCase();
+  return marker.includes('wheel');
+}
+
+function wheelCellsConnected(enemy, a, b) {
+  if (!a || !b || a === b) return false;
+  if (a.wheelBlockId && b.wheelBlockId && a.wheelBlockId === b.wheelBlockId) return true;
+  if (a.damageGroup && b.damageGroup && a.damageGroup === b.damageGroup && a.damageGroup !== 'wheels') return true;
+  if (explicitlyConnected(enemy, a.id, b.id)) return true;
+  const sameLayer = cellLayer(a) === cellLayer(b);
+  return sameLayer && Math.abs(a.gridX - b.gridX) + Math.abs(a.gridY - b.gridY) === 1;
+}
+
+function explicitlyConnected(enemy, aId, bId) {
+  return (enemy.connections ?? []).some((connection) => (
+    (connection.a === aId && connection.b === bId) ||
+    (connection.a === bId && connection.b === aId)
+  ));
+}
+
+function countDestroyedWheelBlockGroups(groups) {
+  return (groups ?? []).filter((group) => group.cells.length > 0 && group.cells.every((cell) => cell.state?.destroyed)).length;
+}
+
+function fireRaceCarFlechetteStrafe(game, enemy) {
+  const sources = liveEnemyCellWorldCenters(enemy, (cell) => cell.type === 'gun' && !cell.state?.destroyed);
+  const source = sources[Math.floor(game.rng.range(0, sources.length))] ?? { x: enemy.x, y: enemy.y };
+  const baseAngle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  for (let index = 0; index < 5; index += 1) {
+    const angle = baseAngle + (index - 2) * 0.12 + game.rng.range(-0.035, 0.035);
+    game.enemyProjectiles.push(
+      createProjectile(source.x, source.y, Math.cos(angle) * 172, Math.sin(angle) * 172, {
+        team: 'enemy',
+        weapon: 'race-car-flechette',
+        behavior: 'homing',
+        radius: 1.35,
+        damage: 4.5 * enemyDamageUpgradeScale(enemy),
+        impulse: 32,
+        lifetime: 4.2,
+        pierce: 1,
+        angle,
+        color: '#ffd166',
+        sprite: trackingFlechetteDefinition.projectile.sprite,
+        delayBeforeAcceleration: 0.35,
+        stopBeforeAcceleration: true,
+        acceleration: 450 * enemyMovementUpgradeScale(enemy),
+        accelerationDuration: 3,
+        maxSpeed: 825 * enemyMovementUpgradeScale(enemy),
+        accelerationTarget: { x: game.vehicle.x, y: game.vehicle.y },
+        accelerationJitter: game.rng.range(-0.04, 0.04),
+        sourceEnemy: enemy,
+        sourceCellId: source.cellId,
+      }),
+    );
+  }
+  enemy.lastFiredAt = game.time;
+  enemy.attackHeading = baseAngle;
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function stepPirateBossGunLossReactions(game, enemy, state) {
+  const liveGuns = (enemy.cells ?? []).filter((cell) => cell.type === 'gun' && !cell.state?.destroyed);
+  const liveIds = new Set(liveGuns.map((cell) => cell.id));
+  const previous = Array.isArray(state.liveGunIds) ? state.liveGunIds : [];
+  const lostCount = previous.filter((id) => !liveIds.has(id)).length;
+  for (let index = 0; index < Math.min(3, lostCount); index += 1) triggerEnemyReactionCue(game, enemy, 'gunDestroyed');
+  state.liveGunIds = [...liveIds];
+  if (liveGuns.length < 2 && !state.noQuarterPlayed) {
+    state.noQuarterPlayed = true;
+    triggerEnemyReactionCue(game, enemy, 'corePhasedIn');
+  }
+}
+
+function stepPirateBossMovement(game, enemy, state, dt) {
+  const toPlayer = Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+  const orbitDistance = Math.max(CELL_SIZE * 18, enemy.radius * 0.86);
+  const preferred = {
+    x: game.vehicle.x + Math.cos(toPlayer + Math.PI / 2) * orbitDistance * (state.orbitSide ?? 1),
+    y: game.vehicle.y + Math.sin(toPlayer + Math.PI / 2) * orbitDistance * (state.orbitSide ?? 1),
+  };
+  const offset = worldToRoadOffset(enemy, game.road);
+  if (Math.abs(offset.x) > game.road.halfWidth * 0.72) state.orbitSide = -(state.orbitSide || 1);
+  const direction = directionFromTo(enemy, preferred);
+  const desiredSpeed = PIRATE_BOSS_ORBIT_SPEED * enemyMovementUpgradeScale(enemy);
+  const steer = clamp(2.6 * dt, 0, 1);
+  enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
+  enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
+  enemy.visualHeading = closestBroadsideHeading(enemy.visualHeading ?? toPlayer + Math.PI / 2, toPlayer);
+  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+}
+
+function stepPirateBossMortars(game, enemy, state, dt) {
+  state.mortarCooldown = Math.max(0, (state.mortarCooldown ?? 1) - dt * enemyFireTimerScale(enemy));
+  if (state.mortarCooldown > 0) return;
+  state.mortarCooldown = state.mortarMode === 'frontHeavy' ? 2.4 : 1.25;
+  if (state.mortarMode === 'frontHeavy') {
+    const source = averageSource(pirateBossGunSources(enemy, 'pirateBossFrontGun')) ?? enemy;
+    const target = inaccuratePlayerMortarTarget(game, CELL_SIZE * 2.6);
+    fireEnemyArcShell(game, { ...enemy, x: source.x, y: source.y }, target, '#ff8a3d', {
+      weapon: 'pirate-boss-heavy-mortar',
+      blastRadius: PIRATE_BOSS_FRONT_MORTAR_RADIUS,
+      blastDamage: 7.5,
+      blastImpulse: 42,
+    });
+    enemy.attackHeading = Math.atan2(target.y - source.y, target.x - source.x);
+    state.mortarMode = 'rearLine';
+  } else {
+    const rearSources = pirateBossGunSources(enemy, 'pirateBossRearGun');
+    const source = rearSources[Math.floor(game.rng.range(0, rearSources.length))] ?? averageSource(rearSources) ?? enemy;
+    fireEnemyMortarLineFromSource(game, enemy, source, 5, {
+      weapon: 'pirate-boss-line-mortar',
+      blastRadius: ENEMY_MORTAR_BASE_BLAST_RADIUS,
+      firstImpactSeconds: 1.1,
+      spacingSeconds: 0.18,
+      spread: CELL_SIZE * 0.9,
+    });
+    enemy.attackHeading = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+    state.mortarMode = 'frontHeavy';
+  }
+  enemy.lastFiredAt = game.time;
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function stepPirateBossSideGuns(game, enemy, state, dt) {
+  state.sideCooldown = Math.max(0, (state.sideCooldown ?? 0.4) - dt * enemyFireTimerScale(enemy));
+  if (state.sideCooldown > 0) return;
+  const sources = pirateBossBroadsideSources(enemy, game.vehicle);
+  if (sources.length === 0) return;
+  const source = sources[state.sideIndex % sources.length];
+  state.sideIndex = (state.sideIndex + 1) % sources.length;
+  const range = Math.hypot(game.vehicle.x - enemy.x, game.vehicle.y - enemy.y);
+  if (range > PIRATE_BOSS_SHIP_LENGTH) {
+    firePirateBossBroadsideBullet(game, enemy, source);
+    state.sideCooldown = 0.16;
+  } else {
+    firePirateBossShotgunFlechettes(game, enemy, source);
+    state.sideCooldown = 0.62;
+  }
+  enemy.lastFiredAt = game.time;
+  enemy.attackHeading = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function pirateBossBroadsideSources(enemy, target) {
+  const all = pirateBossGunSources(enemy, 'pirateBossSideGun');
+  if (all.length <= 1) return all;
+  const rotation = Number.isFinite(enemy.collisionRotation)
+    ? enemy.collisionRotation
+    : Number.isFinite(enemy.visualHeading)
+      ? enemy.visualHeading - Math.PI / 2
+      : 0;
+  const dx = target.x - enemy.x;
+  const dy = target.y - enemy.y;
+  const localY = -dx * Math.sin(rotation) + dy * Math.cos(rotation);
+  const side = localY >= 0 ? 1 : -1;
+  const matching = all.filter((source) => Math.sign(source.localY || 0) === side);
+  return matching.length > 0 ? matching : all;
+}
+
+function pirateBossGunSources(enemy, role) {
+  return (enemy.cells ?? [])
+    .filter((cell) => cell.role === role && cell.type === 'gun' && !cell.state?.destroyed)
+    .map((cell) => {
+      const localX = cell.gridX * CELL_SIZE;
+      const localY = cell.gridY * CELL_SIZE;
+      return {
+        ...enemyLocalToWorldPoint(enemy, { x: localX, y: localY }),
+        localX,
+        localY,
+        cellId: cell.id,
+      };
+    });
+}
+
+function averageSource(sources) {
+  if (!Array.isArray(sources) || sources.length === 0) return null;
+  return {
+    x: sources.reduce((sum, source) => sum + source.x, 0) / sources.length,
+    y: sources.reduce((sum, source) => sum + source.y, 0) / sources.length,
+    localX: sources.reduce((sum, source) => sum + (source.localX ?? 0), 0) / sources.length,
+    localY: sources.reduce((sum, source) => sum + (source.localY ?? 0), 0) / sources.length,
+  };
+}
+
+function firePirateBossBroadsideBullet(game, enemy, source) {
+  const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x) + game.rng.range(-0.045, 0.045);
+  game.enemyProjectiles.push(
+    createProjectile(source.x, source.y, Math.cos(angle) * 152, Math.sin(angle) * 152, {
+      team: 'enemy',
+      weapon: 'pirate-boss-broadside',
+      radius: 3.4,
+      damage: 11 * enemyDamageUpgradeScale(enemy),
+      impulse: 82,
+      lifetime: 4,
+      angle,
+      sourceEnemy: enemy,
+      sourceCellId: source.cellId,
+    }),
+  );
+}
+
+function firePirateBossShotgunFlechettes(game, enemy, source) {
+  const baseAngle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  for (let index = 0; index < 7; index += 1) {
+    const spread = (index - 3) * 0.13 + game.rng.range(-0.035, 0.035);
+    const angle = baseAngle + spread;
+    game.enemyProjectiles.push(
+      createProjectile(source.x, source.y, Math.cos(angle) * 182, Math.sin(angle) * 182, {
+        team: 'enemy',
+        weapon: 'pirate-boss-flechette',
+        radius: 1.55,
+        damage: 5.5 * enemyDamageUpgradeScale(enemy),
+        impulse: 38,
+        lifetime: 2.8,
+        pierce: 1,
+        angle,
+        color: '#ffd166',
+        sourceEnemy: enemy,
+        sourceCellId: source.cellId,
+      }),
+    );
+  }
 }
 
 function redirectMothFromPlayAreaEdge(game, enemy, state) {
@@ -3145,6 +3949,7 @@ function stepOctopusRetreat(game, boss, dt) {
   boss.escaped = true;
   boss.renderAlpha = 0;
   boss.internalDestructionComplete = true;
+  emitSoundEvent(game, SOUND_EVENTS.KRAKEN_DEFEATED);
   recordEnemyDefeat(game.score, boss);
 }
 
@@ -3472,11 +4277,13 @@ function startBossInternalDestruction(game, boss) {
     duration: BOSS_INTERNAL_DESTRUCTION_SECONDS,
     soundTimer: 0,
     smokeTimer: 0,
-    cueTimer: isOctopusBoss(boss) ? 0 : null,
+    cueTimer: isOctopusBoss(boss) || boss.kind === 'roadBossCar' ? 0 : null,
     cues: isOctopusBoss(boss) ? [] : undefined,
+    escapePodsLaunched: false,
   };
   boss.vx *= 0.25;
   boss.vy *= 0.25;
+  if (boss.kind === 'pirateBoss') emitSoundEvent(game, SOUND_EVENTS.PIRATE_BOSS_DEFEAT);
   emitRandomBossInternalExplosionSound(game);
 }
 
@@ -3495,6 +4302,9 @@ function stepBossInternalDestruction(game, boss, dt) {
     const progress = 1 - clamp(state.timer / Math.max(0.001, state.duration), 0, 1);
     const flicker = (Math.sin(game.time * 24) * 0.5 + 0.5) * 0.16;
     boss.renderAlpha = clamp(1 - progress * 0.9 + flicker, 0.06, 1);
+  } else if (boss.kind === 'roadBossCar') {
+    stepRoadBossCarInternalDestruction(game, boss, state, dt);
+    boss.renderAlpha = 0.72 + (Math.sin(game.time * 26) * 0.5 + 0.5) * 0.28;
   } else {
     boss.renderAlpha = 0.72 + (Math.sin(game.time * 24) * 0.5 + 0.5) * 0.28;
   }
@@ -3514,6 +4324,7 @@ function stepBossInternalDestruction(game, boss, dt) {
   if (isOctopusBoss(boss)) {
     boss.renderAlpha = 0;
     boss.escaped = true;
+    emitSoundEvent(game, SOUND_EVENTS.KRAKEN_DEFEATED);
     recordEnemyDefeat(game.score, boss);
     game.scrapPickups.push(...enemyDeathPickups(game, boss));
     spawnBlackSmokeCloud(game, boss, 70);
@@ -3544,6 +4355,65 @@ function stepOctopusInternalDestructionCues(game, boss, state, dt) {
     size: game.rng.range(CELL_SIZE * 0.74, CELL_SIZE * 1.02),
     growth: 3,
   });
+}
+
+function stepRoadBossCarInternalDestruction(game, boss, state, dt) {
+  state.cueTimer = (state.cueTimer ?? 0) - dt;
+  if (state.cueTimer <= 0) {
+    state.cueTimer = game.rng.range(0.12, 0.22);
+    addEnemyReactionCue(boss, chooseCueValue(game.rng, ROAD_BOSS_DESTRUCTION_CUE_TEXTS, true), {
+      duration: 1.4,
+      rise: CELL_SIZE * 2.1,
+      size: CELL_SIZE,
+      growth: 2.7,
+      x: game.rng.range(-boss.radius * 0.18, boss.radius * 0.18),
+      y: -Math.max(CELL_SIZE * 2.8, boss.radius * 0.32),
+    });
+  }
+  if (!state.escapePodsLaunched && state.timer <= 0.72) {
+    state.escapePodsLaunched = true;
+    addEnemyReactionCue(boss, ROAD_BOSS_TAUNT_CUE_TEXT, {
+      duration: 1.2,
+      rise: CELL_SIZE * 2.5,
+      size: CELL_SIZE * 1.15,
+      growth: 3,
+    });
+    launchRoadBossEscapeBoats(game, boss);
+  }
+}
+
+function launchRoadBossEscapeBoats(game, boss) {
+  const oceanSide = roadDirectionToWorld(1, 0, game.road);
+  const forward = roadDirectionToWorld(0, 1, game.road);
+  const heading = Math.atan2(oceanSide.y, oceanSide.x) + game.rng.range(-0.18, 0.18);
+  for (let index = 0; index < ROAD_BOSS_CAR_ESCAPE_PODS; index += 1) {
+    const offset = (index - (ROAD_BOSS_CAR_ESCAPE_PODS - 1) / 2) * CELL_SIZE * 2.2;
+    const boat = createMortarSkiffEnemy(
+      boss.x - oceanSide.x * CELL_SIZE * 1.6 + forward.x * offset,
+      boss.y - oceanSide.y * CELL_SIZE * 1.6 + forward.y * offset,
+    );
+    boat.kind = 'escapePodBoat';
+    boat.archetypeId = 'escape_pod_boat.weyfinder_road_boss';
+    boat.displayName = 'Taunting Escape Boat';
+    boat.patterns = [];
+    boat.escapePod = {
+      heading: heading + game.rng.range(-0.22, 0.22),
+      speed: game.rng.range(112, 154),
+      cueTimer: game.rng.range(0, 0.3),
+    };
+    boat.vx = oceanSide.x * game.rng.range(75, 105) + forward.x * game.rng.range(-18, 18);
+    boat.vy = oceanSide.y * game.rng.range(75, 105) + forward.y * game.rng.range(-18, 18);
+    boat.visualHeading = boat.escapePod.heading;
+    boat.collisionRotation = boat.visualHeading - Math.PI / 2;
+    boat.dropNoScrap = true;
+    addEnemyReactionCue(boat, chooseCueValue(game.rng, [`${String.fromCodePoint(0x2620)} !`, 'Yargh!', ROAD_BOSS_TAUNT_CUE_TEXT], true), {
+      duration: 1.8,
+      rise: CELL_SIZE * 1.6,
+      growth: 2.3,
+    });
+    game.enemies.push(boat);
+  }
+  emitSoundEvent(game, SOUND_EVENTS.PIRATE_YARGH);
 }
 
 function spawnBossInternalBlastEffect(game, boss) {
@@ -3648,6 +4518,16 @@ function fireShortEnemyBeam(game, enemy, color = '#83f7ff', damageScale = 1) {
 }
 
 function fireEnemyMortarLine(game, enemy, count = 7) {
+  fireEnemyMortarLineFromSource(game, enemy, enemy, count, {
+    blastRadius: ENEMY_MORTAR_BASE_BLAST_RADIUS,
+    firstImpactSeconds: ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS,
+    spacingSeconds: ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS,
+    spread: CELL_SIZE * 0.35,
+  });
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+}
+
+function fireEnemyMortarLineFromSource(game, enemy, source, count = 7, options = {}) {
   const target = {
     x: game.vehicle.x + game.vehicle.vx * 0.35,
     y: game.vehicle.y + game.vehicle.vy * 0.35,
@@ -3655,18 +4535,23 @@ function fireEnemyMortarLine(game, enemy, count = 7) {
   const points = [];
   for (let index = 0; index < count; index += 1) {
     const t = count <= 1 ? 1 : (index + 1) / count;
+    const spread = options.spread ?? CELL_SIZE * 0.35;
     points.push({
-      x: enemy.x + (target.x - enemy.x) * t + game.rng.range(-CELL_SIZE * 0.35, CELL_SIZE * 0.35),
-      y: enemy.y + (target.y - enemy.y) * t + game.rng.range(-CELL_SIZE * 0.35, CELL_SIZE * 0.35),
+      x: source.x + (target.x - source.x) * t + game.rng.range(-spread, spread),
+      y: source.y + (target.y - source.y) * t + game.rng.range(-spread, spread),
     });
   }
   points
-    .sort((a, b) => distanceSquared(enemy, a) - distanceSquared(enemy, b))
+    .sort((a, b) => distanceSquared(source, a) - distanceSquared(source, b))
     .forEach((point, index) => {
-      const flightTime = ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS + index * ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS;
-      fireEnemyArcShell(game, enemy, point, '#ffb25f', { flightTime, blastRadius: ENEMY_MORTAR_BASE_BLAST_RADIUS });
+      const flightTime = (options.firstImpactSeconds ?? ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS) + index * (options.spacingSeconds ?? ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS);
+      fireEnemyArcShell(game, { ...enemy, x: source.x, y: source.y }, point, options.color ?? '#ffb25f', {
+        ...options,
+        flightTime,
+        blastRadius: options.blastRadius ?? ENEMY_MORTAR_BASE_BLAST_RADIUS,
+        sourceEnemy: enemy,
+      });
     });
-  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
 function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {}) {
@@ -5336,6 +6221,7 @@ function explodeEnemy(game, enemy) {
 }
 
 function enemyDeathPickups(game, enemy) {
+  if (enemy.dropNoScrap) return [];
   const scrap = harvestEnemyScrap(enemy, game.rng);
   if (enemy.dropProfile !== 'zeppelinWalker') return scrap;
   const totalValue = scrap.reduce((sum, pickup) => sum + (pickup.value ?? 0), 0);
@@ -5371,7 +6257,7 @@ function createRewardPickup(game, origin, kind, overrides = {}) {
 }
 
 function bossUsesInternalDestruction(enemy) {
-  return enemy?.kind === 'boss' || enemy?.kind === 'zeppelinBoss';
+  return enemy?.kind === 'boss' || enemy?.kind === 'zeppelinBoss' || enemy?.kind === 'pirateBoss' || enemy?.kind === 'roadBossCar';
 }
 
 function isOctopusBoss(enemy) {

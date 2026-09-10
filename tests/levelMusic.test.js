@@ -37,12 +37,26 @@ test('boss soundtrack levels add a boss and cut standard enemy count', () => {
   assert.equal(enemies.filter((enemy) => enemy.kind !== 'boss').length, 2);
 });
 
+test('zone 1 boss track routes to the Weyfinder Road hotrod boss', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const enemies = createLevelEnemies(road, 1, ['BossFight_1']);
+  assert.equal(enemies.some((enemy) => enemy.kind === 'roadBossCar'), true);
+  assert.equal(enemies.find((enemy) => enemy.kind === 'roadBossCar').archetypeId, 'boss.weyfinder_road_hotrod.prototype0');
+});
+
 test('starlight and twilight boss tracks route to the zeppelin boss', () => {
   const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
   const starlight = createLevelEnemies(road, 1, ['StarlightRoad_BossFight']);
   const twilight = createLevelEnemies(road, 1, ['TwilightCrossroads_BossFight']);
   assert.equal(starlight.some((enemy) => enemy.kind === 'zeppelinBoss'), true);
   assert.equal(twilight.some((enemy) => enemy.kind === 'zeppelinBoss'), true);
+});
+
+test('pirates road boss tracks route to the pirate dreadnought boss', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const enemies = createLevelEnemies(road, 1, ['PiratesRoad_BossFight']);
+  assert.equal(enemies.some((enemy) => enemy.kind === 'pirateBoss'), true);
+  assert.equal(enemies.find((enemy) => enemy.kind === 'pirateBoss').archetypeId, 'boss.pirate_dreadnought.prototype0');
 });
 
 test('post-boss non-boss levels include enhanced enemies', () => {
@@ -61,6 +75,17 @@ test('game tracks current music when starting the next level', () => {
 
 test('zone soundtrack names route standard spawns to zone archetypes', () => {
   const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const weyfinder = createLevelEnemies(road, 1, ['TheWeyfindersRoad_1'])[0];
+  assert.equal(weyfinder.archetypeId, 'weyfinder_road_car.prototype0');
+  assert.equal(weyfinder.assetId, 'example.construct.weyfinder_road_car_sculpted');
+  assert.equal(weyfinder.presentation.variant, 'roadCar');
+  assert.equal(weyfinder.cells.filter((cell) => cell.role === 'wheelBlock').length, 16);
+  const levelThreeEnemies = createLevelEnemies(road, 3, ['TheWeyfindersRoad_3']);
+  const racer = levelThreeEnemies.find((enemy) => enemy.archetypeId === 'weyfinder_road_flechette_racer.prototype0');
+  assert.equal(racer.assetId, 'example.construct.weyfinder_road_flechette_racer_sculpted');
+  assert.equal(racer.presentation.variant, 'sideStrafeFlechetteRacer');
+  assert.equal(racer.carBehavior.trackingFlechettes, true);
+  assert.equal(Math.hypot(racer.x - road.x, racer.y - road.y) > road.halfWidth, true);
   const ghost = createLevelEnemies(road, 1, ['GhostForrestPathway_1'])[0];
   assert.equal(ghost.archetypeId, 'ghost_phaser.ghost_forrest');
   assert.equal(ghost.presentation.variant, 'ghostWraith');

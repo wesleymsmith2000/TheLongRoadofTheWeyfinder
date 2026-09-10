@@ -3,7 +3,17 @@ import { CANON_STATUSES, isCompatibleSchemaVersion, isNonEmptyString, isPlainObj
 import { TARGET_CONDITIONS } from './combatEvents.js';
 
 export const CANON_ENEMY_ARCHETYPE_PACK = canonEnemyArchetypes;
-export const ENEMY_RUNTIME_FACTORIES = ['createEnemy', 'createEnhancedEnemy', 'createPirateShipEnemy', 'createEnhancedPirateShipEnemy', 'createBossEnemy'];
+export const ENEMY_RUNTIME_FACTORIES = [
+  'createEnemy',
+  'createEnhancedEnemy',
+  'createPirateShipEnemy',
+  'createEnhancedPirateShipEnemy',
+  'createMortarSkiffEnemy',
+  'createBossEnemy',
+  'createRoadBossCarEnemy',
+  'createZeppelinBossEnemy',
+  'createPirateBossEnemy',
+];
 export const ENEMY_ENTRY_KINDS = ['aheadDrift', 'behindCharge', 'aheadBoss', 'airStrafe', 'zoneAmbush'];
 export const ENEMY_MOVEMENT_KINDS = [
   'drift',
@@ -16,6 +26,7 @@ export const ENEMY_MOVEMENT_KINDS = [
   'phase',
   'hop',
   'flyStrafe',
+  'raceStrafe',
   'walkerLegs',
   'circleArtillery',
   'carrierRelease',
@@ -23,7 +34,17 @@ export const ENEMY_MOVEMENT_KINDS = [
 export const ENEMY_AGGREGATE_KINDS = ['singleBody', 'limbArray', 'multiPartBoss'];
 export const ENEMY_CELL_ANIMATION_KINDS = ['none', 'opacityPulse', 'sineWave', 'swirl', 'fabricWeave', 'phaseFade', 'legStride', 'wingBeat'];
 export const ENEMY_TARGET_CONDITIONS = Object.freeze(Object.values(TARGET_CONDITIONS));
-export const ENEMY_PRESENTATION_VARIANTS = ['ghostWraith', 'tractorFrog', 'heavyMortarBoat', 'spiderWalker', 'scrapBuzzard', 'inchwormCarrier', 'mothBomber'];
+export const ENEMY_PRESENTATION_VARIANTS = [
+  'ghostWraith',
+  'tractorFrog',
+  'heavyMortarBoat',
+  'roadCar',
+  'sideStrafeFlechetteRacer',
+  'spiderWalker',
+  'scrapBuzzard',
+  'inchwormCarrier',
+  'mothBomber',
+];
 
 export function validateEnemyArchetypePack(definition) {
   const errors = [];
@@ -88,12 +109,75 @@ function validateArchetypes(archetypes, errors, warnings) {
     validateAggregate(archetype.aggregate, `${prefix}.aggregate`, errors);
     validateCellAnimations(archetype.cellAnimations, `${prefix}.cellAnimations`, errors);
     validateTargeting(archetype.targeting, `${prefix}.targeting`, errors);
+    validateCarBehavior(archetype.carBehavior, `${prefix}.carBehavior`, errors);
     validatePresentation(archetype.presentation, `${prefix}.presentation`, errors, warnings);
+    validateEntranceBarks(archetype.entranceBarks, `${prefix}.entranceBarks`, errors);
+    validateReactionCues(archetype.reactionCues, `${prefix}.reactionCues`, errors);
     if (archetype.editable != null && !isStringArray(archetype.editable)) errors.push(`${prefix}.editable must be an array of strings when provided.`);
     if (archetype.palette != null && !isPlainObject(archetype.palette)) errors.push(`${prefix}.palette must be an object when provided.`);
     if (archetype.baseArchetype != null && !ids.has(archetype.baseArchetype)) {
       warnings.push(`${prefix}.baseArchetype "${archetype.baseArchetype}" should reference an earlier archetype in the same pack.`);
     }
+  }
+}
+
+function validateCarBehavior(carBehavior, path, errors) {
+  if (carBehavior == null) return;
+  if (!isPlainObject(carBehavior)) {
+    errors.push(`${path} must be an object when provided.`);
+    return;
+  }
+  if (carBehavior.movement != null && carBehavior.movement !== 'raceStrafe') {
+    errors.push(`${path}.movement must be raceStrafe when provided.`);
+  }
+  validateOptionalNumber(carBehavior.speed, `${path}.speed`, errors);
+  validateOptionalNumber(carBehavior.steer, `${path}.steer`, errors);
+  validateOptionalNumber(carBehavior.playerDriftBias, `${path}.playerDriftBias`, errors);
+  validateOptionalNumber(carBehavior.flechetteCooldown, `${path}.flechetteCooldown`, errors);
+  if (carBehavior.spinout != null) {
+    if (!isPlainObject(carBehavior.spinout)) {
+      errors.push(`${path}.spinout must be an object when provided.`);
+    } else {
+      validateOptionalNumber(carBehavior.spinout.wheelBlocksDestroyed, `${path}.spinout.wheelBlocksDestroyed`, errors);
+    }
+  }
+}
+
+function validateEntranceBarks(barks, path, errors) {
+  if (barks == null) return;
+  if (!isPlainObject(barks)) {
+    errors.push(`${path} must be an object when provided.`);
+    return;
+  }
+  if (barks.trigger != null && !isNonEmptyString(barks.trigger)) errors.push(`${path}.trigger must be a non-empty string when provided.`);
+  if (barks.sounds != null && !isStringArray(barks.sounds)) errors.push(`${path}.sounds must be an array of strings when provided.`);
+  if (barks.cues != null && !isStringArray(barks.cues)) errors.push(`${path}.cues must be an array of strings when provided.`);
+  validateOptionalNumber(barks.duration, `${path}.duration`, errors);
+  validateOptionalNumber(barks.rise, `${path}.rise`, errors);
+  validateOptionalNumber(barks.size, `${path}.size`, errors);
+  validateOptionalNumber(barks.growth, `${path}.growth`, errors);
+}
+
+function validateReactionCues(cues, path, errors) {
+  if (cues == null) return;
+  if (!Array.isArray(cues)) {
+    errors.push(`${path} must be an array when provided.`);
+    return;
+  }
+  for (const [index, cue] of cues.entries()) {
+    const label = `${path}[${index}]`;
+    if (!isPlainObject(cue)) {
+      errors.push(`${label} must be an object.`);
+      continue;
+    }
+    if (!isNonEmptyString(cue.trigger)) errors.push(`${label}.trigger must be a non-empty string.`);
+    if (cue.texts != null && !isStringArray(cue.texts)) errors.push(`${label}.texts must be an array of strings when provided.`);
+    if (cue.cues != null && !isStringArray(cue.cues)) errors.push(`${label}.cues must be an array of strings when provided.`);
+    if (cue.sound != null && !isNonEmptyString(cue.sound)) errors.push(`${label}.sound must be a non-empty string when provided.`);
+    validateOptionalNumber(cue.duration, `${label}.duration`, errors);
+    validateOptionalNumber(cue.rise, `${label}.rise`, errors);
+    validateOptionalNumber(cue.size, `${label}.size`, errors);
+    validateOptionalNumber(cue.growth, `${label}.growth`, errors);
   }
 }
 

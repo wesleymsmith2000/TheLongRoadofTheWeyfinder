@@ -6,6 +6,8 @@ import {
   applyEnemyProjectilePierceDamage,
   createBossEnemy,
   createEnemy,
+  createPirateBossEnemy,
+  createRoadBossCarEnemy,
   createZeppelinBossEnemy,
   createEnhancedEnemy,
   ENEMY_MODULE_LINEAR_SCALE,
@@ -117,6 +119,38 @@ const WALKER_STABILITY_TEST_ENEMY = {
   ],
 };
 
+const RACE_CAR_SPINOUT_TEST_ENEMY = {
+  schemaVersion: '0.1',
+  assetId: 'test.race_car_spinout_enemy',
+  cells: [
+    { id: 'core', type: 'core', gridX: 0, gridY: 0 },
+    { id: 'gun', type: 'gun', gridX: 0, gridY: -2 },
+    { id: 'fl-0', type: 'wheel', gridX: -4, gridY: -3 },
+    { id: 'fl-1', type: 'wheel', gridX: -3, gridY: -3 },
+    { id: 'fl-2', type: 'wheel', gridX: -4, gridY: -2 },
+    { id: 'fl-3', type: 'wheel', gridX: -3, gridY: -2 },
+    { id: 'fr-0', type: 'wheel', gridX: 3, gridY: -3 },
+    { id: 'fr-1', type: 'wheel', gridX: 4, gridY: -3 },
+    { id: 'fr-2', type: 'wheel', gridX: 3, gridY: -2 },
+    { id: 'fr-3', type: 'wheel', gridX: 4, gridY: -2 },
+    { id: 'rl-0', type: 'wheel', gridX: -4, gridY: 2 },
+    { id: 'rl-1', type: 'wheel', gridX: -3, gridY: 2 },
+    { id: 'rl-2', type: 'wheel', gridX: -4, gridY: 3 },
+    { id: 'rl-3', type: 'wheel', gridX: -3, gridY: 3 },
+    { id: 'rr-0', type: 'wheel', gridX: 3, gridY: 2 },
+    { id: 'rr-1', type: 'wheel', gridX: 4, gridY: 2 },
+    { id: 'rr-2', type: 'wheel', gridX: 3, gridY: 3 },
+    { id: 'rr-3', type: 'wheel', gridX: 4, gridY: 3 }
+  ],
+  connections: [
+    { a: 'core', b: 'gun', aSide: 'top', bSide: 'bottom' },
+    { a: 'core', b: 'fl-3', aSide: 'left', bSide: 'right' },
+    { a: 'core', b: 'fr-2', aSide: 'right', bSide: 'left' },
+    { a: 'core', b: 'rl-1', aSide: 'left', bSide: 'right' },
+    { a: 'core', b: 'rr-0', aSide: 'right', bSide: 'left' }
+  ],
+};
+
 function destroyTestCells(enemy, ids) {
   const wanted = new Set(ids);
   for (const cell of enemy.cells.filter((candidate) => wanted.has(candidate.id))) {
@@ -144,6 +178,39 @@ test('enemies use doubled module footprints without scaling voxel masks', () => 
   assert.equal(enemy.radius > CELL_SIZE * 3, true);
   assert.equal(boss.moduleLinearScale, ENEMY_MODULE_LINEAR_SCALE);
   assert.equal(boss.cells.filter((cell) => cell.type === 'gun').length > 64, true);
+});
+
+test('pirate dreadnought boss builds distinct protected core and gun blocks', () => {
+  const boss = createPirateBossEnemy(0, 0);
+  assert.equal(boss.kind, 'pirateBoss');
+  assert.equal(boss.cells.filter((cell) => cell.role === 'pirateBossCore').length, 4);
+  assert.equal(boss.cells.filter((cell) => cell.role === 'pirateBossFrontGun').length, 16);
+  assert.equal(boss.cells.filter((cell) => cell.role === 'pirateBossRearGun').length, 8);
+  assert.equal(boss.cells.filter((cell) => cell.role === 'pirateBossSideGun').length, 16);
+  assert.equal(boss.pirateBoss.liveGunIds.length, 40);
+});
+
+test('pirate dreadnought core phases in after gun losses', () => {
+  const boss = createPirateBossEnemy(0, 0);
+  const core = boss.cells.find((cell) => cell.role === 'pirateBossCore');
+  const protectedHit = applyEnemyDamage(boss, createProjectile(core.gridX * CELL_SIZE, core.gridY * CELL_SIZE, 0, 0, {
+    damage: 14,
+    radius: 2,
+    team: 'player',
+  }));
+  assert.equal(protectedHit.hit, false);
+
+  for (const gun of boss.cells.filter((cell) => cell.type === 'gun')) {
+    for (const voxel of gun.mask.flat()) voxel.hp = 0;
+    recalculateCell(gun);
+  }
+
+  const vulnerableHit = applyEnemyDamage(boss, createProjectile(core.gridX * CELL_SIZE, core.gridY * CELL_SIZE, 0, 0, {
+    damage: 14,
+    radius: 2,
+    team: 'player',
+  }));
+  assert.equal(vulnerableHit.hit, true);
 });
 
 test('enemy destruction is detected when core is shredded', () => {
@@ -225,6 +292,111 @@ test('player main gun emits a sound event when firing', () => {
   game.enemySpawnQueue = [];
   stepGame(game, { fireHeld: true, gunnerEnabled: false }, 1 / 60);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_MAIN_GUN), true);
+});
+
+test('pirate dreadnought reacts when its core phases in', () => {
+  const game = createGame();
+  const boss = createPirateBossEnemy(game.vehicle.x + CELL_SIZE * 18, game.vehicle.y);
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  for (const gun of boss.cells.filter((cell) => cell.type === 'gun').slice(1)) {
+    for (const voxel of gun.mask.flat()) voxel.hp = 0;
+    recalculateCell(gun);
+  }
+
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PIRATE_NO_QUARTER), true);
+  assert.equal(boss.reactionCueQueue.some((cue) => String(cue.text).includes('No quarter')), true);
+});
+
+test('Weyfinder Road hotrod boss fires enlarged blades and bullet barrages', () => {
+  const game = createGame();
+  const boss = createRoadBossCarEnemy(game.vehicle.x + CELL_SIZE * 18, game.vehicle.y);
+  boss.roadBossCar.bladeCooldown = 0;
+  boss.roadBossCar.bulletCooldown = 0;
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, {}, 1 / 60);
+
+  const blade = game.enemyProjectiles.find((projectile) => projectile.weapon === 'road-boss-blade');
+  assert.equal(Boolean(blade), true);
+  assert.equal(blade.radius, 4.2 * 1.5);
+  assert.equal(blade.sprite.displaySize[0], 10.5 * 1.5);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'road-boss-bullet'), true);
+});
+
+test('Weyfinder Road hotrod boss destruction taunts and launches fleeing boats', () => {
+  const game = createGame();
+  const boss = createRoadBossCarEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y);
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+  boss.destroyed = true;
+
+  for (let index = 0; index < 160; index += 1) stepGame(game, {}, 1 / 60);
+
+  const pods = game.enemies.filter((enemy) => enemy.kind === 'escapePodBoat');
+  assert.equal(pods.length, 5);
+  assert.equal(pods.every((pod) => pod.patterns.length === 0), true);
+  assert.equal(pods.every((pod) => pod.dropNoScrap), true);
+  assert.equal(boss.reactionCueQueue.some((cue) => cue.text === String.fromCodePoint(0x1f61b)), true);
+});
+
+test('race car enemies strafe sideways and fire flechettes', () => {
+  const game = createGame();
+  const enemy = createEnemy(game.vehicle.x, game.vehicle.y - CELL_SIZE * 14, RACE_CAR_SPINOUT_TEST_ENEMY, [], { moduleScale: 1 });
+  enemy.archetypeId = 'test.race_car.prototype0';
+  enemy.carBehavior = { movement: 'raceStrafe', speed: 185, flechetteCooldown: 0.01 };
+  enemy.carRuntime = { side: 1, flechetteCooldown: 0 };
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(Math.hypot(enemy.vx, enemy.vy) > 0, true);
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'race-car-flechette'), true);
+});
+
+test('race car enemies spin out after three wheel blocks are destroyed then explode', () => {
+  const game = createGame();
+  const enemy = createEnemy(game.vehicle.x + CELL_SIZE * 8, game.vehicle.y, RACE_CAR_SPINOUT_TEST_ENEMY, [], { moduleScale: 1 });
+  enemy.archetypeId = 'test.race_car.prototype0';
+  enemy.carBehavior = { movement: 'raceStrafe', spinout: { wheelBlocksDestroyed: 2 } };
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+  destroyTestCells(enemy, ['fl-0', 'fl-1', 'fl-2', 'fl-3', 'fr-0', 'fr-1', 'fr-2', 'fr-3', 'rl-0', 'rl-1', 'rl-2', 'rl-3']);
+
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(enemy.carRuntime.spinout.phase, 'spin');
+  assert.equal(enemy.reactionCueQueue.length > 0, true);
+
+  for (let index = 0; index < 140; index += 1) stepGame(game, {}, 1 / 30);
+
+  assert.equal(enemy.destroyed, true);
+  assert.equal(enemy.explosionStart > 0, true);
+  assert.equal(consumeSoundEvents(game).some((event) => event.id.startsWith('boss-internal-explosion')), true);
+});
+
+test('sculpted Weyfinder road cars treat 2x2 wheel pods as separate spinout blocks', () => {
+  const game = createGame();
+  const [enemy] = createLevelEnemies(game.road, 1, ['TheWeyfindersRoad_1']);
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+  const destroyedWheelIds = enemy.cells
+    .filter((cell) => cell.type === 'wheel')
+    .filter((cell) => (
+      (cell.gridX < 0 && cell.gridY < 0) ||
+      (cell.gridX > 0 && cell.gridY < 0) ||
+      (cell.gridX < 0 && cell.gridY > 0)
+    ))
+    .map((cell) => cell.id);
+  destroyTestCells(enemy, destroyedWheelIds);
+
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(enemy.carRuntime.spinout.phase, 'spin');
 });
 
 test('cannon-style blast strips nearby outer shell voxels with shallow penetration', () => {

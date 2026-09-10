@@ -110,6 +110,14 @@ import bossInternalExplosion1Sound from '../assets/sounds/boss__internal_explosi
 import bossInternalExplosion2Sound from '../assets/sounds/boss__internal_explosion_2.mp3';
 import bossMainExplosion1Sound from '../assets/sounds/boss__main_explosion_1.mp3';
 import bossMainExplosion2Sound from '../assets/sounds/boss__main_explosion_2.mp3';
+import krakenDefeatedSound from '../assets/sounds/Kraken_Defeated.mp3';
+import krakenEnterSound from '../assets/sounds/Kraken_Enter.mp3';
+import pirateAvastSound from '../assets/sounds/Pirate__Avast_Skalleywag.mp3';
+import pirateBroadsideSound from '../assets/sounds/Pirate__Give_em_a_broadside.mp3';
+import pirateNoQuarterSound from '../assets/sounds/Pirate__No_quarter.mp3';
+import pirateYarghSound from '../assets/sounds/Pirate__Yargh.mp3';
+import pirateBossDefeatSound from '../assets/sounds/Pirate_Boss__Defeat__Shivered_me_timbers.mp3';
+import pirateBossEntranceSound from '../assets/sounds/Pirate_Boss__Entrance_taunt.mp3';
 
 const MUSIC_URLS = {
   BossFight_1: bossFight1Music,
@@ -177,6 +185,14 @@ const SOUND_URLS = {
   [SOUND_EVENTS.BOSS_MAIN_EXPLOSION_2]: bossMainExplosion2Sound,
   [SOUND_EVENTS.STAGE_VICTORY]: victoryTone1Sound,
   [SOUND_EVENTS.MOTH_COUNTDOWN]: toggleSwitchClick2Sound,
+  [SOUND_EVENTS.PIRATE_YARGH]: pirateYarghSound,
+  [SOUND_EVENTS.PIRATE_NO_QUARTER]: pirateNoQuarterSound,
+  [SOUND_EVENTS.PIRATE_BROADSIDE]: pirateBroadsideSound,
+  [SOUND_EVENTS.PIRATE_AVAST]: pirateAvastSound,
+  [SOUND_EVENTS.PIRATE_BOSS_ENTRANCE]: pirateBossEntranceSound,
+  [SOUND_EVENTS.PIRATE_BOSS_DEFEAT]: pirateBossDefeatSound,
+  [SOUND_EVENTS.KRAKEN_ENTER]: krakenEnterSound,
+  [SOUND_EVENTS.KRAKEN_DEFEATED]: krakenDefeatedSound,
 };
 
 const canvas = document.querySelector('#game');
@@ -372,6 +388,14 @@ const SOUND_MIN_INTERVAL_MS = new Map([
   [SOUND_EVENTS.ENEMY_BEAM, 90],
   [SOUND_EVENTS.PLAYER_MAIN_GUN, 35],
   [SOUND_EVENTS.MOTH_COUNTDOWN, 120],
+  [SOUND_EVENTS.PIRATE_YARGH, 900],
+  [SOUND_EVENTS.PIRATE_NO_QUARTER, 900],
+  [SOUND_EVENTS.PIRATE_BROADSIDE, 900],
+  [SOUND_EVENTS.PIRATE_AVAST, 900],
+  [SOUND_EVENTS.PIRATE_BOSS_ENTRANCE, 2500],
+  [SOUND_EVENTS.PIRATE_BOSS_DEFEAT, 2500],
+  [SOUND_EVENTS.KRAKEN_ENTER, 2500],
+  [SOUND_EVENTS.KRAKEN_DEFEATED, 2500],
 ]);
 const padReticle = {
   x: window.innerWidth / 2,
@@ -946,6 +970,10 @@ function sandboxEnemyOptions() {
     id: 'boss.zeppelin.prototype0',
     displayName: 'Prototype Zeppelin Boss',
   });
+  byId.set('boss.pirate_dreadnought.prototype0', {
+    id: 'boss.pirate_dreadnought.prototype0',
+    displayName: 'Pirate Dreadnought Boss',
+  });
   return [...byId.values()].sort((a, b) => (a.displayName ?? a.id).localeCompare(b.displayName ?? b.id));
 }
 
@@ -1103,18 +1131,21 @@ function playSoundEvents(game, now = performance.now()) {
     if (performanceDiagnostics.state.noEnemyBulletSfx && event.id === SOUND_EVENTS.ENEMY_BULLET) continue;
     if (!soundEventAllowed(event.id, now)) continue;
     const player = soundPlayerFor(src);
-    player.volume = event.id === SOUND_EVENTS.PLAYER_MAIN_GUN
-      ? 0.24
-      : event.id.startsWith('boss-main-explosion')
-        ? 0.72
-        : event.id.startsWith('boss-internal-explosion')
-          ? 0.56
-          : 0.48;
+    player.volume = soundEventVolume(event.id);
     player.currentTime = 0;
     player.play().catch(() => {});
     counters.audioPlayCalls += 1;
   }
   return counters;
+}
+
+function soundEventVolume(id) {
+  if (id === SOUND_EVENTS.PLAYER_MAIN_GUN) return 0.24;
+  if (id.startsWith('boss-main-explosion')) return 0.72;
+  if (id.startsWith('boss-internal-explosion')) return 0.56;
+  if (id.startsWith('pirate-boss') || id.startsWith('kraken')) return 0.62;
+  if (id.startsWith('pirate-')) return 0.54;
+  return 0.48;
 }
 
 function soundEventAllowed(id, now) {

@@ -41,6 +41,24 @@ test('sandbox can schedule the runtime zeppelin boss archetype', () => {
   assert.equal(queue[0].enemy.archetypeId, 'boss.zeppelin.prototype0');
 });
 
+test('sandbox can schedule the runtime pirate boss archetype', () => {
+  const definition = sandboxDefinitionFromEnemy('boss.pirate_dreadnought.prototype0', { count: 1, interval: 0 });
+  const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(12));
+  assert.equal(queue.length, 1);
+  assert.equal(queue[0].enemy.kind, 'pirateBoss');
+  assert.equal(queue[0].enemy.archetypeId, 'boss.pirate_dreadnought.prototype0');
+  assert.equal(queue[0].enemy.cells.some((cell) => cell.role === 'pirateBossFrontGun'), true);
+});
+
+test('sandbox can schedule the Weyfinder Road hotrod boss archetype', () => {
+  const definition = sandboxDefinitionFromEnemy('boss.weyfinder_road_hotrod.prototype0', { count: 1, interval: 0 });
+  const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(14));
+  assert.equal(queue.length, 1);
+  assert.equal(queue[0].enemy.kind, 'roadBossCar');
+  assert.equal(queue[0].enemy.archetypeId, 'boss.weyfinder_road_hotrod.prototype0');
+  assert.equal(queue[0].enemy.cells.some((cell) => cell.role === 'roadBossBladeLauncher'), true);
+});
+
 test('sandbox can schedule the octopus boss archetype alias as a real boss', () => {
   const definition = sandboxDefinitionFromEnemy('boss.octopus.prototype0', { count: 1, interval: 0 });
   const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(13));

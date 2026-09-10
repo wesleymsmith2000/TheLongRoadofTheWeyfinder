@@ -74,6 +74,17 @@ test('procedural music damage snapshot includes destroyed attached cells', () =>
   assert.equal(desiredMusicState(snapshot), 'ATTENTION');
 });
 
+test('procedural music treats special bosses as manifestation bosses', () => {
+  const snapshot = musicSituationSnapshot({
+    enemies: [{ kind: 'pirateBoss', destroyed: false }, { kind: 'roadBossCar', destroyed: false }],
+    enemyProjectiles: [],
+    incomingMarkers: [],
+    vehicle: { cells: [{ attached: true, state: { destroyed: false } }] },
+  });
+  assert.equal(snapshot.bossCount, 2);
+  assert.equal(desiredMusicState(snapshot), 'MANIFESTATION');
+});
+
 test('game procedural music announces warnings and victory afterimage', () => {
   const game = createGame(1147, { levelMusic: ['road-one'] });
   game.incomingMarkers.push({ lifetime: 1 });

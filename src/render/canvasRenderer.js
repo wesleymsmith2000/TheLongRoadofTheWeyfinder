@@ -707,7 +707,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
   if (fallVisual) ctx.transform(1, fallVisual.skewY, fallVisual.skewX, fallVisual.scaleY, 0, 0);
   const visualScale = enemy.visualScale ?? 1;
   if (visualScale !== 1) ctx.scale(visualScale, visualScale);
-  if (diagnostics.simpleBossRender && (enemy.kind === 'boss' || enemy.kind === 'zeppelinBoss')) {
+  if (diagnostics.simpleBossRender && (enemy.kind === 'boss' || enemy.kind === 'zeppelinBoss' || enemy.kind === 'pirateBoss' || enemy.kind === 'roadBossCar')) {
     drawSimpleBossDiagnostic(ctx, enemy);
     ctx.restore();
     return;
@@ -726,12 +726,13 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
       const position = bossCellVisualPosition(enemy, cell, time);
       const posed = applyCellPoseTransform(cell, position, poseTransforms);
       const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
+      const phasedCoreAlpha = enemy.kind === 'pirateBoss' && pirateBossCoreIsPhased(enemy) && cell.role === 'pirateBossCore' ? 0.2 : 1;
       drawCell(
         ctx,
         cell,
         posed.x,
         posed.y - projectHeight(layerLift + (posed.z ?? 0)),
-        enemy.destroyed ? 0.35 : 1,
+        (enemy.destroyed ? 0.35 : 1) * phasedCoreAlpha,
         palette,
         posed.rotation,
         { cellSpriteCache, environmentLighting: game?.environmentLighting },
@@ -743,6 +744,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
   drawDizzySwirl(ctx, enemy, time);
   drawWalkerFallCue(ctx, enemy, time);
   drawWalkerAngerCue(ctx, enemy, time);
+  drawGenericEnemyReactionCues(ctx, enemy);
   drawBossReactionCue(ctx, enemy, time);
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
@@ -766,6 +768,18 @@ function drawSimpleBossDiagnostic(ctx, enemy) {
   ctx.fill();
   ctx.stroke();
   ctx.restore();
+}
+
+function pirateBossCoreIsPhased(enemy) {
+  return (enemy.cells ?? []).filter((cell) => cell.type === 'gun' && !cell.state?.destroyed).length >= 2;
+}
+
+function drawGenericEnemyReactionCues(ctx, enemy) {
+  if (!Array.isArray(enemy.reactionCueQueue) || enemy.reactionCueQueue.length === 0 || enemy.destroyed) return;
+  drawFloatingCueQueue(ctx, enemy.reactionCueQueue, {
+    color: enemy.kind === 'pirateBoss' ? '#fff1a8' : '#f4eee4',
+    stroke: 'rgb(0 0 0 / 0.72)',
+  });
 }
 
 function drawConstructPresentation(ctx, construct, imageAssets) {
