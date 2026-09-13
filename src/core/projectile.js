@@ -79,6 +79,8 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     blastOnExpire: options.blastOnExpire ?? null,
     readyToExplode: false,
     vanishOffscreen: Boolean(options.vanishOffscreen),
+    terrainAnchored: Boolean(options.terrainAnchored),
+    countdown: Boolean(options.countdown),
     absorbsPlayerProjectiles: Boolean(options.absorbsPlayerProjectiles),
     absorbsEnemyProjectiles: Boolean(options.absorbsEnemyProjectiles),
     absorbHp: options.absorbHp ?? 0,

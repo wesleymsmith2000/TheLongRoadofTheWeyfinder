@@ -1957,16 +1957,32 @@ test('shadowed road mine droppers place terrain anchored mines that explode on c
   });
   game.autofire = false;
   const dropper = game.enemies[0];
+  const sideStart = roadOffsetToWorld({ x: -game.road.halfWidth * 0.72, y: -game.road.halfHeight - CELL_SIZE * 4 }, game.road);
+  dropper.x = sideStart.x;
+  dropper.y = sideStart.y;
+  dropper.vx = 0;
+  dropper.vy = 0;
   dropper.carRuntime = { mineCooldown: 0 };
   game.enemyProjectiles = [];
 
-  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  for (let index = 0; index < 12; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const velocityHeading = Math.atan2(dropper.vy, dropper.vx);
+  const roadForwardHeading = game.road.heading + Math.PI / 2;
+  assert.equal(Math.abs(testAngleDelta(dropper.visualHeading, roadForwardHeading)) < 0.45, true);
+  assert.equal(Math.abs(testAngleDelta(dropper.visualHeading, velocityHeading)) > 0.45, true);
   const mine = game.enemyProjectiles.find((projectile) => projectile.weapon === 'shadowed-road-mine');
   assert.equal(Boolean(mine), true);
   assert.equal(mine.explodeOnExpire, true);
+  assert.equal(mine.terrainAnchored, true);
+  assert.equal(mine.countdown, true);
+  assert.equal(mine.radius > 4.5, true);
+  assert.equal(mine.targetHint, null);
+  const startOffset = worldToRoadOffset(mine, game.road);
+  for (let index = 0; index < 60; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const driftedOffset = worldToRoadOffset(mine, game.road);
+  assert.equal(Math.abs(driftedOffset.y - startOffset.y) > CELL_SIZE * 0.6, true);
   mine.x = game.vehicle.x;
   mine.y = game.vehicle.y;
-  mine.targetHint = { x: mine.x, y: mine.y };
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'enemy-pulse-blast'), true);
@@ -2121,4 +2137,8 @@ function vehicleHitPoints(vehicle) {
 
 function pointDistanceSquared(a, b) {
   return (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+}
+
+function testAngleDelta(a, b) {
+  return Math.atan2(Math.sin(b - a), Math.cos(b - a));
 }

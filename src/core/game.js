@@ -200,6 +200,8 @@ const SHADOWED_MINE_COOLDOWN = [1.65, 2.45];
 const SHADOWED_MINE_FUSE_SECONDS = 5;
 const SHADOWED_MINE_BLAST_RADIUS = ENEMY_SINGLE_MORTAR_BLAST_RADIUS;
 const SHADOWED_MINE_BLAST_DAMAGE = 4.5;
+const SHADOWED_MINE_RADIUS = 7;
+const MINE_DROPPER_MAX_VISUAL_LEAN = 0.38;
 const RACE_CAR_STRAFE_SPEED = 185;
 const RACE_CAR_FLECHETTE_COOLDOWN = 0.58;
 const RACE_CAR_SPINOUT_SECONDS = 3;
@@ -1470,7 +1472,7 @@ function carryRoadObjects(game, delta) {
     ...(game.harpoonShots ?? []),
     ...game.playerProjectiles,
     ...game.playerProjectiles.map((projectile) => projectile.detonateAtTarget && projectile.targetHint).filter(Boolean),
-    ...game.enemyProjectiles,
+    ...game.enemyProjectiles.filter((projectile) => !projectile.terrainAnchored),
     ...game.smokeParticles,
     ...game.incomingMarkers,
     ...game.vehicle.detachedPieces,
@@ -2159,7 +2161,7 @@ function stepArchetypeEnemy(game, enemy, dt) {
   if (enemy.archetypeId === 'inchworm_segment.freedoms_pass') stepInchwormSegment(enemy, dt);
   if (enemy.archetypeId === 'moth_bomber.freedoms_pass') stepMothBomber(game, enemy, dt);
   if (enemy.carBehavior?.movement === 'mineDropper') stepShadowedMineDropper(game, enemy, dt);
-  if (isCarLikeEnemy(enemy)) stepRaceCarEnemy(game, enemy, dt);
+  else if (isCarLikeEnemy(enemy)) stepRaceCarEnemy(game, enemy, dt);
 }
 
 function stepDizzyEnemy(enemy, dt) {
@@ -3256,7 +3258,11 @@ function stepShadowedMineDropper(game, enemy, dt) {
   enemy.vx += (direction.x * speed - enemy.vx) * steer;
   enemy.vy += (direction.y * speed - enemy.vy) * steer;
   if (Math.abs(currentOffset.x) > game.road.halfWidth * 0.96) enemy.vx *= 0.5;
-  enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+  const roadForward = roadDirectionToWorld(0, 1, game.road);
+  const localVelocity = worldDirectionToRoad({ x: enemy.vx, y: enemy.vy }, game.road);
+  const lateralLean = clamp(localVelocity.x / Math.max(1, speed), -1, 1) * MINE_DROPPER_MAX_VISUAL_LEAN;
+  const targetVisualHeading = Math.atan2(roadForward.y, roadForward.x) + lateralLean;
+  enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? targetVisualHeading, targetVisualHeading, 2.4 * dt);
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
   enemy.renderHeadingOffset ??= Math.PI / 2;
   if (!enemyCanFire(enemy)) return;
@@ -3273,15 +3279,20 @@ function dropShadowedRoadMine(game, enemy) {
     team: 'enemy',
     weapon: 'shadowed-road-mine',
     behavior: 'ballistic',
-    radius: 4.5,
+    radius: SHADOWED_MINE_RADIUS,
     color: '#ff5a54',
-    sprite: MORTAR_ENEMY_SHELL_SPRITE,
+    sprite: {
+      ...MORTAR_ENEMY_SHELL_SPRITE,
+      displaySize: MORTAR_ENEMY_SHELL_SPRITE.displaySize.map((value) => value * 1.45),
+    },
     landingMarkerSprite: MORTAR_ENEMY_MARKER_SPRITE,
     damage: 0,
     impulse: 0,
     lifetime: SHADOWED_MINE_FUSE_SECONDS,
-    targetHint: { x: source.x + drift.x * CELL_SIZE * 1.8, y: source.y + drift.y * CELL_SIZE * 1.8 },
+    targetHint: null,
     explodeOnExpire: true,
+    terrainAnchored: true,
+    countdown: true,
     blastOnExpire: {
       radius: SHADOWED_MINE_BLAST_RADIUS,
       damage: SHADOWED_MINE_BLAST_DAMAGE * enemyDamageUpgradeScale(enemy),
@@ -4454,6 +4465,7 @@ function zeppelinLiveShellCells(enemy) {
 
 function updateEnemyVisualHeading(enemy, dt) {
   if (enemy.kind === 'boss' || enemy.silhouette !== 'pirateShip') return;
+  if (enemy.carBehavior?.movement === 'mineDropper') return;
   const speed = Math.hypot(enemy.vx, enemy.vy);
   if (speed <= 8) return;
   const target = Math.atan2(enemy.vy, enemy.vx);

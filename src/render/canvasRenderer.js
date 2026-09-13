@@ -1512,8 +1512,9 @@ function drawProjectiles(ctx, projectiles, color, imageAssets) {
     if (projectile.weapon === 'ats-grav-rocket' && projectile.targetHint) {
       drawArcLandingMarker(ctx, projectile, projectile.targetHint, '#ff5a54', imageAssets);
     }
-    if (projectile.weapon === 'shadowed-road-mine' && projectile.targetHint) {
-      drawArcLandingMarker(ctx, projectile, projectile.targetHint, '#ff5a54', imageAssets);
+    if (projectile.weapon === 'shadowed-road-mine') {
+      drawShadowedRoadMine(ctx, projectile, imageAssets);
+      continue;
     }
     if (drawProjectileSprite(ctx, projectile, imageAssets)) continue;
     if (projectile.weapon === 'boss-missile') {
@@ -1568,6 +1569,55 @@ function drawHarpoonShots(ctx, shots = [], time = 0, imageAssets = null) {
     }
     ctx.restore();
   }
+}
+
+function drawShadowedRoadMine(ctx, projectile, imageAssets) {
+  ctx.save();
+  const age = Math.max(0, (projectile.maxLifetime ?? 0) - (projectile.lifetime ?? 0));
+  const progress = Math.max(0, Math.min(1, age / Math.max(0.001, projectile.maxLifetime ?? 1)));
+  if (!drawSpriteDescriptor(ctx, imageAssets, projectile.landingMarkerSprite, projectile.x, projectile.y, 0, 1.06)) {
+    ctx.strokeStyle = '#ff5a54';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(projectile.x, projectile.y, Math.max(projectile.radius * 5.5, 18), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  drawArcMarkerCenter(ctx, { ...projectile, team: 'enemy', arcAge: age }, projectile, progress);
+  if (!drawProjectileSprite(ctx, projectile, imageAssets)) {
+    ctx.fillStyle = projectile.color ?? '#ff5a54';
+    ctx.strokeStyle = '#220a0a';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  drawMineCountdown(ctx, projectile);
+  ctx.restore();
+}
+
+function drawMineCountdown(ctx, projectile) {
+  if (!projectile.countdown || projectile.lifetime <= 0) return;
+  const seconds = Math.max(1, Math.ceil(projectile.lifetime));
+  const tickAge = Math.max(0, Math.min(1, seconds - projectile.lifetime));
+  const growth = 1 + tickAge * 0.8;
+  const alpha = Math.max(0.18, 1 - tickAge * 0.86);
+  const rise = projectile.radius * 2.2 * tickAge;
+  ctx.save();
+  ctx.translate(projectile.x, projectile.y - projectile.radius * 3.1 - rise);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha *= alpha;
+  ctx.font = `800 ${Math.max(18, projectile.radius * 3.1 * growth)}px system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 4;
+  ctx.shadowColor = '#ff2f2f';
+  ctx.shadowBlur = 10 + tickAge * 8;
+  ctx.strokeStyle = 'rgb(20 0 0 / 0.86)';
+  ctx.fillStyle = '#ff3333';
+  ctx.strokeText(String(seconds), 0, 0);
+  ctx.fillText(String(seconds), 0, 0);
+  ctx.restore();
 }
 
 function drawHarpoonElectricAura(ctx, enemy, time) {
