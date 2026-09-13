@@ -53,6 +53,19 @@ export function collectDynamicLights(game, options = {}) {
   }
   addProjectileLights(lights, game?.playerProjectiles, scale, 44);
   addProjectileLights(lights, game?.enemyProjectiles, scale, 38);
+  addProjectileLights(lights, game?.harpoonShots, scale, 54);
+  for (const enemy of game?.enemies ?? []) {
+    if (!enemy.harpoonField) continue;
+    lights.push({
+      x: enemy.harpoonField.x ?? enemy.x,
+      y: enemy.harpoonField.y ?? enemy.y,
+      radius: Math.max(CELL_SIZE * 8, (enemy.radius ?? CELL_SIZE * 3) * 1.4),
+      intensity: 0.2 * scale,
+      color: '#83f7ff',
+      priority: 52,
+      flicker: 0.22,
+    });
+  }
   for (const particle of game?.smokeParticles ?? []) {
     if (!particle.light) continue;
     lights.push({

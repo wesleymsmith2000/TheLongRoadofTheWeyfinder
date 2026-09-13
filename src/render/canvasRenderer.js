@@ -136,6 +136,7 @@ export class CanvasRenderer {
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics, this.cellSpriteCache);
     drawSmokeParticles(ctx, game.smokeParticles);
     if (!diagnostics.noProjectileRender) {
+      drawHarpoonShots(ctx, game.harpoonShots, game.time, this.imageAssets);
       drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
       drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
     }
@@ -772,6 +773,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
     }
   }
   drawEnemyPresentationOverlay(ctx, enemy, palette, time);
+  drawHarpoonElectricAura(ctx, enemy, time);
   drawPirateShipFlair(ctx, enemy, palette, time);
   if (enemy.destroyed) {
     drawEnemyExplosion(ctx, enemy, time);
@@ -1540,6 +1542,69 @@ function drawProjectiles(ctx, projectiles, color, imageAssets) {
     ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawHarpoonShots(ctx, shots = [], time = 0, imageAssets = null) {
+  for (const shot of shots) {
+    const heightOffset = projectHeight(shot.z ?? 0);
+    const x = shot.x;
+    const y = shot.y - heightOffset;
+    ctx.save();
+    drawElectricGlow(ctx, x, y, Math.max(shot.radius * 4.4, 16), time, 0.72);
+    if (!drawProjectileSprite(ctx, shot, imageAssets, { x, y, scale: 1.05 })) {
+      ctx.translate(x, y);
+      ctx.rotate(shot.angle ?? 0);
+      ctx.fillStyle = '#b9f4ff';
+      ctx.strokeStyle = '#3ea5ff';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(shot.radius * 3.4, 0);
+      ctx.lineTo(-shot.radius * 2.4, -shot.radius * 0.9);
+      ctx.lineTo(-shot.radius * 1.2, 0);
+      ctx.lineTo(-shot.radius * 2.4, shot.radius * 0.9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+function drawHarpoonElectricAura(ctx, enemy, time) {
+  if (!enemy.harpoonField?.electricGlow) return;
+  const remaining = Math.max(0, enemy.harpoonField.timer ?? 0);
+  const duration = Math.max(0.001, enemy.harpoonField.duration ?? remaining);
+  const fade = Math.min(1, remaining / Math.min(1.2, duration));
+  const radiusScale = enemy.radiusIncludesVisualScale ? 1 / Math.max(0.001, enemy.visualScale ?? 1) : 1;
+  drawElectricGlow(ctx, 0, 0, Math.max(CELL_SIZE * 3.8, (enemy.radius ?? CELL_SIZE * 3) * radiusScale * 0.92), time, 0.58 * fade);
+}
+
+function drawElectricGlow(ctx, x, y, radius, time, alpha = 0.65) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = Math.sin(time * 9.5) * 0.5 + 0.5;
+  ctx.globalAlpha *= alpha * (0.42 + pulse * 0.22);
+  const gradient = ctx.createRadialGradient(0, 0, radius * 0.12, 0, 0, radius);
+  gradient.addColorStop(0, 'rgb(190 248 255 / 0.34)');
+  gradient.addColorStop(0.45, 'rgb(91 213 255 / 0.17)');
+  gradient.addColorStop(1, 'rgb(91 213 255 / 0)');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha *= 0.82;
+  for (let index = 0; index < 4; index += 1) {
+    const phase = time * (3.8 + index * 0.4) + index * 1.91;
+    const start = phase % (Math.PI * 2);
+    const arc = 0.34 + 0.2 * Math.sin(phase * 1.7);
+    ctx.strokeStyle = index % 2 === 0 ? '#b9f4ff' : '#3ea5ff';
+    ctx.lineWidth = 1.1 + pulse * 0.8;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * (0.62 + index * 0.1), start, start + arc);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawOrbFlechette(ctx, projectile) {

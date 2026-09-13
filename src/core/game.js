@@ -142,12 +142,22 @@ const BUZZARD_PANIC_CUES = [
   String.fromCodePoint(0x1f630),
   String.fromCodePoint(0x1f9b6),
 ];
-const ZEPPELIN_HARPOON_CHARGE_SECONDS = 2;
+const ZEPPELIN_HARPOON_CHARGE_SECONDS = 3;
 const ZEPPELIN_HARPOON_FIELD_SECONDS = 10;
 const ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS = 15;
 const ZEPPELIN_HARPOON_POWERUP_LIFETIME_SECONDS = 5;
 const ZEPPELIN_HARPOON_POWERUP_FLASH_START_SECONDS = 3;
 const ZEPPELIN_HARPOON_POWERUP_RADIUS = CELL_SIZE * 2.4;
+const HARPOON_SHOT_SPEED = 720;
+const HARPOON_SHOT_MIN_SECONDS = 0.22;
+const HARPOON_SHOT_MAX_SECONDS = 0.75;
+const HARPOON_CHARGE_PARTICLE_COLORS = ['#79e6ff', '#b9f4ff', '#3ea5ff', '#d7fbff'];
+const HARPOON_PROJECTILE_SPRITE = {
+  ...staMissileDefinition.projectile.sprite,
+  tint: '#5fdfff',
+  tintAlpha: 0.28,
+  displaySize: [28, 10],
+};
 const ZEPPELIN_STRAFE_SPEED = 92;
 const ZEPPELIN_STRAFE_EXIT_MARGIN = CELL_SIZE * 13;
 const ZEPPELIN_SUMMONED_WALKER_LIMIT = 3;
@@ -429,6 +439,7 @@ export function createGame(seed = 1147, options = {}) {
     scrapPickups: [],
     playerProjectiles: [],
     enemyProjectiles: [],
+    harpoonShots: [],
     smokeParticles: [],
     soundEvents: [],
     autofire: true,
@@ -527,6 +538,7 @@ export function stepGame(game, input, dt) {
   handleEnemyRamShields(game);
 
   trackReticleProjectiles(game);
+  stepHarpoonShots(game, dt);
   attractPlayerProjectilesToZeppelinHarpoons(game, dt);
   game.playerProjectiles = stepProjectiles(game.playerProjectiles, dt, activeEnemies(game));
   stepPlayerProjectileEmitters(game, dt);
@@ -695,6 +707,7 @@ export function startNextLevel(game) {
   game.victoryBanner = null;
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
+  game.harpoonShots = [];
   game.smokeParticles = [];
   game.soundEvents = [];
   game.scrapPickups = [];
@@ -720,6 +733,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.victoryBanner = null;
   game.playerProjectiles = [];
   game.enemyProjectiles = [];
+  game.harpoonShots = [];
   game.smokeParticles = [];
   game.scrapPickups = [];
   game.soundEvents = [];
@@ -1453,6 +1467,7 @@ function carryRoadObjects(game, delta) {
     ...game.enemies.map(activeEnemyHarpoonPowerup).filter(Boolean),
     ...game.enemySpawnQueue.map((entry) => entry.enemy),
     ...game.scrapPickups,
+    ...(game.harpoonShots ?? []),
     ...game.playerProjectiles,
     ...game.playerProjectiles.map((projectile) => projectile.detonateAtTarget && projectile.targetHint).filter(Boolean),
     ...game.enemyProjectiles,
@@ -4107,22 +4122,16 @@ function stepZeppelinHarpoon(game, enemy, dt) {
     enemy.harpoonField.timer -= dt;
     enemy.harpoonField.x = enemy.x;
     enemy.harpoonField.y = enemy.y;
+    enemy.harpoonField.z = enemy.elevation?.z ?? CELL_LAYER_HEIGHT * 14;
     if (enemy.harpoonField.timer <= 0) enemy.harpoonField = null;
     return;
   }
   if (enemy.zeppelin.harpoonCharge) {
-    enemy.zeppelin.harpoonCharge.timer -= dt;
-    if (enemy.zeppelin.harpoonCharge.timer > 0) return;
-    enemy.harpoonField = {
-      timer: ZEPPELIN_HARPOON_FIELD_SECONDS,
-      duration: ZEPPELIN_HARPOON_FIELD_SECONDS,
-      x: enemy.x,
-      y: enemy.y,
-      z: enemy.elevation?.z ?? CELL_LAYER_HEIGHT * 14,
-    };
-    enemy.zeppelin.harpoonCharge = null;
-    enemy.zeppelin.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
-    emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
+    const result = stepHarpoonCharge(game, enemy, enemy.zeppelin.harpoonCharge, dt);
+    if (result !== 'charging') {
+      enemy.zeppelin.harpoonCharge = null;
+      enemy.zeppelin.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
+    }
     return;
   }
   if (enemy.zeppelin.harpoonPowerup) {
@@ -4131,7 +4140,7 @@ function stepZeppelinHarpoon(game, enemy, dt) {
     const result = stepCollectiblePowerup(game, powerup, dt);
     if (result === 'collected') {
       enemy.zeppelin.harpoonPowerup = null;
-      enemy.zeppelin.harpoonCharge = { timer: ZEPPELIN_HARPOON_CHARGE_SECONDS };
+      enemy.zeppelin.harpoonCharge = createHarpoonCharge();
       return;
     }
     if (result === 'expired') enemy.zeppelin.harpoonPowerup = null;
@@ -4170,18 +4179,15 @@ function stepBuzzardHarpoonPowerup(game, enemy, state, dt) {
     enemy.harpoonField.z = enemy.elevation?.z ?? BUZZARD_AIR_Z;
     if (enemy.harpoonField.timer <= 0) enemy.harpoonField = null;
   }
+  if (enemy.harpoonCharge) {
+    const result = stepHarpoonCharge(game, enemy, enemy.harpoonCharge, dt);
+    if (result !== 'charging') enemy.harpoonCharge = null;
+  }
   if (enemy.harpoonPowerup) {
     const result = stepCollectiblePowerup(game, enemy.harpoonPowerup, dt);
     if (result === 'collected') {
       const target = nearestBuzzardForHarpoon(game, enemy.harpoonPowerup) ?? enemy;
-      target.harpoonField = {
-        timer: ZEPPELIN_HARPOON_FIELD_SECONDS,
-        duration: ZEPPELIN_HARPOON_FIELD_SECONDS,
-        x: target.x,
-        y: target.y,
-        z: target.elevation?.z ?? BUZZARD_AIR_Z,
-        affectsProjectiles: true,
-      };
+      target.harpoonCharge = createHarpoonCharge({ affectsProjectiles: true });
       enemy.harpoonPowerup = null;
       state.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
     } else if (result === 'expired') {
@@ -4194,6 +4200,153 @@ function stepBuzzardHarpoonPowerup(game, enemy, state, dt) {
   enemy.harpoonPowerup = createZeppelinHarpoonPowerup(game);
   enemy.harpoonPowerup.kind = 'buzzardHarpoon';
   state.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
+}
+
+function createHarpoonCharge(fieldOptions = {}) {
+  return {
+    timer: ZEPPELIN_HARPOON_CHARGE_SECONDS,
+    duration: ZEPPELIN_HARPOON_CHARGE_SECONDS,
+    fieldOptions,
+  };
+}
+
+function stepHarpoonCharge(game, target, charge, dt) {
+  if (!target || target.destroyed) return 'cancelled';
+  charge.timer = Math.max(0, charge.timer - dt);
+  emitHarpoonChargeParticles(game, charge, dt);
+  if (charge.timer > 0) return 'charging';
+  launchHarpoonShot(game, target, charge.fieldOptions ?? {});
+  return 'launched';
+}
+
+function emitHarpoonChargeParticles(game, charge, dt) {
+  const muzzles = gunMuzzlesWorld(game.vehicle, game.vehicle.turretHeading);
+  if (muzzles.length === 0) {
+    const muzzle = gunMuzzleWorld(game.vehicle, game.vehicle.turretHeading);
+    if (muzzle) muzzles.push(muzzle);
+  }
+  if (muzzles.length === 0) return;
+  const progress = 1 - charge.timer / Math.max(0.001, charge.duration);
+  const mean = (7 + progress * 9) * dt * Math.min(3, muzzles.length);
+  charge.particleDebt = (charge.particleDebt ?? 0) + mean;
+  let count = Math.min(9, Math.floor(charge.particleDebt));
+  charge.particleDebt -= count;
+  if (count === 0 && game.rng.chance(charge.particleDebt)) {
+    count = 1;
+    charge.particleDebt = 0;
+  }
+  for (let index = 0; index < count; index += 1) {
+    const muzzle = muzzles[Math.floor(game.rng.range(0, muzzles.length))] ?? muzzles[0];
+    const angle = game.rng.range(0, Math.PI * 2);
+    const distance = game.rng.range(CELL_SIZE * (2.2 + progress), CELL_SIZE * (7.2 - progress * 2.2));
+    const lifetime = game.rng.range(0.34, 0.62);
+    const x = muzzle.x + Math.cos(angle) * distance;
+    const y = muzzle.y + Math.sin(angle) * distance;
+    pushSmokeParticle(game, {
+      kind: 'harpoon-charge',
+      x,
+      y,
+      vx: (muzzle.x - x) / lifetime + game.rng.range(-12, 12),
+      vy: (muzzle.y - y) / lifetime + game.rng.range(-12, 12),
+      radius: game.rng.range(1.2, 2.8) * (0.75 + progress * 0.45),
+      color: HARPOON_CHARGE_PARTICLE_COLORS[Math.floor(game.rng.range(0, HARPOON_CHARGE_PARTICLE_COLORS.length))],
+      lifetime,
+      maxLifetime: lifetime,
+      growth: game.rng.range(-0.6, 1.2),
+      light: { radius: CELL_SIZE * 3.5, intensity: 0.18, color: '#7fe8ff', priority: 18 },
+    });
+  }
+}
+
+function launchHarpoonShot(game, target, fieldOptions = {}) {
+  const muzzles = gunMuzzlesWorld(game.vehicle, game.vehicle.turretHeading);
+  const muzzle =
+    muzzles.reduce((nearest, candidate) => (
+      !nearest || distanceSquared(candidate, target) < distanceSquared(nearest, target) ? candidate : nearest
+    ), null) ??
+    gunMuzzleWorld(game.vehicle, game.vehicle.turretHeading) ??
+    { x: game.vehicle.x, y: game.vehicle.y };
+  const z = target.elevation?.z ?? (target.archetypeId === 'scrap_buzzard.shadowed_desert' ? BUZZARD_AIR_Z : CELL_LAYER_HEIGHT * 14);
+  const distance = Math.max(1, Math.hypot(target.x - muzzle.x, target.y - muzzle.y));
+  const duration = clamp(distance / HARPOON_SHOT_SPEED, HARPOON_SHOT_MIN_SECONDS, HARPOON_SHOT_MAX_SECONDS);
+  game.harpoonShots.push({
+    kind: 'electricHarpoon',
+    x: muzzle.x,
+    y: muzzle.y,
+    z: 0,
+    startX: muzzle.x,
+    startY: muzzle.y,
+    target,
+    targetZ: z,
+    timer: duration,
+    duration,
+    lifetime: duration,
+    maxLifetime: duration,
+    angle: Math.atan2(target.y - muzzle.y, target.x - muzzle.x),
+    radius: 4.2,
+    color: '#7fe8ff',
+    sprite: structuredClone(HARPOON_PROJECTILE_SPRITE),
+    fieldOptions: { ...fieldOptions },
+  });
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
+}
+
+function stepHarpoonShots(game, dt) {
+  const kept = [];
+  for (const shot of game.harpoonShots ?? []) {
+    if (!shot.target || shot.target.destroyed) continue;
+    shot.previousX = shot.x;
+    shot.previousY = shot.y;
+    shot.timer = Math.max(0, shot.timer - dt);
+    shot.lifetime = shot.timer;
+    const progress = 1 - shot.timer / Math.max(0.001, shot.duration);
+    const targetZ = shot.target.elevation?.z ?? shot.targetZ ?? 0;
+    shot.targetZ = targetZ;
+    shot.x = shot.startX + (shot.target.x - shot.startX) * progress;
+    shot.y = shot.startY + (shot.target.y - shot.startY) * progress;
+    shot.z = targetZ * progress;
+    shot.angle = Math.atan2(shot.target.y - shot.previousY, shot.target.x - shot.previousX);
+    emitHarpoonShotTrail(game, shot, dt);
+    if (shot.timer <= 0) {
+      applyHarpoonField(shot.target, shot.fieldOptions ?? {});
+      continue;
+    }
+    kept.push(shot);
+  }
+  game.harpoonShots = kept;
+}
+
+function emitHarpoonShotTrail(game, shot, dt) {
+  const count = Math.min(5, samplePoisson(game.rng, 18 * dt));
+  for (let index = 0; index < count; index += 1) {
+    const angle = shot.angle + Math.PI + game.rng.range(-0.8, 0.8);
+    const speed = game.rng.range(12, 42);
+    pushSmokeParticle(game, {
+      kind: 'harpoon-electric-trail',
+      x: shot.x + game.rng.range(-2.5, 2.5),
+      y: shot.y + game.rng.range(-2.5, 2.5),
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: game.rng.range(0.9, 2.2),
+      color: HARPOON_CHARGE_PARTICLE_COLORS[Math.floor(game.rng.range(0, HARPOON_CHARGE_PARTICLE_COLORS.length))],
+      lifetime: game.rng.range(0.12, 0.24),
+      maxLifetime: 0.24,
+      growth: game.rng.range(1.8, 3.4),
+      light: { radius: CELL_SIZE * 4.2, intensity: 0.24, color: '#83f7ff', priority: 32 },
+    });
+  }
+}
+
+function applyHarpoonField(target, fieldOptions = {}) {
+  target.harpoonField = {
+    timer: ZEPPELIN_HARPOON_FIELD_SECONDS,
+    duration: ZEPPELIN_HARPOON_FIELD_SECONDS,
+    x: target.x,
+    y: target.y,
+    z: target.elevation?.z ?? (target.archetypeId === 'scrap_buzzard.shadowed_desert' ? BUZZARD_AIR_Z : CELL_LAYER_HEIGHT * 14),
+    affectsProjectiles: Boolean(fieldOptions.affectsProjectiles),
+    electricGlow: true,
+  };
 }
 
 function stepCollectiblePowerup(game, powerup, dt) {

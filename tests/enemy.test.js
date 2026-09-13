@@ -1810,12 +1810,28 @@ test('zeppelin harpoon powerups spawn, expire, and trigger harpoon charge when c
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(boss.zeppelin.harpoonPowerup, null);
   assert.equal(Boolean(boss.zeppelin.harpoonCharge), true);
+  assert.equal(boss.zeppelin.harpoonCharge.duration, 3);
+  assert.equal(Boolean(boss.harpoonField), false);
 
-  for (let index = 0; index < 130 && !boss.harpoonField; index += 1) {
+  for (let index = 0; index < 30 && !game.smokeParticles.some((particle) => particle.kind === 'harpoon-charge'); index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
+  assert.equal(game.smokeParticles.some((particle) => particle.kind === 'harpoon-charge'), true);
+
+  for (let index = 0; index < 190 && game.harpoonShots.length === 0; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
+  assert.equal(game.harpoonShots.length, 1);
+  assert.equal(game.harpoonShots[0].kind, 'electricHarpoon');
+  assert.equal(game.harpoonShots[0].sprite.assetId, 'sprite.weapon.tracking_flechette');
+  assert.equal(Boolean(boss.harpoonField), false);
+
+  for (let index = 0; index < 60 && !boss.harpoonField; index += 1) {
     stepGame(game, { gunnerEnabled: false }, 1 / 60);
   }
   assert.equal(Boolean(boss.harpoonField), true);
   assert.equal(boss.harpoonField.duration, 10);
+  assert.equal(boss.harpoonField.electricGlow, true);
 });
 
 test('harpoon powerups magnetize toward collection modules', () => {
@@ -1900,7 +1916,19 @@ test('buzzard harpoons target the nearest active buzzard', () => {
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
   assert.equal(buzzard.harpoonPowerup, null);
+  assert.equal(Boolean(buzzard.harpoonCharge), true);
+  assert.equal(Boolean(buzzard.harpoonField), false);
+
+  for (let index = 0; index < 190 && game.harpoonShots.length === 0; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
+  assert.equal(game.harpoonShots.length, 1);
+
+  for (let index = 0; index < 60 && !buzzard.harpoonField; index += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  }
   assert.equal(buzzard.harpoonField.affectsProjectiles, true);
+  assert.equal(buzzard.harpoonField.electricGlow, true);
 });
 
 test('destroyed enemy remnants are removed after their short fade window', () => {
