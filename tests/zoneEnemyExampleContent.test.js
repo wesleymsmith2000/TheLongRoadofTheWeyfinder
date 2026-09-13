@@ -18,6 +18,7 @@ import spiderWalkerConstruct from '../content/examples/prototype0-zone-enemy-set
 import spideryWalkerConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import burlyWalkerBossBodyConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.burly_walker_boss_body_sculpted.json' with { type: 'json' };
 import rotatableBossCannonConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.rotatable_boss_cannon_sculpted.json' with { type: 'json' };
+import zeppelinBossConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.zeppelin_boss_sculpted.json' with { type: 'json' };
 import scrapBuzzardConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
 import inchwormHeadConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json' with { type: 'json' };
 import inchwormBodySegmentConstruct from '../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json' with { type: 'json' };
@@ -49,6 +50,7 @@ const constructs = [
   spideryWalkerConstruct,
   burlyWalkerBossBodyConstruct,
   rotatableBossCannonConstruct,
+  zeppelinBossConstruct,
   scrapBuzzardConstruct,
   inchwormHeadConstruct,
   inchwormBodySegmentConstruct,
@@ -106,6 +108,11 @@ test('zone enemy examples preserve requested advanced behavior descriptors', () 
   assert.equal(byId.get('example.walker_cannon_boss.twilight_crossroads').construct, 'example.construct.burly_walker_boss_body_sculpted');
   assert.equal(byId.get('example.walker_cannon_boss.twilight_crossroads').aggregate.kind, 'multiPartBoss');
   assert.equal(byId.get('example.walker_cannon_boss.twilight_crossroads').aggregate.parts.filter((part) => part.role === 'rotatableCannon').length, 3);
+  assert.equal(byId.get('example.zeppelin_boss.starlight_twilight').runtimeFactory, 'createZeppelinBossEnemy');
+  assert.equal(byId.get('example.zeppelin_boss.starlight_twilight').construct, 'example.construct.zeppelin_boss_sculpted');
+  assert.equal(byId.get('example.zeppelin_boss.starlight_twilight').presentation.variant, 'zeppelinBoss');
+  assert.equal(byId.get('example.zeppelin_boss.starlight_twilight').zeppelin.innerLiningDamageGroup, 'innerLining');
+  assert.equal(byId.get('example.zeppelin_boss.starlight_twilight').tags.includes('dev-lookup:zeppelin-boss-symmetric'), true);
   assert.deepEqual(
     byId
       .get('example.walker_cannon_boss.twilight_crossroads')
@@ -128,6 +135,7 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   const spideryWalker = byId.get('example.construct.spidery_walker_sculpted');
   const bossWalkerBody = byId.get('example.construct.burly_walker_boss_body_sculpted');
   const rotatableBossCannon = byId.get('example.construct.rotatable_boss_cannon_sculpted');
+  const zeppelinBoss = byId.get('example.construct.zeppelin_boss_sculpted');
   const roadCars = [
     byId.get('example.construct.weyfinder_road_car_sculpted'),
     byId.get('example.construct.weyfinder_road_armored_car_sculpted'),
@@ -191,6 +199,14 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
   assert.equal(rotatableBossCannon.cells.filter((cell) => cell.role === 'mountSocket' && cell.type === 'utility').length, 5);
   assert.equal(rotatableBossCannon.tags.includes('dev-lookup:boss-rotatable-cannon'), true);
   assert.equal(rotatableBossCannon.tags.includes('runtime-hook:rotatableCannon'), true);
+  assert.equal(zeppelinBoss.cells.filter((cell) => cell.role === 'zeppelinCore' && cell.type === 'core').length, 1);
+  assert.equal(zeppelinBoss.cells.filter((cell) => cell.role === 'zeppelinCannon' && cell.type === 'gun').length, 3);
+  assert.equal(zeppelinBoss.cells.filter((cell) => cell.role === 'zeppelinThruster' && cell.type === 'engine').length, 2);
+  assert.equal(zeppelinBoss.cells.filter((cell) => cell.role === 'innerLining' && cell.type === 'armor').length > 200, true);
+  assert.equal(zeppelinBoss.cells.filter((cell) => cell.role === 'zeppelinHull' && cell.type === 'armor').length > 500, true);
+  assert.equal(zeppelinBoss.tags.includes('dev-lookup:zeppelin-boss-symmetric'), true);
+  assert.equal(zeppelinBoss.tags.includes('runtime-hook:zeppelinBoss'), true);
+  assert.equal(hasMirroredLongAxisCells(zeppelinBoss), true);
   assert.equal(byId.get('example.construct.scrap_buzzard_sculpted').cells.filter((cell) => cell.role === 'wing').length >= 8, true);
   assert.equal(byId.get('example.construct.inchworm_head_sculpted').cells.length >= 55, true);
   assert.equal(byId.get('example.construct.inchworm_body_segment_sculpted').cells.length >= 35, true);
@@ -211,3 +227,12 @@ test('zone enemy sculpted constructs use enlarged editable module counts', () =>
     assert.equal(construct.connections.length, construct.cells.length - 1, construct.assetId);
   }
 });
+
+function hasMirroredLongAxisCells(construct) {
+  const byMirrorKey = new Set(construct.cells.map((cell) => mirrorKey(cell)));
+  return construct.cells.every((cell) => cell.gridY === 0 || byMirrorKey.has(mirrorKey(cell, -cell.gridY)));
+}
+
+function mirrorKey(cell, gridY = cell.gridY) {
+  return [cell.gridX, gridY, cell.gridZ ?? 0, cell.type, cell.role].join('|');
+}

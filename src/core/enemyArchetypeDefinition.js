@@ -41,6 +41,7 @@ export const ENEMY_PRESENTATION_VARIANTS = [
   'roadCar',
   'sideStrafeFlechetteRacer',
   'spiderWalker',
+  'zeppelinBoss',
   'scrapBuzzard',
   'inchwormCarrier',
   'mothBomber',

@@ -10,6 +10,7 @@ import spiderWalkerConstruct from '../../content/examples/prototype0-zone-enemy-
 import spideryWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import burlyWalkerBossBodyConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.burly_walker_boss_body_sculpted.json' with { type: 'json' };
 import rotatableBossCannonConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.rotatable_boss_cannon_sculpted.json' with { type: 'json' };
+import zeppelinBossConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.zeppelin_boss_sculpted.json' with { type: 'json' };
 import scrapBuzzardConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
 import inchwormHeadConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json' with { type: 'json' };
 import inchwormBodySegmentConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json' with { type: 'json' };
@@ -28,6 +29,7 @@ export const BUILTIN_CONSTRUCT_DEFINITIONS = Object.freeze([
   spideryWalkerConstruct,
   burlyWalkerBossBodyConstruct,
   rotatableBossCannonConstruct,
+  zeppelinBossConstruct,
   scrapBuzzardConstruct,
   inchwormHeadConstruct,
   inchwormBodySegmentConstruct,

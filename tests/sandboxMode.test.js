@@ -92,6 +92,19 @@ test('sandbox can schedule the Weyfinder Road hotrod boss archetype', () => {
   assert.equal(queue[0].enemy.cells.some((cell) => cell.role === 'roadBossBladeLauncher'), true);
 });
 
+test('sandbox can schedule Shadowed Road mine dropper and boss runtime archetypes', () => {
+  const mineDefinition = sandboxDefinitionFromEnemy('shadowed_road_mine_dropper.prototype0', { count: 1, interval: 0 });
+  const mineQueue = createSandboxEnemySchedule(ROAD, mineDefinition, new Rng(15));
+  assert.equal(mineQueue[0].enemy.archetypeId, 'shadowed_road_mine_dropper.prototype0');
+  assert.equal(mineQueue[0].enemy.carBehavior.movement, 'mineDropper');
+
+  const bossDefinition = sandboxDefinitionFromEnemy('boss.shadowed_road_hotrod.prototype0', { count: 1, interval: 0 });
+  const bossQueue = createSandboxEnemySchedule(ROAD, bossDefinition, new Rng(16));
+  assert.equal(bossQueue[0].enemy.kind, 'roadBossCar');
+  assert.equal(bossQueue[0].enemy.archetypeId, 'boss.shadowed_road_hotrod.prototype0');
+  assert.equal(bossQueue[0].enemy.roadBossCar.variant, 'shadowedRoad');
+});
+
 test('sandbox can schedule the octopus boss archetype alias as a real boss', () => {
   const definition = sandboxDefinitionFromEnemy('boss.octopus.prototype0', { count: 1, interval: 0 });
   const queue = createSandboxEnemySchedule(ROAD, definition, new Rng(13));

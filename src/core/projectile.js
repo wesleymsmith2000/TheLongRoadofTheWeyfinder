@@ -75,6 +75,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     stopBeforeAcceleration: Boolean(options.stopBeforeAcceleration),
     launchWhenFacingTarget: Boolean(options.launchWhenFacingTarget),
     explodeAfterAcceleration: Boolean(options.explodeAfterAcceleration),
+    explodeOnExpire: Boolean(options.explodeOnExpire),
     blastOnExpire: options.blastOnExpire ?? null,
     readyToExplode: false,
     vanishOffscreen: Boolean(options.vanishOffscreen),
@@ -121,7 +122,7 @@ export function stepProjectiles(projectiles, dt, targets = []) {
     projectile.y += projectile.vy * dt;
     if (projectile.behavior === 'arc') stepArcProjectile(projectile, dt);
     projectile.lifetime -= dt;
-    if (projectile.lifetime <= 0 && projectile.detonateAtTarget) projectile.readyToExplode = true;
+    if (projectile.lifetime <= 0 && (projectile.detonateAtTarget || projectile.explodeOnExpire)) projectile.readyToExplode = true;
   }
   return projectiles.filter((projectile) => projectile.lifetime > 0 || projectile.readyToExplode);
 }

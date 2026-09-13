@@ -158,6 +158,12 @@ const SHAPES = [
     layers: rotatableBossCannonLayers(),
   },
   {
+    assetId: 'example.construct.zeppelin_boss_sculpted',
+    displayName: 'Sculpted Symmetric Zeppelin Boss Construct',
+    tags: ['boss', 'zeppelin', 'airship', 'starlight-road', 'twilight-crossroads', 'runtime-hook:zeppelinBoss', 'dev-lookup:zeppelin-boss-symmetric'],
+    layers: zeppelinBossLayers(),
+  },
+  {
     assetId: 'example.construct.scrap_buzzard_sculpted',
     displayName: 'Sculpted Scrap Buzzard Construct',
     tags: ['shadowed-desert', 'buzzard'],
@@ -603,6 +609,57 @@ function rotatableBossCannonLayers() {
   ];
 }
 
+function zeppelinBossLayers() {
+  const centerZ = 3;
+  const lengthRadius = 12;
+  const widthRadius = 6;
+  const heightRadius = 3;
+  const detailCells = new Map([
+    ['0,0,1', 'c'],
+    ['0,-7,2', 'g'],
+    ['0,7,2', 'g'],
+    ['11,0,2', 'g'],
+    ['-13,-3,3', 'e'],
+    ['-13,3,3', 'e'],
+    ['-12,-6,3', 'a'],
+    ['-12,6,3', 'a'],
+    ['-11,-7,3', 'a'],
+    ['-11,7,3', 'a'],
+    ['-10,-6,3', 'a'],
+    ['-10,6,3', 'a'],
+    ['-11,0,6', 'a'],
+    ['-10,0,7', 'a'],
+    ['-9,0,6', 'a'],
+  ]);
+  const layers = [];
+  for (let z = 0; z <= 6; z += 1) {
+    const rows = [];
+    for (let y = -8; y <= 8; y += 1) {
+      let row = '';
+      for (let x = -13; x <= 12; x += 1) {
+        const detailMark = detailCells.get(`${x},${y},${z}`);
+        if (detailMark) {
+          row += detailMark;
+          continue;
+        }
+        const normalized =
+          (x * x) / (lengthRadius * lengthRadius) +
+          (y * y) / (widthRadius * widthRadius) +
+          ((z - centerZ) * (z - centerZ)) / (heightRadius * heightRadius);
+        const inner =
+          (x * x) / ((lengthRadius - 2) * (lengthRadius - 2)) +
+          (y * y) / ((widthRadius - 2) * (widthRadius - 2)) +
+          ((z - centerZ) * (z - centerZ)) / Math.max(0.001, (heightRadius - 1) * (heightRadius - 1));
+        const isShell = normalized <= 1.04 && inner >= 0.72;
+        row += isShell ? 'a' : '.';
+      }
+      rows.push(row);
+    }
+    layers.push({ z, x0: -13, y0: -8, rows, layerRole: 'zeppelinBossShell' });
+  }
+  return layers;
+}
+
 function connectionTree(cells, byPosition) {
   const core = cells.find((cell) => cell.type === 'core');
   const connected = new Set([core.id]);
@@ -666,6 +723,19 @@ function connectionBetween(a, b) {
 }
 
 function roleFor(shape, type, gridX, gridY, gridZ = 0) {
+  if (shape.assetId.includes('zeppelin_boss')) {
+    if (type === 'core') return 'zeppelinCore';
+    if (type === 'gun') return 'zeppelinCannon';
+    if (type === 'engine') return 'zeppelinThruster';
+    if (type === 'armor' && gridX <= -9 && Math.abs(gridY) >= 6) return 'zeppelinFin';
+    if (type === 'armor' && gridX <= -9 && gridY === 0 && gridZ >= 6) return 'zeppelinFin';
+    const centerZ = 3;
+    const inner =
+      (gridX * gridX) / (10 * 10) +
+      (gridY * gridY) / (4 * 4) +
+      ((gridZ - centerZ) * (gridZ - centerZ)) / Math.max(0.001, 2 * 2);
+    return inner < 1.18 ? 'innerLining' : 'zeppelinHull';
+  }
   if (type === 'core') return 'core';
   if (shape.assetId.includes('ghost') && type === 'gun') return 'eyeGun';
   if (shape.assetId.includes('frog') && type === 'gun') return 'eyeGun';
@@ -702,6 +772,12 @@ function roleFor(shape, type, gridX, gridY, gridZ = 0) {
 }
 
 function appearanceFor(shape, cell) {
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinHull') return { tint: '#8fa6ad', label: 'zeppelin outer hull' };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'innerLining') return { tint: '#c7d5d9', label: 'zeppelin inner lining' };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinCore') return { tint: '#ff5a2c', emissive: true, label: 'zeppelin undercarriage core' };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinCannon') return { tint: '#ff8f70', label: 'zeppelin cannon source' };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinFin') return { tint: '#5e7078', label: 'symmetric stabilizer fin' };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinThruster') return { tint: '#6fe0bf', emissive: true, label: 'zeppelin thruster' };
   if (shape.assetId.includes('walker') && cell.role === 'supportLeg') return { tint: '#9fc8ff', label: 'wheel leg' };
   if (shape.assetId.includes('walker') && cell.role === 'legJoint') return { tint: '#6fe0bf', label: 'engine joint' };
   if (shape.assetId.includes('walker') && cell.role === 'legArmor') return { tint: '#506181', label: 'leg armor' };
@@ -724,6 +800,11 @@ function appearanceFor(shape, cell) {
 }
 
 function metadataFor(shape, cell) {
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinHull') return { damageGroup: 'zeppelinHull' };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'innerLining') return { damageGroup: 'innerLining' };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinCannon') return { damageGroup: 'zeppelinCannons', runtimeSource: 'zeppelinWeapon' };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinCore') return { damageGroup: 'zeppelinCore', runtimeWeakPoint: true };
+  if (shape.assetId.includes('zeppelin_boss') && cell.role === 'zeppelinThruster') return { damageGroup: 'zeppelinThrusters' };
   if (shape.assetId.includes('burly_walker_boss_body') && cell.role === 'cannonMount') {
     if (cell.gridZ >= 8) return { slot: 'topCannonMount' };
     return { slot: cell.gridX < 0 ? 'leftCannonMount' : 'rightCannonMount' };
@@ -743,6 +824,13 @@ function metadataFor(shape, cell) {
 }
 
 function presentationFor(shape) {
+  if (shape.assetId.includes('zeppelin_boss')) {
+    return {
+      shape: 'zeppelin',
+      variant: 'symmetricLongAxisBoss',
+      notes: 'Layered ellipsoid airship hull mirrored across the long X axis, with paired port/starboard underside cannons, a centerline nose cannon, mirrored rear thrusters, and mirrored stabilizer fins.',
+    };
+  }
   if (shape.assetId.includes('inchworm_head')) {
     return { shape: 'roundedOrb', relativeScale: 1.25, notes: 'Compound enemy head: rounded shell, pinser-like mandibles, red/orange gun eyes.' };
   }

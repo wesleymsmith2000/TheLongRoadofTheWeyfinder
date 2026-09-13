@@ -35,6 +35,7 @@ Start here:
 - [Sculpted Zone Enemy Constructs Handoff](./sculpted-zone-enemy-constructs-handoff.md)
 - [Spidery Walker Alternate Enemy Handoff](./spidery-walker-alt-enemy-handoff.md)
 - [Walker Cannon Boss Editor Handoff](./walker-cannon-boss-editor-handoff.md)
+- [Zeppelin Boss Symmetric Sculpt Handoff](./zeppelin-boss-symmetric-sculpt-handoff.md)
 - [Inchworm Linked Construct Editor Handoff](./inchworm-linked-construct-editor-handoff.md)
 - [Race Car Enemy Runtime Handoff](./race-car-enemy-runtime-handoff.md)
 - [Weyfinder Road Car Enemy Content Handoff](./weyfinder-road-car-enemy-content-handoff.md)

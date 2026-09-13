@@ -44,6 +44,19 @@ test('zone 1 boss track routes to the Weyfinder Road hotrod boss', () => {
   assert.equal(enemies.find((enemy) => enemy.kind === 'roadBossCar').archetypeId, 'boss.weyfinder_road_hotrod.prototype0');
 });
 
+test('Shadowed Road traversal tracks use car enemies, mine droppers, and the hotrod boss variant', () => {
+  const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
+  const enemies = createLevelEnemies(road, 3, ['ShadowedRoad_1']);
+  assert.equal(enemies.some((enemy) => enemy.archetypeId === 'shadowed_road_mine_dropper.prototype0'), true);
+  assert.equal(enemies.some((enemy) => enemy.archetypeId === 'weyfinder_road_flechette_racer.prototype0'), true);
+
+  const bosses = createLevelEnemies(road, 1, ['ShadowedRoad_BossFight_1']);
+  const boss = bosses.find((enemy) => enemy.kind === 'roadBossCar');
+  assert.equal(boss.archetypeId, 'boss.shadowed_road_hotrod.prototype0');
+  assert.equal(boss.roadBossCar.variant, 'shadowedRoad');
+  assert.equal(boss.roadBossCar.escapeCar, true);
+});
+
 test('starlight and twilight boss tracks route to the zeppelin boss', () => {
   const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
   const starlight = createLevelEnemies(road, 1, ['StarlightRoad_BossFight']);

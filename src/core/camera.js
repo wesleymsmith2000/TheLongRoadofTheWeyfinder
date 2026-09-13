@@ -8,11 +8,17 @@ const MOBILE_VIEWPORT_MAX_LONG_EDGE = 1024;
 export function createRoadFrame(vehicle, options = {}) {
   const route = options.route ?? DEFAULT_ROAD_ROUTE;
   const pose = sampleRoadRoute(route, 0);
+  const speed = options.speed ?? 30;
   return {
     x: pose.x,
     y: pose.y,
     heading: pose.heading,
-    speed: 30,
+    baseX: pose.x,
+    baseY: pose.y,
+    speed,
+    baseSpeed: speed,
+    targetSpeed: speed,
+    lateralOffset: 0,
     halfWidth: 120,
     halfHeight: 92,
     route,
@@ -26,8 +32,12 @@ export function stepRoadFrame(road, dt) {
   const previous = { x: road.x, y: road.y, heading: road.heading, routeSegmentIndex: road.routeSegmentIndex };
   road.routeDistance = Math.max(0, (road.routeDistance ?? 0) + road.speed * dt);
   const pose = sampleRoadRoute(road.route ?? DEFAULT_ROAD_ROUTE, road.routeDistance);
-  road.x = pose.x;
-  road.y = pose.y;
+  const right = rotatePoint(1, 0, pose.heading);
+  const lateralOffset = road.lateralOffset ?? 0;
+  road.baseX = pose.x;
+  road.baseY = pose.y;
+  road.x = pose.x + right.x * lateralOffset;
+  road.y = pose.y + right.y * lateralOffset;
   road.heading = pose.heading;
   road.routeSegmentIndex = pose.segmentIndex;
   const enteredCurve = pose.segmentIndex !== previous.routeSegmentIndex && isRouteTurnSegment(pose.segment);

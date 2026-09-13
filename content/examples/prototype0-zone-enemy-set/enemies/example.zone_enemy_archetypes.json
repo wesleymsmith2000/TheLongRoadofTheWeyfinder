@@ -291,6 +291,41 @@
       "editable": ["construct", "patterns", "entry", "palette", "movementProfiles", "aggregate", "elevation", "layerCollapse", "fallWhenSupportsDestroyed", "cellAnimations", "cannons"]
     },
     {
+      "id": "example.zeppelin_boss.starlight_twilight",
+      "displayName": "Starlight / Twilight Zeppelin Boss",
+      "runtimeFactory": "createZeppelinBossEnemy",
+      "baseArchetype": "boss.zeppelin.prototype0",
+      "construct": "example.construct.zeppelin_boss_sculpted",
+      "patterns": [],
+      "zone": "StarlightRoad",
+      "tags": ["boss", "zeppelin", "airship", "starlight-road", "twilight-crossroads", "dev-lookup:zeppelin-boss-symmetric", "runtime-hook:zeppelinBoss"],
+      "entry": { "kind": "aheadBoss", "direction": "roadForward", "speed": 18, "warningLeadSeconds": 4 },
+      "palette": { "core": "#ff5a2c", "armor": "#8fa6ad", "gun": "#ff8f70", "engine": "#6fe0bf", "lining": "#c7d5d9" },
+      "presentation": {
+        "variant": "zeppelinBoss",
+        "bodyVariant": "symmetricLongAxisBoss"
+      },
+      "movementProfiles": [
+        { "id": "zeppelin-strafe", "kind": "flyStrafe", "target": "player", "speed": 75, "minZ": 180, "maxZ": 180, "amplitude": 160, "frequency": 0.12 }
+      ],
+      "aggregate": {
+        "kind": "singleBody",
+        "parts": [
+          { "id": "hull", "role": "zeppelinHull", "construct": "example.construct.zeppelin_boss_sculpted", "count": 1 }
+        ]
+      },
+      "elevation": { "z": 180, "canBeHitByGroundFire": false, "arcCollision": true, "layeredExposure": true },
+      "zeppelin": {
+        "cannonRole": "zeppelinCannon",
+        "coreRole": "zeppelinCore",
+        "innerLiningDamageGroup": "innerLining",
+        "hullDamageGroup": "zeppelinHull",
+        "harpoonFieldRequiredForGroundFire": true,
+        "meltdownInnerLiningDestroyedRatio": 0.33
+      },
+      "editable": ["construct", "entry", "palette", "movementProfiles", "aggregate", "elevation", "zeppelin"]
+    },
+    {
       "id": "example.scrap_buzzard.shadowed_desert",
       "displayName": "Shadowed Desert Scrap Buzzard",
       "runtimeFactory": "createEnemy",

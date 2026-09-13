@@ -95,6 +95,13 @@ export const TARGETING_MODES = ['manual', 'guided', 'mixed'];
 const SPAWN_WARNING_LEAD = 2.4;
 const BOSS_LASER_CHARGE_TIME = 3;
 const BOSS_LASER_LOCK_TIME = 1;
+const DESTROYED_ENEMY_REMNANT_SECONDS = 3.8;
+const ROAD_EDGE_SIDE_SLIDE_SPEED = 42;
+const ROAD_EDGE_SPEED_RETURN_SECONDS = 2.6;
+const ROAD_EDGE_ACCEL_SECONDS = 2.3;
+const ROAD_EDGE_BRAKE_SECONDS = 1.6;
+const SHADOWED_ROAD_1_SECONDS = 129;
+const SHADOWED_ROAD_2_SECONDS = 107;
 const PRIMARY_WEAPON_DEFINITIONS = {
   tracking_flechette: runtimeWeaponDefinition(trackingFlechetteDefinition),
   mortar: runtimeWeaponDefinition(mortarDefinition),
@@ -124,6 +131,17 @@ const MOTH_BOMBER_FUSE_SECONDS = 3;
 const MOTH_BOMBER_HOVER_Z = CELL_LAYER_HEIGHT * 0.65;
 const MOTH_BOMBER_EDGE_TURN_SECONDS = 0.22;
 const MOTH_BOMBER_FRIENDLY_FIRE_IGNORE_TAGS = ['inchworm', 'moth'];
+const BUZZARD_AIR_Z = CELL_LAYER_HEIGHT * 9.2;
+const BUZZARD_LAND_Z = 0;
+const BUZZARD_FEED_RANGE = CELL_SIZE * 2.8;
+const BUZZARD_PANIC_TAKEOFF_SECONDS = 1;
+const BUZZARD_PANIC_CUES = [
+  String.fromCodePoint(0x1f623),
+  String.fromCodePoint(0x1f615),
+  String.fromCodePoint(0x1f4ab),
+  String.fromCodePoint(0x1f630),
+  String.fromCodePoint(0x1f9b6),
+];
 const ZEPPELIN_HARPOON_CHARGE_SECONDS = 2;
 const ZEPPELIN_HARPOON_FIELD_SECONDS = 10;
 const ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS = 15;
@@ -167,6 +185,11 @@ const ROAD_BOSS_CAR_STRAFE_SPEED = 165;
 const ROAD_BOSS_CAR_ORBIT_SECONDS = 5.5;
 const ROAD_BOSS_CAR_STRAFE_SECONDS = 6.5;
 const ROAD_BOSS_CAR_ESCAPE_PODS = 5;
+const SHADOWED_MINE_DROPPER_SPEED = 118;
+const SHADOWED_MINE_COOLDOWN = [1.65, 2.45];
+const SHADOWED_MINE_FUSE_SECONDS = 5;
+const SHADOWED_MINE_BLAST_RADIUS = ENEMY_SINGLE_MORTAR_BLAST_RADIUS;
+const SHADOWED_MINE_BLAST_DAMAGE = 4.5;
 const RACE_CAR_STRAFE_SPEED = 185;
 const RACE_CAR_FLECHETTE_COOLDOWN = 0.58;
 const RACE_CAR_SPINOUT_SECONDS = 3;
@@ -293,6 +316,24 @@ const RUNTIME_ENEMY_ARCHETYPES = {
     zone: 'TheWeyfindersRoad',
     runtimeFactory: 'createRoadBossCarEnemy',
   },
+  'shadowed_road_mine_dropper.prototype0': {
+    id: 'shadowed_road_mine_dropper.prototype0',
+    displayName: 'Shadowed Road Mine Dropper',
+    zone: 'ShadowedRoad',
+    construct: weyfinderRoadArmoredCarSculptedDefinition.assetId,
+    carBehavior: {
+      movement: 'mineDropper',
+      speed: SHADOWED_MINE_DROPPER_SPEED,
+      spinout: { wheelBlocksDestroyed: 2 },
+    },
+  },
+  'boss.shadowed_road_hotrod.prototype0': {
+    id: 'boss.shadowed_road_hotrod.prototype0',
+    displayName: 'Shadowed Road Hotrod Boss',
+    zone: 'ShadowedRoad',
+    runtimeFactory: 'createRoadBossCarEnemy',
+    carBehavior: { kind: 'bossRoadster', variant: 'shadowedRoad', spinout: { wheelBlocksDestroyed: 2 } },
+  },
   'boss.pirate_dreadnought.prototype0': {
     id: 'boss.pirate_dreadnought.prototype0',
     displayName: 'Pirate Dreadnought Boss',
@@ -365,6 +406,7 @@ export function createGame(seed = 1147, options = {}) {
     : createLevelEnemySchedule(road, startLevel, levelMusic, rng);
   const initialSpawns = dequeueReadySpawns(enemySpawnQueue, 0);
   const currentMusic = sandboxDefinition ? options.music ?? 'Sandbox' : musicForLevel(startLevel, levelMusic);
+  const traversal = sandboxDefinition ? null : traversalTargetForTrack(currentMusic, road);
   const game = {
     rng,
     levelMusic,
@@ -396,6 +438,7 @@ export function createGame(seed = 1147, options = {}) {
     playerGunIndex: 0,
     levelComplete: false,
     victoryBanner: null,
+    traversal,
     levelTime: 0,
     level: sandboxDefinition?.level ?? startLevel,
     levelStartTime: 0,
@@ -465,6 +508,7 @@ export function stepGame(game, input, dt) {
     return stepEncounterHeldGame(game, input, dt, encounterPolicy);
   }
 
+  stepRoadEdgePressure(game, input, dt);
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
   applyRoadTurnDizziness(game, roadDelta.turnAngle);
@@ -512,7 +556,9 @@ export function stepGame(game, input, dt) {
   if (!game.performanceDiagnostics?.freezeTerrainStreaming) updateTerrainStreaming(game.terrain, game.camera);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   game.gameOver = !game.vehicle.alive;
-  const arenaClear = shouldCompleteRun(game) && activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0;
+  const traversalClear = traversalTargetReached(game);
+  if (traversalClear) game.enemySpawnQueue = [];
+  const arenaClear = traversalClear || (shouldCompleteRun(game) && activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0);
   stepVictoryBanner(game, arenaClear, dt);
   if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
   stepProceduralMusic(game, dt);
@@ -538,6 +584,66 @@ function stepPausedGame(game, input, dt) {
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
   game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
   stepSmokeParticles(game, dt);
+}
+
+function stepRoadEdgePressure(game, input, dt) {
+  const road = game.road;
+  const baseSpeed = road.baseSpeed ?? 30;
+  const offset = worldToRoadOffset(game.vehicle, road);
+  const localInput = worldDirectionToRoad({ x: input.x ?? 0, y: input.y ?? 0 }, road);
+  const edgeX = edgePressure(offset.x, road.halfWidth);
+  const edgeY = edgePressure(offset.y, road.halfHeight);
+  const sidePush = edgeX > 0 && Math.sign(localInput.x) === Math.sign(offset.x) ? localInput.x * edgeX : 0;
+  if (Math.abs(sidePush) > 0.01) {
+    road.lateralOffset = clamp(
+      (road.lateralOffset ?? 0) + sidePush * ROAD_EDGE_SIDE_SLIDE_SPEED * dt,
+      -road.halfWidth * 0.72,
+      road.halfWidth * 0.72,
+    );
+  } else {
+    const recenter = Math.min(1, dt / ROAD_EDGE_SPEED_RETURN_SECONDS);
+    road.lateralOffset = (road.lateralOffset ?? 0) * (1 - recenter);
+  }
+
+  let targetSpeed = baseSpeed;
+  const pushingTop = edgeY > 0 && offset.y < 0 && localInput.y < -0.2;
+  const pushingBottom = edgeY > 0 && offset.y > 0 && localInput.y > 0.2;
+  if (pushingTop) targetSpeed = baseSpeed * (1 + edgeY * 2);
+  else if (pushingBottom) targetSpeed = baseSpeed * (1 - edgeY * 0.875);
+  road.targetSpeed = targetSpeed;
+  const seconds = targetSpeed > road.speed ? ROAD_EDGE_ACCEL_SECONDS : targetSpeed < road.speed ? ROAD_EDGE_BRAKE_SECONDS : ROAD_EDGE_SPEED_RETURN_SECONDS;
+  const blend = Math.min(1, dt / seconds);
+  road.speed += (targetSpeed - road.speed) * blend;
+  road.speed = clamp(road.speed, baseSpeed / 8, baseSpeed * 3);
+}
+
+function edgePressure(value, halfSize) {
+  const start = halfSize * 0.86;
+  return clamp((Math.abs(value) - start) / Math.max(1, halfSize - start), 0, 1);
+}
+
+function traversalTargetForTrack(trackName, road) {
+  const seconds = traversalSecondsForTrack(trackName);
+  if (!seconds) return null;
+  const baseSpeed = road?.baseSpeed ?? road?.speed ?? 30;
+  return {
+    trackName,
+    startDistance: road?.routeDistance ?? 0,
+    targetDistance: baseSpeed * seconds,
+    targetSeconds: seconds,
+  };
+}
+
+function traversalSecondsForTrack(trackName = '') {
+  if (/^ShadowedRoad_1$/i.test(trackName)) return SHADOWED_ROAD_1_SECONDS;
+  if (/^ShadowedRoad_2$/i.test(trackName)) return SHADOWED_ROAD_2_SECONDS;
+  return 0;
+}
+
+function traversalTargetReached(game) {
+  if (!game.traversal || game.levelComplete) return false;
+  const traveled = (game.road.routeDistance ?? 0) - (game.traversal.startDistance ?? 0);
+  return traveled >= (game.traversal.targetDistance ?? Infinity);
 }
 
 function shouldCompleteRun(game) {
@@ -582,6 +688,7 @@ export function startNextLevel(game) {
   game.sandbox = null;
   game.currentMusic = musicForLevel(game.level, game.levelMusic);
   setProceduralMusicBaseTrack(game.music, game.currentMusic);
+  game.traversal = traversalTargetForTrack(game.currentMusic, game.road);
   game.enemySpawnQueue = createLevelEnemySchedule(game.road, game.level, game.levelMusic, game.rng);
   game.enemies = dequeueReadySpawns(game.enemySpawnQueue, 0);
   game.incomingMarkers = [];
@@ -603,6 +710,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.level = sandboxDefinition.level;
   game.currentMusic = options.music ?? 'Sandbox';
   game.music = createProceduralMusicState({ baseTrack: game.currentMusic });
+  game.traversal = null;
   game.levelComplete = false;
   game.levelTime = 0;
   game.levelStartTime = game.time;
@@ -623,7 +731,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
 
 export function createLevelEnemySchedule(road, level, levelMusic = DEFAULT_LEVEL_MUSIC, rng = new Rng(level * 9973)) {
   const entries = createLevelEnemies(road, level, levelMusic);
-  const duration = LEVEL_TARGET_DURATION;
+  const duration = traversalSecondsForTrack(musicForLevel(level, levelMusic)) || LEVEL_TARGET_DURATION;
   const meanInterval = duration / Math.max(1, entries.length + 1);
   let at = 0;
   return entries
@@ -875,6 +983,14 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
       : usesZeppelinBoss(currentMusic)
       ? createZeppelinBossEnemy(bossWorld.x, bossWorld.y)
       : createBossEnemy(bossWorld.x, bossWorld.y);
+    if (zoneNameFromTrack(currentMusic) === 'ShadowedRoad' && boss.kind === 'roadBossCar') {
+      boss.archetypeId = 'boss.shadowed_road_hotrod.prototype0';
+      boss.displayName = 'Shadowed Road Hotrod Boss';
+      boss.roadBossCar ??= {};
+      boss.roadBossCar.variant = 'shadowedRoad';
+      boss.roadBossCar.escapeCar = /^ShadowedRoad_BossFight_1$/i.test(currentMusic);
+      boss.roadBossCar.mineCooldown = 1.2;
+    }
     applyDefaultEnemyCueHooks(boss);
     boss.vx = roadDirectionToWorld(0, 1, road).x * 18;
     boss.vy = roadDirectionToWorld(0, 1, road).y * 18;
@@ -931,6 +1047,13 @@ function zoneArchetypeForMusic(trackName, kind, index) {
     const id = ids[index % ids.length];
     return getEnemyArchetype(id) ?? RUNTIME_ENEMY_ARCHETYPES[id] ?? null;
   }
+  if (zone === 'ShadowedRoad') {
+    const ids = kind === 'enhanced'
+      ? ['weyfinder_road_armored_car.prototype0']
+      : ['weyfinder_road_car.prototype0', 'shadowed_road_mine_dropper.prototype0', 'weyfinder_road_flechette_racer.prototype0'];
+    const id = ids[index % ids.length];
+    return getEnemyArchetype(id) ?? RUNTIME_ENEMY_ARCHETYPES[id] ?? null;
+  }
   if (kind === 'enhanced') return null;
   const ids = {
     GhostForrest: ['ghost_phaser.ghost_forrest'],
@@ -984,7 +1107,8 @@ function usesPirateBoss(trackName = '') {
 
 function usesWeyfinderRoadBoss(trackName = '') {
   const name = String(trackName ?? '');
-  return /^BossFight_1$/i.test(name) || (zoneNameFromTrack(name) === 'TheWeyfindersRoad' && isBossMusic(name));
+  const zone = zoneNameFromTrack(name);
+  return /^BossFight_1$/i.test(name) || ((zone === 'TheWeyfindersRoad' || zone === 'ShadowedRoad') && isBossMusic(name));
 }
 
 function createEnemyForArchetype(archetype, x, y, kind) {
@@ -1127,6 +1251,11 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);
   if (archetype.artillery) enemy.artillery = structuredClone(archetype.artillery);
   if (archetype.carBehavior) enemy.carBehavior = structuredClone(archetype.carBehavior);
+  if (archetype.scrapFeeding) enemy.scrapFeeding = structuredClone(archetype.scrapFeeding);
+  if (enemy.kind === 'roadBossCar' && archetype.carBehavior?.variant) {
+    enemy.roadBossCar ??= {};
+    enemy.roadBossCar.variant = archetype.carBehavior.variant;
+  }
   if (archetype.poseRig) enemy.poseRig = structuredClone(archetype.poseRig);
   if (archetype.entranceBarks) enemy.entranceBarks = structuredClone(archetype.entranceBarks);
   if (archetype.reactionCues) enemy.reactionCues = structuredClone(archetype.reactionCues);
@@ -1321,6 +1450,7 @@ function carryRoadObjects(game, delta) {
   const objects = [
     game.vehicle,
     ...game.enemies,
+    ...game.enemies.map(activeEnemyHarpoonPowerup).filter(Boolean),
     ...game.enemySpawnQueue.map((entry) => entry.enemy),
     ...game.scrapPickups,
     ...game.playerProjectiles,
@@ -1336,6 +1466,10 @@ function carryRoadObjects(game, delta) {
     object.x += delta.dx;
     object.y += delta.dy;
   }
+}
+
+function activeEnemyHarpoonPowerup(enemy) {
+  return enemy?.zeppelin?.harpoonPowerup ?? enemy?.harpoonPowerup ?? null;
 }
 
 function stepScrapPickups(game, dt) {
@@ -1941,6 +2075,15 @@ function consumeRepulsorCharge(game) {
 
 function stepEnemies(game, dt) {
   for (const enemy of game.enemies) stepEnemy(game, enemy, dt);
+  game.enemies = game.enemies.filter((enemy) => shouldKeepEnemyRemnant(game, enemy));
+}
+
+function shouldKeepEnemyRemnant(game, enemy) {
+  if (!enemy.destroyed) return true;
+  if (bossUsesInternalDestruction(enemy) && !enemy.internalDestructionComplete) return true;
+  if (enemy.zeppelinWalkerRout && enemy.zeppelinWalkerRout.phase !== 'flee' && !enemy.escaped) return true;
+  if (enemy.explosionStart == null) return false;
+  return game.time - enemy.explosionStart < (enemy.remnantSeconds ?? DESTROYED_ENEMY_REMNANT_SECONDS);
 }
 
 function stepEnemy(game, enemy, dt) {
@@ -2000,6 +2143,7 @@ function stepArchetypeEnemy(game, enemy, dt) {
   if (enemy.archetypeId === 'inchworm_carrier.freedoms_pass') stepInchwormCarrier(game, enemy, dt);
   if (enemy.archetypeId === 'inchworm_segment.freedoms_pass') stepInchwormSegment(enemy, dt);
   if (enemy.archetypeId === 'moth_bomber.freedoms_pass') stepMothBomber(game, enemy, dt);
+  if (enemy.carBehavior?.movement === 'mineDropper') stepShadowedMineDropper(game, enemy, dt);
   if (isCarLikeEnemy(enemy)) stepRaceCarEnemy(game, enemy, dt);
 }
 
@@ -2525,8 +2669,32 @@ function liveEnemyCellWorldCenters(enemy, predicate = () => true) {
 }
 
 function stepScrapBuzzard(game, enemy, dt) {
-  enemy.elevation ??= { z: 110, canBeHitByGroundFire: false, arcCollision: true };
+  const state = enemy.buzzard ?? {
+    mode: 'air',
+    feedValue: 0,
+    panicTimer: 0,
+    landedLiveCells: 0,
+    panicCued: false,
+    harpoonSpawnTimer: game.rng.range(2.5, 5),
+  };
+  enemy.buzzard = state;
+  enemy.elevation ??= { z: BUZZARD_AIR_Z, canBeHitByGroundFire: false, arcCollision: true };
   enemy.renderAlpha = 1;
+  stepBuzzardHarpoonPowerup(game, enemy, state, dt);
+  const scrap = nearestLooseScrap(game, enemy);
+  if (scrap && state.mode === 'air') startBuzzardLanding(enemy, state);
+  if (state.mode === 'landed') {
+    stepLandedBuzzard(game, enemy, state, scrap, dt);
+    return;
+  }
+  if (state.mode === 'takeoff') {
+    stepBuzzardTakeoff(game, enemy, state, dt);
+    return;
+  }
+  enemy.elevation.z = BUZZARD_AIR_Z;
+  enemy.elevation.canBeHitByGroundFire = false;
+  enemy.elevation.arcCollision = true;
+  if (scrap) steerBuzzardTowardScrap(game, enemy, scrap, dt);
   enemy.buzzardTimer = (enemy.buzzardTimer ?? game.rng.range(0.8, 1.8)) - dt * enemyAttackRateUpgradeScale(enemy);
   if (enemy.buzzardTimer <= 0) {
     enemy.buzzardTimer = game.rng.range(1.4, 2.2);
@@ -2534,6 +2702,116 @@ function stepScrapBuzzard(game, enemy, dt) {
   }
   const offset = worldToRoadOffset(enemy, game.road);
   if (Math.abs(offset.x) > game.road.halfWidth * 0.62) enemy.vx *= -0.75;
+}
+
+function startBuzzardLanding(enemy, state) {
+  state.mode = 'landed';
+  state.landedLiveCells = liveEnemyCellCount(enemy);
+  state.panicTimer = 0;
+  state.panicCued = false;
+  enemy.patterns = [];
+}
+
+function stepLandedBuzzard(game, enemy, state, scrap, dt) {
+  enemy.patterns = [];
+  enemy.elevation.canBeHitByGroundFire = true;
+  enemy.elevation.z += (BUZZARD_LAND_Z - enemy.elevation.z) * Math.min(1, dt * 5.5);
+  if (enemy.elevation.z < CELL_LAYER_HEIGHT * 0.9) {
+    enemy.elevation.z = BUZZARD_LAND_Z;
+  }
+  enemy.elevation.arcCollision = true;
+  enemy.vx *= Math.pow(0.08, dt);
+  enemy.vy *= Math.pow(0.08, dt);
+  if (scrap) {
+    const direction = directionFromTo(enemy, scrap);
+    const speed = 42 * enemyMovementUpgradeScale(enemy);
+    enemy.vx += (direction.x * speed - enemy.vx) * Math.min(1, dt * 2.8);
+    enemy.vy += (direction.y * speed - enemy.vy) * Math.min(1, dt * 2.8);
+    if (distanceSquared(enemy, scrap) <= BUZZARD_FEED_RANGE ** 2) feedBuzzardScrap(game, enemy, state, scrap);
+  }
+  const liveCells = liveEnemyCellCount(enemy);
+  if (!state.panicTimer && state.landedLiveCells > 0 && liveCells < state.landedLiveCells * (2 / 3)) {
+    startBuzzardPanicTakeoff(game, enemy, state);
+  }
+  if (state.panicTimer > 0) {
+    state.panicTimer = Math.max(0, state.panicTimer - dt);
+    if (state.panicTimer <= 0) state.mode = 'takeoff';
+  }
+}
+
+function startBuzzardPanicTakeoff(game, enemy, state) {
+  state.panicTimer = BUZZARD_PANIC_TAKEOFF_SECONDS;
+  if (state.panicCued) return;
+  state.panicCued = true;
+  for (const [index, text] of BUZZARD_PANIC_CUES.entries()) {
+    addEnemyReactionCue(enemy, text, {
+      duration: 1.35,
+      rise: CELL_SIZE * 1.9,
+      size: CELL_SIZE * 0.95,
+      growth: 2.5,
+      x: (index - 2) * CELL_SIZE * 0.55,
+      y: -Math.max(CELL_SIZE * 2.8, enemy.radius * 0.34),
+    });
+  }
+}
+
+function stepBuzzardTakeoff(game, enemy, state, dt) {
+  enemy.patterns = [];
+  enemy.elevation.canBeHitByGroundFire = true;
+  enemy.elevation.z += (BUZZARD_AIR_Z - enemy.elevation.z) * Math.min(1, dt * 3.4);
+  const away = directionFromTo(game.vehicle, enemy);
+  const speed = 96 * enemyMovementUpgradeScale(enemy);
+  enemy.vx += (away.x * speed - enemy.vx) * Math.min(1, dt * 2.4);
+  enemy.vy += (away.y * speed - enemy.vy) * Math.min(1, dt * 2.4);
+  if (enemy.elevation.z < BUZZARD_AIR_Z * 0.82) return;
+  enemy.elevation.z = BUZZARD_AIR_Z;
+  enemy.elevation.canBeHitByGroundFire = false;
+  state.mode = 'air';
+  state.landedLiveCells = liveEnemyCellCount(enemy);
+  state.panicTimer = 0;
+  state.panicCued = false;
+}
+
+function steerBuzzardTowardScrap(game, enemy, scrap, dt) {
+  const direction = directionFromTo(enemy, scrap);
+  const speed = 92 * enemyMovementUpgradeScale(enemy);
+  enemy.vx += (direction.x * speed - enemy.vx) * Math.min(1, dt * 1.9);
+  enemy.vy += (direction.y * speed - enemy.vy) * Math.min(1, dt * 1.9);
+}
+
+function nearestLooseScrap(game, source) {
+  return (game.scrapPickups ?? []).reduce((nearest, pickup) => {
+    if (pickup.kind) return nearest;
+    if (!nearest) return pickup;
+    return distanceSquared(source, pickup) < distanceSquared(source, nearest) ? pickup : nearest;
+  }, null);
+}
+
+function feedBuzzardScrap(game, enemy, state, pickup) {
+  const index = game.scrapPickups.indexOf(pickup);
+  if (index >= 0) game.scrapPickups.splice(index, 1);
+  const value = Math.max(1, pickup.value ?? 1);
+  state.feedValue = (state.feedValue ?? 0) + value;
+  healEnemyVoxels(enemy, value * (enemy.scrapFeeding?.scrapHealPerPiece ?? 8));
+}
+
+function healEnemyVoxels(enemy, amount) {
+  let remaining = Math.max(0, amount);
+  for (const cell of enemy.cells ?? []) {
+    if (remaining <= 0 || cell.state?.destroyed) continue;
+    for (const voxel of cell.mask.flat()) {
+      if (remaining <= 0) break;
+      if (voxel.hp <= 0 || voxel.hp >= voxel.maxHp) continue;
+      const restored = Math.min(remaining, voxel.maxHp - voxel.hp);
+      voxel.hp += restored;
+      remaining -= restored;
+    }
+    recalculateEnemyCell(cell);
+  }
+}
+
+function liveEnemyCellCount(enemy) {
+  return (enemy.cells ?? []).filter((cell) => !cell.state?.destroyed).length;
 }
 
 function stepInchwormCarrier(game, enemy, dt) {
@@ -2777,6 +3055,7 @@ function toggleRoadBossCarPhase(game, enemy, state) {
 }
 
 function stepRoadBossCarAttacks(game, enemy, state, dt) {
+  if (state.variant === 'shadowedRoad') stepShadowedRoadBossAttacks(game, enemy, state, dt);
   state.bulletCooldown = Math.max(0, (state.bulletCooldown ?? 0.2) - dt * enemyFireTimerScale(enemy));
   if (state.bulletCooldown <= 0) {
     fireRoadBossBulletBarrage(game, enemy, state);
@@ -2787,6 +3066,26 @@ function stepRoadBossCarAttacks(game, enemy, state, dt) {
     fireRoadBossBladeBarrage(game, enemy, state);
     state.bladeCooldown = state.phase === 'strafe' ? 1.15 : 1.55;
   }
+}
+
+function stepShadowedRoadBossAttacks(game, enemy, state, dt) {
+  state.mineCooldown = Math.max(0, (state.mineCooldown ?? 1.2) - dt * enemyFireTimerScale(enemy));
+  if (state.mineCooldown <= 0) {
+    dropShadowedRoadMine(game, enemy);
+    state.mineCooldown = game.rng.range(1.1, 1.85);
+  }
+  state.mortarCooldown = Math.max(0, (state.mortarCooldown ?? 0.7) - dt * enemyFireTimerScale(enemy));
+  if (state.phase !== 'strafe' || state.mortarCooldown > 0) return;
+  state.mortarCooldown = 1.25;
+  const source = liveEnemyCellWorldCenters(enemy, (cell) => cell.type === 'gun' && !cell.state?.destroyed)[0] ?? enemy;
+  const target = inaccuratePlayerMortarTarget(game, CELL_SIZE * 2.2);
+  fireEnemyArcShell(game, { ...enemy, x: source.x, y: source.y }, target, '#ff6d4b', {
+    weapon: 'shadowed-road-boss-mortar',
+    blastRadius: ENEMY_MORTAR_BASE_BLAST_RADIUS,
+    blastDamage: 5.2,
+    blastImpulse: 38,
+    flightTime: 1.35,
+  });
 }
 
 function fireRoadBossBulletBarrage(game, enemy, state) {
@@ -2922,6 +3221,62 @@ function stepRaceCarEnemy(game, enemy, dt) {
   if (state.flechetteCooldown > 0) return;
   state.flechetteCooldown = config.flechetteCooldown ?? RACE_CAR_FLECHETTE_COOLDOWN;
   fireRaceCarFlechetteStrafe(game, enemy);
+}
+
+function stepShadowedMineDropper(game, enemy, dt) {
+  const config = enemy.carBehavior ?? {};
+  const state = enemy.carRuntime ?? {};
+  enemy.carRuntime = state;
+  enemy.patterns = [];
+  const playerOffset = worldToRoadOffset(game.vehicle, game.road);
+  const currentOffset = worldToRoadOffset(enemy, game.road);
+  const targetOffset = {
+    x: clamp(playerOffset.x + Math.sin(game.time * 0.9 + (enemy.targetId ?? 0)) * CELL_SIZE * 6, -game.road.halfWidth * 0.84, game.road.halfWidth * 0.84),
+    y: -game.road.halfHeight - Math.max(CELL_SIZE * 2.5, (enemy.radius ?? CELL_SIZE) * 0.24),
+  };
+  const target = roadOffsetToWorld(targetOffset, game.road);
+  const direction = directionFromTo(enemy, target);
+  const speed = (config.speed ?? SHADOWED_MINE_DROPPER_SPEED) * enemyMovementUpgradeScale(enemy);
+  const steer = clamp(2.7 * dt, 0, 1);
+  enemy.vx += (direction.x * speed - enemy.vx) * steer;
+  enemy.vy += (direction.y * speed - enemy.vy) * steer;
+  if (Math.abs(currentOffset.x) > game.road.halfWidth * 0.96) enemy.vx *= 0.5;
+  enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+  enemy.renderHeadingOffset ??= Math.PI / 2;
+  if (!enemyCanFire(enemy)) return;
+  state.mineCooldown = Math.max(0, (state.mineCooldown ?? game.rng.range(...SHADOWED_MINE_COOLDOWN)) - dt * enemyFireTimerScale(enemy));
+  if (state.mineCooldown > 0) return;
+  state.mineCooldown = game.rng.range(...SHADOWED_MINE_COOLDOWN);
+  dropShadowedRoadMine(game, enemy);
+}
+
+function dropShadowedRoadMine(game, enemy) {
+  const source = liveEnemyCellWorldCenters(enemy, (cell) => cell.type === 'gun' && !cell.state?.destroyed)[0] ?? enemy;
+  const drift = roadDirectionToWorld(0, 1, game.road);
+  const mine = createProjectile(source.x + drift.x * CELL_SIZE * 1.8, source.y + drift.y * CELL_SIZE * 1.8, 0, 0, {
+    team: 'enemy',
+    weapon: 'shadowed-road-mine',
+    behavior: 'ballistic',
+    radius: 4.5,
+    color: '#ff5a54',
+    sprite: MORTAR_ENEMY_SHELL_SPRITE,
+    landingMarkerSprite: MORTAR_ENEMY_MARKER_SPRITE,
+    damage: 0,
+    impulse: 0,
+    lifetime: SHADOWED_MINE_FUSE_SECONDS,
+    targetHint: { x: source.x + drift.x * CELL_SIZE * 1.8, y: source.y + drift.y * CELL_SIZE * 1.8 },
+    explodeOnExpire: true,
+    blastOnExpire: {
+      radius: SHADOWED_MINE_BLAST_RADIUS,
+      damage: SHADOWED_MINE_BLAST_DAMAGE * enemyDamageUpgradeScale(enemy),
+      impulse: 42,
+    },
+    sourceEnemy: enemy,
+  });
+  game.enemyProjectiles.push(mine);
+  enemy.lastFiredAt = game.time;
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
 function stepCarSpinout(game, enemy, dt) {
@@ -3772,17 +4127,14 @@ function stepZeppelinHarpoon(game, enemy, dt) {
   }
   if (enemy.zeppelin.harpoonPowerup) {
     const powerup = enemy.zeppelin.harpoonPowerup;
-    powerup.timer -= dt;
     enemy.zeppelin.harpoonSpawnTimer = Math.max(0, (enemy.zeppelin.harpoonSpawnTimer ?? ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS) - dt);
-    powerup.age = powerup.duration - powerup.timer;
-    if (distanceSquared(powerup, game.vehicle) <= (powerup.radius + CELL_SIZE * 3.6) ** 2) {
+    const result = stepCollectiblePowerup(game, powerup, dt);
+    if (result === 'collected') {
       enemy.zeppelin.harpoonPowerup = null;
       enemy.zeppelin.harpoonCharge = { timer: ZEPPELIN_HARPOON_CHARGE_SECONDS };
       return;
     }
-    if (powerup.timer <= 0) {
-      enemy.zeppelin.harpoonPowerup = null;
-    }
+    if (result === 'expired') enemy.zeppelin.harpoonPowerup = null;
     return;
   }
   enemy.zeppelin.harpoonSpawnTimer = Math.max(0, (enemy.zeppelin.harpoonSpawnTimer ?? 0) - dt);
@@ -3808,6 +4160,71 @@ function createZeppelinHarpoonPowerup(game) {
     flashStart: ZEPPELIN_HARPOON_POWERUP_FLASH_START_SECONDS,
     age: 0,
   };
+}
+
+function stepBuzzardHarpoonPowerup(game, enemy, state, dt) {
+  if (enemy.harpoonField) {
+    enemy.harpoonField.timer -= dt;
+    enemy.harpoonField.x = enemy.x;
+    enemy.harpoonField.y = enemy.y;
+    enemy.harpoonField.z = enemy.elevation?.z ?? BUZZARD_AIR_Z;
+    if (enemy.harpoonField.timer <= 0) enemy.harpoonField = null;
+  }
+  if (enemy.harpoonPowerup) {
+    const result = stepCollectiblePowerup(game, enemy.harpoonPowerup, dt);
+    if (result === 'collected') {
+      const target = nearestBuzzardForHarpoon(game, enemy.harpoonPowerup) ?? enemy;
+      target.harpoonField = {
+        timer: ZEPPELIN_HARPOON_FIELD_SECONDS,
+        duration: ZEPPELIN_HARPOON_FIELD_SECONDS,
+        x: target.x,
+        y: target.y,
+        z: target.elevation?.z ?? BUZZARD_AIR_Z,
+        affectsProjectiles: true,
+      };
+      enemy.harpoonPowerup = null;
+      state.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
+    } else if (result === 'expired') {
+      enemy.harpoonPowerup = null;
+    }
+    return;
+  }
+  state.harpoonSpawnTimer = Math.max(0, (state.harpoonSpawnTimer ?? ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS) - dt);
+  if (state.harpoonSpawnTimer > 0) return;
+  enemy.harpoonPowerup = createZeppelinHarpoonPowerup(game);
+  enemy.harpoonPowerup.kind = 'buzzardHarpoon';
+  state.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
+}
+
+function stepCollectiblePowerup(game, powerup, dt) {
+  powerup.timer -= dt;
+  powerup.age = powerup.duration - powerup.timer;
+  const dx = game.vehicle.x - powerup.x;
+  const dy = game.vehicle.y - powerup.y;
+  const distance = Math.hypot(dx, dy);
+  const collectRange = CELL_SIZE * 3.6 * upgradeMultiplier(game, 'scrapCaptureRadius');
+  if (distance <= powerup.radius + collectRange) return 'collected';
+  const magnetRange = VOXEL_SIZE * SHOP_COSTS.scrapMagnetVoxels * upgradeMultiplier(game, 'scrapMagnetDistance');
+  if (distance > 0 && distance <= magnetRange) {
+    const pull = 1 - distance / magnetRange;
+    const strength = upgradeMultiplier(game, 'scrapMagnetStrength');
+    powerup.vx = (powerup.vx ?? 0) + (dx / distance) * (72 + pull * 150) * strength * dt;
+    powerup.vy = (powerup.vy ?? 0) + (dy / distance) * (72 + pull * 150) * strength * dt;
+  }
+  powerup.x += (powerup.vx ?? 0) * dt;
+  powerup.y += (powerup.vy ?? 0) * dt;
+  powerup.vx = (powerup.vx ?? 0) * Math.pow(0.2, dt);
+  powerup.vy = (powerup.vy ?? 0) * Math.pow(0.2, dt);
+  return powerup.timer <= 0 ? 'expired' : 'active';
+}
+
+function nearestBuzzardForHarpoon(game, source) {
+  return activeEnemies(game)
+    .filter((enemy) => enemy.archetypeId === 'scrap_buzzard.shadowed_desert')
+    .reduce((nearest, enemy) => {
+      if (!nearest) return enemy;
+      return distanceSquared(source, enemy) < distanceSquared(source, nearest) ? enemy : nearest;
+    }, null);
 }
 
 function stepZeppelinMeltdown(game, enemy, dt) {
@@ -4524,8 +4941,43 @@ function stepRoadBossCarInternalDestruction(game, boss, state, dt) {
       size: CELL_SIZE * 1.15,
       growth: 3,
     });
-    launchRoadBossEscapeBoats(game, boss);
+    if (boss.roadBossCar?.variant === 'shadowedRoad') launchShadowedRoadEscapeCar(game, boss);
+    else launchRoadBossEscapeBoats(game, boss);
   }
+}
+
+function launchShadowedRoadEscapeCar(game, boss) {
+  if (!boss.roadBossCar?.escapeCar) return;
+  const forward = roadDirectionToWorld(0, -1, game.road);
+  const car = createEnemy(
+    boss.x + forward.x * CELL_SIZE * 4,
+    boss.y + forward.y * CELL_SIZE * 4,
+    weyfinderRoadArmoredCarSculptedDefinition,
+    [],
+    { moduleScale: 1 },
+  );
+  car.kind = 'escapePodBoat';
+  car.archetypeId = 'escape_car.shadowed_road_boss';
+  car.displayName = 'Taunting Escape Car';
+  car.patterns = [];
+  car.carBehavior = { movement: 'escapeCar' };
+  car.escapePod = {
+    heading: Math.atan2(forward.y, forward.x),
+    speed: 220,
+    cueTimer: 0,
+  };
+  car.vx = forward.x * 180;
+  car.vy = forward.y * 180;
+  car.visualHeading = car.escapePod.heading;
+  car.collisionRotation = car.visualHeading - Math.PI / 2;
+  car.renderHeadingOffset = Math.PI / 2;
+  car.dropNoScrap = true;
+  addEnemyReactionCue(car, `${String.fromCodePoint(0x1f621)} ${ROAD_BOSS_TAUNT_CUE_TEXT}`, {
+    duration: 1.8,
+    rise: CELL_SIZE * 1.6,
+    growth: 2.4,
+  });
+  game.enemies.push(car);
 }
 
 function launchRoadBossEscapeBoats(game, boss) {
@@ -5296,7 +5748,7 @@ function lockEnemyStaMissileDescents(game) {
 
 function attractPlayerProjectilesToZeppelinHarpoons(game, dt) {
   const fields = activeEnemies(game)
-    .filter((enemy) => enemy.kind === 'zeppelinBoss' && enemy.harpoonField)
+    .filter((enemy) => enemy.harpoonField && (enemy.kind === 'zeppelinBoss' || enemy.harpoonField.affectsProjectiles))
     .map((enemy) => enemy.harpoonField);
   if (fields.length === 0) return;
   for (const projectile of game.playerProjectiles) {
@@ -5438,6 +5890,11 @@ function handleEnemyProjectileSpecials(game) {
       projectile.lifetime = 0;
       continue;
     }
+    if (projectile.weapon === 'shadowed-road-mine' && mineTriggeredByVehicle(game, projectile)) {
+      spawned.push(...spawnEnemyPulseBlast(game, projectile));
+      projectile.lifetime = 0;
+      continue;
+    }
     if (projectile.weapon === 'ats-grav-rocket' && projectile.atsLaunched && projectileReachedDetonationTarget(projectile)) {
       spawned.push(...spawnEnemyPulseBlast(game, projectile));
       projectile.lifetime = 0;
@@ -5461,6 +5918,12 @@ function handleEnemyProjectileSpecials(game) {
     kept.push(projectile);
   }
   game.enemyProjectiles = [...kept, ...spawned];
+}
+
+function mineTriggeredByVehicle(game, projectile) {
+  if (projectile.readyToExplode) return true;
+  const range = CELL_SIZE * 3.8 + (projectile.radius ?? 0);
+  return distanceSquared(projectile, game.vehicle) <= range * range;
 }
 
 function launchAtsGravRocket(game, projectile) {
@@ -6369,6 +6832,12 @@ function explodeEnemy(game, enemy) {
 function enemyDeathPickups(game, enemy) {
   if (enemy.dropNoScrap) return [];
   const scrap = harvestEnemyScrap(enemy, game.rng);
+  if ((enemy.buzzard?.feedValue ?? 0) > 0) {
+    scrap.push(createRewardPickup(game, enemy, 'scrap', {
+      value: Math.max(1, Math.floor(enemy.buzzard.feedValue)),
+      radius: CELL_SIZE * 1.25,
+    }));
+  }
   if (enemy.dropProfile !== 'zeppelinWalker') return scrap;
   const totalValue = scrap.reduce((sum, pickup) => sum + (pickup.value ?? 0), 0);
   const reducedScrap = scrap.filter((_, index) => index % 3 === 0);

@@ -1818,6 +1818,132 @@ test('zeppelin harpoon powerups spawn, expire, and trigger harpoon charge when c
   assert.equal(boss.harpoonField.duration, 10);
 });
 
+test('harpoon powerups magnetize toward collection modules', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.upgrades.scrapMagnetDistance = 8;
+  game.upgrades.scrapMagnetStrength = 4;
+  const boss = createZeppelinBossEnemy(game.vehicle.x + CELL_SIZE * 24, game.vehicle.y);
+  boss.zeppelin.atsCooldown = 99;
+  boss.zeppelin.laserCooldown = 99;
+  boss.zeppelin.harpoonSpawnTimer = 99;
+  boss.zeppelin.harpoonPowerup = {
+    kind: 'zeppelinHarpoon',
+    x: game.vehicle.x + CELL_SIZE * 11,
+    y: game.vehicle.y,
+    vx: 0,
+    vy: 0,
+    radius: CELL_SIZE * 2.4,
+    timer: 5,
+    duration: 5,
+    flashStart: 3,
+    age: 0,
+  };
+  game.enemies = [boss];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(boss.zeppelin.harpoonPowerup.vx < 0, true);
+});
+
+test('scrap buzzards land to feed, become vulnerable, and panic take off after cell loss', () => {
+  const game = createGame(1147, { levelMusic: ['ShadowedDesert_Journey'] });
+  game.autofire = false;
+  const buzzard = game.enemies.find((enemy) => enemy.archetypeId === 'scrap_buzzard.shadowed_desert');
+  game.enemies = [buzzard];
+  game.enemySpawnQueue = [];
+  buzzard.x = game.vehicle.x + CELL_SIZE * 8;
+  buzzard.y = game.vehicle.y;
+  game.scrapPickups = [{ x: buzzard.x + CELL_SIZE, y: buzzard.y, vx: 0, vy: 0, value: 3, radius: 3, life: 8 }];
+
+  for (let index = 0; index < 45 && buzzard.buzzard?.mode !== 'landed'; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(buzzard.buzzard.mode, 'landed');
+  assert.equal(buzzard.elevation.canBeHitByGroundFire, true);
+  assert.equal(game.scrapPickups.length, 0);
+  assert.equal(buzzard.buzzard.feedValue, 3);
+
+  const live = buzzard.cells.filter((cell) => !cell.state.destroyed);
+  for (const cell of live.slice(0, Math.ceil(live.length / 3) + 1)) destroyCellVoxels(cell);
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(buzzard.buzzard.panicTimer > 0, true);
+  assert.deepEqual(
+    buzzard.reactionCueQueue.map((cue) => cue.text).slice(-5),
+    [String.fromCodePoint(0x1f623), String.fromCodePoint(0x1f615), String.fromCodePoint(0x1f4ab), String.fromCodePoint(0x1f630), String.fromCodePoint(0x1f9b6)],
+  );
+
+  for (let index = 0; index < 75 && buzzard.buzzard.mode !== 'takeoff'; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(buzzard.buzzard.mode, 'takeoff');
+});
+
+test('buzzard harpoons target the nearest active buzzard', () => {
+  const game = createGame(1147, { levelMusic: ['ShadowedDesert_Journey'] });
+  game.autofire = false;
+  const buzzard = game.enemies.find((enemy) => enemy.archetypeId === 'scrap_buzzard.shadowed_desert');
+  buzzard.x = game.vehicle.x + CELL_SIZE * 4;
+  buzzard.y = game.vehicle.y;
+  buzzard.buzzard = { mode: 'air', harpoonSpawnTimer: 99 };
+  buzzard.harpoonPowerup = {
+    kind: 'buzzardHarpoon',
+    x: game.vehicle.x,
+    y: game.vehicle.y,
+    radius: CELL_SIZE * 2.4,
+    timer: 5,
+    duration: 5,
+    flashStart: 3,
+    age: 0,
+  };
+  game.enemies = [buzzard];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(buzzard.harpoonPowerup, null);
+  assert.equal(buzzard.harpoonField.affectsProjectiles, true);
+});
+
+test('destroyed enemy remnants are removed after their short fade window', () => {
+  const game = createGame();
+  game.autofire = false;
+  const enemy = createEnemy(game.vehicle.x + CELL_SIZE * 6, game.vehicle.y);
+  enemy.destroyed = true;
+  enemy.explosionStart = game.time - 3.9;
+  const blocker = createEnemy(game.vehicle.x + CELL_SIZE * 12, game.vehicle.y);
+  game.enemies = [enemy, blocker];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.enemies.includes(enemy), false);
+  assert.equal(game.enemies.includes(blocker), true);
+});
+
+test('shadowed road mine droppers place terrain anchored mines that explode on contact', () => {
+  const game = createGame(1147, {
+    sandbox: {
+      title: 'Mine Dropper Test',
+      spawns: [{ archetype: 'shadowed_road_mine_dropper.prototype0', at: 0, count: 1, interval: 0, roadY: -180 }],
+      events: [],
+    },
+  });
+  game.autofire = false;
+  const dropper = game.enemies[0];
+  dropper.carRuntime = { mineCooldown: 0 };
+  game.enemyProjectiles = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const mine = game.enemyProjectiles.find((projectile) => projectile.weapon === 'shadowed-road-mine');
+  assert.equal(Boolean(mine), true);
+  assert.equal(mine.explodeOnExpire, true);
+  mine.x = game.vehicle.x;
+  mine.y = game.vehicle.y;
+  mine.targetHint = { x: mine.x, y: mine.y };
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'enemy-pulse-blast'), true);
+});
+
 test('zeppelin ATS grav rockets drop first, then lock a straight ground launch to the player', () => {
   const game = createGame();
   game.autofire = false;
@@ -1950,6 +2076,13 @@ function destroyDeviceVoxels(cell) {
     for (const voxel of row) {
       if (voxel.role === 'device' || voxel.role === 'wire') voxel.hp = 0;
     }
+  }
+  recalculateCell(cell);
+}
+
+function destroyCellVoxels(cell) {
+  for (const row of cell.mask) {
+    for (const voxel of row) voxel.hp = 0;
   }
   recalculateCell(cell);
 }

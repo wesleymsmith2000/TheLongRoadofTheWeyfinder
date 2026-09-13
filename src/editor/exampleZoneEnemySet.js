@@ -16,6 +16,7 @@ import spiderWalkerConstruct from '../../content/examples/prototype0-zone-enemy-
 import spideryWalkerConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json' with { type: 'json' };
 import burlyWalkerBossBodyConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.burly_walker_boss_body_sculpted.json' with { type: 'json' };
 import rotatableBossCannonConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.rotatable_boss_cannon_sculpted.json' with { type: 'json' };
+import zeppelinBossConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.zeppelin_boss_sculpted.json' with { type: 'json' };
 import scrapBuzzardConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json' with { type: 'json' };
 import inchwormHeadConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json' with { type: 'json' };
 import inchwormBodySegmentConstruct from '../../content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json' with { type: 'json' };
@@ -36,6 +37,7 @@ export const EXAMPLE_ZONE_ENEMY_SET_BUNDLE = Object.freeze({
     { kind: 'construct', definition: spideryWalkerConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: burlyWalkerBossBodyConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: rotatableBossCannonConstruct, sourcePack: manifest.packId },
+    { kind: 'construct', definition: zeppelinBossConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: scrapBuzzardConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: inchwormHeadConstruct, sourcePack: manifest.packId },
     { kind: 'construct', definition: inchwormBodySegmentConstruct, sourcePack: manifest.packId },
@@ -62,6 +64,7 @@ export const EXAMPLE_ZONE_ENEMY_SET_BUNDLE = Object.freeze({
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.spidery_walker_sculpted.json', name: 'example.construct.spidery_walker_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.burly_walker_boss_body_sculpted.json', name: 'example.construct.burly_walker_boss_body_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.rotatable_boss_cannon_sculpted.json', name: 'example.construct.rotatable_boss_cannon_sculpted.json' },
+    { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.zeppelin_boss_sculpted.json', name: 'example.construct.zeppelin_boss_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.scrap_buzzard_sculpted.json', name: 'example.construct.scrap_buzzard_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_head_sculpted.json', name: 'example.construct.inchworm_head_sculpted.json' },
     { path: 'content/examples/prototype0-zone-enemy-set/constructs/example.construct.inchworm_body_segment_sculpted.json', name: 'example.construct.inchworm_body_segment_sculpted.json' },

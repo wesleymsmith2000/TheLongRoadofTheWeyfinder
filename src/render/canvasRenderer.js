@@ -132,7 +132,7 @@ export class CanvasRenderer {
     drawRoadLane(ctx, game.road);
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
-    drawZeppelinHarpoonPowerups(ctx, game.enemies, game.time);
+    drawHarpoonPowerups(ctx, game.enemies, game.time);
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics, this.cellSpriteCache);
     drawSmokeParticles(ctx, game.smokeParticles);
     if (!diagnostics.noProjectileRender) {
@@ -318,9 +318,9 @@ function pickupStyle(pickup) {
   return { fill: '#c9b66f', stroke: '#fff1a8' };
 }
 
-function drawZeppelinHarpoonPowerups(ctx, enemies = [], time = 0) {
+function drawHarpoonPowerups(ctx, enemies = [], time = 0) {
   for (const enemy of enemies) {
-    const powerup = enemy.zeppelin?.harpoonPowerup;
+    const powerup = activeEnemyHarpoonPowerup(enemy);
     if (!powerup) continue;
     const age = powerup.age ?? powerup.duration - powerup.timer;
     const flashStart = powerup.flashStart ?? 3;
@@ -333,6 +333,7 @@ function drawZeppelinHarpoonPowerups(ctx, enemies = [], time = 0) {
     ctx.save();
     ctx.translate(powerup.x, powerup.y);
     ctx.globalAlpha *= alpha;
+    drawAttentionArrow(ctx, time, powerup.radius);
     const pulse = Math.sin(time * 5.2) * 0.5 + 0.5;
     const radius = powerup.radius * (0.86 + pulse * 0.08);
     ctx.fillStyle = 'rgb(129 244 255 / 0.22)';
@@ -364,6 +365,32 @@ function drawZeppelinHarpoonPowerups(ctx, enemies = [], time = 0) {
     ctx.stroke();
     ctx.restore();
   }
+}
+
+function activeEnemyHarpoonPowerup(enemy) {
+  return enemy?.zeppelin?.harpoonPowerup ?? enemy?.harpoonPowerup ?? null;
+}
+
+function drawAttentionArrow(ctx, time, radius) {
+  const bob = Math.sin(time * 3.1) * radius * 0.18;
+  const y = -radius * 2.15 + bob;
+  ctx.save();
+  ctx.globalAlpha *= 0.9;
+  ctx.fillStyle = '#ffe45c';
+  ctx.strokeStyle = '#3d2f00';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, y + radius * 0.72);
+  ctx.lineTo(-radius * 0.42, y + radius * 0.16);
+  ctx.lineTo(-radius * 0.16, y + radius * 0.16);
+  ctx.lineTo(-radius * 0.16, y - radius * 0.52);
+  ctx.lineTo(radius * 0.16, y - radius * 0.52);
+  ctx.lineTo(radius * 0.16, y + radius * 0.16);
+  ctx.lineTo(radius * 0.42, y + radius * 0.16);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 }
 
 function applyCameraTransform(ctx, camera, w, h) {
@@ -692,9 +719,12 @@ function drawComMarker(ctx, com) {
 }
 
 function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCache = null) {
+  const remnantAlpha = destroyedEnemyRemnantAlpha(enemy, time);
+  if (enemy.destroyed && remnantAlpha <= 0) return;
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.globalAlpha *= enemy.renderAlpha ?? 1;
+  ctx.globalAlpha *= remnantAlpha;
   const fallVisual = walkerFallVisualState(enemy.walkerFallAnimation);
   if (!enemy.destroyed && ((enemy.elevation?.z ?? 0) > 0 || enemyHasRenderableLayers(enemy))) drawEnemyElevationShadow(ctx, enemy);
   ctx.translate(0, -projectHeight(enemyBaseElevation(enemy) + (fallVisual?.lift ?? 0)));
@@ -787,11 +817,24 @@ function pirateBossCoreIsPhased(enemy) {
 }
 
 function drawGenericEnemyReactionCues(ctx, enemy) {
-  if (!Array.isArray(enemy.reactionCueQueue) || enemy.reactionCueQueue.length === 0 || enemy.destroyed) return;
+  if (!Array.isArray(enemy.reactionCueQueue) || enemy.reactionCueQueue.length === 0) return;
+  if (enemy.destroyed && !enemy.internalDestruction && !enemy.zeppelinWalkerRout) return;
   drawFloatingCueQueue(ctx, enemy.reactionCueQueue, {
     color: enemy.kind === 'pirateBoss' ? '#fff1a8' : '#f4eee4',
     stroke: 'rgb(0 0 0 / 0.72)',
   });
+}
+
+function destroyedEnemyRemnantAlpha(enemy, time) {
+  if (!enemy.destroyed) return 1;
+  if (enemy.internalDestruction && !enemy.internalDestructionComplete) return 1;
+  if (enemy.explosionStart == null) return 0;
+  const lifetime = enemy.remnantSeconds ?? 3.8;
+  const age = Math.max(0, time - enemy.explosionStart);
+  if (age >= lifetime) return 0;
+  const fadeStart = lifetime * 0.28;
+  if (age <= fadeStart) return 0.42;
+  return 0.42 * (1 - (age - fadeStart) / Math.max(0.001, lifetime - fadeStart));
 }
 
 function drawConstructPresentation(ctx, construct, imageAssets) {
@@ -1465,6 +1508,9 @@ function drawProjectiles(ctx, projectiles, color, imageAssets) {
       continue;
     }
     if (projectile.weapon === 'ats-grav-rocket' && projectile.targetHint) {
+      drawArcLandingMarker(ctx, projectile, projectile.targetHint, '#ff5a54', imageAssets);
+    }
+    if (projectile.weapon === 'shadowed-road-mine' && projectile.targetHint) {
       drawArcLandingMarker(ctx, projectile, projectile.targetHint, '#ff5a54', imageAssets);
     }
     if (drawProjectileSprite(ctx, projectile, imageAssets)) continue;

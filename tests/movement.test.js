@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStartingVehicle } from '../src/core/vehicle.js';
 import { stepVehicle } from '../src/core/physics.js';
+import { createGame, stepGame } from '../src/core/game.js';
+import { roadOffsetToWorld } from '../src/core/camera.js';
 
 test('keyboard-style movement input produces visible vehicle motion', () => {
   const vehicle = createStartingVehicle();
@@ -68,4 +70,36 @@ test('vehicle heading turns toward its travel direction', () => {
   const after = Math.abs(Math.atan2(Math.sin(Math.PI / 2 - vehicle.heading), Math.cos(Math.PI / 2 - vehicle.heading)));
   assert.equal(after < before, true);
   assert.equal(vehicle.heading > 0, true);
+});
+
+test('pushing against play area edges adjusts road speed and lateral slide', () => {
+  const fastGame = createGame();
+  fastGame.autofire = false;
+  fastGame.enemySpawnQueue = [];
+  fastGame.enemies = [];
+  fastGame.vehicle.x = roadOffsetToWorld({ x: 0, y: -fastGame.road.halfHeight }, fastGame.road).x;
+  fastGame.vehicle.y = roadOffsetToWorld({ x: 0, y: -fastGame.road.halfHeight }, fastGame.road).y;
+  const baseSpeed = fastGame.road.speed;
+  stepGame(fastGame, { x: 0, y: -1, gunnerEnabled: false }, 1 / 30);
+  assert.equal(fastGame.road.speed > baseSpeed, true);
+
+  const slowGame = createGame();
+  slowGame.autofire = false;
+  slowGame.enemySpawnQueue = [];
+  slowGame.enemies = [];
+  const bottom = roadOffsetToWorld({ x: 0, y: slowGame.road.halfHeight }, slowGame.road);
+  slowGame.vehicle.x = bottom.x;
+  slowGame.vehicle.y = bottom.y;
+  stepGame(slowGame, { x: 0, y: 1, gunnerEnabled: false }, 1 / 30);
+  assert.equal(slowGame.road.speed < baseSpeed, true);
+
+  const slideGame = createGame();
+  slideGame.autofire = false;
+  slideGame.enemySpawnQueue = [];
+  slideGame.enemies = [];
+  const right = roadOffsetToWorld({ x: slideGame.road.halfWidth, y: 0 }, slideGame.road);
+  slideGame.vehicle.x = right.x;
+  slideGame.vehicle.y = right.y;
+  stepGame(slideGame, { x: 1, y: 0, gunnerEnabled: false }, 1 / 30);
+  assert.equal(slideGame.road.lateralOffset > 0, true);
 });

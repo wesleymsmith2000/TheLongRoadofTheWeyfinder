@@ -974,6 +974,14 @@ function sandboxEnemyOptions() {
     id: 'boss.pirate_dreadnought.prototype0',
     displayName: 'Pirate Dreadnought Boss',
   });
+  byId.set('shadowed_road_mine_dropper.prototype0', {
+    id: 'shadowed_road_mine_dropper.prototype0',
+    displayName: 'Shadowed Road Mine Dropper',
+  });
+  byId.set('boss.shadowed_road_hotrod.prototype0', {
+    id: 'boss.shadowed_road_hotrod.prototype0',
+    displayName: 'Shadowed Road Hotrod Boss',
+  });
   return [...byId.values()].sort((a, b) => (a.displayName ?? a.id).localeCompare(b.displayName ?? b.id));
 }
 
