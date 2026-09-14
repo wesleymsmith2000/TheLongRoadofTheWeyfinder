@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
 import { createStartingVehicle, gunMuzzleWorld } from '../src/core/vehicle.js';
 import { PRIMARY_PROJECTILE_SPEED, compensatedAimHeading, gunnerAim, resolveTurretAim, stepTurretAim } from '../src/core/turret.js';
+import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
+import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
 
 test('turret can aim at a mouse world point', () => {
   const vehicle = createStartingVehicle();
@@ -136,4 +138,51 @@ test('guided targeting can disable shot leading for reticle weapons', () => {
   stepGame(led, { targetingMode: 'guided', gunnerEnabled: true, aiShotLeading: true }, 1 / 60);
   stepGame(direct, { targetingMode: 'guided', gunnerEnabled: true, aiShotLeading: false }, 1 / 60);
   assert.equal(led.aimReticle.y - direct.aimReticle.y > 3, true);
+});
+
+test('guided targeting leads using the next primary weapon profile', () => {
+  const beamVehicle = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
+  const bulletGame = createGame();
+  const beamGame = createGame(1147, { vehicleDefinition: beamVehicle });
+  for (const game of [bulletGame, beamGame]) {
+    game.autofire = false;
+    game.targetingAi.xp = 1_000_000;
+    const enemy = game.enemies[0];
+    enemy.targetId = 'fast-runner';
+    enemy.x = game.vehicle.x + 300;
+    enemy.y = game.vehicle.y;
+    enemy.vx = 0;
+    enemy.vy = 360;
+    game.guidedTargetId = enemy.targetId;
+    game.aiAimMode = 'guided';
+    game.aiAimTargetId = enemy.targetId;
+    game.aiAimReticle = { x: enemy.x, y: enemy.y };
+  }
+
+  stepGame(bulletGame, { targetingMode: 'guided', gunnerEnabled: true }, 1 / 60);
+  stepGame(beamGame, { targetingMode: 'guided', gunnerEnabled: true }, 1 / 60);
+
+  assert.equal(bulletGame.aimReticle.y - beamGame.aimReticle.y > 100, true);
+});
+
+test('mixed targeting uses the moving experienced AI lead reticle', () => {
+  const led = createGame();
+  const direct = createGame();
+  for (const game of [led, direct]) {
+    game.autofire = false;
+    game.targetingAi.xp = 1_000_000;
+    const enemy = game.enemies[0];
+    enemy.targetId = 'mixed-fast-runner';
+    enemy.x = game.vehicle.x + 300;
+    enemy.y = game.vehicle.y;
+    enemy.vx = 0;
+    enemy.vy = 360;
+    game.aiAimReticle = { x: enemy.x, y: enemy.y };
+  }
+
+  stepGame(led, { targetingMode: 'mixed', gunnerEnabled: true, aiShotLeading: true }, 1 / 60);
+  stepGame(direct, { targetingMode: 'mixed', gunnerEnabled: true, aiShotLeading: false }, 1 / 60);
+
+  assert.equal(led.aimReticle.y - direct.aimReticle.y > 100, true);
+  assert.equal(led.targetingAi.xp > 1_000_000, true);
 });

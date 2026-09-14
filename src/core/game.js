@@ -291,6 +291,8 @@ const TARGETING_AI_BASE_SPEED = 145;
 const TARGETING_AI_SPEED_PER_RANK = 12;
 const TARGETING_AI_XP_PER_RANK = 45;
 const TARGETING_AI_BASE_WOBBLE = 18;
+const TARGETING_AI_BASE_GAUSSIAN_ERROR = 24;
+const TARGETING_AI_ERROR_REFRESH_SECONDS = [0.45, 0.82];
 const MAX_SMOKE_PARTICLES = 180;
 const MAX_GROUND_BEAM_SCORCH_PARTICLES = 72;
 const MAX_DETACHED_SUPPORT_SCRAP = 24;
@@ -1669,9 +1671,21 @@ function aimInputForTurret(game, input, dt) {
 
   const target = gunnerAimTarget(game, input.aiShotLeading !== false);
   if (!target) return input;
-  game.aiAimReticle = moveToward(game.aiAimReticle ?? { x: game.vehicle.x, y: game.vehicle.y }, target, 130 * dt);
+  if (!game.aiAimReticle || game.aiAimMode !== 'mixed') resetAiAimReticle(game);
+  game.aiAimMode = 'mixed';
+  game.aiAimTargetId = target.targetId;
+  const stats = targetingAiStats(game);
+  const aimPoint = applyTargetingAiWobble(game, target, stats, dt);
+  game.aiAimReticle = moveToward(game.aiAimReticle, aimPoint, stats.reticleSpeed * dt);
   game.aimReticle = { ...game.aiAimReticle, active: true, source: 'ai' };
-  return { ...input, aimWorld: game.aiAimReticle, manualAimActive: false };
+  stepTargetingAiExperience(game, target.enemy, dt);
+  return {
+    ...input,
+    aimWorld: game.aiAimReticle,
+    manualAimActive: false,
+    compensatedAim: target.compensatedAim !== false,
+    aimProjectileSpeed: target.projectileSpeed,
+  };
 }
 
 function guidedAimInput(game, input, dt) {
@@ -1684,45 +1698,115 @@ function guidedAimInput(game, input, dt) {
   game.aiAimMode = 'guided';
   game.aiAimTargetId = target.targetId;
   const stats = targetingAiStats(game);
-  const aimPoint = applyTargetingAiWobble(game, target, stats);
+  const aimPoint = applyTargetingAiWobble(game, target, stats, dt);
   game.aiAimReticle = moveToward(game.aiAimReticle, aimPoint, stats.reticleSpeed * dt);
   game.aimReticle = { ...game.aiAimReticle, active: true, source: 'ai' };
   stepTargetingAiExperience(game, target.enemy, dt);
-  return { ...input, aimWorld: game.aiAimReticle, manualAimActive: false, compensatedAim: game.secondary.selected !== 'beam' };
+  return {
+    ...input,
+    aimWorld: game.aiAimReticle,
+    manualAimActive: false,
+    compensatedAim: target.compensatedAim !== false,
+    aimProjectileSpeed: target.projectileSpeed,
+  };
 }
 
 function guidedAimTarget(game, shotLeading = true) {
   const enemy = guidedTarget(game) ?? nearestTargetedEnemy(game);
   if (!enemy) return null;
-  if (!shotLeading) {
-    return {
-      x: enemy.x,
-      y: enemy.y,
-      enemy,
-      targetId: enemyTargetId(enemy),
-    };
-  }
-  const beamSelected = game.secondary.selected === 'beam';
-  const projectileSpeed = beamSelected ? 1_000_000 : PRIMARY_PROJECTILE_SPEED;
-  const distance = Math.hypot(enemy.x - game.vehicle.x, enemy.y - game.vehicle.y);
-  const leadTime = Math.min(beamSelected ? 0.05 : 0.75, distance / projectileSpeed);
-  return {
-    x: enemy.x + (enemy.vx ?? 0) * leadTime,
-    y: enemy.y + (enemy.vy ?? 0) * leadTime,
-    enemy,
-    targetId: enemyTargetId(enemy),
-  };
+  return aiAimTargetForEnemy(game, enemy, shotLeading);
 }
 
 function gunnerAimTarget(game, shotLeading = true) {
   const target = nearestTargetedEnemy(game);
   if (!target) return null;
-  if (!shotLeading) return { x: target.x, y: target.y };
-  const beamSelected = game.secondary.selected === 'beam';
-  const projectileSpeed = beamSelected ? 1_000_000 : PRIMARY_PROJECTILE_SPEED;
-  const distance = Math.hypot(target.x - game.vehicle.x, target.y - game.vehicle.y);
-  const leadTime = Math.min(beamSelected ? 0.05 : 0.75, distance / projectileSpeed);
-  return { x: target.x + (target.vx ?? 0) * leadTime, y: target.y + (target.vy ?? 0) * leadTime };
+  return aiAimTargetForEnemy(game, target, shotLeading);
+}
+
+function aiAimTargetForEnemy(game, enemy, shotLeading = true) {
+  const profile = nextPrimaryAimProfile(game);
+  const leadTime = shotLeading ? targetLeadTime(game, enemy, profile) : 0;
+  return {
+    x: enemy.x + (enemy.vx ?? 0) * leadTime,
+    y: enemy.y + (enemy.vy ?? 0) * leadTime,
+    enemy,
+    targetId: enemyTargetId(enemy),
+    weaponId: profile.weaponId,
+    projectileSpeed: profile.projectileSpeed,
+    compensatedAim: profile.compensatedAim,
+  };
+}
+
+function targetLeadTime(game, enemy, profile) {
+  if (!profile.shotLeading || profile.projectileSpeed >= 999_999) return 0;
+  if (Number.isFinite(profile.fixedFlightTime)) return Math.min(profile.maxLeadTime, Math.max(0, profile.fixedFlightTime));
+  const distance = Math.hypot(enemy.x - game.vehicle.x, enemy.y - game.vehicle.y);
+  return Math.min(profile.maxLeadTime, distance / Math.max(1, profile.projectileSpeed));
+}
+
+function nextPrimaryAimProfile(game) {
+  const fallback = primaryAimProfile(game, 'main.basic');
+  const mounts = primaryFiringMounts(game);
+  if (mounts.length === 0) return fallback;
+  const startIndex = (game.playerGunIndex ?? 0) % mounts.length;
+  for (let attempt = 0; attempt < mounts.length; attempt += 1) {
+    const mount = mounts[(startIndex + attempt) % mounts.length];
+    const weaponId = nextReadyPrimaryWeaponFromMount(game, mount);
+    if (weaponId) return primaryAimProfile(game, weaponId);
+  }
+  const queued = mounts[startIndex]?.weapons?.[primaryGunQueueReadIndex(game, mounts[startIndex]) ?? 0] ?? 'main.basic';
+  return primaryAimProfile(game, queued);
+}
+
+function nextReadyPrimaryWeaponFromMount(game, mount) {
+  const queue = mount.weapons.length ? mount.weapons : ['main.basic'];
+  const startIndex = primaryGunQueueReadIndex(game, mount);
+  for (let attempt = 0; attempt < queue.length; attempt += 1) {
+    const slotIndex = (startIndex + attempt) % queue.length;
+    const weaponId = queue[slotIndex] ?? 'main.basic';
+    const cooldownKey = primaryWeaponCooldownKey(mount.muzzle.cellId, slotIndex, weaponId);
+    if ((game.primaryWeaponCooldowns?.[cooldownKey] ?? 0) <= 0) return weaponId;
+  }
+  return null;
+}
+
+function primaryGunQueueReadIndex(game, mount) {
+  const queueLength = Math.max(1, mount?.weapons?.length ?? 1);
+  return Math.max(0, Math.floor(game.primaryGunQueues?.[mount.muzzle.cellId]?.index ?? 0)) % queueLength;
+}
+
+function primaryAimProfile(game, weaponId) {
+  if (weaponId === 'main.basic') {
+    return {
+      weaponId,
+      projectileSpeed: PRIMARY_PROJECTILE_SPEED * upgradeMultiplier(game, 'gunVelocity'),
+      maxLeadTime: 0.75,
+      shotLeading: true,
+      compensatedAim: true,
+    };
+  }
+  const def = upgradedPrimaryWeaponDefinition(game, weaponId);
+  if (!def) return primaryAimProfile(game, 'main.basic');
+  if (def.behavior === 'beam') {
+    return { weaponId, projectileSpeed: 1_000_000, maxLeadTime: 0, shotLeading: false, compensatedAim: true };
+  }
+  if (def.behavior === 'arc') {
+    return {
+      weaponId,
+      projectileSpeed: Math.max(1, def.projectileSpeed ?? PRIMARY_PROJECTILE_SPEED),
+      fixedFlightTime: arcFlightTime(def),
+      maxLeadTime: 1.5,
+      shotLeading: true,
+      compensatedAim: true,
+    };
+  }
+  return {
+    weaponId,
+    projectileSpeed: Math.max(1, def.maxSpeed && Number.isFinite(def.maxSpeed) ? def.maxSpeed : def.projectileSpeed ?? PRIMARY_PROJECTILE_SPEED),
+    maxLeadTime: def.behavior === 'homing' ? 0.95 : 0.75,
+    shotLeading: true,
+    compensatedAim: true,
+  };
 }
 
 function nearestTargetedEnemy(game) {
@@ -1784,10 +1868,12 @@ function targetingAiStats(game) {
   const ai = createTargetingAiState(game.targetingAi);
   game.targetingAi = ai;
   const rank = Math.floor(ai.xp / TARGETING_AI_XP_PER_RANK);
+  const logExperience = Math.max(1, Math.log2(ai.xp + 1));
   return {
     rank,
-    reticleSpeed: TARGETING_AI_BASE_SPEED + rank * TARGETING_AI_SPEED_PER_RANK,
+    reticleSpeed: TARGETING_AI_BASE_SPEED + rank * TARGETING_AI_SPEED_PER_RANK + logExperience * 2,
     wobbleRadius: Math.max(2, TARGETING_AI_BASE_WOBBLE * 0.87 ** rank),
+    gaussianErrorRadius: TARGETING_AI_BASE_GAUSSIAN_ERROR / logExperience,
   };
 }
 
@@ -1816,19 +1902,49 @@ function startTargetingAiLevel(game) {
 
 function resetAiAimReticle(game) {
   game.aiAimReticle = { x: game.vehicle.x, y: game.vehicle.y };
+  game.aiAimError = null;
   game.aiAimTargetId = null;
   game.aiAimMode = null;
 }
 
-function applyTargetingAiWobble(game, target, stats) {
+function applyTargetingAiWobble(game, target, stats, dt = 0) {
   const radius = stats.wobbleRadius;
-  if (radius <= 0.1) return { x: target.x, y: target.y };
+  const error = targetingAiGaussianError(game, target, stats, dt);
+  if (radius <= 0.1) return { x: target.x + error.x, y: target.y + error.y };
   const phase = hashStringUnit(target.targetId ?? 'target') * Math.PI * 2;
   const wobbleTime = game.time * (1.15 + stats.rank * 0.04) + phase;
   return {
-    x: target.x + Math.cos(wobbleTime) * radius,
-    y: target.y + Math.sin(wobbleTime * 0.73 + phase) * radius * 0.72,
+    x: target.x + error.x + Math.cos(wobbleTime) * radius,
+    y: target.y + error.y + Math.sin(wobbleTime * 0.73 + phase) * radius * 0.72,
   };
+}
+
+function targetingAiGaussianError(game, target, stats, dt) {
+  const key = `${target.targetId ?? 'target'}:${target.weaponId ?? 'primary'}`;
+  const current = game.aiAimError;
+  if (!current || current.key !== key || current.refreshTimer <= 0) {
+    game.aiAimError = {
+      key,
+      offset: sampleGaussianOffset(game, stats.gaussianErrorRadius ?? 0),
+      refreshTimer: game.rng.range(TARGETING_AI_ERROR_REFRESH_SECONDS[0], TARGETING_AI_ERROR_REFRESH_SECONDS[1]),
+    };
+  }
+  game.aiAimError.refreshTimer = Math.max(0, game.aiAimError.refreshTimer - dt);
+  return game.aiAimError.offset;
+}
+
+function sampleGaussianOffset(game, standardDeviation) {
+  if (standardDeviation <= 0.001) return { x: 0, y: 0 };
+  return {
+    x: gaussianUnit(game.rng) * standardDeviation,
+    y: gaussianUnit(game.rng) * standardDeviation,
+  };
+}
+
+function gaussianUnit(rng) {
+  const u1 = Math.max(1e-9, rng.next());
+  const u2 = Math.max(1e-9, rng.next());
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(Math.PI * 2 * u2);
 }
 
 function hashStringUnit(text) {
