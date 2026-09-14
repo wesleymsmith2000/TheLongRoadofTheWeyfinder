@@ -107,10 +107,27 @@ test('mini beam uses its own shorter slower firing profile and gunfire sound', (
   assert.equal(beam.frames, 5);
   assert.equal(beam.radius, 0.8);
   assert.equal(game.primaryHeat.heat.toFixed(1), '10.0');
-  assert.equal(game.playerFireTimer.toFixed(2), ((2.48 / Math.sqrt(2)) / 0.9).toFixed(2));
+  assert.equal(game.playerFireTimer.toFixed(2), (0.22 / Math.sqrt(2)).toFixed(2));
+  assert.equal(game.primaryWeaponCooldowns['gun:0:mini_beam'].toFixed(2), ((2.48 / Math.sqrt(2)) / 0.9).toFixed(2));
   const events = consumeSoundEvents(game).map((event) => event.id);
   assert.equal(events.includes(SOUND_EVENTS.PLAYER_MAIN_GUN), true);
   assert.equal(events.includes(SOUND_EVENTS.PLAYER_BEAM), false);
+});
+
+test('primary gun cell queues skip cooling weapons and fire ready slots', () => {
+  let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'main.basic').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mini_beam'), true);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), false);
+
+  for (let index = 0; index < 10; index += 1) stepGame(game, {}, 1 / 60);
+
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
+  assert.equal(game.primaryWeaponCooldowns['gun:0:mini_beam'] > 1.3, true);
 });
 
 test('mini beam upgrades affect active beam combat attributes', () => {
@@ -172,7 +189,8 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   assert.equal(blade.ricochetOnEnemyExit, true);
   assert.equal(blade.absorbsEnemyProjectiles, true);
   assert.equal(blade.projectileDeflectionProbability, 0.25);
-  assert.equal(bladeGame.playerFireTimer > 0.22 / Math.sqrt(2) * 4, true);
+  assert.equal(bladeGame.playerFireTimer.toFixed(3), (0.22 / Math.sqrt(2)).toFixed(3));
+  assert.equal(bladeGame.primaryWeaponCooldowns['gun:0:blade_launcher'] > 0.22 / Math.sqrt(2) * 4, true);
 });
 
 test('tracking flechette upgrades scale primary weapon stats', () => {
@@ -254,7 +272,8 @@ test('mortar upgrades scale impact and blast stats', () => {
   assert.equal(mortar.damage.toFixed(2), (24 * 1.05).toFixed(2));
   assert.equal(mortar.blastDamage.toFixed(2), (90 * 1.05 ** 2).toFixed(2));
   assert.equal(mortar.blastRadius.toFixed(3), (7.5 * CELL_SIZE * Math.sqrt(1.05)).toFixed(3));
-  assert.equal(game.playerFireTimer.toFixed(3), (((1.8666666667 / 1.05 ** 2) / Math.sqrt(2)) * 1.25).toFixed(3));
+  assert.equal(game.playerFireTimer.toFixed(3), (0.22 / Math.sqrt(2)).toFixed(3));
+  assert.equal(game.primaryWeaponCooldowns['gun:0:mortar'].toFixed(3), (((1.8666666667 / 1.05 ** 2) / Math.sqrt(2)) * 1.25).toFixed(3));
 });
 
 test('blade launcher upgrades scale primary blade stats', () => {
