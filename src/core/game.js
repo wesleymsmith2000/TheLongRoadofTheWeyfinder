@@ -5623,6 +5623,7 @@ function handleCollisions(game) {
     }
   }
 
+  const playerProjectileTargets = activeEnemies(game);
   for (const projectile of game.playerProjectiles) {
     if (projectile.readyToExplode) {
       projectile.lifetime = 0;
@@ -5657,10 +5658,10 @@ function handleCollisions(game) {
       continue;
     }
     if (projectile.damagePiercesUntilSpent) {
-      hitEnemiesWithDamageBudgetProjectile(game, projectile);
+      hitEnemiesWithDamageBudgetProjectile(game, projectile, playerProjectileTargets);
       continue;
     }
-    for (const enemy of activeEnemies(game)) {
+    for (const enemy of playerProjectileTargets) {
       if (!enemyCanBeHitByProjectile(enemy, projectile)) continue;
       if (!projectileIntersectsPoint(projectile, enemy, enemy.radius + projectile.radius)) continue;
       if (enemyShieldBlocks(enemy, projectile)) {
@@ -5671,7 +5672,7 @@ function handleCollisions(game) {
       if (hit.hit) {
         if (projectile.weapon === 'bullet' && game.rng.chance(0.25)) emitSoundEvent(game, SOUND_EVENTS.BULLET_RICOCHET);
         game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
-        const pierce = applyEnemyProjectilePierceDamage(activeEnemies(game), projectile);
+        const pierce = applyEnemyProjectilePierceDamage(playerProjectileTargets, projectile);
         if (pierce.hit) {
           game.score.damageDone += Math.round(projectile.damage * 0.35 + pierce.removed * 3);
           for (const piercedEnemy of pierce.destroyedEnemies) explodeEnemy(game, piercedEnemy);
@@ -5700,18 +5701,18 @@ function enemyUsesLayeredCellExposure(enemy) {
   return Boolean(enemy.elevation?.layeredExposure) || enemy.cells?.some((cell) => (cell.gridZ ?? cell.layer ?? 0) > 0);
 }
 
-function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
+function hitEnemiesWithDamageBudgetProjectile(game, projectile, targets = activeEnemies(game)) {
   const travel = Math.hypot(projectile.x - projectile.previousX, projectile.y - projectile.previousY);
   const travelAngle = travel > 0.001 ? Math.atan2(projectile.y - projectile.previousY, projectile.x - projectile.previousX) : (projectile.angle ?? Math.atan2(projectile.vy, projectile.vx));
   const contactRadius = playerProjectileContactRadius(projectile);
   const pierce = applyEnemyProjectilePierceDamage(
-    activeEnemies(game).filter((enemy) => enemyCanBeHitByProjectile(enemy, projectile)),
+    targets.filter((enemy) => enemyCanBeHitByProjectile(enemy, projectile)),
     projectile,
     {
       start: { x: projectile.previousX, y: projectile.previousY },
       angle: travelAngle,
       maxLength: Math.max(VOXEL_SIZE, travel + contactRadius * 2),
-      maxHits: 48,
+      maxHits: damageBudgetProjectileMaxHits(projectile),
       halfWidth: Math.max(contactRadius, VOXEL_SIZE),
       damageScale: 1,
       z: isBladeProjectile(projectile) ? projectile.z ?? CELL_LAYER_HEIGHT : undefined,
@@ -5732,6 +5733,11 @@ function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
   if (previousDamage - projectile.damage > 0.05) handleDamageBudgetProjectileRicochet(game, projectile, previousEnemy);
   if (projectile.damage <= 0.05) projectile.lifetime = 0;
   return true;
+}
+
+function damageBudgetProjectileMaxHits(projectile) {
+  const pierce = Math.max(0, Math.floor(projectile.pierce ?? 0));
+  return Math.max(3, Math.min(48, pierce * 2 + 1));
 }
 
 function handleDamageBudgetProjectileRicochet(game, projectile, previousEnemy = null) {

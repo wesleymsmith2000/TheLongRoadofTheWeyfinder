@@ -854,22 +854,47 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
   const destroyedEnemies = [];
   const hitEnemies = [];
   const hitEnemySet = new Set();
+  const touchedEnemies = new Map();
   for (const voxelHit of hits) {
     if (power <= 0.05) break;
-    const result = applyEnemyVoxelDamage(voxelHit.enemy, voxelHit, power);
-    if (!result.hit) continue;
+    if (!voxelHit?.enemy || voxelHit.enemy.destroyed || !voxelHit?.cell || voxelHit.cell.state?.destroyed || !voxelHit?.voxelIndex) continue;
+    const voxel = voxelHit.cell.mask[voxelHit.voxelIndex.y]?.[voxelHit.voxelIndex.x];
+    if (!voxel || voxel.hp <= 0) continue;
+    const entry = touchedEnemies.get(voxelHit.enemy) ?? {
+      enemy: voxelHit.enemy,
+      wasDestroyed: voxelHit.enemy.destroyed,
+      changedCells: new Set(),
+      removed: 0,
+      damage: 0,
+    };
+    touchedEnemies.set(voxelHit.enemy, entry);
+    const before = voxel.hp;
+    voxel.hp = Math.max(0, voxel.hp - power);
+    const removedVoxel = before > 0 && voxel.hp <= 0 ? 1 : 0;
+    entry.changedCells.add(voxelHit.cell);
+    entry.removed += removedVoxel;
+    entry.damage += power;
     hit = true;
     if (!hitEnemySet.has(voxelHit.enemy)) {
       hitEnemySet.add(voxelHit.enemy);
       hitEnemies.push(voxelHit.enemy);
     }
-    removed += result.removed;
-    damage += result.damage ?? power;
-    if (result.destroyedNow) {
+    power = Math.max(0, power - (voxelHit.maxHpBeforeDamage ?? before)) * falloff;
+  }
+
+  for (const entry of touchedEnemies.values()) {
+    for (const cell of entry.changedCells) recalculateCell(cell);
+    entry.enemy.damageTaken += entry.damage + entry.removed * 3;
+    const collapse = collapseExposedArmorLayers(entry.enemy);
+    if (entry.changedCells.size > 0 || collapse.removed > 0) invalidateEnemyRuntimeCaches(entry.enemy);
+    entry.enemy.damageTaken += collapse.removed * 3;
+    updateEnemyDestroyed(entry.enemy);
+    removed += entry.removed + collapse.removed;
+    damage += entry.damage;
+    if (!entry.wasDestroyed && entry.enemy.destroyed) {
       destroyedNow = true;
-      destroyedEnemies.push(voxelHit.enemy);
+      destroyedEnemies.push(entry.enemy);
     }
-    power = Math.max(0, power - voxelHit.maxHpBeforeDamage) * falloff;
   }
   return { hit, removed, damage, remainingDamage: power, destroyedNow, destroyedEnemies, hitEnemies };
 }
@@ -1137,7 +1162,7 @@ function traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, pierce = 0,
   const maxHits = Math.max(1, Math.floor(pierce) + 1);
   const laneCount = halfWidth <= step ? 1 : Math.min(9, Math.max(3, Math.ceil((halfWidth * 2) / step) + 1));
   const laneSpacing = laneCount === 1 ? 0 : (halfWidth * 2) / (laneCount - 1);
-  const traceOptions = options.cellCache ? options : { ...options, cellCache: new Map() };
+  const traceOptions = options;
   const candidateEnemies = enemiesNearTracePath(enemies, start, angle, maxLength, halfWidth + CELL_SIZE);
   for (let distance = 0; distance <= maxLength; distance += step) {
     for (let lane = 0; lane < laneCount; lane += 1) {
@@ -1195,7 +1220,7 @@ function findEnemyVoxelAt(enemies, worldPoint, options = {}) {
   for (const enemy of enemies) {
     if (enemy.destroyed) continue;
     const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
-    for (const cell of cachedEnemyCellsForDirectDamage(enemy, options)) {
+    for (const cell of enemyCellsAtLocalPointForDirectDamage(enemy, localX, localY, options)) {
       if (cell.state.destroyed) continue;
       if (enemyCellIsPhasedCore(enemy, cell)) continue;
       if (!enemyCellWithinZRange(enemy, cell, options)) continue;
@@ -1244,7 +1269,7 @@ function findEnemyCellAt(enemies, worldPoint, options = {}) {
   for (const enemy of enemies) {
     if (enemy.destroyed) continue;
     const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
-    for (const cell of cachedEnemyCellsForDirectDamage(enemy, options)) {
+    for (const cell of enemyCellsAtLocalPointForDirectDamage(enemy, localX, localY, options)) {
       if (cell.state.destroyed) continue;
       if (enemyCellIsPhasedCore(enemy, cell)) continue;
       if (!enemyCellWithinZRange(enemy, cell, options)) continue;
@@ -1257,9 +1282,9 @@ function findEnemyCellAt(enemies, worldPoint, options = {}) {
   return null;
 }
 
-function enemyCellWithinZRange(enemy, cell, options = {}) {
+function enemyCellWithinZRange(enemy, cell, options = {}, lowestLiveLayer = options.lowestLiveLayer) {
   if (!Number.isFinite(options.z) || !Number.isFinite(options.zRange)) return true;
-  return Math.abs(enemyCellWorldHeight(enemy, cell) - options.z) <= options.zRange + 0.001;
+  return Math.abs(enemyCellWorldHeight(enemy, cell, lowestLiveLayer) - options.z) <= options.zRange + 0.001;
 }
 
 function applyEnemyBlastFallback(enemy, cell, origin, options) {
@@ -1320,9 +1345,9 @@ function enemyVoxelWorldCenter3d(enemy, cell, vx, vy) {
   };
 }
 
-function enemyCellWorldHeight(enemy, cell) {
+function enemyCellWorldHeight(enemy, cell, lowestLiveLayer = enemyLowestLiveLayer(enemy)) {
   const baseElevation = enemy.elevation?.z ?? 0;
-  const layerLift = Math.max(0, cellLayer(cell) - enemyLowestLiveLayer(enemy)) * CELL_LAYER_HEIGHT;
+  const layerLift = Math.max(0, cellLayer(cell) - lowestLiveLayer) * CELL_LAYER_HEIGHT;
   return baseElevation + layerLift * enemyVisualScale(enemy);
 }
 
@@ -1352,8 +1377,11 @@ function enemyCellsForDirectDamage(enemy, options = {}) {
   const cells = (enemy.cells ?? []).filter((cell) => !cell.state?.destroyed);
   const groundOnly = Boolean(options.groundOnly) && enemyHasLayeredCells(enemy);
   const lowest = groundOnly ? enemyLowestLiveLayer(enemy) : null;
+  const useZRange = Number.isFinite(options.z) && Number.isFinite(options.zRange);
+  const zLowest = useZRange ? enemyLowestLiveLayer(enemy) : null;
   return cells
     .filter((cell) => !groundOnly || cellLayer(cell) === lowest)
+    .filter((cell) => !useZRange || enemyCellWithinZRange(enemy, cell, options, zLowest))
     .sort((a, b) => {
       const layerSort = (options.topFirst ? cellLayer(b) - cellLayer(a) : cellLayer(a) - cellLayer(b));
       return layerSort || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id);
@@ -1388,10 +1416,17 @@ export function livePirateBossGunPodCount(enemy) {
 }
 
 function cachedEnemyCellsForDirectDamage(enemy, options = {}) {
-  const key = `${options.groundOnly ? 'ground' : 'all'}:${options.topFirst ? 'top' : 'bottom'}`;
+  return cachedEnemyDirectDamageLookup(enemy, options).cells;
+}
+
+function cachedEnemyDirectDamageLookup(enemy, options = {}) {
+  const zKey = Number.isFinite(options.z) && Number.isFinite(options.zRange)
+    ? `:${Math.round(options.z * 1000)}:${Math.round(options.zRange * 1000)}`
+    : '';
+  const key = `${options.groundOnly ? 'ground' : 'all'}:${options.topFirst ? 'top' : 'bottom'}${zKey}`;
   if (!options.cellCache) {
     enemy._directDamageCellsCache ??= new Map();
-    if (!enemy._directDamageCellsCache.has(key)) enemy._directDamageCellsCache.set(key, enemyCellsForDirectDamage(enemy, options));
+    if (!enemy._directDamageCellsCache.has(key)) enemy._directDamageCellsCache.set(key, enemyDirectDamageLookup(enemy, options));
     return enemy._directDamageCellsCache.get(key);
   }
   let byEnemy = options.cellCache.get(enemy);
@@ -1399,8 +1434,43 @@ function cachedEnemyCellsForDirectDamage(enemy, options = {}) {
     byEnemy = new Map();
     options.cellCache.set(enemy, byEnemy);
   }
-  if (!byEnemy.has(key)) byEnemy.set(key, enemyCellsForDirectDamage(enemy, options));
+  if (!byEnemy.has(key)) byEnemy.set(key, enemyDirectDamageLookup(enemy, options));
   return byEnemy.get(key);
+}
+
+function enemyDirectDamageLookup(enemy, options = {}) {
+  const cells = enemyCellsForDirectDamage(enemy, options);
+  const byGrid = new Map();
+  for (const cell of cells) {
+    const key = enemyCellGridKey(cell.gridX, cell.gridY);
+    let bucket = byGrid.get(key);
+    if (!bucket) {
+      bucket = [];
+      byGrid.set(key, bucket);
+    }
+    bucket.push(cell);
+  }
+  return { cells, byGrid, scratch: [] };
+}
+
+function enemyCellsAtLocalPointForDirectDamage(enemy, localX, localY, options = {}) {
+  const lookup = cachedEnemyDirectDamageLookup(enemy, options);
+  const gridX = Math.floor((localX + CELL_SIZE / 2) / CELL_SIZE);
+  const gridY = Math.floor((localY + CELL_SIZE / 2) / CELL_SIZE);
+  const scratch = lookup.scratch;
+  scratch.length = 0;
+  for (let y = gridY - 1; y <= gridY + 1; y += 1) {
+    for (let x = gridX - 1; x <= gridX + 1; x += 1) {
+      const bucket = lookup.byGrid.get(enemyCellGridKey(x, y));
+      if (!bucket) continue;
+      scratch.push(...bucket);
+    }
+  }
+  return scratch;
+}
+
+function enemyCellGridKey(gridX, gridY) {
+  return `${gridX},${gridY}`;
 }
 
 function collapseExposedArmorLayers(enemy) {

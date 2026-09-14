@@ -524,7 +524,7 @@ test('blade pierce can cut one layer above or below its flight height', () => {
   const projectile = createProjectile(-CELL_SIZE, 0, 220, 0, {
     team: 'player',
     weapon: 'blade_launcher',
-    damage: 80,
+    damage: 200,
     radius: 0.2,
     pierce: 12,
     pierceDamageScale: 1,
