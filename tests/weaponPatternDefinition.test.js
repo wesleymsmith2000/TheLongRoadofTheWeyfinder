@@ -53,7 +53,9 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
   assert.equal(flechette.projectileSpeed, 161.25);
   assert.equal(flechette.acceleration, 105);
   assert.equal(flechette.lifetime, 3.9);
-  assert.deepEqual(flechette.sprite.displaySize, [11, 4]);
+  assert.equal(flechette.damage, 45);
+  assert.equal(flechette.radius, 2.475);
+  assert.deepEqual(flechette.sprite.displaySize, [16.5, 6]);
   assert.equal(flechette.delayBeforeAcceleration, 0.35);
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);

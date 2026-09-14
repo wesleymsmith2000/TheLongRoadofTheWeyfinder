@@ -70,6 +70,7 @@ import { normalizeSandboxDefinition, validateSandboxDefinition } from './sandbox
 import { createProceduralRoadRoute } from './roadRoute.js';
 import { createWalkerStridePoseRig } from './poseAnimation.js';
 import { beginEncounter, createEncounterRuntimeState, encounterPausePolicy, stepEncounters } from './encounterRuntime.js';
+import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
@@ -108,6 +109,27 @@ const PRIMARY_WEAPON_DEFINITIONS = {
   blade_launcher: runtimeWeaponDefinition(bladeLauncherDefinition),
   mini_beam: runtimeWeaponDefinition(miniBeamDefinition),
   repulsor_beam: runtimeWeaponDefinition(repulsorBeamDefinition),
+};
+const PRIMARY_PROJECTILE_VISUAL_UPGRADES = {
+  'main.basic': ['gunAccuracy', 'gunFireRate', 'gunDamage', 'gunVelocity'],
+  tracking_flechette: [
+    'trackingFlechetteFireRate',
+    'trackingFlechettePierce',
+    'trackingFlechetteAcceleration',
+    'trackingFlechetteImpactDamage',
+    'trackingFlechetteTurningRate',
+  ],
+  mortar: ['mortarFireRate', 'mortarImpactDamage', 'mortarBlastDamage', 'mortarBlastRadius'],
+  blade_launcher: [
+    'bladeLauncherFireRate',
+    'bladeLauncherMaxRicochets',
+    'bladeLauncherImpactDamage',
+    'bladeLauncherPierce',
+    'bladeLauncherRicochetFactor',
+    'bladeLauncherProjectileDeflection',
+  ],
+  mini_beam: ['miniBeamLength', 'miniBeamDamage', 'miniBeamFireRate', 'miniBeamPierce', 'miniBeamHeatSink', 'miniBeamHeatEfficiency'],
+  repulsor_beam: ['repulsorKnockback', 'repulsorFireRate'],
 };
 const ENEMY_UPGRADE_TYPES = ['damage', 'attackRate', 'armor', 'movementSpeed'];
 const HOPPER_FROG_VISUAL_SCALE = 1.5;
@@ -1874,7 +1896,7 @@ function fireReadyPrimaryFromMount(game, mount, activeWeaponSlots) {
 
 function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSlots) {
   const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy');
-  const damage = 8 * upgradeMultiplier(game, 'gunDamage');
+  const damage = 16 * upgradeMultiplier(game, 'gunDamage');
   const speed = PRIMARY_PROJECTILE_SPEED * upgradeMultiplier(game, 'gunVelocity');
   if (weaponId !== 'main.basic') {
     const def = upgradedPrimaryWeaponDefinition(game, weaponId);
@@ -1892,18 +1914,18 @@ function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSl
     );
     return true;
   }
-  firePrimaryBullet(game, muzzle, damage, speed, spread);
+  firePrimaryBullet(game, muzzle, damage, speed, spread, primaryProjectileVisualScale(game, 'main.basic'));
   setPrimaryWeaponCooldown(game, muzzle.cellId, slotIndex, weaponId, playerGunFireInterval(game, activeWeaponSlots));
   return true;
 }
 
-function firePrimaryBullet(game, muzzle, damage, speed, spread) {
+function firePrimaryBullet(game, muzzle, damage, speed, spread, visualScale = 1) {
   const angle = game.vehicle.turretHeading + game.rng.range(-spread, spread);
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
       team: 'player',
       weapon: 'bullet',
-      radius: 1.5,
+      radius: 2.25 * visualScale,
       damage,
       impulse: 30,
       lifetime: 2.2,
@@ -2069,18 +2091,19 @@ function firePrimaryBeam(game, muzzle, def) {
 function upgradedPrimaryWeaponDefinition(game, weaponId) {
   const base = PRIMARY_WEAPON_DEFINITIONS[weaponId] ? { ...PRIMARY_WEAPON_DEFINITIONS[weaponId], id: weaponId } : null;
   if (!base) return null;
+  const visualScale = primaryProjectileVisualScale(game, weaponId);
   if (weaponId === 'mini_beam') {
-    return {
+    return scaleProjectileVisuals({
       ...base,
       cooldown: base.cooldown / upgradeMultiplier(game, 'miniBeamFireRate'),
       heat: Math.max(1, base.heat * upgradeReduction(game, 'miniBeamHeatEfficiency')),
       damage: base.damage * upgradeMultiplier(game, 'miniBeamDamage'),
       length: base.length * upgradeMultiplier(game, 'miniBeamLength', 0.12),
       pierce: upgradeLevel(game, 'miniBeamPierce'),
-    };
+    }, visualScale);
   }
   if (weaponId === 'repulsor_beam') {
-    return {
+    return scaleProjectileVisuals({
       ...base,
       radius: base.radius * 3,
       impulse: base.impulse * 0.125 * upgradeMultiplier(game, 'repulsorKnockback'),
@@ -2088,20 +2111,20 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
       alpha: 0.5,
       targetHint: null,
       cooldown: 0.72 / upgradeMultiplier(game, 'repulsorFireRate'),
-    };
+    }, visualScale);
   }
   if (weaponId === 'mortar') {
-    return {
+    return scaleProjectileVisuals({
       ...base,
       cooldown: base.cooldown / upgradeMultiplier(game, 'mortarFireRate'),
       damage: base.damage * upgradeMultiplier(game, 'mortarImpactDamage'),
       blastDamage: base.blastDamage * upgradeMultiplier(game, 'mortarBlastDamage'),
       blastRadius: base.blastRadius * upgradeMultiplier(game, 'mortarBlastRadius', Math.sqrt(1.05) - 1),
-    };
+    }, visualScale);
   }
   if (weaponId === 'blade_launcher') {
     const baseDeflectChance = base.projectileDeflectionProbability ?? 0.25;
-    return {
+    return scaleProjectileVisuals({
       ...base,
       cooldown: base.cooldown / upgradeMultiplier(game, 'bladeLauncherFireRate'),
       damage: base.damage * upgradeMultiplier(game, 'bladeLauncherImpactDamage'),
@@ -2109,19 +2132,28 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
       maxRicochets: base.maxRicochets + upgradeLevel(game, 'bladeLauncherMaxRicochets'),
       ricochetFactor: base.ricochetFactor * upgradeMultiplier(game, 'bladeLauncherRicochetFactor'),
       projectileDeflectionProbability: projectileDeflectionChance(baseDeflectChance, upgradeLevel(game, 'bladeLauncherProjectileDeflection')),
-    };
+    }, visualScale);
   }
   if (weaponId === 'tracking_flechette') {
-    return {
+    return scaleProjectileVisuals({
       ...base,
+      radius: base.radius * visualScale,
       cooldown: base.cooldown / upgradeMultiplier(game, 'trackingFlechetteFireRate'),
       damage: base.damage * upgradeMultiplier(game, 'trackingFlechetteImpactDamage'),
       pierce: base.pierce + upgradeLevel(game, 'trackingFlechettePierce'),
       acceleration: base.acceleration * upgradeMultiplier(game, 'trackingFlechetteAcceleration'),
       turnRate: base.turnRate * upgradeMultiplier(game, 'trackingFlechetteTurningRate'),
-    };
+    }, visualScale);
   }
-  return base;
+  return scaleProjectileVisuals(base, visualScale);
+}
+
+function primaryProjectileVisualScale(game, weaponId) {
+  return projectileUpgradeVisualScale(sumUpgradeLevels(game, PRIMARY_PROJECTILE_VISUAL_UPGRADES[weaponId] ?? []));
+}
+
+function sumUpgradeLevels(game, ids) {
+  return ids.reduce((sum, id) => sum + Math.max(0, upgradeLevel(game, id)), 0);
 }
 
 function primaryFiringMounts(game) {

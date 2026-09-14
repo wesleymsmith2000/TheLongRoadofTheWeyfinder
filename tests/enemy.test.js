@@ -392,6 +392,7 @@ test('race car enemies strafe sideways and fire flechettes', () => {
 
 test('race car enemies spin out after three wheel blocks are destroyed then explode', () => {
   const game = createGame();
+  game.autofire = false;
   const enemy = createEnemy(game.vehicle.x + CELL_SIZE * 8, game.vehicle.y, RACE_CAR_SPINOUT_TEST_ENEMY, [], { moduleScale: 1 });
   enemy.archetypeId = 'test.race_car.prototype0';
   enemy.carBehavior = { movement: 'raceStrafe', spinout: { wheelBlocksDestroyed: 2 } };
@@ -1219,6 +1220,7 @@ test('standard enemy radial ring shots absorb player projectiles', () => {
 
 test('boss arm attack mix can schedule and fire a tracking laser', () => {
   const game = createGame();
+  game.autofire = false;
   const boss = createBossEnemy(game.vehicle.x + 140, game.vehicle.y);
   boss.armUnfurl = 1;
   game.enemies = [boss];

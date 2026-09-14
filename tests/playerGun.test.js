@@ -12,8 +12,8 @@ test('standard turret bullets use boosted damage', () => {
   game.autofire = true;
   stepGame(game, {}, 1 / 60);
   const bullet = game.playerProjectiles.find((projectile) => projectile.weapon === 'bullet');
-  assert.equal(bullet.damage, 8);
-  assert.equal(bullet.radius, 1.5);
+  assert.equal(bullet.damage, 16);
+  assert.equal(bullet.radius, 2.25);
 });
 
 test('primary guns hold fire when there are no active or inbound enemies', () => {
@@ -49,7 +49,7 @@ test('main gun damage upgrade increases bullet damage', () => {
   game.autofire = true;
   stepGame(game, {}, 1 / 60);
   const bullet = game.playerProjectiles.find((projectile) => projectile.weapon === 'bullet');
-  assert.equal(bullet.damage.toFixed(1), '8.4');
+  assert.equal(bullet.damage.toFixed(1), '16.8');
 });
 
 test('main gun velocity upgrade increases bullet speed', () => {
@@ -165,13 +165,13 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   stepGame(flechetteGame, {}, 1 / 60);
   const flechette = flechetteGame.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
   assert.equal(flechette.behavior, 'homing');
-  assert.equal(flechette.radius, 1.65);
+  assert.equal(flechette.radius, 2.475);
   assert.equal(Math.hypot(flechette.vx, flechette.vy).toFixed(2), '161.25');
   assert.equal(flechette.lifetime > 3.8, true);
   assert.equal(flechette.maxSpeed, 322.5);
   assert.equal(flechette.acceleration, 105);
   assert.equal(flechette.pierce, 2);
-  assert.deepEqual(flechette.sprite.displaySize, [11, 4]);
+  assert.deepEqual(flechette.sprite.displaySize, [16.5, 6]);
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);
   assert.equal(flechette.tracksReticleInHoming, true);
@@ -204,7 +204,9 @@ test('tracking flechette upgrades scale primary weapon stats', () => {
   game.autofire = true;
   stepGame(game, {}, 1 / 60);
   const flechette = game.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
-  assert.equal(flechette.damage.toFixed(2), (36 * 1.05).toFixed(2));
+  assert.equal(flechette.damage.toFixed(2), (45 * 1.05).toFixed(2));
+  assert.equal(flechette.radius.toFixed(4), (2.475 * 1.035).toFixed(4));
+  assert.deepEqual(flechette.sprite.displaySize.map((value) => value.toFixed(4)), [(16.5 * 1.035).toFixed(4), (6 * 1.035).toFixed(4)]);
   assert.equal(flechette.pierce, 4);
   assert.equal(flechette.acceleration.toFixed(2), (105 * 1.05).toFixed(2));
   assert.equal(flechette.turnRate.toFixed(2), (7.5 * 1.05).toFixed(2));

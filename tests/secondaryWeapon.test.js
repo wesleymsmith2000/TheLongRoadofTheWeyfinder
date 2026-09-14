@@ -13,7 +13,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles.length, 1);
-  assert.equal(game.playerProjectiles[0].damage, 162);
+  assert.equal(game.playerProjectiles[0].damage, 243);
   assert.equal(game.secondary.ammo.rocket, 16);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH), true);
 });
@@ -43,7 +43,7 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'homing');
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
-  assert.equal(game.playerProjectiles[0].maxSpeed, 97.5);
+  assert.equal(game.playerProjectiles[0].maxSpeed, 146.25);
   assert.equal(game.playerProjectiles[0].radius, 3);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
@@ -214,7 +214,7 @@ test('cannon uses boosted base damage', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage, 108);
+  assert.equal(game.playerProjectiles[0].damage, 162);
   assert.equal(game.playerProjectiles[0].radius, 4);
   assert.equal(game.playerProjectiles[0].blastPierceCells, 1.5);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
@@ -228,10 +228,11 @@ test('secondary upgrades alter projectile stats', () => {
   game.upgrades.cannonShrapnelCount = 2;
   game.upgrades.cannonFlechettePierce = 3;
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '113.4');
+  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '170.1');
   assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy) > 135, true);
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
   assert.equal(game.playerProjectiles[0].pierce, 3);
+  assert.equal(game.playerProjectiles[0].shape.halfWidth.toFixed(2), (4 * 1.04).toFixed(2));
 });
 
 test('cannon detonates when it reaches the selected aim reticle', () => {
@@ -287,7 +288,7 @@ test('beam upgrades reduce width growth and base damage while ammo upgrades expa
   game.upgrades.beamAmmo = 1;
   fireSecondary(game);
   assert.equal(game.playerProjectiles[0].damage, 1.875);
-  assert.equal(game.playerProjectiles[0].radius, 1.4);
+  assert.equal(game.playerProjectiles[0].radius.toFixed(3), (1 + 0.2 * (1 + 1 / Math.sqrt(2))).toFixed(3));
   assert.equal(game.playerProjectiles[0].length > 256, true);
   assert.equal(game.secondary.ammo.beam, 56);
 });

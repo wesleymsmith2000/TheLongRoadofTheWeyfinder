@@ -5,6 +5,7 @@ import { CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { normalizeGunLoadouts } from './weaponLoadout.js';
+import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
@@ -22,6 +23,34 @@ export const SECONDARY_DEFINITIONS = {
   tractor_beam: { ...runtimeWeaponDefinition(tractorBeamDefinition), ammo: Infinity },
   sta_missile: runtimeWeaponDefinition(staMissileDefinition),
   orb_of_blades: runtimeWeaponDefinition(orbOfBladesDefinition),
+};
+
+const SECONDARY_PROJECTILE_VISUAL_UPGRADES = {
+  cannon: [
+    'cannonAmmo',
+    'cannonImpactDamage',
+    'cannonBlastDamage',
+    'cannonBlastRadius',
+    'cannonShrapnelCount',
+    'cannonShrapnelDamage',
+    'cannonKnockback',
+    'cannonVelocity',
+    'cannonFlechettePierce',
+    'cannonFireRate',
+  ],
+  rocket: [
+    'rocketAmmo',
+    'rocketImpactDamage',
+    'rocketBlastDamage',
+    'rocketBlastRadius',
+    'rocketMaxVelocity',
+    'rocketTurning',
+    'rocketKnockback',
+    'rocketFireRate',
+  ],
+  beam: ['beamHeatEfficiency', 'beamHeatSink', 'beamAmmo', 'beamDamage', 'beamLength', 'beamPierce', 'beamWidth', 'beamFireTime', 'beamFireRate'],
+  sta_missile: ['staMissileAmmo', 'staMissileImpactDamage', 'staMissileBlastDamage', 'staMissileBlastRadius'],
+  orb_of_blades: ['orbOfBladesAmmo', 'orbOfBladesEmissionRate', 'orbOfBladesBladeDamage', 'orbOfBladesBladesPerCycle', 'orbOfBladesBladeKnockback'],
 };
 
 export function createSecondaryState(vehicleDefinition = null) {
@@ -156,8 +185,9 @@ function cycleSecondary(secondary, direction) {
 function upgradedSecondaryDefinition(game, weapon) {
   const base = SECONDARY_DEFINITIONS[weapon];
   if (!base) return null;
+  const visualScale = secondaryProjectileVisualScale(game, weapon);
   if (weapon === 'cannon') {
-    return {
+    return scaleProjectileVisuals({
       ...base,
       projectileSpeed: base.projectileSpeed * multiplier(game, 'cannonVelocity'),
       cooldown: base.cooldown / multiplier(game, 'cannonFireRate'),
@@ -174,10 +204,10 @@ function upgradedSecondaryDefinition(game, weapon) {
       pierceDamageFalloff: 0.72,
       targetHint: 'aimReticle',
       detonateAtTarget: true,
-    };
+    }, visualScale);
   }
   if (weapon === 'rocket') {
-    return {
+    return scaleProjectileVisuals({
       ...base,
       cooldown: base.cooldown / multiplier(game, 'rocketFireRate'),
       damage: base.damage * multiplier(game, 'rocketImpactDamage'),
@@ -188,31 +218,31 @@ function upgradedSecondaryDefinition(game, weapon) {
       maxSpeed: base.projectileSpeed * multiplier(game, 'rocketMaxVelocity'),
       turnRate: 2.5 * multiplier(game, 'rocketTurning'),
       acceleration: 45,
-    };
+    }, visualScale);
   }
   if (weapon === 'beam') {
-    return {
+    return scaleProjectileVisuals({
       ...base,
       cooldown: base.cooldown / multiplier(game, 'beamFireRate'),
       heat: Math.max(1, base.heat * reduction(game, 'beamHeatEfficiency')),
-      damage: base.damage * 0.75 * multiplier(game, 'beamDamage'),
+      damage: base.damage * 0.75 * taperedMultiplier(game, 'beamDamage'),
       length: base.length * multiplier(game, 'beamLength', 0.12),
-      radius: base.radius + level(game, 'beamWidth') * 0.2,
+      radius: base.radius + taperedBonus(game, 'beamWidth', 0.2),
       frames: Math.max(1, Math.round(5 * multiplier(game, 'beamFireTime'))),
-      pierce: level(game, 'beamPierce'),
+      pierce: Math.floor(taperedBonus(game, 'beamPierce', 1)),
       targetHint: 'aimReticle',
-    };
+    }, visualScale);
   }
-  if (weapon === 'tractor_beam') return { ...base, targetHint: 'aimReticle' };
+  if (weapon === 'tractor_beam') return scaleProjectileVisuals({ ...base, targetHint: 'aimReticle' }, visualScale);
   if (weapon === 'sta_missile') {
-    return {
+    return scaleProjectileVisuals({
       ...base,
       targetHint: 'aimReticle',
       detonateAtTarget: true,
       damage: base.damage * multiplier(game, 'staMissileImpactDamage'),
       blastDamage: base.blastDamage * multiplier(game, 'staMissileBlastDamage'),
       blastRadius: base.blastRadius * multiplier(game, 'staMissileBlastRadius'),
-    };
+    }, visualScale);
   }
   if (weapon === 'orb_of_blades') {
     const bladeDamageScale = multiplier(game, 'orbOfBladesBladeDamage');
@@ -227,15 +257,23 @@ function upgradedSecondaryDefinition(game, weapon) {
         }
       : null;
     const burst = scaleOrbDetonationBurst(base.detonationBurst, bladeDamageScale, bladeImpulseScale, level(game, 'orbOfBladesBladesPerCycle'), base.impulse * 0.35);
-    return {
+    return scaleProjectileVisuals({
       ...base,
       targetHint: 'aimReticle',
       detonateAtTarget: true,
       emitsProjectiles: emitter,
       detonationBurst: burst,
-    };
+    }, visualScale);
   }
-  return base;
+  return scaleProjectileVisuals(base, visualScale);
+}
+
+function secondaryProjectileVisualScale(game, weapon) {
+  return projectileUpgradeVisualScale(sumUpgradeLevels(game, SECONDARY_PROJECTILE_VISUAL_UPGRADES[weapon] ?? []));
+}
+
+function sumUpgradeLevels(game, ids) {
+  return ids.reduce((sum, id) => sum + Math.max(0, level(game, id)), 0);
 }
 
 function scaleOrbDetonationBurst(burst, bladeDamageScale, bladeImpulseScale, extraBlades, defaultBladeImpulse) {
@@ -308,4 +346,18 @@ function multiplier(game, id, amount = 0.05) {
 
 function reduction(game, id, amount = 0.05) {
   return (1 - amount) ** level(game, id);
+}
+
+function taperedMultiplier(game, id, amount = 0.05) {
+  let result = 1;
+  const levels = Math.max(0, level(game, id));
+  for (let step = 1; step <= levels; step += 1) result *= 1 + amount / Math.sqrt(step);
+  return result;
+}
+
+function taperedBonus(game, id, amount) {
+  let result = 0;
+  const levels = Math.max(0, level(game, id));
+  for (let step = 1; step <= levels; step += 1) result += amount / Math.sqrt(step);
+  return result;
 }
