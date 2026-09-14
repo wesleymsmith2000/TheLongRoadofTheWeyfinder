@@ -142,7 +142,7 @@ test('weapon validation accepts arcing projectile fields', () => {
         behavior: 'arc',
         projectileSpeed: 45,
         radius: 3,
-        damage: 12,
+        damage: 36,
         impulse: 90,
         lifetime: 3,
         verticalVelocity: 80,

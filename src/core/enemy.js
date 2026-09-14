@@ -843,7 +843,9 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
   let power = projectile.damage * (options.damageScale ?? projectile.pierceDamageScale ?? 0.7);
   const falloff = projectile.pierceDamageFalloff ?? 0.68;
   const hits = traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, maxHits, halfWidth, {
-    groundOnly: options.groundOnly ?? (projectile?.behavior !== 'arc'),
+    groundOnly: options.groundOnly ?? (projectile?.behavior !== 'arc' && !Number.isFinite(options.z)),
+    z: options.z,
+    zRange: options.zRange,
   });
   let hit = false;
   let removed = 0;
@@ -1196,6 +1198,7 @@ function findEnemyVoxelAt(enemies, worldPoint, options = {}) {
     for (const cell of cachedEnemyCellsForDirectDamage(enemy, options)) {
       if (cell.state.destroyed) continue;
       if (enemyCellIsPhasedCore(enemy, cell)) continue;
+      if (!enemyCellWithinZRange(enemy, cell, options)) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
       const cellLocalY = localY - cell.gridY * CELL_SIZE;
       if (Math.abs(cellLocalX) > CELL_SIZE / 2 || Math.abs(cellLocalY) > CELL_SIZE / 2) continue;
@@ -1244,6 +1247,7 @@ function findEnemyCellAt(enemies, worldPoint, options = {}) {
     for (const cell of cachedEnemyCellsForDirectDamage(enemy, options)) {
       if (cell.state.destroyed) continue;
       if (enemyCellIsPhasedCore(enemy, cell)) continue;
+      if (!enemyCellWithinZRange(enemy, cell, options)) continue;
       const cellLocalX = localX - cell.gridX * CELL_SIZE;
       const cellLocalY = localY - cell.gridY * CELL_SIZE;
       if (Math.abs(cellLocalX) > CELL_SIZE / 2 || Math.abs(cellLocalY) > CELL_SIZE / 2) continue;
@@ -1251,6 +1255,11 @@ function findEnemyCellAt(enemies, worldPoint, options = {}) {
     }
   }
   return null;
+}
+
+function enemyCellWithinZRange(enemy, cell, options = {}) {
+  if (!Number.isFinite(options.z) || !Number.isFinite(options.zRange)) return true;
+  return Math.abs(enemyCellWorldHeight(enemy, cell) - options.z) <= options.zRange + 0.001;
 }
 
 function applyEnemyBlastFallback(enemy, cell, origin, options) {

@@ -36,7 +36,7 @@
       "count": 10,
       "interval": 0.056,
       "continuous": true,
-      "damage": 18,
+      "damage": 54,
       "projectileSpeed": 320,
       "radius": 5.8,
       "pierce": 4,
@@ -62,7 +62,7 @@
         {
           "weapon": "orb_flechette",
           "count": 12,
-          "damage": 18,
+          "damage": 54,
           "projectileSpeed": 340,
           "radius": 5.8,
           "pierce": 4,

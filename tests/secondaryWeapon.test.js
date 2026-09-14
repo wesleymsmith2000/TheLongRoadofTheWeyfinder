@@ -13,7 +13,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles.length, 1);
-  assert.equal(game.playerProjectiles[0].damage, 54);
+  assert.equal(game.playerProjectiles[0].damage, 162);
   assert.equal(game.secondary.ammo.rocket, 16);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH), true);
 });
@@ -214,8 +214,9 @@ test('cannon uses boosted base damage', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage, 36);
+  assert.equal(game.playerProjectiles[0].damage, 108);
   assert.equal(game.playerProjectiles[0].radius, 4);
+  assert.equal(game.playerProjectiles[0].blastPierceCells, 1.5);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
 });
 
@@ -227,7 +228,7 @@ test('secondary upgrades alter projectile stats', () => {
   game.upgrades.cannonShrapnelCount = 2;
   game.upgrades.cannonFlechettePierce = 3;
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '37.8');
+  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '113.4');
   assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy) > 135, true);
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
   assert.equal(game.playerProjectiles[0].pierce, 3);
@@ -463,7 +464,7 @@ test('orb of blades upgrades scale blade emission and combat stats', () => {
   const orb = game.playerProjectiles[0];
   assert.equal(orb.emitsProjectiles.count, 12);
   assert.equal(orb.emitsProjectiles.interval.toFixed(4), (0.056 / 1.05).toFixed(4));
-  assert.equal(orb.emitsProjectiles.damage.toFixed(2), (18 * 1.05 ** 2).toFixed(2));
+  assert.equal(orb.emitsProjectiles.damage.toFixed(2), (54 * 1.05 ** 2).toFixed(2));
   assert.equal(Math.abs(orb.emitsProjectiles.impulse - 31.5 * 1.05) < 0.001, true);
   assert.equal(orb.detonationBurst.groups[0].count, 14);
 });

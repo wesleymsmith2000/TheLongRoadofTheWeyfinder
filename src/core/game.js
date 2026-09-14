@@ -121,6 +121,7 @@ const ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS = 1.55;
 const PLAYER_MORTAR_BASE_BLAST_RADIUS_CELLS = mortarDefinition.projectile.blastRadiusCells ?? 7.5;
 const ENEMY_MORTAR_BASE_BLAST_RADIUS = CELL_SIZE * PLAYER_MORTAR_BASE_BLAST_RADIUS_CELLS;
 const ENEMY_SINGLE_MORTAR_BLAST_RADIUS = ENEMY_MORTAR_BASE_BLAST_RADIUS * 1.5;
+const ENEMY_MORTAR_LINE_LAUNCH_DURATION_SECONDS = 1;
 const MORTAR_LEVEL_5_RADIUS_MULTIPLIER = (Math.sqrt(1.05)) ** 5;
 const MORTAR_LEVEL_5_DAMAGE_MULTIPLIER = 1.05 ** 5;
 const MOTH_BOMBER_BLAST_RADIUS = ENEMY_MORTAR_BASE_BLAST_RADIUS * MORTAR_LEVEL_5_RADIUS_MULTIPLIER;
@@ -441,6 +442,7 @@ export function createGame(seed = 1147, options = {}) {
     scrapPickups: [],
     playerProjectiles: [],
     enemyProjectiles: [],
+    pendingEnemyMortarShells: [],
     harpoonShots: [],
     smokeParticles: [],
     soundEvents: [],
@@ -533,6 +535,7 @@ export function stepGame(game, input, dt) {
   const turretInput = aimInputForTurret(game, input, dt);
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
   stepEnemies(game, dt);
+  stepPendingEnemyMortarShells(game, dt);
   stepPlayerGun(game, dt);
   handleBoostRams(game);
   handleBoostShieldRepel(game, dt);
@@ -1351,6 +1354,10 @@ function isCarLikeEnemy(enemy) {
   return /(^|[._\-\s])(?:racecar|race_car|race-car|race car|car|roadster)(?:$|[._\-\s])/.test(id);
 }
 
+function isVehicleLikeEnemy(enemy) {
+  return isCarLikeEnemy(enemy) || isBoatShapedEnemy(enemy) || enemy?.kind === 'pirateBoss' || enemy?.kind === 'roadBossCar' || enemy?.kind === 'escapePodBoat';
+}
+
 function triggerEnemyStartSound(game, enemy) {
   if (!enemy || enemy.runtimeStartSoundPlayed) return;
   enemy.runtimeStartSoundPlayed = true;
@@ -1503,6 +1510,7 @@ function carryRoadObjects(game, delta) {
     ...game.playerProjectiles,
     ...game.playerProjectiles.map((projectile) => projectile.detonateAtTarget && projectile.targetHint).filter(Boolean),
     ...game.enemyProjectiles.filter((projectile) => !projectile.terrainAnchored),
+    ...(game.pendingEnemyMortarShells ?? []).flatMap((shell) => [shell.source, shell.target]),
     ...game.smokeParticles,
     ...game.incomingMarkers,
     ...game.vehicle.detachedPieces,
@@ -1913,13 +1921,14 @@ function firePrimaryWeapon(game, muzzle, def) {
       ricochetOnEnemyExit: def.ricochetOnEnemyExit,
       absorbsEnemyProjectiles: def.absorbsEnemyProjectiles,
       projectileDeflectionProbability: def.projectileDeflectionProbability,
+      ...playerBladeHeightOptions(def.id),
       emitsProjectiles: def.emitsProjectiles,
       detonationBurst: def.detonationBurst,
       forceMode: def.forceMode,
       affects: def.affects,
       sprite: def.sprite,
       landingMarkerSprite: def.landingMarkerSprite,
-      zCollision: def.zCollision,
+      zCollision: def.zCollision || isBladeWeaponName(def.id),
     }),
   );
   emitSoundEvent(game, def.id === 'mortar' ? SOUND_EVENTS.PLAYER_MORTAR_FIRE : SOUND_EVENTS.PLAYER_MAIN_GUN);
@@ -2302,8 +2311,9 @@ function stepMortarSkiff(game, enemy, dt) {
   const direction = directionFromTo(enemy, enemy.roamTarget);
   const desiredSpeed = 44 * enemyMovementUpgradeScale(enemy);
   const steer = clamp(3.4 * dt, 0, 1);
-  enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
-  enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
+  const desiredHeading = Math.atan2(direction.y, direction.x);
+  enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? desiredHeading, desiredHeading, 2.8 * dt);
+  applyVehicleLikeVelocity(enemy, { x: direction.x * desiredSpeed, y: direction.y * desiredSpeed }, steer);
 
   if (!enemyCanFire(enemy)) return;
   enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.4, 2.6)) - dt * enemyAttackRateUpgradeScale(enemy);
@@ -3060,10 +3070,9 @@ function stepRoadBossCarOrbit(game, enemy, state, dt) {
   const direction = directionFromTo(enemy, preferred);
   const desiredSpeed = ROAD_BOSS_CAR_ORBIT_SPEED * enemyMovementUpgradeScale(enemy);
   const steer = clamp(2.8 * dt, 0, 1);
-  enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
-  enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
-  const movementHeading = Math.atan2(enemy.vy, enemy.vx);
-  enemy.visualHeading = Number.isFinite(movementHeading) ? movementHeading : toPlayer;
+  const desiredHeading = Math.atan2(direction.y, direction.x);
+  enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? desiredHeading, desiredHeading, 2.5 * dt);
+  applyVehicleLikeVelocity(enemy, { x: direction.x * desiredSpeed, y: direction.y * desiredSpeed }, steer);
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
 }
 
@@ -3084,9 +3093,9 @@ function stepRoadBossCarStrafe(game, enemy, state, dt) {
     y: sideVector.y * desiredSpeed + forwardVector.y * yCorrection,
   };
   const steer = clamp(3.3 * dt, 0, 1);
-  enemy.vx += (desired.x - enemy.vx) * steer;
-  enemy.vy += (desired.y - enemy.vy) * steer;
-  enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+  const desiredHeading = Math.atan2(desired.y, desired.x);
+  enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? desiredHeading, desiredHeading, 3.2 * dt);
+  applyVehicleLikeVelocity(enemy, desired, steer);
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
   enemy.renderHeadingOffset ??= Math.PI / 2;
 }
@@ -3215,9 +3224,8 @@ function stepEscapePodBoat(game, enemy, dt) {
   }
   const angle = state.heading ?? enemy.visualHeading ?? 0;
   const speed = (state.speed ?? 120) * enemyMovementUpgradeScale(enemy);
-  enemy.vx += (Math.cos(angle) * speed - enemy.vx) * clamp(4.2 * dt, 0, 1);
-  enemy.vy += (Math.sin(angle) * speed - enemy.vy) * clamp(4.2 * dt, 0, 1);
   enemy.visualHeading = angle;
+  applyVehicleLikeVelocity(enemy, { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed }, clamp(4.2 * dt, 0, 1));
   enemy.collisionRotation = angle - Math.PI / 2;
   const offset = worldToRoadOffset(enemy, game.road);
   if (Math.abs(offset.x) > game.road.halfWidth + CELL_SIZE * 24 || Math.abs(offset.y) > game.road.halfHeight + CELL_SIZE * 24) {
@@ -3263,9 +3271,9 @@ function stepRaceCarEnemy(game, enemy, dt) {
     y: sideVector.y * desiredSpeed + playerDirection.y * desiredSpeed * driftBias,
   };
   const steer = clamp((config.steer ?? 4.8) * dt, 0, 1);
-  enemy.vx += (desired.x - enemy.vx) * steer;
-  enemy.vy += (desired.y - enemy.vy) * steer;
-  enemy.visualHeading = Math.atan2(enemy.vy, enemy.vx);
+  const desiredHeading = Math.atan2(desired.y, desired.x);
+  enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? desiredHeading, desiredHeading, (config.turnRate ?? 3.8) * dt);
+  applyVehicleLikeVelocity(enemy, desired, steer);
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
 
   if (!enemyCanFire(enemy)) return;
@@ -3290,14 +3298,13 @@ function stepShadowedMineDropper(game, enemy, dt) {
   const direction = directionFromTo(enemy, target);
   const speed = (config.speed ?? SHADOWED_MINE_DROPPER_SPEED) * enemyMovementUpgradeScale(enemy);
   const steer = clamp(2.7 * dt, 0, 1);
-  enemy.vx += (direction.x * speed - enemy.vx) * steer;
-  enemy.vy += (direction.y * speed - enemy.vy) * steer;
   if (Math.abs(currentOffset.x) > game.road.halfWidth * 0.96) enemy.vx *= 0.5;
   const roadForward = roadDirectionToWorld(0, 1, game.road);
   const localVelocity = worldDirectionToRoad({ x: enemy.vx, y: enemy.vy }, game.road);
   const lateralLean = clamp(localVelocity.x / Math.max(1, speed), -1, 1) * MINE_DROPPER_MAX_VISUAL_LEAN;
   const targetVisualHeading = Math.atan2(roadForward.y, roadForward.x) + lateralLean;
   enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? targetVisualHeading, targetVisualHeading, 2.4 * dt);
+  applyVehicleLikeVelocity(enemy, { x: direction.x * speed, y: direction.y * speed }, steer);
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
   enemy.renderHeadingOffset ??= Math.PI / 2;
   if (!enemyCanFire(enemy)) return;
@@ -3468,7 +3475,7 @@ function fireRaceCarFlechetteStrafe(game, enemy) {
         weapon: 'race-car-flechette',
         behavior: 'homing',
         radius: 1.35,
-        damage: 4.5 * enemyDamageUpgradeScale(enemy),
+        damage: 13.5 * enemyDamageUpgradeScale(enemy),
         impulse: 32,
         lifetime: 4.2,
         pierce: 1,
@@ -3519,9 +3526,8 @@ function stepPirateBossMovement(game, enemy, state, dt) {
   const direction = directionFromTo(enemy, preferred);
   const desiredSpeed = PIRATE_BOSS_ORBIT_SPEED * enemyMovementUpgradeScale(enemy);
   const steer = clamp(2.6 * dt, 0, 1);
-  enemy.vx += (direction.x * desiredSpeed - enemy.vx) * steer;
-  enemy.vy += (direction.y * desiredSpeed - enemy.vy) * steer;
   enemy.visualHeading = closestBroadsideHeading(enemy.visualHeading ?? toPlayer + Math.PI / 2, toPlayer);
+  applyVehicleLikeVelocity(enemy, { x: direction.x * desiredSpeed, y: direction.y * desiredSpeed }, steer);
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
 }
 
@@ -3646,7 +3652,7 @@ function firePirateBossShotgunFlechettes(game, enemy, source) {
         team: 'enemy',
         weapon: 'pirate-boss-flechette',
         radius: 1.55,
-        damage: 5.5 * enemyDamageUpgradeScale(enemy),
+        damage: 16.5 * enemyDamageUpgradeScale(enemy),
         impulse: 38,
         lifetime: 2.8,
         pierce: 1,
@@ -4507,6 +4513,7 @@ function zeppelinLiveShellCells(enemy) {
 
 function updateEnemyVisualHeading(enemy, dt) {
   if (enemy.kind === 'boss' || enemy.silhouette !== 'pirateShip') return;
+  if (isVehicleLikeEnemy(enemy)) return;
   if (enemy.carBehavior?.movement === 'mineDropper') return;
   const speed = Math.hypot(enemy.vx, enemy.vy);
   if (speed <= 8) return;
@@ -4542,8 +4549,17 @@ function stepEnhancedEnemy(game, enemy, dt) {
   charge.timer -= dt;
   enemy.shieldActive = charge.state === 'charging';
   if (charge.state === 'charging') {
-    enemy.vx += charge.x * 82.5 * engineScale * enemyMovementUpgradeScale(enemy) * dt;
-    enemy.vy += charge.y * 82.5 * engineScale * enemyMovementUpgradeScale(enemy) * dt;
+    if (isVehicleLikeEnemy(enemy)) {
+      const heading = Math.atan2(charge.y, charge.x);
+      enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? heading, heading, 3.6 * dt);
+      applyVehicleLikeAcceleration(enemy, {
+        x: charge.x * 82.5 * engineScale * enemyMovementUpgradeScale(enemy),
+        y: charge.y * 82.5 * engineScale * enemyMovementUpgradeScale(enemy),
+      }, dt);
+    } else {
+      enemy.vx += charge.x * 82.5 * engineScale * enemyMovementUpgradeScale(enemy) * dt;
+      enemy.vy += charge.y * 82.5 * engineScale * enemyMovementUpgradeScale(enemy) * dt;
+    }
     const offset = worldToRoadOffset(enemy, game.road);
     if (Math.abs(offset.x) > game.road.halfWidth * 0.45 || Math.abs(offset.y) > game.road.halfHeight * 0.42) charge.timer = Math.min(charge.timer, 0);
   }
@@ -5349,14 +5365,43 @@ function fireEnemyMortarLineFromSource(game, enemy, source, count = 7, options =
     .sort((a, b) => distanceSquared(source, a) - distanceSquared(source, b))
     .forEach((point, index) => {
       const flightTime = (options.firstImpactSeconds ?? ENEMY_MORTAR_LINE_FIRST_IMPACT_SECONDS) + index * (options.spacingSeconds ?? ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS);
-      fireEnemyArcShell(game, { ...enemy, x: source.x, y: source.y }, point, options.color ?? '#ffb25f', {
+      const launchSpacing = (options.launchDurationSeconds ?? ENEMY_MORTAR_LINE_LAUNCH_DURATION_SECONDS) / Math.max(1, points.length - 1);
+      scheduleEnemyArcShell(game, enemy, source, point, options.color ?? '#ffb25f', {
         ...options,
         flightTime,
         blastRadius: options.blastRadius ?? ENEMY_MORTAR_BASE_BLAST_RADIUS,
         sourceEnemy: enemy,
-      });
+      }, index * launchSpacing);
     });
-  if (points.length > 0) emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
+}
+
+function scheduleEnemyArcShell(game, enemy, source, target, color, options, delay) {
+  game.pendingEnemyMortarShells ??= [];
+  game.pendingEnemyMortarShells.push({
+    enemy,
+    source: { x: source.x, y: source.y },
+    target: { x: target.x, y: target.y },
+    color,
+    options: { ...options },
+    delay: Math.max(0, delay),
+  });
+}
+
+function stepPendingEnemyMortarShells(game, dt) {
+  const pending = game.pendingEnemyMortarShells ?? [];
+  const kept = [];
+  for (const shell of pending) {
+    shell.delay -= dt;
+    if (shell.delay > 0) {
+      kept.push(shell);
+      continue;
+    }
+    if (!shell.enemy?.destroyed) {
+      fireEnemyArcShell(game, { ...shell.enemy, x: shell.source.x, y: shell.source.y }, shell.target, shell.color, shell.options);
+      emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
+    }
+  }
+  game.pendingEnemyMortarShells = kept;
 }
 
 function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {}) {
@@ -5669,6 +5714,8 @@ function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
       maxHits: 48,
       halfWidth: Math.max(contactRadius, VOXEL_SIZE),
       damageScale: 1,
+      z: isBladeProjectile(projectile) ? projectile.z ?? CELL_LAYER_HEIGHT : undefined,
+      zRange: isBladeProjectile(projectile) ? projectile.zDamageRange ?? CELL_LAYER_HEIGHT : undefined,
     },
   );
   if (!pierce.hit) return maybeRicochetDamageBudgetProjectile(game, projectile);
@@ -5705,11 +5752,19 @@ function handleDamageBudgetProjectileRicochet(game, projectile, previousEnemy = 
   }
   const speed = Math.max(1, Math.hypot(projectile.vx, projectile.vy));
   projectile.angle = Math.atan2(target.point.y - projectile.y, target.point.x - projectile.x);
+  projectile.behavior = 'homing';
+  projectile.targetHint = target.point;
+  projectile.tracksHomingTargetHint = true;
+  projectile.turnRate = Math.max(projectile.turnRate ?? 0, 2.5);
+  projectile.acceleration = Math.max(projectile.acceleration ?? 0, 45);
+  projectile.maxSpeed = Math.max(projectile.maxSpeed ?? 0, speed);
+  projectile.zTrackRate = Math.max(projectile.zTrackRate ?? 0, CELL_LAYER_HEIGHT * 5);
   projectile.vx = Math.cos(projectile.angle) * speed;
   projectile.vy = Math.sin(projectile.angle) * speed;
   projectile.previousX = projectile.x;
   projectile.previousY = projectile.y;
   projectile.ricochetContactEnemy = null;
+  fractureBladeOnFirstRicochet(game, projectile, target.point);
   return true;
 }
 
@@ -5729,10 +5784,18 @@ function maybeRicochetDamageBudgetProjectile(game, projectile) {
   }
   const speed = Math.max(1, Math.hypot(projectile.vx, projectile.vy));
   projectile.angle = Math.atan2(target.point.y - projectile.y, target.point.x - projectile.x);
+  projectile.behavior = 'homing';
+  projectile.targetHint = target.point;
+  projectile.tracksHomingTargetHint = true;
+  projectile.turnRate = Math.max(projectile.turnRate ?? 0, 2.5);
+  projectile.acceleration = Math.max(projectile.acceleration ?? 0, 45);
+  projectile.maxSpeed = Math.max(projectile.maxSpeed ?? 0, speed);
+  projectile.zTrackRate = Math.max(projectile.zTrackRate ?? 0, CELL_LAYER_HEIGHT * 5);
   projectile.vx = Math.cos(projectile.angle) * speed;
   projectile.vy = Math.sin(projectile.angle) * speed;
   projectile.previousX = projectile.x;
   projectile.previousY = projectile.y;
+  fractureBladeOnFirstRicochet(game, projectile, target.point);
   return true;
 }
 
@@ -5753,24 +5816,88 @@ function enemyCoreWorldPoint(enemy) {
   const localY = core.gridY * CELL_SIZE;
   const rotation = Number.isFinite(enemy.collisionRotation) ? enemy.collisionRotation : 0;
   if (Math.abs(rotation) <= 0.000001) {
-    return { x: enemy.x + localX * scale, y: enemy.y + localY * scale };
+    return { x: enemy.x + localX * scale, y: enemy.y + localY * scale, z: enemyCellWorldZ(enemy, core) };
   }
   const cos = Math.cos(rotation);
   const sin = Math.sin(rotation);
   return {
     x: enemy.x + (localX * cos - localY * sin) * scale,
     y: enemy.y + (localX * sin + localY * cos) * scale,
+    z: enemyCellWorldZ(enemy, core),
   };
 }
 
+function enemyCellWorldZ(enemy, cell) {
+  const liveCells = (enemy.cells ?? []).filter((candidate) => !candidate.state?.destroyed);
+  const lowest = liveCells.reduce((min, candidate) => Math.min(min, enemyCellLayer(candidate)), Infinity);
+  const base = enemy.elevation?.z ?? 0;
+  const layer = Number.isFinite(lowest) ? Math.max(0, enemyCellLayer(cell) - lowest) : 0;
+  return base + layer * CELL_LAYER_HEIGHT * Math.max(0.001, enemy.visualScale ?? 1);
+}
+
+function enemyCellLayer(cell) {
+  return Number.isFinite(cell?.gridZ) ? cell.gridZ : Number.isFinite(cell?.layer) ? cell.layer : 0;
+}
+
+function fractureBladeOnFirstRicochet(game, projectile, targetPoint) {
+  if (!isBladeProjectile(projectile) || projectile.bladeFractured || (projectile.ricochetCount ?? 0) !== 1) return;
+  projectile.bladeFractured = true;
+  const count = bladeFragmentCount(game, projectile);
+  if (count <= 1) return;
+  const sharedDamage = projectile.damage / count;
+  if (sharedDamage <= 0.05) return;
+  projectile.damage = sharedDamage;
+  const speed = Math.max(1, Math.hypot(projectile.vx, projectile.vy));
+  for (let index = 1; index < count; index += 1) {
+    const angle = projectile.angle + game.rng.range(-0.32, 0.32);
+    game.playerProjectiles.push(
+      createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+        team: 'player',
+        weapon: projectile.weapon,
+        behavior: 'homing',
+        radius: projectile.radius,
+        damage: sharedDamage,
+        color: projectile.color,
+        impulse: projectile.impulse,
+        lifetime: projectile.lifetime,
+        angle,
+        pierce: projectile.pierce,
+        pierceDamageScale: projectile.pierceDamageScale,
+        pierceDamageFalloff: projectile.pierceDamageFalloff,
+        damagePiercesUntilSpent: true,
+        maxRicochets: projectile.maxRicochets,
+        ricochetCount: projectile.ricochetCount,
+        ricochetFactor: projectile.ricochetFactor,
+        ricochetOnEnemyExit: projectile.ricochetOnEnemyExit,
+        absorbsEnemyProjectiles: projectile.absorbsEnemyProjectiles,
+        projectileDeflectionProbability: projectile.projectileDeflectionProbability,
+        targetHint: targetPoint,
+        tracksHomingTargetHint: true,
+        turnRate: Math.max(projectile.turnRate ?? 0, 2.5),
+        acceleration: Math.max(projectile.acceleration ?? 0, 45),
+        maxSpeed: Math.max(projectile.maxSpeed ?? 0, speed),
+        bladeFractured: true,
+        sprite: projectile.sprite,
+        ...playerBladeHeightOptions(projectile.weapon),
+      }),
+    );
+  }
+}
+
+function bladeFragmentCount(game, projectile) {
+  const extraRicochets = Math.max(0, Math.floor(projectile.maxRicochets ?? 0) - 1);
+  const maxCount = Math.max(1, 3 + Math.floor(Math.sqrt(extraRicochets)));
+  return Math.max(1, Math.floor(game.rng.range(1, maxCount + 1)));
+}
+
 function burstSpentBladeIntoFlechettes(game, projectile) {
-  const count = Math.max(8, Math.min(16, Math.floor(game.rng.range(8, 17))));
+  const count = bladeFragmentCount(game, projectile);
   const damage = projectile.damage / count;
   if (damage <= 0.05) return;
   const baseAngle = projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
   const speed = Math.max(120, Math.hypot(projectile.vx, projectile.vy) * 0.72);
   for (let index = 0; index < count; index += 1) {
-    const angle = baseAngle + (Math.PI * 2 * index) / count + game.rng.range(-0.12, 0.12);
+    const angle = baseAngle + game.rng.range(-0.52, 0.52);
     game.playerProjectiles.push(
       createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
@@ -5787,6 +5914,7 @@ function burstSpentBladeIntoFlechettes(game, projectile) {
         damagePiercesUntilSpent: true,
         sprite: projectile.sprite,
         color: projectile.color ?? '#9be5ff',
+        ...playerBladeHeightOptions('blade_flechette'),
       }),
     );
   }
@@ -5836,6 +5964,7 @@ function spawnPlayerDetonationBurst(game, projectile) {
           absorbsEnemyProjectiles: group.absorbsEnemyProjectiles,
           projectileDeflectionProbability: group.projectileDeflectionProbability,
           sprite: group.sprite,
+          ...playerBladeHeightOptions(group.weapon),
         }),
       );
     }
@@ -5920,6 +6049,7 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     absorbsEnemyProjectiles: emitter.absorbsEnemyProjectiles,
     projectileDeflectionProbability: emitter.projectileDeflectionProbability,
     sprite: emitter.sprite,
+    ...playerBladeHeightOptions(emitter.weapon),
   });
 }
 
@@ -6042,6 +6172,20 @@ function isBladeProjectile(projectile) {
     || projectile.weapon === 'blade_launcher'
     || projectile.weapon === 'blade_flechette'
     || projectile.sprite?.assetId === 'sprite.weapon.orb_blade_shard';
+}
+
+function isBladeWeaponName(weapon) {
+  return weapon === 'orb_flechette' || weapon === 'blade_launcher' || weapon === 'blade_flechette';
+}
+
+function playerBladeHeightOptions(weapon) {
+  if (!isBladeWeaponName(weapon)) return {};
+  return {
+    z: CELL_LAYER_HEIGHT,
+    zCollision: true,
+    zDamageRange: CELL_LAYER_HEIGHT,
+    zTrackRate: CELL_LAYER_HEIGHT * 5,
+  };
 }
 
 function deflectEnemyProjectile(game, enemyProjectile, playerProjectile) {
@@ -6532,14 +6676,15 @@ function spawnCannonImpact(game, projectile, enemy) {
   );
 
   const blastRadius = projectile.blastRadius || CELL_SIZE * 5.1;
+  const blastPierceVoxels = Math.max(0, (projectile.blastPierceCells ?? 0) * VOXELS);
   for (const blastTarget of activeEnemies(game)) {
     const distance = Math.hypot(blastTarget.x - projectile.x, blastTarget.y - projectile.y);
     if (distance > blastRadius + blastTarget.radius) continue;
     const hit = applyEnemyBlastDamage(blastTarget, projectile, {
       maxVoxelDistance: 20,
       closeVoxelDistance: 5,
-      closePenetration: 3,
-      farPenetration: 1,
+      closePenetration: Math.max(3, blastPierceVoxels),
+      farPenetration: Math.max(1, blastPierceVoxels),
       damage: projectile.blastDamage || projectile.damage * 0.5,
     });
     if (hit.hit) {
@@ -7148,6 +7293,29 @@ function directionFromTo(from, to) {
   return { x: dx / distance, y: dy / distance };
 }
 
+function vehicleFacingVector(enemy) {
+  const heading = Number.isFinite(enemy.visualHeading)
+    ? enemy.visualHeading
+    : Number.isFinite(enemy.collisionRotation)
+      ? enemy.collisionRotation + Math.PI / 2
+      : Math.atan2(enemy.vy ?? 0, enemy.vx ?? -1);
+  return { x: Math.cos(heading), y: Math.sin(heading) };
+}
+
+function applyVehicleLikeVelocity(enemy, desiredVelocity, steer) {
+  const forward = vehicleFacingVector(enemy);
+  const along = desiredVelocity.x * forward.x + desiredVelocity.y * forward.y;
+  enemy.vx += (forward.x * along - enemy.vx) * steer;
+  enemy.vy += (forward.y * along - enemy.vy) * steer;
+}
+
+function applyVehicleLikeAcceleration(enemy, acceleration, dt) {
+  const forward = vehicleFacingVector(enemy);
+  const along = acceleration.x * forward.x + acceleration.y * forward.y;
+  enemy.vx += forward.x * along * dt;
+  enemy.vy += forward.y * along * dt;
+}
+
 function turnTowardAngle(current, target, maxStep) {
   const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
   if (Math.abs(delta) <= maxStep) return target;
@@ -7177,6 +7345,12 @@ function steerEnemyBackToLaneCenter(enemy, road, dt) {
   const dy = target.y - offset.y;
   const length = Math.hypot(dx, dy) || 1;
   const accel = roadOffsetToWorld({ x: dx / length, y: dy / length }, { ...road, x: 0, y: 0 });
+  if (isVehicleLikeEnemy(enemy)) {
+    const desiredHeading = Math.atan2(accel.y, accel.x);
+    enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? desiredHeading, desiredHeading, 1.8 * dt);
+    applyVehicleLikeAcceleration(enemy, { x: accel.x * 22.5, y: accel.y * 22.5 }, dt);
+    return;
+  }
   enemy.vx += accel.x * 22.5 * dt;
   enemy.vy += accel.y * 22.5 * dt;
 }

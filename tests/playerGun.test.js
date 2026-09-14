@@ -186,7 +186,7 @@ test('tracking flechette upgrades scale primary weapon stats', () => {
   game.autofire = true;
   stepGame(game, {}, 1 / 60);
   const flechette = game.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
-  assert.equal(flechette.damage.toFixed(2), (12 * 1.05).toFixed(2));
+  assert.equal(flechette.damage.toFixed(2), (36 * 1.05).toFixed(2));
   assert.equal(flechette.pierce, 4);
   assert.equal(flechette.acceleration.toFixed(2), (105 * 1.05).toFixed(2));
   assert.equal(flechette.turnRate.toFixed(2), (7.5 * 1.05).toFixed(2));

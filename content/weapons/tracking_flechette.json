@@ -15,7 +15,7 @@
     "behavior": "homing",
     "projectileSpeed": 161.25,
     "radius": 1.65,
-    "damage": 12,
+    "damage": 36,
     "impulse": 80,
     "lifetime": 3.9,
     "turnRate": 7.5,

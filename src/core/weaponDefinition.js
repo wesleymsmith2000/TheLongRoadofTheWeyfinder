@@ -73,6 +73,7 @@ export function runtimeWeaponDefinition(definition) {
     detonateAtTarget: Boolean(projectile.detonateAtTarget),
     blastDamage: projectile.blastDamage ?? 0,
     blastRadius: projectile.blastRadius ?? (projectile.blastRadiusCells != null ? projectile.blastRadiusCells * CELL_SIZE : 0),
+    blastPierceCells: projectile.blastPierceCells ?? 0,
     blastKnockback: projectile.blastKnockback ?? 0,
     shrapnelCount: projectile.shrapnelCount ?? 0,
     shrapnelDamageScale: projectile.shrapnelDamageScale ?? 1,
@@ -115,6 +116,7 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.damage, 'projectile.damage', errors, { min: 0 });
   validateNumber(projectile.impulse, 'projectile.impulse', errors, { min: 0 });
   validateNumber(projectile.lifetime, 'projectile.lifetime', errors, { min: 0 });
+  validateNumber(projectile.blastPierceCells ?? 0, 'projectile.blastPierceCells', errors, { min: 0 });
   validateNumber(projectile.pierce ?? 0, 'projectile.pierce', errors, { min: 0 });
   validateNumber(projectile.pierceDamageScale ?? 0.7, 'projectile.pierceDamageScale', errors, { min: 0 });
   validateNumber(projectile.pierceDamageFalloff ?? 0.68, 'projectile.pierceDamageFalloff', errors, { min: 0, max: 1 });

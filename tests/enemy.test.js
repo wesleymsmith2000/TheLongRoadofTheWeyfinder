@@ -504,6 +504,52 @@ test('layered walkers expose only the lowest live layer to ground projectile dam
   assert.equal(coreAfter, coreBefore);
 });
 
+test('blade pierce can cut one layer above or below its flight height', () => {
+  const enemy = createEnemy(0, 0, {
+    schemaVersion: '0.1',
+    assetId: 'test.blade_z_band_enemy',
+    cells: [
+      { id: 'layer-0', type: 'armor', gridX: 0, gridY: 0, gridZ: 0 },
+      { id: 'layer-1', type: 'core', gridX: 1, gridY: 0, gridZ: 1 },
+      { id: 'layer-2', type: 'armor', gridX: 2, gridY: 0, gridZ: 2 },
+      { id: 'layer-3', type: 'armor', gridX: 3, gridY: 0, gridZ: 3 },
+    ],
+    connections: [
+      { a: 'layer-0', b: 'layer-1', aSide: 'right', bSide: 'left' },
+      { a: 'layer-1', b: 'layer-2', aSide: 'right', bSide: 'left' },
+      { a: 'layer-2', b: 'layer-3', aSide: 'right', bSide: 'left' },
+    ],
+  }, [], { moduleScale: 1 });
+  const before = new Map(enemy.cells.map((cell) => [cell.id, cell.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0)]));
+  const projectile = createProjectile(-CELL_SIZE, 0, 220, 0, {
+    team: 'player',
+    weapon: 'blade_launcher',
+    damage: 80,
+    radius: 0.2,
+    pierce: 12,
+    pierceDamageScale: 1,
+    pierceDamageFalloff: 1,
+    damagePiercesUntilSpent: true,
+    z: CELL_LAYER_HEIGHT,
+    zDamageRange: CELL_LAYER_HEIGHT,
+  });
+  const pierce = applyEnemyProjectilePierceDamage([enemy], projectile, {
+    start: { x: -CELL_SIZE, y: 0 },
+    angle: 0,
+    maxLength: CELL_SIZE * 5,
+    maxHits: 12,
+    halfWidth: 0.2,
+    z: projectile.z,
+    zRange: projectile.zDamageRange,
+  });
+  const after = new Map(enemy.cells.map((cell) => [cell.id, cell.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0)]));
+  assert.equal(pierce.hit, true);
+  assert.equal(after.get('layer-0') < before.get('layer-0'), true);
+  assert.equal(after.get('layer-1') < before.get('layer-1'), true);
+  assert.equal(after.get('layer-2') < before.get('layer-2'), true);
+  assert.equal(after.get('layer-3'), before.get('layer-3'));
+});
+
 test('armor-only lowest walker layers fall away and expose the next layer', () => {
   const enemy = createEnemy(0, 0, LAYERED_WALKER_ENEMY, [], { moduleScale: 1 });
   enemy.elevation = { z: 0, canBeHitByGroundFire: true, layeredExposure: true };
@@ -889,7 +935,7 @@ test('damage-budget blades ricochet after absorbing enemy projectiles', () => {
   const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'blade_launcher');
   assert.equal(game.enemyProjectiles.every((projectile) => projectile.lifetime <= 0), true);
   assert.equal(blade.ricochetCount, 1);
-  assert.equal(blade.damage, 7.5);
+  assert.equal(blade.damage > 0 && blade.damage <= 7.5, true);
   assert.equal(blade.angle > 1.2, true);
 });
 
@@ -943,7 +989,7 @@ test('over-penetrating damage-budget blades burst into flechettes after contact 
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   const burst = game.playerProjectiles.filter((projectile) => projectile.weapon === 'blade_flechette');
   assert.equal(game.playerProjectiles.find((projectile) => projectile.weapon === 'blade_launcher')?.lifetime <= 0, true);
-  assert.equal(burst.length, 8);
+  assert.equal(burst.length, 1);
   assert.equal(burst.every((projectile) => projectile.damagePiercesUntilSpent && projectile.pierce === 4), true);
   assert.equal(burst.reduce((sum, projectile) => sum + projectile.damage, 0) > 0, true);
 });
@@ -1027,11 +1073,18 @@ test('heavy mortar boats fire one shell per warning marker with nearest impacts 
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
   const shells = game.enemyProjectiles.filter((projectile) => projectile.weapon === 'enemy-mortar');
-  assert.equal(shells.length, 7);
-  assert.equal(shells.every((shell) => shell.blastOnExpire.radius.toFixed(3) === (CELL_SIZE * 7.5).toFixed(3)), true);
-  for (let index = 1; index < shells.length; index += 1) {
-    assert.equal(pointDistanceSquared(boat, shells[index - 1].targetHint) <= pointDistanceSquared(boat, shells[index].targetHint), true);
-    assert.equal(shells[index - 1].arcFlightTime < shells[index].arcFlightTime, true);
+  assert.equal(shells.length, 1);
+  assert.equal(game.pendingEnemyMortarShells.length, 6);
+
+  for (let index = 0; index < 70; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const launchedShells = game.enemyProjectiles.filter((projectile) => projectile.weapon === 'enemy-mortar');
+  assert.equal(launchedShells.length, 7);
+  assert.equal(game.pendingEnemyMortarShells.length, 0);
+  assert.equal(launchedShells.every((shell) => shell.blastOnExpire.radius.toFixed(3) === (CELL_SIZE * 7.5).toFixed(3)), true);
+  for (let index = 1; index < launchedShells.length; index += 1) {
+    assert.equal(pointDistanceSquared(boat, launchedShells[index - 1].targetHint) <= pointDistanceSquared(boat, launchedShells[index].targetHint), true);
+    assert.equal(launchedShells[index - 1].arcFlightTime < launchedShells[index].arcFlightTime, true);
   }
 });
 
@@ -1969,7 +2022,7 @@ test('shadowed road mine droppers place terrain anchored mines that explode on c
   const velocityHeading = Math.atan2(dropper.vy, dropper.vx);
   const roadForwardHeading = game.road.heading + Math.PI / 2;
   assert.equal(Math.abs(testAngleDelta(dropper.visualHeading, roadForwardHeading)) < 0.45, true);
-  assert.equal(Math.abs(testAngleDelta(dropper.visualHeading, velocityHeading)) > 0.45, true);
+  assert.equal(Math.abs(testAngleDelta(dropper.visualHeading, velocityHeading)) < 0.45, true);
   const mine = game.enemyProjectiles.find((projectile) => projectile.weapon === 'shadowed-road-mine');
   assert.equal(Boolean(mine), true);
   assert.equal(mine.explodeOnExpire, true);

@@ -22,6 +22,8 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     sprite: options.sprite ? structuredClone(options.sprite) : null,
     landingMarkerSprite: options.landingMarkerSprite ? structuredClone(options.landingMarkerSprite) : null,
     z: options.z ?? options.altitude ?? 0,
+    zDamageRange: options.zDamageRange ?? 0,
+    zTrackRate: options.zTrackRate ?? 0,
     vz: options.vz ?? options.verticalVelocity ?? 0,
     gravity: options.gravity ?? 0,
     maxArcHeight: Math.max(1, options.maxArcHeight ?? options.arcHeight ?? options.altitude ?? 1),
@@ -36,6 +38,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     acceleration: options.acceleration ?? 0,
     maxSpeed: options.maxSpeed ?? Infinity,
     targetHint: options.targetHint ?? null,
+    tracksHomingTargetHint: Boolean(options.tracksHomingTargetHint),
     tracksReticleInArc: Boolean(options.tracksReticleInArc),
     tracksReticleInHoming: Boolean(options.tracksReticleInHoming),
     descentLockDelay: options.descentLockDelay ?? null,
@@ -50,6 +53,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     zCollision: Boolean(options.zCollision),
     blastDamage: options.blastDamage ?? 0,
     blastRadius: options.blastRadius ?? 0,
+    blastPierceCells: options.blastPierceCells ?? 0,
     blastKnockback: options.blastKnockback ?? 0,
     shrapnelCount: options.shrapnelCount ?? 0,
     shrapnelDamageScale: options.shrapnelDamageScale ?? 1,
@@ -62,6 +66,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     ricochetFactor: Math.max(0, Math.min(1, options.ricochetFactor ?? 0.5)),
     ricochetOnEnemyExit: Boolean(options.ricochetOnEnemyExit),
     ricochetContactEnemy: options.ricochetContactEnemy ?? null,
+    bladeFractured: Boolean(options.bladeFractured),
     projectileDeflectionProbability: Math.max(0, Math.min(1, options.projectileDeflectionProbability ?? options.deflectionProbability ?? 0)),
     delayBeforeAcceleration: options.delayBeforeAcceleration ?? 0,
     accelerationDuration: options.accelerationDuration ?? Infinity,
@@ -229,11 +234,16 @@ function stepDelayedAcceleration(projectile, targets, dt) {
 }
 
 function stepHomingProjectile(projectile, targets, dt) {
-  const target = projectile.tracksReticleInHoming && projectile.targetHint ? projectile.targetHint : nearestTarget(projectile, targets);
+  const target = (projectile.tracksReticleInHoming || projectile.tracksHomingTargetHint) && projectile.targetHint ? projectile.targetHint : nearestTarget(projectile, targets);
   if (target) {
     const desired = Math.atan2(target.y - projectile.y, target.x - projectile.x);
     const delta = Math.atan2(Math.sin(desired - projectile.angle), Math.cos(desired - projectile.angle));
     projectile.angle += Math.max(-projectile.turnRate * dt, Math.min(projectile.turnRate * dt, delta));
+    if (Number.isFinite(target.z) && (projectile.zTrackRate ?? 0) > 0) {
+      const dz = target.z - (projectile.z ?? 0);
+      const zStep = Math.max(0, projectile.zTrackRate) * dt;
+      projectile.z = (projectile.z ?? 0) + Math.max(-zStep, Math.min(zStep, dz));
+    }
   }
   const speed = Math.hypot(projectile.vx, projectile.vy);
   const nextSpeed = Math.min(projectile.maxSpeed, speed + projectile.acceleration * dt);
