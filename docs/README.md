@@ -29,6 +29,7 @@ Start here:
 - [Zone Enemy Example Pack Handoff](./zone-enemy-example-pack-handoff.md)
 - [Weapon Sprite Content Handoff](./weapon-sprite-content-handoff.md)
 - [Weapon And Construct Sprite Wiring Handoff](./weapon-construct-sprite-wiring-handoff.md)
+- [Sound Effect Editor Resources Handoff](./sound-effect-editor-resources-handoff.md)
 - [Editor Weapon Upgrade Examples Handoff](./editor-weapon-upgrade-examples-handoff.md)
 - [Editor Runtime Change Handoff](./editor-runtime-change-handoff.md)
 - [Enemy Module Scaling And Canon Module Handoff](./enemy-module-scaling-canon-module-handoff.md)

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.car_skidding_4",
+  "displayName": "Car Skidding 4",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/car_skidding_4.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "car",
+    "skid"
+  ],
+  "usage": {
+    "events": [
+      "carEnemySkidding"
+    ],
+    "randomizeWithinGroup": true,
+    "group": "car_skidding",
+    "variant": 4
+  }
+}

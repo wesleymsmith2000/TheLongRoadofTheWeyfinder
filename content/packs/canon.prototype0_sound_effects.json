@@ -1,85 +1,19 @@
 {
   "schemaVersion": "0.1",
-  "packId": "canon.prototype0",
-  "displayName": "Prototype 0 Canon Content",
+  "packId": "canon.prototype0_sound_effects",
+  "displayName": "Prototype 0 Sound Effects",
   "author": "Weyfinder prototype",
-  "provenance": "Bundled with the canonical game repo.",
+  "provenance": "Generated from assets/sounds and new_sound_effects.md for editor-facing sound selection.",
   "canonStatus": "CANON",
-  "description": "First-party content used by the Prototype 0 play loop.",
+  "description": "First-party sound effect and ambient sound resource descriptors for Creator Suite editors.",
   "tags": [
     "canon",
-    "prototype"
+    "prototype",
+    "sound",
+    "audio"
   ],
   "dependencies": [],
   "assets": {
-    "constructs": [
-      "../constructs/basic_turret.json",
-      "../constructs/starting_vehicle.json"
-    ],
-    "weapons": [
-      "../weapons/rocket.json",
-      "../weapons/cannon.json",
-      "../weapons/beam.json",
-      "../weapons/tracking_flechette.json",
-      "../weapons/mortar.json",
-      "../weapons/blade_launcher.json",
-      "../weapons/mini_beam.json",
-      "../weapons/tractor_beam.json",
-      "../weapons/repulsor_beam.json",
-      "../weapons/sta_missile.json",
-      "../weapons/orb_of_blades.json"
-    ],
-    "patterns": [
-      "../patterns/enemy_aimed_shot.json",
-      "../patterns/enemy_radial_burst.json",
-      "../patterns/enemy_tracking_flechette_strafe.json"
-    ],
-    "enemyArchetypes": [
-      "../enemies/prototype0_enemy_archetypes.json"
-    ],
-    "materials": [
-      "../materials/moonlit_beacon_material.json",
-      "../materials/fate_gold_glitter.json",
-      "../materials/fluorescent_hidden_message_ink.json",
-      "../materials/phosphor_trail_green.json"
-    ],
-    "lightingPresets": [
-      "../lighting/steppes_day.json",
-      "../lighting/steppes_moonlight.json",
-      "../lighting/void_darkness.json"
-    ],
-    "terrainMaterials": [
-      "../terrain/materials/ghost_forest_ground.json",
-      "../terrain/materials/ghost_forest_path.json",
-      "../terrain/materials/ghost_forest_slippery_moss.json"
-    ],
-    "terrainTiles": [
-      "../terrain/tiles/ghost_forest_floor.json",
-      "../terrain/tiles/ghost_forest_path_straight.json",
-      "../terrain/tiles/ghost_forest_path_turn.json",
-      "../terrain/tiles/ghost_forest_path_slippery.json"
-    ],
-    "images": [
-      "../resources/weapons/sprite.weapon.tracking_flechette.json",
-      "../resources/weapons/sprite.weapon.orb_flechette.json",
-      "../resources/weapons/sprite.weapon.orb_blade_shard.json",
-      "../resources/weapons/sprite.weapon.orb_of_blades_core.json",
-      "../resources/weapons/sprite.weapon.mortar_player_shell.json",
-      "../resources/weapons/sprite.weapon.mortar_enemy_shell.json",
-      "../resources/weapons/sprite.weapon.mortar_player_marker.json",
-      "../resources/weapons/sprite.weapon.mortar_enemy_marker.json",
-      "../resources/materials/image.material.texture_atlas_1.json",
-      "../resources/terrain/image.terrain_1_spritesheet.json",
-      "../resources/terrain/image.terrain_2_spritesheet.json"
-    ],
-    "behaviors": [],
-    "encounters": [
-      "../encounters/moonlit_beacon_choice_vignette.json"
-    ],
-    "routes": [],
-    "levels": [
-      "../levels/prototype0_road_trial.json"
-    ],
     "sounds": [
       "../resources/sounds/sound.ambient.night_forrest_1.json",
       "../resources/sounds/sound.ambient.night_forrest_2.json",

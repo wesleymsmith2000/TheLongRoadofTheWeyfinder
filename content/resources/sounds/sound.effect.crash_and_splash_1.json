@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.crash_and_splash_1",
+  "displayName": "Crash And Splash 1",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/crash_and_splash_1.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "death",
+    "water",
+    "splash"
+  ],
+  "usage": {
+    "events": [
+      "waterConstructDestroyed"
+    ],
+    "excludes": [
+      "octopus"
+    ],
+    "randomizeWithinGroup": true,
+    "group": "crash_and_splash",
+    "variant": 1
+  }
+}

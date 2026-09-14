@@ -119,6 +119,16 @@ import pirateYarghSound from '../assets/sounds/Pirate__Yargh.mp3';
 import pirateBossDefeatSound from '../assets/sounds/Pirate_Boss__Defeat__Shivered_me_timbers.mp3';
 import pirateBossEntranceSound from '../assets/sounds/Pirate_Boss__Entrance_taunt.mp3';
 
+const SOUND_ASSET_URLS = import.meta.glob('../assets/sounds/*.mp3', { eager: true, import: 'default' });
+
+function soundAsset(filename) {
+  return SOUND_ASSET_URLS[`../assets/sounds/${filename}`];
+}
+
+function numberedSoundAssets(prefix, count) {
+  return Array.from({ length: count }, (_, index) => soundAsset(`${prefix}${index + 1}.mp3`)).filter(Boolean);
+}
+
 const MUSIC_URLS = {
   BossFight_1: bossFight1Music,
   BossFight_2: bossFight2Music,
@@ -176,15 +186,34 @@ const SOUND_URLS = {
   [SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH]: rocketAccelerateSound,
   [SOUND_EVENTS.PLAYER_BEAM]: particleBeamSound,
   [SOUND_EVENTS.PLAYER_EXPLOSION]: futuristicCannonSound,
+  [SOUND_EVENTS.PLAYER_MORTAR_FIRE]: soundAsset('player_mortar_fire.mp3'),
   [SOUND_EVENTS.ENEMY_BULLET]: errorClickSound,
   [SOUND_EVENTS.ENEMY_BEAM]: errorBuzz2Sound,
   [SOUND_EVENTS.ENEMY_DEATH]: futuristicCannonSound,
+  [SOUND_EVENTS.ENEMY_MORTAR_FIRE]: soundAsset('enemy_mortar_fire.mp3'),
+  [SOUND_EVENTS.ENEMY_BEAM_POWERUP]: soundAsset('enemy_beam_powerup.mp3'),
   [SOUND_EVENTS.BOSS_INTERNAL_EXPLOSION_1]: bossInternalExplosion1Sound,
   [SOUND_EVENTS.BOSS_INTERNAL_EXPLOSION_2]: bossInternalExplosion2Sound,
   [SOUND_EVENTS.BOSS_MAIN_EXPLOSION_1]: bossMainExplosion1Sound,
   [SOUND_EVENTS.BOSS_MAIN_EXPLOSION_2]: bossMainExplosion2Sound,
   [SOUND_EVENTS.STAGE_VICTORY]: victoryTone1Sound,
   [SOUND_EVENTS.MOTH_COUNTDOWN]: toggleSwitchClick2Sound,
+  [SOUND_EVENTS.BULLET_RICOCHET]: numberedSoundAssets('bullet_ricochet_', 4),
+  [SOUND_EVENTS.GLAIVE_BOUNCE]: numberedSoundAssets('bullet_ricochet_', 4),
+  [SOUND_EVENTS.METAL_SLASH]: soundAsset('metal_slash.mp3'),
+  [SOUND_EVENTS.BUZZARD_START]: numberedSoundAssets('buzzard_start_', 4),
+  [SOUND_EVENTS.CAR_START]: numberedSoundAssets('car_start_', 4),
+  [SOUND_EVENTS.CAR_SKID]: numberedSoundAssets('car_skidding_', 4),
+  [SOUND_EVENTS.CRASH_AND_JANGLE]: numberedSoundAssets('crash_and_jangle_', 4),
+  [SOUND_EVENTS.CRASH_AND_SPLASH]: numberedSoundAssets('crash_and_splash_', 4),
+  [SOUND_EVENTS.GHOST_ENEMY_START]: soundAsset('ghost_enemy_start.mp3'),
+  [SOUND_EVENTS.GHOST_ENEMY_DEFEAT]: soundAsset('ghost_enemy_defeat.mp3'),
+  [SOUND_EVENTS.HARPOON_POWERUP]: soundAsset('harpoon_powerup.mp3'),
+  [SOUND_EVENTS.INCHWORM_DEFEATED]: soundAsset('inchworm_defeated.mp3'),
+  [SOUND_EVENTS.INCHWORM_SEGMENT_DESTROYED]: soundAsset('inchworm_segment_destroyed.mp3'),
+  [SOUND_EVENTS.INSECT_CHITTERING]: numberedSoundAssets('insect_chittering_', 4),
+  [SOUND_EVENTS.LASER_SCORCH_PULSED]: numberedSoundAssets('laser_scorch_pulsed_', 3),
+  [SOUND_EVENTS.POWER_DOWN]: numberedSoundAssets('power_down_', 2),
   [SOUND_EVENTS.PIRATE_YARGH]: pirateYarghSound,
   [SOUND_EVENTS.PIRATE_NO_QUARTER]: pirateNoQuarterSound,
   [SOUND_EVENTS.PIRATE_BROADSIDE]: pirateBroadsideSound,
@@ -194,6 +223,14 @@ const SOUND_URLS = {
   [SOUND_EVENTS.KRAKEN_ENTER]: krakenEnterSound,
   [SOUND_EVENTS.KRAKEN_DEFEATED]: krakenDefeatedSound,
 };
+
+const AMBIENT_SOUND_URLS = {
+  ocean: numberedSoundAssets('ocean_waves_', 4),
+  forest: numberedSoundAssets('night_forrest_', 4),
+  thunder: numberedSoundAssets('rolling_thunder_', 4),
+  wind: numberedSoundAssets('storm_wind_', 4),
+};
+const LASER_SCORCH_LOOP_URL = soundAsset('laser_scorch_constant.mp3');
 
 const canvas = document.querySelector('#game');
 const virtualCursor = document.querySelector('#virtualCursor');
@@ -380,14 +417,36 @@ musicAudio.loop = true;
 musicAudio.volume = BASE_MUSIC_VOLUME;
 const soundPlayers = new Map();
 const musicLayerPlayers = new Map();
+const continuousSoundLoops = new Map();
+const ambientSoundStates = new Map();
+const ambientDurations = new Map();
 let lastProceduralMusicCue = null;
 let soundPlayersPrewarmed = false;
 const lastSoundPlayedAt = new Map();
 const SOUND_MIN_INTERVAL_MS = new Map([
   [SOUND_EVENTS.ENEMY_BULLET, 55],
   [SOUND_EVENTS.ENEMY_BEAM, 90],
+  [SOUND_EVENTS.ENEMY_BEAM_POWERUP, 350],
+  [SOUND_EVENTS.ENEMY_MORTAR_FIRE, 120],
   [SOUND_EVENTS.PLAYER_MAIN_GUN, 35],
+  [SOUND_EVENTS.PLAYER_MORTAR_FIRE, 80],
   [SOUND_EVENTS.MOTH_COUNTDOWN, 120],
+  [SOUND_EVENTS.BULLET_RICOCHET, 90],
+  [SOUND_EVENTS.GLAIVE_BOUNCE, 90],
+  [SOUND_EVENTS.METAL_SLASH, 70],
+  [SOUND_EVENTS.BUZZARD_START, 700],
+  [SOUND_EVENTS.CAR_START, 420],
+  [SOUND_EVENTS.CAR_SKID, 420],
+  [SOUND_EVENTS.CRASH_AND_JANGLE, 140],
+  [SOUND_EVENTS.CRASH_AND_SPLASH, 180],
+  [SOUND_EVENTS.GHOST_ENEMY_START, 700],
+  [SOUND_EVENTS.GHOST_ENEMY_DEFEAT, 220],
+  [SOUND_EVENTS.HARPOON_POWERUP, 500],
+  [SOUND_EVENTS.INCHWORM_DEFEATED, 450],
+  [SOUND_EVENTS.INCHWORM_SEGMENT_DESTROYED, 120],
+  [SOUND_EVENTS.INSECT_CHITTERING, 550],
+  [SOUND_EVENTS.LASER_SCORCH_PULSED, 320],
+  [SOUND_EVENTS.POWER_DOWN, 420],
   [SOUND_EVENTS.PIRATE_YARGH, 900],
   [SOUND_EVENTS.PIRATE_NO_QUARTER, 900],
   [SOUND_EVENTS.PIRATE_BROADSIDE, 900],
@@ -596,6 +655,8 @@ function frame(now) {
   perfMonitor.mark('render');
   syncMusic();
   const audioCounters = playSoundEvents(game, now);
+  syncContinuousSounds(game, now);
+  syncAmbientSoundChains(game, now);
   frameAudioCounters.audioPlayCalls = audioCounters.audioPlayCalls;
   frameAudioCounters.enemyBulletSoundEvents = audioCounters.enemyBulletSoundEvents;
   perfMonitor.mark('audio');
@@ -1133,7 +1194,7 @@ function playSoundEvents(game, now = performance.now()) {
     return counters;
   }
   for (const event of consumeSoundEvents(game)) {
-    const src = SOUND_URLS[event.id];
+    const src = resolveSoundSource(event.id);
     if (!src) continue;
     if (event.id === SOUND_EVENTS.ENEMY_BULLET) counters.enemyBulletSoundEvents += 1;
     if (performanceDiagnostics.state.noEnemyBulletSfx && event.id === SOUND_EVENTS.ENEMY_BULLET) continue;
@@ -1147,8 +1208,21 @@ function playSoundEvents(game, now = performance.now()) {
   return counters;
 }
 
+function resolveSoundSource(id) {
+  const source = SOUND_URLS[id];
+  if (!Array.isArray(source)) return source;
+  if (source.length === 0) return null;
+  return source[Math.floor(Math.random() * source.length)] ?? source[0];
+}
+
 function soundEventVolume(id) {
   if (id === SOUND_EVENTS.PLAYER_MAIN_GUN) return 0.24;
+  if (id === SOUND_EVENTS.PLAYER_MORTAR_FIRE) return 0.5;
+  if (id === SOUND_EVENTS.ENEMY_MORTAR_FIRE) return 0.46;
+  if (id === SOUND_EVENTS.BULLET_RICOCHET || id === SOUND_EVENTS.GLAIVE_BOUNCE) return 0.34;
+  if (id === SOUND_EVENTS.METAL_SLASH) return 0.42;
+  if (id === SOUND_EVENTS.LASER_SCORCH_PULSED || id === SOUND_EVENTS.ENEMY_BEAM_POWERUP) return 0.4;
+  if (id === SOUND_EVENTS.POWER_DOWN) return 0.36;
   if (id.startsWith('boss-main-explosion')) return 0.72;
   if (id.startsWith('boss-internal-explosion')) return 0.56;
   if (id.startsWith('pirate-boss') || id.startsWith('kraken')) return 0.62;
@@ -1163,6 +1237,139 @@ function soundEventAllowed(id, now) {
   if (now - previousPlay < interval) return false;
   lastSoundPlayedAt.set(id, now);
   return true;
+}
+
+function syncContinuousSounds(game, now) {
+  const active = !awaitingLaunch
+    && !titleActive
+    && !game.gameOver
+    && !game.paused
+    && !performanceDiagnostics.state.noSfx
+    && hasActiveGroundLaser(game);
+  syncLoopingSound('ground-laser-scorch', LASER_SCORCH_LOOP_URL, active, 0.22, now);
+}
+
+function hasActiveGroundLaser(game) {
+  return game.enemyProjectiles?.some((projectile) => (
+    projectile.lifetime > 0
+    && projectile.behavior === 'beam'
+    && projectile.endZ === 0
+    && (projectile.weapon === 'walker-ground-sweep' || projectile.weapon === 'zeppelin-ground-laser')
+  ));
+}
+
+function syncLoopingSound(key, src, active, volume, now) {
+  if (!src) return;
+  let player = continuousSoundLoops.get(key);
+  if (!player) {
+    player = soundPlayerFor(src);
+    player.loop = true;
+    continuousSoundLoops.set(key, player);
+  }
+  if (active) {
+    player.volume = volume;
+    if (player.paused) player.play().catch(() => {});
+    return;
+  }
+  if (!player.paused) {
+    player.pause();
+    player.currentTime = 0;
+    const powerDown = resolveSoundSource(SOUND_EVENTS.POWER_DOWN);
+    if (powerDown && soundEventAllowed(SOUND_EVENTS.POWER_DOWN, now)) {
+      const powerDownPlayer = soundPlayerFor(powerDown);
+      powerDownPlayer.volume = soundEventVolume(SOUND_EVENTS.POWER_DOWN);
+      powerDownPlayer.currentTime = 0;
+      powerDownPlayer.play().catch(() => {});
+    }
+  }
+}
+
+function syncAmbientSoundChains(game, now) {
+  const activeKeys = !awaitingLaunch
+    && !titleActive
+    && !game.gameOver
+    && !game.paused
+    && !performanceDiagnostics.state.noSfx
+    ? ambientKeysForTrack(game.music?.baseTrack ?? game.currentMusic)
+    : [];
+  const activeSet = new Set(activeKeys);
+  for (const key of Object.keys(AMBIENT_SOUND_URLS)) {
+    if (!activeSet.has(key)) {
+      stopAmbientChain(key);
+      continue;
+    }
+    stepAmbientChain(key, now);
+  }
+}
+
+function ambientKeysForTrack(trackName = '') {
+  const keys = [];
+  if (/^(?:DigitizedStream|PiratesRoad)_/i.test(trackName)) keys.push('ocean');
+  if (/^(?:GhostForrestPathway|GhostForrestBanshee)_/i.test(trackName)) keys.push('forest');
+  if (/^(?:Freedoms?Pass_StormsOfFatesShadow|Freedoms?Pass_BossFight|ShadowedDesert_OminousStormfront|ShadowedDesert_BossFight)/i.test(trackName)) {
+    keys.push('thunder');
+  }
+  if (/^(?:Freedoms?Pass_StormsOfFatesShadow|Freedoms?Pass_BossFight|Freedoms?Pass_DarkeningSkies|ShadowedDesert_OminousStormfront|ShadowedDesert_BossFight|ShadowedDesert_Journey)/i.test(trackName)) {
+    keys.push('wind');
+  }
+  return keys;
+}
+
+function stepAmbientChain(key, now) {
+  const sources = AMBIENT_SOUND_URLS[key]?.filter(Boolean) ?? [];
+  if (sources.length === 0) return;
+  const state = ambientSoundStates.get(key) ?? { nextAt: now + randomAmbientRestMs(sources), chainRemaining: 0, player: null };
+  ambientSoundStates.set(key, state);
+  if (state.player && !state.player.paused) return;
+  if (now < (state.nextAt ?? 0)) return;
+  if ((state.chainRemaining ?? 0) <= 0) state.chainRemaining = 1 + Math.floor(Math.random() * 10);
+  const src = sources[Math.floor(Math.random() * sources.length)] ?? sources[0];
+  const player = soundPlayerFor(src);
+  player.loop = false;
+  player.volume = ambientVolumeForKey(key);
+  player.currentTime = 0;
+  state.player = player;
+  player.onloadedmetadata = () => {
+    if (Number.isFinite(player.duration) && player.duration > 0) ambientDurations.set(src, player.duration);
+  };
+  player.onended = () => {
+    state.player = null;
+    state.chainRemaining = Math.max(0, (state.chainRemaining ?? 1) - 1);
+    state.nextAt = performance.now() + (state.chainRemaining > 0 ? Math.random() * 1200 + 300 : randomAmbientRestMs(sources));
+  };
+  player.play().catch(() => {
+    state.player = null;
+    state.chainRemaining = 0;
+    state.nextAt = now + randomAmbientRestMs(sources);
+  });
+}
+
+function stopAmbientChain(key) {
+  const state = ambientSoundStates.get(key);
+  if (!state) return;
+  if (state.player && !state.player.paused) {
+    state.player.pause();
+    state.player.currentTime = 0;
+  }
+  state.player = null;
+  state.chainRemaining = 0;
+}
+
+function randomAmbientRestMs(sources) {
+  const meanSeconds = meanAmbientDurationSeconds(sources) * 5;
+  return meanSeconds * 1000 * (0.55 + Math.random() * 0.9);
+}
+
+function meanAmbientDurationSeconds(sources) {
+  if (!sources.length) return 8;
+  const total = sources.reduce((sum, src) => sum + (ambientDurations.get(src) ?? 8), 0);
+  return total / sources.length;
+}
+
+function ambientVolumeForKey(key) {
+  if (key === 'thunder') return 0.2;
+  if (key === 'wind') return 0.16;
+  return 0.18;
 }
 
 function loadPlayerAccount() {
@@ -1429,8 +1636,20 @@ function soundPlayerFor(src) {
 function prewarmSoundPlayers() {
   if (soundPlayersPrewarmed) return;
   soundPlayersPrewarmed = true;
-  for (const src of Object.values(SOUND_URLS)) {
+  for (const src of Object.values(SOUND_URLS).flat()) {
+    if (!src) continue;
     const player = soundPlayerFor(src);
+    player.preload = 'auto';
+    player.load?.();
+  }
+  for (const src of Object.values(AMBIENT_SOUND_URLS).flat()) {
+    if (!src) continue;
+    const player = soundPlayerFor(src);
+    player.preload = 'auto';
+    player.load?.();
+  }
+  if (LASER_SCORCH_LOOP_URL) {
+    const player = soundPlayerFor(LASER_SCORCH_LOOP_URL);
     player.preload = 'auto';
     player.load?.();
   }

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.car_start_3",
+  "displayName": "Car Start 3",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/car_start_3.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "car",
+    "wheeled",
+    "entrance"
+  ],
+  "usage": {
+    "events": [
+      "wheeledEnemyEntrance"
+    ],
+    "randomizeWithinGroup": true,
+    "group": "car_start",
+    "variant": 3
+  }
+}

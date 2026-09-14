@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.harpoon_powerup",
+  "displayName": "Harpoon Powerup",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/harpoon_powerup.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "powerup",
+    "harpoon"
+  ],
+  "usage": {
+    "events": [
+      "harpoonPowerupCollected"
+    ]
+  }
+}

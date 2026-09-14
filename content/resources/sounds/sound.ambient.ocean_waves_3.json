@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.ambient.ocean_waves_3",
+  "displayName": "Ocean Waves 3",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/ocean_waves_3.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "ambient",
+    "water",
+    "ocean"
+  ],
+  "usage": {
+    "ambientChain": {
+      "minLength": 1,
+      "maxLength": 10,
+      "meanIntervalSoundSetLengthMultiplier": 5,
+      "levelMatchers": [
+        "DigitizedStream",
+        "PiratesRoad"
+      ]
+    },
+    "group": "ocean_waves",
+    "variant": 3
+  }
+}

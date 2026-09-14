@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.ghost_enemy_defeat",
+  "displayName": "Ghost Enemy Defeat",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/ghost_enemy_defeat.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "ghost",
+    "death"
+  ],
+  "usage": {
+    "events": [
+      "ghostEnemyDestroyed"
+    ]
+  }
+}

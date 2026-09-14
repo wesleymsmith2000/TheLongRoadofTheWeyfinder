@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.crash_and_jangle_3",
+  "displayName": "Crash And Jangle 3",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/crash_and_jangle_3.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "death",
+    "construct",
+    "crash"
+  ],
+  "usage": {
+    "events": [
+      "defaultEnemyConstructDestroyed"
+    ],
+    "randomizeWithinGroup": true,
+    "group": "crash_and_jangle",
+    "variant": 3
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.enemy_mortar_fire",
+  "displayName": "Enemy Mortar Fire",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/enemy_mortar_fire.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "mortar",
+    "weapon"
+  ],
+  "usage": {
+    "events": [
+      "enemyMortarFire"
+    ]
+  }
+}

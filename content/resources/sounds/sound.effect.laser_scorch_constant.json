@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.laser_scorch_constant",
+  "displayName": "Laser Scorch Constant",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/laser_scorch_constant.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "laser",
+    "ground-laser",
+    "loop"
+  ],
+  "usage": {
+    "events": [
+      "groundLaserFiringSmokeLoop"
+    ],
+    "loop": true
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.ambient.rolling_thunder_2",
+  "displayName": "Rolling Thunder 2",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/rolling_thunder_2.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "ambient",
+    "storm",
+    "thunder"
+  ],
+  "usage": {
+    "ambientChain": {
+      "minLength": 1,
+      "maxLength": 10,
+      "meanIntervalSoundSetLengthMultiplier": 5,
+      "levelMatchers": [
+        "FreedomsPass_StormsOfFatesShadow",
+        "FreedomsPass_BossFight",
+        "ShadowedDesert_OminousStormfront",
+        "ShadowedDesert_BossFight"
+      ]
+    },
+    "group": "rolling_thunder",
+    "variant": 2
+  }
+}

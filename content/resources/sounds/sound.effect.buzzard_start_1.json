@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.buzzard_start_1",
+  "displayName": "Buzzard Start 1",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/buzzard_start_1.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "buzzard",
+    "entrance"
+  ],
+  "usage": {
+    "events": [
+      "buzzardEntrance"
+    ],
+    "randomizeWithinGroup": true,
+    "group": "buzzard_start",
+    "variant": 1
+  }
+}

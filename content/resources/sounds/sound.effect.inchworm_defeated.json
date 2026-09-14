@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.inchworm_defeated",
+  "displayName": "Inchworm Defeated",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/inchworm_defeated.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "inchworm",
+    "death"
+  ],
+  "usage": {
+    "events": [
+      "inchwormHeadDestroyed"
+    ]
+  }
+}

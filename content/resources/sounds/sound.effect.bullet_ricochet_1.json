@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.bullet_ricochet_1",
+  "displayName": "Bullet Ricochet 1",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/bullet_ricochet_1.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "combat",
+    "ricochet",
+    "impact",
+    "glaive"
+  ],
+  "usage": {
+    "events": [
+      "glaiveBounce",
+      "bulletImpact"
+    ],
+    "chance": {
+      "bulletImpact": 0.25
+    },
+    "group": "bullet_ricochet",
+    "variant": 1
+  }
+}

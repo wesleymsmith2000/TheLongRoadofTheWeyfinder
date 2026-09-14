@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.ambient.storm_wind_1",
+  "displayName": "Storm Wind 1",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/storm_wind_1.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "ambient",
+    "storm",
+    "wind"
+  ],
+  "usage": {
+    "ambientChain": {
+      "minLength": 1,
+      "maxLength": 10,
+      "meanIntervalSoundSetLengthMultiplier": 5,
+      "levelMatchers": [
+        "FreedomsPass_StormsOfFatesShadow",
+        "FreedomsPass_BossFight",
+        "ShadowedDesert_OminousStormfront",
+        "ShadowedDesert_BossFight",
+        "ShadowedDesert_Journey",
+        "FreedomsPass_DarkeningSkies"
+      ]
+    },
+    "group": "storm_wind",
+    "variant": 1
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.metal_slash",
+  "displayName": "Metal Slash",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/metal_slash.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "combat",
+    "glaive",
+    "impact",
+    "construct"
+  ],
+  "usage": {
+    "events": [
+      "glaiveConstructCollision"
+    ]
+  }
+}

@@ -1351,6 +1351,36 @@ function isCarLikeEnemy(enemy) {
   return /(^|[._\-\s])(?:racecar|race_car|race-car|race car|car|roadster)(?:$|[._\-\s])/.test(id);
 }
 
+function triggerEnemyStartSound(game, enemy) {
+  if (!enemy || enemy.runtimeStartSoundPlayed) return;
+  enemy.runtimeStartSoundPlayed = true;
+  const soundId = enemyStartSoundId(enemy);
+  if (soundId) emitSoundEvent(game, soundId);
+}
+
+function enemyStartSoundId(enemy) {
+  if (isGhostEnemy(enemy)) return SOUND_EVENTS.GHOST_ENEMY_START;
+  if (isBuzzardEnemy(enemy)) return SOUND_EVENTS.BUZZARD_START;
+  if (isInsectoidEnemy(enemy)) return SOUND_EVENTS.INSECT_CHITTERING;
+  if (isCarLikeEnemy(enemy)) return SOUND_EVENTS.CAR_START;
+  return null;
+}
+
+function isGhostEnemy(enemy) {
+  const id = `${enemy?.archetypeId ?? ''} ${enemy?.assetId ?? ''} ${enemy?.displayName ?? ''}`.toLowerCase();
+  return id.includes('ghost');
+}
+
+function isBuzzardEnemy(enemy) {
+  const id = `${enemy?.archetypeId ?? ''} ${enemy?.assetId ?? ''} ${enemy?.displayName ?? ''}`.toLowerCase();
+  return id.includes('buzzard');
+}
+
+function isInsectoidEnemy(enemy) {
+  const id = `${enemy?.archetypeId ?? ''} ${enemy?.assetId ?? ''} ${enemy?.displayName ?? ''}`.toLowerCase();
+  return id.includes('inchworm') || id.includes('moth_bomber') || id.includes('moth bomber');
+}
+
 function usesBoatSilhouetteEnemy(trackName, level) {
   return /^(?:DigitizedStream|PiratesRoad)_/i.test(trackName ?? '');
 }
@@ -1892,7 +1922,7 @@ function firePrimaryWeapon(game, muzzle, def) {
       zCollision: def.zCollision,
     }),
   );
-  emitSoundEvent(game, SOUND_EVENTS.PLAYER_MAIN_GUN);
+  emitSoundEvent(game, def.id === 'mortar' ? SOUND_EVENTS.PLAYER_MORTAR_FIRE : SOUND_EVENTS.PLAYER_MAIN_GUN);
 }
 
 function primaryProjectileLaunch(game, muzzle, def, targetHint, angle) {
@@ -2121,6 +2151,7 @@ function stepEnemy(game, enemy, dt) {
     stepZeppelinWalkerRout(game, enemy, dt);
     return;
   }
+  triggerEnemyStartSound(game, enemy);
   if ((enemy.dizzyTimer ?? 0) > 0) {
     stepDizzyEnemy(enemy, dt);
     return;
@@ -2282,7 +2313,7 @@ function stepMortarSkiff(game, enemy, dt) {
   fireEnemyArcShell(game, enemy, target, '#ff5a54');
   enemy.lastFiredAt = game.time;
   enemy.attackHeading = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
 }
 
 function inaccuratePlayerMortarTarget(game, radius) {
@@ -2514,6 +2545,8 @@ function stepWalkerSweepBeam(game, enemy, dt) {
 function createWalkerSweepWarning(game, enemy, source) {
   const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
   const length = WALKER_SWEEP_BEAM_LENGTH;
+  emitSoundEvent(game, SOUND_EVENTS.LASER_SCORCH_PULSED);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BEAM_POWERUP);
   return {
     source,
     angle,
@@ -2716,6 +2749,7 @@ function stepScrapBuzzard(game, enemy, dt) {
   if (enemy.buzzardTimer <= 0) {
     enemy.buzzardTimer = game.rng.range(1.4, 2.2);
     fireEnemyArcShell(game, enemy, { x: enemy.x - enemy.vx * 0.55, y: enemy.y - enemy.vy * 0.55 }, '#d6cfb9');
+    emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
   }
   const offset = worldToRoadOffset(enemy, game.road);
   if (Math.abs(offset.x) > game.road.halfWidth * 0.62) enemy.vx *= -0.75;
@@ -3103,6 +3137,7 @@ function stepShadowedRoadBossAttacks(game, enemy, state, dt) {
     blastImpulse: 38,
     flightTime: 1.35,
   });
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
 }
 
 function fireRoadBossBulletBarrage(game, enemy, state) {
@@ -3330,6 +3365,7 @@ function startCarSpinout(game, enemy, state) {
     spinRate: (state.side || 1) * game.rng.range(Math.PI * 3.2, Math.PI * 4.7),
   };
   enemy.patterns = [];
+  emitSoundEvent(game, SOUND_EVENTS.CAR_SKID);
   triggerEnemyReactionCue(game, enemy, 'carSpinout');
 }
 
@@ -3502,6 +3538,7 @@ function stepPirateBossMortars(game, enemy, state, dt) {
       blastDamage: 7.5,
       blastImpulse: 42,
     });
+    emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
     enemy.attackHeading = Math.atan2(target.y - source.y, target.x - source.x);
     state.mortarMode = 'rearLine';
   } else {
@@ -3691,6 +3728,7 @@ function detonateMothBomber(game, enemy) {
       enemyIgnoreTags: MOTH_BOMBER_FRIENDLY_FIRE_IGNORE_TAGS,
     });
   }
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
   enemy.destroyed = true;
   explodeEnemy(game, enemy);
 }
@@ -3990,6 +4028,8 @@ function stepZeppelinLaserWarning(game, enemy, state, sources, scaledDt) {
 }
 
 function createZeppelinLaserWarning(game, enemy, source) {
+  emitSoundEvent(game, SOUND_EVENTS.LASER_SCORCH_PULSED);
+  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BEAM_POWERUP);
   const warning = {
     kind: 'zeppelin-ground-laser',
     cellId: source.cellId,
@@ -4152,6 +4192,7 @@ function stepZeppelinHarpoon(game, enemy, dt) {
     if (result === 'collected') {
       enemy.zeppelin.harpoonPowerup = null;
       enemy.zeppelin.harpoonCharge = createHarpoonCharge();
+      emitSoundEvent(game, SOUND_EVENTS.HARPOON_POWERUP);
       return;
     }
     if (result === 'expired') enemy.zeppelin.harpoonPowerup = null;
@@ -4201,6 +4242,7 @@ function stepBuzzardHarpoonPowerup(game, enemy, state, dt) {
       target.harpoonCharge = createHarpoonCharge({ affectsProjectiles: true });
       enemy.harpoonPowerup = null;
       state.harpoonSpawnTimer = ZEPPELIN_HARPOON_POWERUP_INTERVAL_SECONDS;
+      emitSoundEvent(game, SOUND_EVENTS.HARPOON_POWERUP);
     } else if (result === 'expired') {
       enemy.harpoonPowerup = null;
     }
@@ -5287,7 +5329,6 @@ function fireEnemyMortarLine(game, enemy, count = 7) {
     spacingSeconds: ENEMY_MORTAR_LINE_IMPACT_SPACING_SECONDS,
     spread: CELL_SIZE * 0.35,
   });
-  emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
 function fireEnemyMortarLineFromSource(game, enemy, source, count = 7, options = {}) {
@@ -5315,6 +5356,7 @@ function fireEnemyMortarLineFromSource(game, enemy, source, count = 7, options =
         sourceEnemy: enemy,
       });
     });
+  if (points.length > 0) emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
 }
 
 function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {}) {
@@ -5582,6 +5624,7 @@ function handleCollisions(game) {
       }
       const hit = applyEnemyDamage(enemy, projectile);
       if (hit.hit) {
+        if (projectile.weapon === 'bullet' && game.rng.chance(0.25)) emitSoundEvent(game, SOUND_EVENTS.BULLET_RICOCHET);
         game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
         const pierce = applyEnemyProjectilePierceDamage(activeEnemies(game), projectile);
         if (pierce.hit) {
@@ -5629,6 +5672,7 @@ function hitEnemiesWithDamageBudgetProjectile(game, projectile) {
     },
   );
   if (!pierce.hit) return maybeRicochetDamageBudgetProjectile(game, projectile);
+  if (isBladeProjectile(projectile)) emitSoundEvent(game, SOUND_EVENTS.METAL_SLASH);
   game.score.damageDone += Math.round((pierce.damage ?? projectile.damage) + pierce.removed * 3);
   const previousDamage = projectile.damage;
   for (const hitEnemy of pierce.hitEnemies ?? []) {
@@ -5652,6 +5696,7 @@ function handleDamageBudgetProjectileRicochet(game, projectile, previousEnemy = 
   }
   const target = nearestRicochetTarget(game, projectile, previousEnemy);
   if (!target) return false;
+  emitSoundEvent(game, SOUND_EVENTS.GLAIVE_BOUNCE);
   projectile.ricochetCount = (projectile.ricochetCount ?? 0) + 1;
   projectile.damage *= projectile.ricochetFactor ?? 0.5;
   if (projectile.damage <= 0.05) {
@@ -5675,6 +5720,7 @@ function maybeRicochetDamageBudgetProjectile(game, projectile) {
   if ((projectile.ricochetCount ?? 0) >= (projectile.maxRicochets ?? 0)) return false;
   const target = nearestRicochetTarget(game, projectile, previousEnemy);
   if (!target) return false;
+  emitSoundEvent(game, SOUND_EVENTS.GLAIVE_BOUNCE);
   projectile.ricochetCount = (projectile.ricochetCount ?? 0) + 1;
   projectile.damage *= projectile.ricochetFactor ?? 0.5;
   if (projectile.damage <= 0.05) {
@@ -5968,6 +6014,7 @@ function playerProjectileAbsorbsEnemyProjectile(game, playerProjectile) {
     if (enemyProjectile.behavior === 'arc' && !enemyProjectile.arcLanded) continue;
     const hitRange = enemyProjectile.radius + playerContactRadius;
     if (!projectileSegmentsIntersectRange(playerProjectile, enemyProjectile, hitRange)) continue;
+    if (isBladeProjectile(playerProjectile)) emitSoundEvent(game, SOUND_EVENTS.GLAIVE_BOUNCE);
     if (deflectionChance > 0 && game.rng.next() < deflectionChance) {
       deflectEnemyProjectile(game, enemyProjectile, playerProjectile);
       absorbed = true;
@@ -6970,9 +7017,12 @@ function explodeEnemy(game, enemy) {
   enemy.explosionStart = game.time;
   recordEnemyDefeat(game.score, enemy);
   game.scrapPickups.push(...enemyDeathPickups(game, enemy));
-  if (enemy.inchworm?.role === 'segment' || enemy.inchworm?.suppressDeathBlast) return;
+  if (enemy.inchworm?.role === 'segment' || enemy.inchworm?.suppressDeathBlast) {
+    emitEnemyDestroyedSound(game, enemy);
+    return;
+  }
   if (bossUsesInternalDestruction(enemy)) emitRandomBossMainExplosionSound(game);
-  else emitSoundEvent(game, SOUND_EVENTS.ENEMY_DEATH);
+  else emitEnemyDestroyedSound(game, enemy);
   game.playerProjectiles.push(
     createProjectile(enemy.x, enemy.y, 0, 0, {
       team: 'player',
@@ -6992,6 +7042,32 @@ function explodeEnemy(game, enemy) {
     if (other === enemy || other.destroyed) continue;
     knockEnemyFromPoint(other, enemy, radius, impulse);
   }
+}
+
+function emitEnemyDestroyedSound(game, enemy) {
+  if (enemy?.inchworm?.role === 'segment') {
+    emitSoundEvent(game, SOUND_EVENTS.INCHWORM_SEGMENT_DESTROYED);
+    return;
+  }
+  if (isInchwormHeadEnemy(enemy)) {
+    emitSoundEvent(game, SOUND_EVENTS.INCHWORM_DEFEATED);
+    return;
+  }
+  if (isGhostEnemy(enemy)) {
+    emitSoundEvent(game, SOUND_EVENTS.GHOST_ENEMY_DEFEAT);
+    return;
+  }
+  emitSoundEvent(game, isWaterConstructEnemy(enemy) ? SOUND_EVENTS.CRASH_AND_SPLASH : SOUND_EVENTS.CRASH_AND_JANGLE);
+}
+
+function isInchwormHeadEnemy(enemy) {
+  return enemy?.inchworm?.role === 'head' || String(enemy?.archetypeId ?? '').includes('inchworm_carrier');
+}
+
+function isWaterConstructEnemy(enemy) {
+  if (isOctopusBoss(enemy)) return false;
+  const id = `${enemy?.archetypeId ?? ''} ${enemy?.assetId ?? ''} ${enemy?.displayName ?? ''}`.toLowerCase();
+  return id.includes('pirates_road') || id.includes('pirate') || id.includes('skiff') || id.includes('boat');
 }
 
 function enemyDeathPickups(game, enemy) {

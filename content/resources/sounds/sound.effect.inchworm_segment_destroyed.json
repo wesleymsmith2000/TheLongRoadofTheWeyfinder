@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.inchworm_segment_destroyed",
+  "displayName": "Inchworm Segment Destroyed",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/inchworm_segment_destroyed.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "inchworm",
+    "segment",
+    "death"
+  ],
+  "usage": {
+    "events": [
+      "inchwormSegmentDestroyed"
+    ]
+  }
+}

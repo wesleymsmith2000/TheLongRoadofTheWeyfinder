@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.player_mortar_fire",
+  "displayName": "Player Mortar Fire",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/player_mortar_fire.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "player",
+    "mortar",
+    "weapon"
+  ],
+  "usage": {
+    "events": [
+      "playerMortarFire"
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 import { installLocalContentBundle, installLocalContentFiles, listLocalContentPacks, removeLocalContentPack } from '../core/localContentLibrary.js';
 import { EXAMPLE_PROTOTYPE0_MODULE_SET_BUNDLE } from './examplePrototype0ModuleSet.js';
 import { EXAMPLE_ZONE_ENEMY_SET_BUNDLE } from './exampleZoneEnemySet.js';
+import { SOUND_EFFECT_RESOURCE_BUNDLE } from './soundEffectResourceSet.js';
 import { bindBuildVersion } from './versionBadge.js';
 
 const editorFrame = document.querySelector('#editorFrame');
@@ -11,6 +12,7 @@ const importFilesButton = document.querySelector('#importFilesButton');
 const importFilesInput = document.querySelector('#importFilesInput');
 const installExampleButton = document.querySelector('#installExampleButton');
 const installZoneEnemyExampleButton = document.querySelector('#installZoneEnemyExampleButton');
+const installSoundEffectsButton = document.querySelector('#installSoundEffectsButton');
 const refreshModulesButton = document.querySelector('#refreshModulesButton');
 const clearStatusButton = document.querySelector('#clearStatusButton');
 const moduleStatus = document.querySelector('#moduleStatus');
@@ -27,6 +29,7 @@ importFilesButton.addEventListener('click', () => importFilesInput.click());
 importFilesInput.addEventListener('change', () => importModuleFiles(importFilesInput));
 installExampleButton.addEventListener('click', installExampleModuleSet);
 installZoneEnemyExampleButton.addEventListener('click', installZoneEnemyExampleSet);
+installSoundEffectsButton.addEventListener('click', installSoundEffects);
 refreshModulesButton.addEventListener('click', () => renderModuleList());
 clearStatusButton.addEventListener('click', () => {
   moduleStatus.textContent = '';
@@ -58,6 +61,12 @@ function installExampleModuleSet() {
 
 function installZoneEnemyExampleSet() {
   const result = installLocalContentBundle(EXAMPLE_ZONE_ENEMY_SET_BUNDLE);
+  renderImportStatus(result);
+  renderModuleList();
+}
+
+function installSoundEffects() {
+  const result = installLocalContentBundle(SOUND_EFFECT_RESOURCE_BUNDLE);
   renderImportStatus(result);
   renderModuleList();
 }

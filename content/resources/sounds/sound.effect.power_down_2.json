@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.power_down_2",
+  "displayName": "Power Down 2",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/power_down_2.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "powerup",
+    "beam",
+    "end"
+  ],
+  "usage": {
+    "events": [
+      "powerupEnded",
+      "enemyBeamStopped"
+    ],
+    "randomizeWithinGroup": true,
+    "group": "power_down",
+    "variant": 2
+  }
+}

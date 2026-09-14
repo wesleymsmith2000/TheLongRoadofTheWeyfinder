@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.insect_chittering_3",
+  "displayName": "Insect Chittering 3",
+  "author": "Weyfinder prototype",
+  "provenance": "Declared from assets/sounds for editor-facing sound selection.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/insect_chittering_3.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "insectoid",
+    "entrance"
+  ],
+  "usage": {
+    "events": [
+      "inchwormEntrance",
+      "mothEntrance"
+    ],
+    "randomizeWithinGroup": true,
+    "group": "insect_chittering",
+    "variant": 3
+  }
+}
