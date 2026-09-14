@@ -130,6 +130,27 @@ test('primary gun cell queues skip cooling weapons and fire ready slots', () => 
   assert.equal(game.primaryWeaponCooldowns['gun:0:mini_beam'] > 1.3, true);
 });
 
+test('cooling primary weapons stay at the top of their gun queue after bypass', () => {
+  let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'main.basic').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  game.primaryGunQueues.gun = { index: 0, queueLength: 2 };
+  game.primaryWeaponCooldowns['gun:0:mini_beam'] = 1;
+
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
+  assert.equal(game.primaryGunQueues.gun.index, 0);
+
+  game.playerFireTimer = 0;
+  game.playerProjectiles = [];
+  game.primaryWeaponCooldowns['gun:0:mini_beam'] = 0;
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mini_beam'), true);
+});
+
 test('mini beam upgrades affect active beam combat attributes', () => {
   const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
   const game = createGame(1147, { vehicleDefinition });

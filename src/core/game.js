@@ -1997,16 +1997,21 @@ function stepPlayerGun(game, dt) {
 function fireReadyPrimaryFromMount(game, mount, activeWeaponSlots) {
   const queue = mount.weapons.length ? mount.weapons : ['main.basic'];
   const state = primaryGunQueueState(game, mount.muzzle.cellId, queue.length);
+  let firstCooldownSlot = null;
   for (let attempt = 0; attempt < queue.length; attempt += 1) {
     const slotIndex = (state.index + attempt) % queue.length;
     const weaponId = queue[slotIndex];
     if (!weaponId) continue;
     const cooldownKey = primaryWeaponCooldownKey(mount.muzzle.cellId, slotIndex, weaponId);
-    if ((game.primaryWeaponCooldowns?.[cooldownKey] ?? 0) > 0) continue;
+    if ((game.primaryWeaponCooldowns?.[cooldownKey] ?? 0) > 0) {
+      firstCooldownSlot ??= slotIndex;
+      continue;
+    }
     if (!firePrimarySlotWeapon(game, mount.muzzle, slotIndex, weaponId, activeWeaponSlots)) continue;
-    state.index = (slotIndex + 1) % queue.length;
+    state.index = firstCooldownSlot ?? (slotIndex + 1) % queue.length;
     return true;
   }
+  if (firstCooldownSlot != null) state.index = firstCooldownSlot;
   return false;
 }
 
