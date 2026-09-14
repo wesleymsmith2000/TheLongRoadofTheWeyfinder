@@ -135,13 +135,13 @@ test('cooling primary weapons stay at the top of their gun queue after bypass', 
   vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'main.basic').definition;
   const game = createGame(1147, { vehicleDefinition });
   game.autofire = true;
-  game.primaryGunQueues.gun = { index: 0, queueLength: 2 };
+  game.primaryGunQueues.gun = { order: [0, 1], queueLength: 2 };
   game.primaryWeaponCooldowns['gun:0:mini_beam'] = 1;
 
   stepGame(game, {}, 1 / 60);
 
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
-  assert.equal(game.primaryGunQueues.gun.index, 0);
+  assert.deepEqual(game.primaryGunQueues.gun.order, [0, 1]);
 
   game.playerFireTimer = 0;
   game.playerProjectiles = [];
@@ -149,6 +149,19 @@ test('cooling primary weapons stay at the top of their gun queue after bypass', 
   stepGame(game, {}, 1 / 60);
 
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mini_beam'), true);
+});
+
+test('fired primary weapons rotate behind other ready weapons in the gun queue', () => {
+  let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'main.basic').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'tracking_flechette').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  game.primaryGunQueues.gun = { order: [0, 1], queueLength: 2 };
+
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
+  assert.deepEqual(game.primaryGunQueues.gun.order, [1, 0]);
 });
 
 test('mini beam upgrades affect active beam combat attributes', () => {

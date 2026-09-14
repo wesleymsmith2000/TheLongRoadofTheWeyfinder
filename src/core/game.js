@@ -1754,15 +1754,15 @@ function nextPrimaryAimProfile(game) {
     const weaponId = nextReadyPrimaryWeaponFromMount(game, mount);
     if (weaponId) return primaryAimProfile(game, weaponId);
   }
-  const queued = mounts[startIndex]?.weapons?.[primaryGunQueueReadIndex(game, mounts[startIndex]) ?? 0] ?? 'main.basic';
+  const queuedOrder = mounts[startIndex] ? primaryGunQueueReadOrder(game, mounts[startIndex]) : [0];
+  const queued = mounts[startIndex]?.weapons?.[queuedOrder[0] ?? 0] ?? 'main.basic';
   return primaryAimProfile(game, queued);
 }
 
 function nextReadyPrimaryWeaponFromMount(game, mount) {
   const queue = mount.weapons.length ? mount.weapons : ['main.basic'];
-  const startIndex = primaryGunQueueReadIndex(game, mount);
-  for (let attempt = 0; attempt < queue.length; attempt += 1) {
-    const slotIndex = (startIndex + attempt) % queue.length;
+  const order = primaryGunQueueReadOrder(game, mount);
+  for (const slotIndex of order) {
     const weaponId = queue[slotIndex] ?? 'main.basic';
     const cooldownKey = primaryWeaponCooldownKey(mount.muzzle.cellId, slotIndex, weaponId);
     if ((game.primaryWeaponCooldowns?.[cooldownKey] ?? 0) <= 0) return weaponId;
@@ -1770,9 +1770,9 @@ function nextReadyPrimaryWeaponFromMount(game, mount) {
   return null;
 }
 
-function primaryGunQueueReadIndex(game, mount) {
+function primaryGunQueueReadOrder(game, mount) {
   const queueLength = Math.max(1, mount?.weapons?.length ?? 1);
-  return Math.max(0, Math.floor(game.primaryGunQueues?.[mount.muzzle.cellId]?.index ?? 0)) % queueLength;
+  return normalizePrimaryGunQueueOrder(game.primaryGunQueues?.[mount.muzzle.cellId], queueLength);
 }
 
 function primaryAimProfile(game, weaponId) {
@@ -1997,21 +1997,19 @@ function stepPlayerGun(game, dt) {
 function fireReadyPrimaryFromMount(game, mount, activeWeaponSlots) {
   const queue = mount.weapons.length ? mount.weapons : ['main.basic'];
   const state = primaryGunQueueState(game, mount.muzzle.cellId, queue.length);
-  let firstCooldownSlot = null;
-  for (let attempt = 0; attempt < queue.length; attempt += 1) {
-    const slotIndex = (state.index + attempt) % queue.length;
+  for (let orderIndex = 0; orderIndex < state.order.length; orderIndex += 1) {
+    const slotIndex = state.order[orderIndex];
     const weaponId = queue[slotIndex];
     if (!weaponId) continue;
     const cooldownKey = primaryWeaponCooldownKey(mount.muzzle.cellId, slotIndex, weaponId);
-    if ((game.primaryWeaponCooldowns?.[cooldownKey] ?? 0) > 0) {
-      firstCooldownSlot ??= slotIndex;
-      continue;
-    }
+    if ((game.primaryWeaponCooldowns?.[cooldownKey] ?? 0) > 0) continue;
     if (!firePrimarySlotWeapon(game, mount.muzzle, slotIndex, weaponId, activeWeaponSlots)) continue;
-    state.index = firstCooldownSlot ?? (slotIndex + 1) % queue.length;
+    state.order.splice(orderIndex, 1);
+    state.order.push(slotIndex);
+    state.index = state.order[0] ?? 0;
     return true;
   }
-  if (firstCooldownSlot != null) state.index = firstCooldownSlot;
+  state.index = state.order[0] ?? 0;
   return false;
 }
 
@@ -2068,10 +2066,35 @@ function stepPrimaryWeaponCooldowns(game, dt) {
 function primaryGunQueueState(game, cellId, queueLength) {
   game.primaryGunQueues ??= {};
   const state = game.primaryGunQueues[cellId] ?? { index: 0 };
-  state.index = Math.max(0, Math.floor(state.index ?? 0)) % Math.max(1, queueLength);
   state.queueLength = Math.max(1, queueLength);
+  state.order = normalizePrimaryGunQueueOrder(state, state.queueLength);
+  state.index = state.order[0] ?? 0;
   game.primaryGunQueues[cellId] = state;
   return state;
+}
+
+function normalizePrimaryGunQueueOrder(state, queueLength) {
+  const length = Math.max(1, queueLength);
+  const seen = new Set();
+  const sourceOrder = Array.isArray(state?.order) ? state.order : legacyPrimaryGunQueueOrder(state?.index, length);
+  const order = [];
+  for (const rawSlot of sourceOrder) {
+    const slot = Math.floor(rawSlot);
+    if (!Number.isInteger(slot) || slot < 0 || slot >= length || seen.has(slot)) continue;
+    seen.add(slot);
+    order.push(slot);
+  }
+  for (let slot = 0; slot < length; slot += 1) {
+    if (seen.has(slot)) continue;
+    order.push(slot);
+  }
+  return order;
+}
+
+function legacyPrimaryGunQueueOrder(index, queueLength) {
+  const length = Math.max(1, queueLength);
+  const start = Math.max(0, Math.floor(index ?? 0)) % length;
+  return Array.from({ length }, (_, offset) => (start + offset) % length);
 }
 
 function setPrimaryWeaponCooldown(game, cellId, slotIndex, weaponId, cooldown) {
