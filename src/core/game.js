@@ -561,9 +561,10 @@ export function stepGame(game, input, dt) {
     return stepEncounterHeldGame(game, input, dt, encounterPolicy);
   }
 
-  stepRoadEdgePressure(game, input, dt);
+  const roadEdgePressure = stepRoadEdgePressure(game, input, dt);
   const roadDelta = stepRoadFrame(game.road, dt);
   carryRoadObjects(game, roadDelta);
+  slideLooseObjectsAgainstEdgeNudge(game, roadEdgePressure);
   applyRoadTurnDizziness(game, roadDelta.turnAngle);
   stepEnemySpawner(game, dt);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
@@ -644,6 +645,7 @@ function stepPausedGame(game, input, dt) {
 function stepRoadEdgePressure(game, input, dt) {
   const road = game.road;
   const baseSpeed = road.baseSpeed ?? 30;
+  const previousLateralOffset = road.lateralOffset ?? 0;
   const offset = worldToRoadOffset(game.vehicle, road);
   const localInput = worldDirectionToRoad({ x: input.x ?? 0, y: input.y ?? 0 }, road);
   const edgeX = edgePressure(offset.x, road.halfWidth);
@@ -670,6 +672,7 @@ function stepRoadEdgePressure(game, input, dt) {
   const blend = Math.min(1, dt / seconds);
   road.speed += (targetSpeed - road.speed) * blend;
   road.speed = clamp(road.speed, baseSpeed / 8, baseSpeed * 3);
+  return { lateralDelta: (road.lateralOffset ?? 0) - previousLateralOffset };
 }
 
 function edgePressure(value, halfSize) {
@@ -1563,6 +1566,20 @@ function carryRoadObjects(game, delta) {
 
 function activeEnemyHarpoonPowerup(enemy) {
   return enemy?.zeppelin?.harpoonPowerup ?? enemy?.harpoonPowerup ?? null;
+}
+
+function slideLooseObjectsAgainstEdgeNudge(game, pressure) {
+  const lateralDelta = pressure?.lateralDelta ?? 0;
+  if (Math.abs(lateralDelta) <= 0.0001) return;
+  const worldDelta = roadDirectionToWorld(lateralDelta, 0, game.road);
+  const looseObjects = [
+    ...game.scrapPickups,
+    ...game.enemies.map(activeEnemyHarpoonPowerup).filter(Boolean),
+  ];
+  for (const object of looseObjects) {
+    object.x -= worldDelta.x;
+    object.y -= worldDelta.y;
+  }
 }
 
 function stepScrapPickups(game, dt) {

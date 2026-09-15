@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
+import { createEnemy } from '../src/core/enemy.js';
 import { createProjectile } from '../src/core/projectile.js';
+import { roadOffsetToWorld, worldToRoadOffset } from '../src/core/camera.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 
 test('vehicle collects scrap pickups by driving over them', () => {
@@ -127,4 +129,33 @@ test('scrap sweep ignores queued waves and live projectiles once enemy cores are
   game.scrapPickups = [{ x: game.vehicle.x + CELL_SIZE * 80, y: game.vehicle.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 }];
   stepGame(game, {}, 1 / 60);
   assert.equal(game.scrapPickups[0].vx < -90, true);
+});
+
+test('side edge nudging slides loose scrap and buff pickups into the play area', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [createEnemy(game.vehicle.x - CELL_SIZE * 18, game.vehicle.y - CELL_SIZE * 18)];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [];
+  game.enemyProjectiles = [];
+  const rightEdge = roadOffsetToWorld({ x: game.road.halfWidth, y: 0 }, game.road);
+  game.vehicle.x = rightEdge.x;
+  game.vehicle.y = rightEdge.y;
+  const scrap = roadOffsetToWorld({ x: game.road.halfWidth + CELL_SIZE * 24, y: 0 }, game.road);
+  const ammo = roadOffsetToWorld({ x: game.road.halfWidth + CELL_SIZE * 28, y: CELL_SIZE * 2 }, game.road);
+  const harpoon = roadOffsetToWorld({ x: game.road.halfWidth + CELL_SIZE * 32, y: -CELL_SIZE * 2 }, game.road);
+  game.scrapPickups = [
+    { x: scrap.x, y: scrap.y, vx: 0, vy: 0, value: 1, radius: 1, life: 8 },
+    { x: ammo.x, y: ammo.y, vx: 0, vy: 0, kind: 'ammoPack', value: 1, radius: 1, life: 8 },
+  ];
+  game.enemies[0].harpoonPowerup = { x: harpoon.x, y: harpoon.y, vx: 0, vy: 0, radius: 3, timer: 5, duration: 5 };
+  const beforeScrapX = worldToRoadOffset(game.scrapPickups[0], game.road).x;
+  const beforeAmmoX = worldToRoadOffset(game.scrapPickups[1], game.road).x;
+  const beforeHarpoonX = worldToRoadOffset(game.enemies[0].harpoonPowerup, game.road).x;
+
+  stepGame(game, { x: 1, y: 0, gunnerEnabled: false }, 1 / 30);
+
+  assert.equal(worldToRoadOffset(game.scrapPickups[0], game.road).x < beforeScrapX, true);
+  assert.equal(worldToRoadOffset(game.scrapPickups[1], game.road).x < beforeAmmoX, true);
+  assert.equal(worldToRoadOffset(game.enemies[0].harpoonPowerup, game.road).x < beforeHarpoonX, true);
 });
