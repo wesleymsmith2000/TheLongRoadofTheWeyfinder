@@ -58,6 +58,7 @@ import {
 import { DEFAULT_LEVEL_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from './levelMusic.js';
 import { enhancedEnemyPaletteForMusic } from './levelStyle.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
+import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
 import { createCombatEventStats, recordEnemyDefeat } from './combatEvents.js';
 import { getEnemyArchetype, listEnemyArchetypes } from './enemyArchetypeDefinition.js';
 import { createTerrainGenerator } from './terrainGenerator.js';
@@ -479,6 +480,7 @@ export function createGame(seed = 1147, options = {}) {
     harpoonShots: [],
     smokeParticles: [],
     soundEvents: [],
+    hapticEvents: [],
     autofire: true,
     primaryHeat: { heat: 0, maxHeat: 100 },
     repulsor: { charges: 5, maxCharges: 5, rechargeTimer: 0, cooldown: 4.5 },
@@ -595,6 +597,7 @@ export function stepGame(game, input, dt) {
   syncEnemyBeamProjectiles(game);
   stepGroundBeamScorchParticles(game, dt);
   const livePlayerCellsBeforeDamage = countLiveAttachedVehicleCells(game.vehicle);
+  const livePlayerVoxelHealthBeforeDamage = countLiveAttachedVehicleVoxelHealth(game.vehicle);
   handleEnemyProjectileSpecials(game);
   stepSmokeParticles(game, dt);
   stepRocketContrails(game, dt);
@@ -604,7 +607,7 @@ export function stepGame(game, input, dt) {
     handleBoostExhaustDamage(game);
     handleSmokeHazardDamage(game);
   }
-  updatePlayerDamageCameraShake(game, livePlayerCellsBeforeDamage, dt);
+  updatePlayerDamageFeedback(game, livePlayerCellsBeforeDamage, livePlayerVoxelHealthBeforeDamage, dt);
   collectEnemyDetachScrapEvents(game);
   accelerateNextSpawnWhenArenaEmpty(game);
   stepScrapPickups(game, dt);
@@ -759,6 +762,7 @@ export function startNextLevel(game) {
   game.harpoonShots = [];
   game.smokeParticles = [];
   game.soundEvents = [];
+  game.hapticEvents = [];
   game.scrapPickups = [];
   startTargetingAiLevel(game);
   return game;
@@ -786,6 +790,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.smokeParticles = [];
   game.scrapPickups = [];
   game.soundEvents = [];
+  game.hapticEvents = [];
   game.guidedTargetId = null;
   resetAiAimReticle(game);
   startTargetingAiLevel(game);
@@ -1486,6 +1491,8 @@ function triggerEnemyEntranceBark(game, enemy, trigger) {
   enemy.entranceBarkPlayed = true;
   const soundId = chooseCueValue(game.rng, barks.sounds, barks.random !== false);
   if (soundId) emitSoundEvent(game, soundId);
+  const hapticId = chooseCueValue(game.rng, barks.haptics, barks.random !== false);
+  if (hapticId) emitHapticEvent(game, hapticId);
   const text = chooseCueValue(game.rng, barks.cues, barks.random !== false);
   if (text) addEnemyReactionCue(enemy, text, barks);
 }
@@ -1496,6 +1503,7 @@ function triggerEnemyReactionCue(game, enemy, trigger) {
   const text = chooseCueValue(game.rng, definition.texts ?? definition.cues, definition.random !== false);
   if (text) addEnemyReactionCue(enemy, text, definition);
   if (definition.sound) emitSoundEvent(game, definition.sound);
+  if (definition.haptic) emitHapticEvent(game, definition.haptic);
 }
 
 function chooseCueValue(rng, values, random = true) {
@@ -1648,15 +1656,41 @@ function countLiveAttachedVehicleCells(vehicle) {
   return vehicle.cells.filter((cell) => cell.attached && !cell.state?.destroyed).length;
 }
 
-function updatePlayerDamageCameraShake(game, liveCellsBeforeDamage, dt) {
+function countLiveAttachedVehicleVoxelHealth(vehicle) {
+  return vehicle.cells
+    .filter((cell) => cell.attached && !cell.state?.destroyed)
+    .reduce((sum, cell) => sum + cell.mask.flat().reduce((cellSum, voxel) => cellSum + Math.max(0, voxel.hp), 0), 0);
+}
+
+function updatePlayerDamageFeedback(game, liveCellsBeforeDamage, liveVoxelHealthBeforeDamage, dt) {
   game.playerDamageShake ??= { timer: 0, lostCells: 0 };
+  const voxelDamageThisFrame = Math.max(0, liveVoxelHealthBeforeDamage - countLiveAttachedVehicleVoxelHealth(game.vehicle));
+  const lostCellsThisFrame = Math.max(0, liveCellsBeforeDamage - countLiveAttachedVehicleCells(game.vehicle));
+  if (voxelDamageThisFrame > 0) {
+    emitSoundEvent(game, SOUND_EVENTS.BULLET_RICOCHET);
+    emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_VOXEL_DAMAGE, {
+      intensity: Math.min(0.45, 0.08 + voxelDamageThisFrame * 0.006),
+      durationMs: Math.min(180, 45 + voxelDamageThisFrame * 2),
+      damage: voxelDamageThisFrame,
+    });
+  }
+  if (lostCellsThisFrame > 0) {
+    const strength = Math.min(1, 0.28 + lostCellsThisFrame * 0.144);
+    emitSoundEvent(game, SOUND_EVENTS.PLAYER_CELL_LOSS);
+    emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_CELL_LOSS, {
+      intensity: strength,
+      weakMagnitude: Math.min(1, strength * 0.75),
+      strongMagnitude: strength,
+      durationMs: Math.min(1000, 160 + lostCellsThisFrame * 168),
+      lostCells: lostCellsThisFrame,
+    });
+  }
   const window = game.playerDamageShake;
   window.timer = Math.max(0, (window.timer ?? 0) - dt);
   if (window.timer <= 0) window.lostCells = 0;
-  const lostThisFrame = Math.max(0, liveCellsBeforeDamage - countLiveAttachedVehicleCells(game.vehicle));
-  if (lostThisFrame <= 0) return;
+  if (lostCellsThisFrame <= 0) return;
   window.timer = 0.5;
-  window.lostCells = (window.lostCells ?? 0) + lostThisFrame;
+  window.lostCells = (window.lostCells ?? 0) + lostCellsThisFrame;
   if (window.lostCells >= 2) {
     addCameraShake(game.camera, Math.min(0.85, 0.25 + window.lostCells * 0.12), 0.36);
     window.lostCells = 0;
@@ -2316,6 +2350,13 @@ function firePrimaryWeapon(game, muzzle, def) {
       zCollision: def.zCollision || isBladeWeaponName(def.id),
     }),
   );
+  if (def.id === 'mortar') {
+    emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_WEAPON_FIRE, {
+      weapon: 'mortar',
+      intensity: 0.22,
+      durationMs: 85,
+    });
+  }
   emitSoundEvent(game, def.id === 'mortar' ? SOUND_EVENTS.PLAYER_MORTAR_FIRE : SOUND_EVENTS.PLAYER_MAIN_GUN);
 }
 

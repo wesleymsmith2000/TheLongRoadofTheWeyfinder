@@ -72,6 +72,32 @@
           0 0 16px rgb(111 224 191 / 0.78);
       }
 
+      .selection-flash {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 75;
+        max-width: min(360px, calc(100vw - 24px));
+        padding: 6px 10px;
+        border: 1px solid rgb(247 192 106 / 0.7);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.88);
+        color: #f7c06a;
+        font-size: 13px;
+        font-weight: 800;
+        text-align: center;
+        text-shadow: 0 1px 5px rgb(0 0 0 / 0.8);
+        pointer-events: none;
+        opacity: 0;
+        transform: translate(-50%, -100%) scale(0.96);
+        transition: opacity 120ms ease, transform 120ms ease;
+      }
+
+      .selection-flash.visible {
+        opacity: 1;
+        transform: translate(-50%, -115%) scale(1);
+      }
+
       .hud {
         position: fixed;
         left: 16px;
@@ -965,24 +991,44 @@
         filter: drop-shadow(0 1px 4px rgb(0 0 0 / 0.5));
       }
 
+      .icon-sprite.small {
+        width: 22px;
+        height: 22px;
+      }
+
       .icon-sprite[data-icon="repair"] {
         background-position: 0% 0%;
       }
 
-      .icon-sprite[data-icon="cannon"] {
+      .icon-sprite[data-icon="cannon"],
+      .icon-sprite[data-icon="main.basic"],
+      .icon-sprite[data-icon="tracking_flechette"],
+      .icon-sprite[data-icon="blade_launcher"],
+      .icon-sprite[data-icon="orb_of_blades"] {
         background-position: 0% 100%;
       }
 
-      .icon-sprite[data-icon="beam"] {
+      .icon-sprite[data-icon="beam"],
+      .icon-sprite[data-icon="mini_beam"],
+      .icon-sprite[data-icon="repulsor_beam"],
+      .icon-sprite[data-icon="tractor_beam"] {
         background-position: 100% 0%;
       }
 
-      .icon-sprite[data-icon="rocket"] {
+      .icon-sprite[data-icon="rocket"],
+      .icon-sprite[data-icon="mortar"],
+      .icon-sprite[data-icon="sta_missile"] {
         background-position: 50% 50%;
       }
 
       .icon-sprite[data-icon="ammo"] {
         background-position: 50% 100%;
+      }
+
+      .icon-sprite[data-icon="boost"],
+      .icon-sprite[data-icon="wheel"],
+      .icon-sprite[data-icon="engine"] {
+        background-position: 50% 0%;
       }
 
       .icon-sprite[data-icon="scrap"],
@@ -1117,7 +1163,7 @@
 
       .upgrade-line {
         display: grid;
-        grid-template-columns: 1fr auto auto;
+        grid-template-columns: auto 1fr auto auto;
         gap: 8px;
         align-items: center;
         color: #d7ceb8;
@@ -2053,6 +2099,7 @@
             </select>
           </label>
           <div class="shop-upgrade-row">
+            <span id="shopUpgradeIcon" class="icon-sprite" data-icon="repair" aria-hidden="true"></span>
             <label class="shop-field" for="shopUpgradeSelect">
               <span>Upgrade target</span>
               <select id="shopUpgradeSelect" aria-label="Select upgrade"></select>

@@ -4,6 +4,7 @@ import { gunMuzzleWorld } from './vehicle.js';
 import { CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
+import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
 import { normalizeGunLoadouts } from './weaponLoadout.js';
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
@@ -157,6 +158,13 @@ export function fireSecondary(game) {
   if (Number.isFinite(secondary.ammo[secondary.selected])) secondary.ammo[secondary.selected] -= 1;
   secondary.heat += def.heat;
   secondary.cooldown = def.cooldown * heatCooldownScale(secondary);
+  if (['rocket', 'cannon', 'sta_missile'].includes(secondary.selected)) {
+    emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_WEAPON_FIRE, {
+      weapon: secondary.selected,
+      intensity: secondary.selected === 'cannon' ? 0.26 : 0.2,
+      durationMs: secondary.selected === 'cannon' ? 95 : 80,
+    });
+  }
   emitSoundEvent(game, secondary.selected === 'beam' ? SOUND_EVENTS.PLAYER_BEAM : SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH);
   return true;
 }

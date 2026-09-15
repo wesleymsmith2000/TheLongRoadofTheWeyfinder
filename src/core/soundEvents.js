@@ -4,6 +4,7 @@ export const SOUND_EVENTS = {
   PLAYER_BEAM: 'player-beam',
   PLAYER_EXPLOSION: 'player-explosion',
   PLAYER_MORTAR_FIRE: 'player-mortar-fire',
+  PLAYER_CELL_LOSS: 'player-cell-loss',
   ENEMY_BULLET: 'enemy-bullet',
   ENEMY_BEAM: 'enemy-beam',
   ENEMY_DEATH: 'enemy-death',

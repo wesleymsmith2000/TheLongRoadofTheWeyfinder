@@ -119,8 +119,8 @@ test('enemy archetype validation covers entrance barks and reaction cues', () =>
     archetypes: [
       {
         ...canonEnemyArchetypes.archetypes[0],
-        entranceBarks: { trigger: '', sounds: ['pirate-yargh'], cues: 'oops' },
-        reactionCues: [{ trigger: '', texts: 'ouch', sound: 7 }],
+        entranceBarks: { trigger: '', sounds: ['pirate-yargh'], cues: 'oops', haptics: 'buzz' },
+        reactionCues: [{ trigger: '', texts: 'ouch', sound: 7, haptic: 7 }],
       },
     ],
   });
@@ -130,6 +130,23 @@ test('enemy archetype validation covers entrance barks and reaction cues', () =>
   assert.equal(report.errors.some((error) => error.includes('reactionCues[0].trigger')), true);
   assert.equal(report.errors.some((error) => error.includes('reactionCues[0].texts')), true);
   assert.equal(report.errors.some((error) => error.includes('reactionCues[0].sound')), true);
+  assert.equal(report.errors.some((error) => error.includes('entranceBarks.haptics')), true);
+  assert.equal(report.errors.some((error) => error.includes('reactionCues[0].haptic')), true);
+});
+
+test('enemy archetype validation accepts haptic cue hooks', () => {
+  const report = validateEnemyArchetypePack({
+    ...canonEnemyArchetypes,
+    archetypes: [
+      {
+        ...canonEnemyArchetypes.archetypes[0],
+        entranceBarks: { sounds: ['pirate-yargh'], haptics: ['ambient-rolling-thunder'] },
+        reactionCues: [{ trigger: 'damaged', texts: ['!'], haptic: 'player-voxel-damage' }],
+      },
+    ],
+  });
+  assert.equal(report.valid, true);
+  assert.deepEqual(report.errors, []);
 });
 
 test('enemy archetype validation covers race car behavior hooks', () => {

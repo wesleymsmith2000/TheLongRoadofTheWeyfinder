@@ -153,6 +153,7 @@ function validateEntranceBarks(barks, path, errors) {
   if (barks.trigger != null && !isNonEmptyString(barks.trigger)) errors.push(`${path}.trigger must be a non-empty string when provided.`);
   if (barks.sounds != null && !isStringArray(barks.sounds)) errors.push(`${path}.sounds must be an array of strings when provided.`);
   if (barks.cues != null && !isStringArray(barks.cues)) errors.push(`${path}.cues must be an array of strings when provided.`);
+  if (barks.haptics != null && !isStringArray(barks.haptics)) errors.push(`${path}.haptics must be an array of strings when provided.`);
   validateOptionalNumber(barks.duration, `${path}.duration`, errors);
   validateOptionalNumber(barks.rise, `${path}.rise`, errors);
   validateOptionalNumber(barks.size, `${path}.size`, errors);
@@ -175,6 +176,7 @@ function validateReactionCues(cues, path, errors) {
     if (cue.texts != null && !isStringArray(cue.texts)) errors.push(`${label}.texts must be an array of strings when provided.`);
     if (cue.cues != null && !isStringArray(cue.cues)) errors.push(`${label}.cues must be an array of strings when provided.`);
     if (cue.sound != null && !isNonEmptyString(cue.sound)) errors.push(`${label}.sound must be a non-empty string when provided.`);
+    if (cue.haptic != null && !isNonEmptyString(cue.haptic)) errors.push(`${label}.haptic must be a non-empty string when provided.`);
     validateOptionalNumber(cue.duration, `${label}.duration`, errors);
     validateOptionalNumber(cue.rise, `${label}.rise`, errors);
     validateOptionalNumber(cue.size, `${label}.size`, errors);

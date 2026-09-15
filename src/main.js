@@ -8,7 +8,7 @@ import {
   stepGame,
 } from './core/game.js';
 import { BUILD_VERSION } from './core/buildVersion.js';
-import { configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
+import { addCameraShake, configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
 import { createGamepadInput } from './input/gamepad.js';
@@ -40,6 +40,7 @@ import {
 } from './core/localContentLibrary.js';
 import { ACHIEVEMENT_DEFINITIONS, achievementRewardText, achievementStatsFromGame, awardAchievements } from './core/achievements.js';
 import { consumeSoundEvents, SOUND_EVENTS } from './core/soundEvents.js';
+import { consumeHapticEvents, emitHapticEvent, HAPTIC_EVENTS } from './core/hapticEvents.js';
 import { MUSIC_LAYERS, consumeProceduralMusicCue } from './core/proceduralMusic.js';
 import {
   SHOP_COSTS,
@@ -195,6 +196,7 @@ const SOUND_URLS = {
   [SOUND_EVENTS.PLAYER_BEAM]: particleBeamSound,
   [SOUND_EVENTS.PLAYER_EXPLOSION]: futuristicCannonSound,
   [SOUND_EVENTS.PLAYER_MORTAR_FIRE]: soundAsset('player_mortar_fire.mp3'),
+  [SOUND_EVENTS.PLAYER_CELL_LOSS]: soundAsset('crash_and_jangle_3.mp3'),
   [SOUND_EVENTS.ENEMY_BULLET]: errorClickSound,
   [SOUND_EVENTS.ENEMY_BEAM]: errorBuzz2Sound,
   [SOUND_EVENTS.ENEMY_DEATH]: futuristicCannonSound,
@@ -353,6 +355,7 @@ const shopAmmoStatus = document.querySelector('#shopAmmoStatus');
 const shopRepairTarget = document.querySelector('#shopRepairTarget');
 const shopAmmoSelect = document.querySelector('#shopAmmoSelect');
 const shopUpgradeSelect = document.querySelector('#shopUpgradeSelect');
+const shopUpgradeIcon = document.querySelector('#shopUpgradeIcon');
 const shopBuyUpgradeButton = document.querySelector('#shopBuyUpgradeButton');
 const shopUpgradeCost = document.querySelector('#shopUpgradeCost');
 const shopUpgradeStatus = document.querySelector('#shopUpgradeStatus');
@@ -438,6 +441,9 @@ const ambientDurations = new Map();
 let lastProceduralMusicCue = null;
 let soundPlayersPrewarmed = false;
 const lastSoundPlayedAt = new Map();
+const hapticPulseQueue = [];
+let hapticLastPulseAt = 0;
+const HAPTIC_MIN_INTERVAL_MS = 35;
 const SOUND_MIN_INTERVAL_MS = new Map([
   [SOUND_EVENTS.ENEMY_BULLET, 55],
   [SOUND_EVENTS.ENEMY_BEAM, 90],
@@ -445,6 +451,7 @@ const SOUND_MIN_INTERVAL_MS = new Map([
   [SOUND_EVENTS.ENEMY_MORTAR_FIRE, 120],
   [SOUND_EVENTS.PLAYER_MAIN_GUN, 35],
   [SOUND_EVENTS.PLAYER_MORTAR_FIRE, 80],
+  [SOUND_EVENTS.PLAYER_CELL_LOSS, 160],
   [SOUND_EVENTS.MOTH_COUNTDOWN, 120],
   [SOUND_EVENTS.BULLET_RICOCHET, 90],
   [SOUND_EVENTS.GLAIVE_BOUNCE, 90],
@@ -484,6 +491,11 @@ const virtualPointer = {
   selectControl: null,
   selectRepeat: 0,
 };
+const selectionFlash = document.createElement('div');
+selectionFlash.className = 'selection-flash';
+selectionFlash.hidden = true;
+document.body.append(selectionFlash);
+let selectionFlashTimer = 0;
 document.documentElement.style.setProperty('--level-complete-art', `url("${levelCompleteArt}")`);
 document.documentElement.style.setProperty('--level-complete-banner-art', `url("${levelCompleteBannerArt}")`);
 document.documentElement.style.setProperty('--boss-defeated-banner-art', `url("${bossDefeatedBannerArt}")`);
@@ -497,6 +509,8 @@ exposeLocalContentModuleApi();
 exposeSandboxApi();
 exposeEncounterApi();
 exposeProceduralMusicApi();
+exposeHapticApi();
+annotateWeaponOptionIcons();
 populateUpgradeSelect();
 populateSandboxEnemySelect();
 syncSandboxScript(loadSandboxDefinition());
@@ -655,7 +669,7 @@ function frame(now) {
     syncPauseUi(mouseInput.aimWorld ?? padAimWorld, dt);
     boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
     secondarySelect.value = game.secondary.selected;
-    secondaryIcon.dataset.icon = game.secondary.selected;
+    secondaryIcon.dataset.icon = iconIdForWeapon(game.secondary.selected);
     const selectedAmmo = game.secondary.ammo[game.secondary.selected];
     secondaryAmmo.textContent = selectedAmmo == null ? '-' : formatAmmoValue(selectedAmmo);
     secondaryHeat.style.width = `${game.secondary.heat}%`;
@@ -667,6 +681,7 @@ function frame(now) {
     scoreDamage.textContent = game.score.damageDone;
   }
   perfMonitor.mark('ui');
+  stepAmbientCameraSway(game, dt);
   const frontPageIdle = awaitingLaunch || titleActive;
   const shouldDrawGameCanvas = !frontPageIdle;
   canvas.hidden = !shouldDrawGameCanvas;
@@ -676,6 +691,7 @@ function frame(now) {
   const audioCounters = playSoundEvents(game, now);
   syncContinuousSounds(game, now);
   syncAmbientSoundChains(game, now);
+  playHapticEvents(game, now);
   frameAudioCounters.audioPlayCalls = audioCounters.audioPlayCalls;
   frameAudioCounters.enemyBulletSoundEvents = audioCounters.enemyBulletSoundEvents;
   perfMonitor.mark('audio');
@@ -1240,6 +1256,7 @@ function resolveSoundSource(id) {
 function soundEventVolume(id) {
   if (id === SOUND_EVENTS.PLAYER_MAIN_GUN) return 0.24;
   if (id === SOUND_EVENTS.PLAYER_MORTAR_FIRE) return 0.5;
+  if (id === SOUND_EVENTS.PLAYER_CELL_LOSS) return 0.58;
   if (id === SOUND_EVENTS.ENEMY_MORTAR_FIRE) return 0.46;
   if (id === SOUND_EVENTS.BULLET_RICOCHET || id === SOUND_EVENTS.GLAIVE_BOUNCE) return 0.34;
   if (id === SOUND_EVENTS.METAL_SLASH) return 0.42;
@@ -1250,6 +1267,99 @@ function soundEventVolume(id) {
   if (id.startsWith('pirate-boss') || id.startsWith('kraken')) return 0.62;
   if (id.startsWith('pirate-')) return 0.54;
   return 0.48;
+}
+
+function playHapticEvents(game, now = performance.now()) {
+  if (awaitingLaunch || performanceDiagnostics.state.noSfx) {
+    consumeHapticEvents(game);
+    hapticPulseQueue.length = 0;
+    return;
+  }
+  for (const event of consumeHapticEvents(game)) {
+    const pattern = hapticPatternForEvent(event);
+    if (!pattern) continue;
+    if (pattern.kind === 'rolling') {
+      queueRollingHaptic(pattern.durationMs, pattern.intervalMs, pattern.weakMagnitude, pattern.strongMagnitude, pattern.pulseMs, pattern.jitterMs);
+      continue;
+    }
+    triggerHapticPulse(pattern, now);
+  }
+  stepQueuedHaptics(now);
+}
+
+function hapticPatternForEvent(event) {
+  if (event.id === HAPTIC_EVENTS.PLAYER_VOXEL_DAMAGE) {
+    return {
+      durationMs: event.durationMs ?? 70,
+      weakMagnitude: event.intensity ?? 0.14,
+      strongMagnitude: 0.02,
+    };
+  }
+  if (event.id === HAPTIC_EVENTS.PLAYER_CELL_LOSS) {
+    return {
+      durationMs: Math.min(1000, event.durationMs ?? 320),
+      weakMagnitude: event.weakMagnitude ?? Math.min(1, (event.intensity ?? 0.45) * 0.75),
+      strongMagnitude: event.strongMagnitude ?? event.intensity ?? 0.45,
+    };
+  }
+  if (event.id === HAPTIC_EVENTS.PLAYER_WEAPON_FIRE) return weaponFireHapticPattern(event.weapon);
+  if (event.id === HAPTIC_EVENTS.AMBIENT_OCEAN_WAVES) {
+    return { kind: 'rolling', durationMs: 5000, intervalMs: 650, pulseMs: 120, weakMagnitude: 0.07, strongMagnitude: 0.015, jitterMs: 120 };
+  }
+  if (event.id === HAPTIC_EVENTS.AMBIENT_ROLLING_THUNDER) {
+    return { kind: 'rolling', durationMs: event.durationMs ?? 2800, intervalMs: 360, pulseMs: 150, weakMagnitude: 0.2, strongMagnitude: 0.32, jitterMs: 180 };
+  }
+  if (event.id === HAPTIC_EVENTS.AMBIENT_STORM_WIND) {
+    return { kind: 'rolling', durationMs: 3400, intervalMs: 320, pulseMs: 170, weakMagnitude: 0.24, strongMagnitude: 0.12, jitterMs: 100 };
+  }
+  if (event.durationMs || event.weakMagnitude || event.strongMagnitude || event.intensity) {
+    return {
+      durationMs: event.durationMs ?? 100,
+      weakMagnitude: event.weakMagnitude ?? event.intensity ?? 0.15,
+      strongMagnitude: event.strongMagnitude ?? 0,
+    };
+  }
+  return null;
+}
+
+function weaponFireHapticPattern(weapon) {
+  if (weapon === 'cannon') return { durationMs: 95, weakMagnitude: 0.18, strongMagnitude: 0.28 };
+  if (weapon === 'mortar') return { durationMs: 85, weakMagnitude: 0.16, strongMagnitude: 0.22 };
+  if (weapon === 'rocket' || weapon === 'sta_missile') return { durationMs: 80, weakMagnitude: 0.14, strongMagnitude: 0.2 };
+  return { durationMs: 55, weakMagnitude: 0.08, strongMagnitude: 0.08 };
+}
+
+function queueRollingHaptic(durationMs, intervalMs, weakMagnitude, strongMagnitude, pulseMs, jitterMs = 0) {
+  const now = performance.now();
+  for (let time = now; time < now + durationMs; time += Math.max(60, intervalMs + (Math.random() * 2 - 1) * jitterMs)) {
+    hapticPulseQueue.push({ at: time, durationMs: pulseMs, weakMagnitude, strongMagnitude });
+  }
+}
+
+function stepQueuedHaptics(now = performance.now()) {
+  hapticPulseQueue.sort((a, b) => a.at - b.at);
+  while (hapticPulseQueue.length && hapticPulseQueue[0].at <= now) triggerHapticPulse(hapticPulseQueue.shift(), now);
+  while (hapticPulseQueue.length > 96) hapticPulseQueue.pop();
+}
+
+function triggerHapticPulse(pattern, now = performance.now()) {
+  if (now - hapticLastPulseAt < HAPTIC_MIN_INTERVAL_MS) return;
+  hapticLastPulseAt = now;
+  const duration = Math.max(1, Math.min(1000, pattern.durationMs ?? 80));
+  const weakMagnitude = Math.max(0, Math.min(1, pattern.weakMagnitude ?? pattern.intensity ?? 0));
+  const strongMagnitude = Math.max(0, Math.min(1, pattern.strongMagnitude ?? 0));
+  const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean) : [];
+  for (const pad of pads) {
+    const actuator = pad.vibrationActuator ?? pad.hapticActuators?.[0];
+    if (actuator?.playEffect) {
+      actuator.playEffect('dual-rumble', { duration, weakMagnitude, strongMagnitude }).catch?.(() => {});
+    } else if (actuator?.pulse) {
+      actuator.pulse(Math.max(weakMagnitude, strongMagnitude), duration).catch?.(() => {});
+    }
+  }
+  if (typeof navigator !== 'undefined' && navigator.vibrate && Math.max(weakMagnitude, strongMagnitude) >= 0.12) {
+    navigator.vibrate(Math.min(duration, 250));
+  }
 }
 
 function soundEventAllowed(id, now) {
@@ -1320,7 +1430,7 @@ function syncAmbientSoundChains(game, now) {
       stopAmbientChain(key);
       continue;
     }
-    stepAmbientChain(key, now);
+    stepAmbientChain(game, key, now);
   }
 }
 
@@ -1337,15 +1447,25 @@ function ambientKeysForTrack(trackName = '') {
   return keys;
 }
 
-function stepAmbientChain(key, now) {
+function stepAmbientChain(game, key, now) {
   const sources = AMBIENT_SOUND_URLS[key]?.filter(Boolean) ?? [];
   if (sources.length === 0) return;
   const state = ambientSoundStates.get(key) ?? { nextAt: now + randomAmbientRestMs(sources), chainRemaining: 0, player: null };
   ambientSoundStates.set(key, state);
   if (state.player && !state.player.paused) return;
   if (now < (state.nextAt ?? 0)) return;
-  if ((state.chainRemaining ?? 0) <= 0) state.chainRemaining = 1 + Math.floor(Math.random() * 10);
+  const chainStarting = (state.chainRemaining ?? 0) <= 0;
+  if (chainStarting) {
+    state.chainRemaining = 1 + Math.floor(Math.random() * 10);
+    if (key === 'ocean') emitHapticEvent(game, HAPTIC_EVENTS.AMBIENT_OCEAN_WAVES);
+  }
   const src = sources[Math.floor(Math.random() * sources.length)] ?? sources[0];
+  if (key === 'thunder') {
+    emitHapticEvent(game, HAPTIC_EVENTS.AMBIENT_ROLLING_THUNDER, {
+      durationMs: Math.min(5000, Math.max(1400, (ambientDurations.get(src) ?? 4) * 650)),
+    });
+  }
+  if (key === 'wind' && /storm_wind_1/i.test(src)) triggerStormWindFeedback(game);
   const player = soundPlayerFor(src);
   player.loop = false;
   player.volume = ambientVolumeForKey(key);
@@ -1392,6 +1512,37 @@ function ambientVolumeForKey(key) {
   if (key === 'thunder') return 0.2;
   if (key === 'wind') return 0.16;
   return 0.18;
+}
+
+function triggerStormWindFeedback(game) {
+  emitHapticEvent(game, HAPTIC_EVENTS.AMBIENT_STORM_WIND);
+  addCameraShake(game.camera, 0.08, 2.4);
+  game.camera.sway = {
+    timer: 3.2,
+    duration: 3.2,
+    phase: Math.random() * Math.PI * 2,
+    amplitude: 5.5,
+    direction: Math.random() < 0.5 ? -1 : 1,
+  };
+  const side = game.camera.sway.direction;
+  const heading = game.road?.heading ?? 0;
+  game.vehicle.vx += Math.cos(heading) * side * 18;
+  game.vehicle.vy += Math.sin(heading) * side * 18;
+}
+
+function stepAmbientCameraSway(game, dt) {
+  const sway = game.camera?.sway;
+  if (!sway) return;
+  sway.timer = Math.max(0, (sway.timer ?? 0) - dt);
+  sway.phase = (sway.phase ?? 0) + dt * 5.4;
+  const duration = Math.max(0.001, sway.duration ?? 1);
+  const fade = Math.sin(Math.PI * Math.max(0, Math.min(1, sway.timer / duration)));
+  sway.offsetX = Math.sin(sway.phase) * (sway.amplitude ?? 0) * fade * (sway.direction ?? 1);
+  sway.offsetY = Math.cos(sway.phase * 0.7) * (sway.amplitude ?? 0) * 0.35 * fade;
+  if (sway.timer <= 0) {
+    sway.offsetX = 0;
+    sway.offsetY = 0;
+  }
 }
 
 function loadPlayerAccount() {
@@ -1652,6 +1803,27 @@ function exposeProceduralMusicApi() {
     },
     layerAssets() {
       return structuredClone(MUSIC_LAYER_URLS);
+    },
+  });
+}
+
+function exposeHapticApi() {
+  window.WeyfinderHaptics = Object.freeze({
+    events: Object.freeze({ ...HAPTIC_EVENTS }),
+    emit(id, options = {}) {
+      emitHapticEvent(game, id, options);
+      return { ok: true, id };
+    },
+    preview(id, options = {}) {
+      const event = { id, ...options };
+      const pattern = hapticPatternForEvent(event);
+      if (!pattern) return { ok: false, reason: 'unknown-event', id };
+      if (pattern.kind === 'rolling') {
+        queueRollingHaptic(pattern.durationMs, pattern.intervalMs, pattern.weakMagnitude, pattern.strongMagnitude, pattern.pulseMs, pattern.jitterMs);
+      } else {
+        triggerHapticPulse(pattern);
+      }
+      return { ok: true, id };
     },
   });
 }
@@ -1927,6 +2099,26 @@ function changeVirtualSelectOption(select, direction) {
   select.selectedIndex = next;
   select.dispatchEvent(new Event('input', { bubbles: true }));
   select.dispatchEvent(new Event('change', { bubbles: true }));
+  flashSelectedOption(select);
+}
+
+function flashSelectedOption(select) {
+  const label = select.selectedOptions?.[0]?.textContent?.trim();
+  if (!label) return;
+  const rect = select.getBoundingClientRect();
+  selectionFlash.textContent = label;
+  selectionFlash.hidden = false;
+  selectionFlash.style.left = `${Math.max(12, Math.min(window.innerWidth - 12, rect.left + rect.width / 2))}px`;
+  selectionFlash.style.top = `${Math.max(40, rect.top - 8)}px`;
+  selectionFlash.classList.remove('visible');
+  window.requestAnimationFrame(() => selectionFlash.classList.add('visible'));
+  window.clearTimeout(selectionFlashTimer);
+  selectionFlashTimer = window.setTimeout(() => {
+    selectionFlash.classList.remove('visible');
+    window.setTimeout(() => {
+      if (!selectionFlash.classList.contains('visible')) selectionFlash.hidden = true;
+    }, 140);
+  }, 720);
 }
 
 function scrollVirtualTarget(pointer, input, dt) {
@@ -1998,6 +2190,34 @@ function performanceCounters(game) {
   };
 }
 
+function iconIdForWeapon(id = 'none') {
+  return id || 'none';
+}
+
+function iconIdForUpgrade(upgrade) {
+  if (upgrade?.requires?.primary) return iconIdForWeapon(upgrade.requires.primary);
+  if (upgrade?.requires?.secondary) return iconIdForWeapon(upgrade.requires.secondary);
+  const system = (upgrade?.system ?? '').toLowerCase();
+  if (system.includes('armor')) return 'repair';
+  if (system.includes('mobility') || system.includes('booster')) return 'boost';
+  if (system.includes('scrap') || system.includes('magnet')) return 'scrap';
+  return 'repair';
+}
+
+function iconSpan(iconId) {
+  const icon = document.createElement('span');
+  icon.className = 'icon-sprite small';
+  icon.dataset.icon = iconIdForWeapon(iconId);
+  icon.setAttribute('aria-hidden', 'true');
+  return icon;
+}
+
+function annotateWeaponOptionIcons() {
+  for (const select of [secondarySelect, pauseSecondarySelect, shopAmmoSelect, ...gunLoadoutSelects]) {
+    for (const option of select?.options ?? []) option.dataset.icon = iconIdForWeapon(option.value);
+  }
+}
+
 function populateUpgradeSelect() {
   for (const upgrade of availableShopUpgrades()) {
     const option = document.createElement('option');
@@ -2014,6 +2234,7 @@ function refreshUpgradeOptions() {
     ...upgrades.map((upgrade) => {
       const option = document.createElement('option');
       option.value = upgrade.id;
+      option.dataset.icon = iconIdForUpgrade(upgrade);
       option.textContent = `${upgrade.system}: ${upgrade.label} Lv ${game.upgrades?.[upgrade.id] ?? 0}`;
       return option;
     }),
@@ -2060,6 +2281,7 @@ function refreshUpgradeSummary() {
       for (const upgrade of upgrades) {
         const row = document.createElement('div');
         row.className = 'upgrade-line';
+        const icon = iconSpan(iconIdForUpgrade(upgrade));
         const name = document.createElement('span');
         name.textContent = upgrade.label;
         const level = document.createElement('span');
@@ -2067,7 +2289,7 @@ function refreshUpgradeSummary() {
         const cost = document.createElement('span');
         const nextCost = upgradeCost(game, upgrade.id);
         cost.textContent = Number.isFinite(nextCost) ? `${nextCost} scrap` : '-';
-        row.append(name, level, cost);
+        row.append(icon, name, level, cost);
         list.append(row);
       }
       details.append(summary, list);
@@ -2100,6 +2322,8 @@ function updateShopUi(dt = 0) {
   refreshUpgradeOptions();
   const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
   const selectedRepairCost = repairCost(game, shopRepairTarget.value);
+  const selectedUpgrade = availableShopUpgrades().find((upgrade) => upgrade.id === shopUpgradeSelect.value);
+  if (selectedUpgrade) shopUpgradeIcon.dataset.icon = iconIdForUpgrade(selectedUpgrade);
   refreshUpgradeSummary();
   shopRepairCost.textContent = selectedRepairCost;
   shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;

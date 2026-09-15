@@ -200,8 +200,8 @@ function lightingBufferScale(diagnostics) {
 function worldLightToBuffer(light, camera, w, h, viewScale, bufferScale) {
   const cameraX = camera?.x ?? 0;
   const cameraY = camera?.y ?? 0;
-  const shakeX = camera?.shake?.offsetX ?? 0;
-  const shakeY = camera?.shake?.offsetY ?? 0;
+  const shakeX = (camera?.shake?.offsetX ?? 0) + (camera?.sway?.offsetX ?? 0);
+  const shakeY = (camera?.shake?.offsetY ?? 0) + (camera?.sway?.offsetY ?? 0);
   return {
     x: (w / 2 + (light.x - cameraX + shakeX) * viewScale) * bufferScale,
     y: (h * 0.58 + (light.y - cameraY + shakeY) * viewScale) * bufferScale,
@@ -398,7 +398,7 @@ function applyCameraTransform(ctx, camera, w, h) {
   const scale = cameraViewScale({ width: w, height: h });
   ctx.translate(w / 2, h * 0.58);
   ctx.scale(scale, scale);
-  ctx.translate(camera.shake?.offsetX ?? 0, camera.shake?.offsetY ?? 0);
+  ctx.translate((camera.shake?.offsetX ?? 0) + (camera.sway?.offsetX ?? 0), (camera.shake?.offsetY ?? 0) + (camera.sway?.offsetY ?? 0));
   ctx.translate(-camera.x, -camera.y);
 }
 
