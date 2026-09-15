@@ -28,6 +28,7 @@ test('save states restore run progression and verify checksum', () => {
   game.upgrades.gunDamage = 2;
   game.secondary.selected = 'beam';
   game.score.damageDone = 1234;
+  game.guidedTargetCellType = 'core';
   game.targetingAi.xp = 37;
   game.targetingAi.lastLevelXp = 8;
   game.music.semanticState = 'SUSPICION';
@@ -46,6 +47,7 @@ test('save states restore run progression and verify checksum', () => {
   assert.equal(restored.upgrades.gunDamage, 2);
   assert.equal(restored.secondary.selected, 'beam');
   assert.equal(restored.score.damageDone, 1234);
+  assert.equal(restored.guidedTargetCellType, 'core');
   assert.equal(restored.targetingAi.xp, 37);
   assert.equal(restored.targetingAi.lastLevelXp, 8);
   assert.equal(restored.music.semanticState, 'SUSPICION');

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.victory_tone1",
+  "displayName": "Victory Tone1",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/VictoryTone1.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "victory",
+    "stage"
+  ],
+  "usage": {
+    "events": [
+      "stageVictory"
+    ]
+  }
+}

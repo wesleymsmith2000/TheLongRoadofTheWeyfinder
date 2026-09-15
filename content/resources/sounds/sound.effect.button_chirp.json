@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.button_chirp",
+  "displayName": "Button Chirp",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/ButtonChirp.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "player",
+    "gun",
+    "ui"
+  ],
+  "usage": {
+    "events": [
+      "playerMainGun"
+    ]
+  }
+}

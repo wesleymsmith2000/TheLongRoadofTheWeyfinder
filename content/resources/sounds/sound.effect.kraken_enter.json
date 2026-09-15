@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.kraken_enter",
+  "displayName": "Kraken Enter",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/Kraken_Enter.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "boss",
+    "kraken"
+  ],
+  "usage": {
+    "events": [
+      "krakenEntrance"
+    ]
+  }
+}

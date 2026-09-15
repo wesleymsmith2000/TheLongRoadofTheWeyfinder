@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import soundManifest from '../content/packs/canon.prototype0_sound_effects.json' with { type: 'json' };
@@ -22,9 +22,12 @@ test('canon sound effect resource pack validates and registers editor resources'
   );
 
   assert.equal(bundleReport.valid, true);
-  assert.equal(bundleReport.registry.assets.get('sound').size, 59);
+  assert.equal(bundleReport.registry.assets.get('sound').size, descriptors.length);
+  assert.equal(descriptors.length, soundFileCount());
   assert.equal(bundleReport.registry.assets.get('sound').has('sound.effect.bullet_ricochet_1'), true);
   assert.equal(bundleReport.registry.assets.get('sound').has('sound.ambient.ocean_waves_1'), true);
+  assert.equal(bundleReport.registry.assets.get('sound').has('sound.effect.button_chirp'), true);
+  assert.equal(bundleReport.registry.assets.get('sound').has('sound.effect.kraken_enter'), true);
 });
 
 test('new sound effects preserve editor usage metadata', () => {
@@ -74,4 +77,8 @@ function groupCount(byId, group) {
 function readResource(entry) {
   const fullPath = normalize(join(repoRoot, 'content', 'packs', entry));
   return JSON.parse(readFileSync(fullPath, 'utf8'));
+}
+
+function soundFileCount() {
+  return readdirSync(join(repoRoot, 'assets', 'sounds')).filter((filename) => filename.toLowerCase().endsWith('.mp3')).length;
 }

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.error_buzz2",
+  "displayName": "Error Buzz2",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/ErrorBuzz2.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "beam"
+  ],
+  "usage": {
+    "events": [
+      "enemyBeam"
+    ]
+  }
+}

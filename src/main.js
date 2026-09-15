@@ -1,4 +1,12 @@
-import { LEVEL_TARGET_DURATION, TARGETING_MODES, applySandboxDefinitionToGame, createGame, stepGame } from './core/game.js';
+import {
+  GUIDED_TARGET_CELL_TYPE_LABELS,
+  GUIDED_TARGET_CELL_TYPES,
+  LEVEL_TARGET_DURATION,
+  TARGETING_MODES,
+  applySandboxDefinitionToGame,
+  createGame,
+  stepGame,
+} from './core/game.js';
 import { BUILD_VERSION } from './core/buildVersion.js';
 import { configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
@@ -263,6 +271,8 @@ const pauseSecondaryFire = document.querySelector('#pauseSecondaryFire');
 const targetingModeSelect = document.querySelector('#targetingModeSelect');
 const targetPreviousButton = document.querySelector('#targetPreviousButton');
 const targetNextButton = document.querySelector('#targetNextButton');
+const targetCellTypeSelect = document.querySelector('#targetCellTypeSelect');
+const targetCellNextButton = document.querySelector('#targetCellNextButton');
 const targetInfo = document.querySelector('#targetInfo');
 const moduleStatusList = document.querySelector('#moduleStatusList');
 const pauseLevelNumber = document.querySelector('#pauseLevelNumber');
@@ -306,6 +316,8 @@ const achievementsPanel = document.querySelector('#achievementsPanel');
 const achievementList = document.querySelector('#achievementList');
 const primaryFireToggle = document.querySelector('#primaryFireToggle');
 const aiLeadToggle = document.querySelector('#aiLeadToggle');
+const targetCycleButton = document.querySelector('#targetCycleButton');
+const targetCellCycleButton = document.querySelector('#targetCellCycleButton');
 const boostButton = document.querySelector('#boostButton');
 const boostFill = document.querySelector('#boostFill');
 const secondarySelect = document.querySelector('#secondarySelect');
@@ -359,6 +371,8 @@ const gamepad = createGamepadInput(undefined, controlBindings);
 const mouse = createMouseInput(canvas, (screen) => screenToWorld(screen, game.camera, { width: window.innerWidth, height: window.innerHeight }));
 const touchPrimaryFireToggle = createPointerButtonInput(primaryFireToggle);
 const touchAiLeadToggle = createPointerButtonInput(aiLeadToggle);
+const touchTargetCycle = createPointerButtonInput(targetCycleButton);
+const touchTargetCellCycle = createPointerButtonInput(targetCellCycleButton);
 const touchBoost = createPointerButtonInput(boostButton);
 const touchSecondary = createPointerButtonInput(secondaryFire);
 const touchSecondaryCycle = createPointerButtonInput(secondaryTouchCycle);
@@ -533,7 +547,8 @@ function frame(now) {
   const touchBoostPressed = touchBoost.consume();
   const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
   const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
-  const targetCycle = keyInput.targetCycle || padInput.targetCycle || targetPreviousPressed.consume() * -1 || targetNextPressed.consume();
+  const targetCycle = keyInput.targetCycle || padInput.targetCycle || targetPreviousPressed.consume() * -1 || targetNextPressed.consume() || touchTargetCycle.consume();
+  const targetCellCycle = keyInput.targetCellCycle || padInput.targetCellCycle || targetCellNextPressed.consume() || touchTargetCellCycle.consume();
   const encounterChoiceId = pendingEncounterChoiceId;
   pendingEncounterChoiceId = null;
   if (keyInput.gunnerTogglePressed || padInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
@@ -584,6 +599,8 @@ function frame(now) {
       pauseSecondaryPress.consume(),
     targetingMode: targetingModeSelect.value,
     targetCycle,
+    targetCellCycle,
+    targetCellType: targetCellTypeSelect.value,
     aiShotLeading,
     encounterConfirmPressed: keyInput.encounterConfirmPressed || padInput.encounterConfirmPressed,
     encounterCancelPressed: keyInput.encounterCancelPressed || padInput.encounterCancelPressed,
@@ -644,6 +661,7 @@ function frame(now) {
     primaryFireToggle.setAttribute('aria-pressed', String(game.autofire));
     primaryFireToggle.textContent = game.autofire ? 'FIRE' : 'QUIET';
     syncAiLeadToggle();
+    syncTargetCellFocus();
     scrapCount.textContent = game.scrap;
     scoreDamage.textContent = game.score.damageDone;
   }
@@ -691,6 +709,7 @@ secondarySelect.addEventListener('change', syncSecondarySelects);
 pauseSecondarySelect.addEventListener('change', syncSecondarySelects);
 secondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 pauseSecondaryAutofire.addEventListener('change', syncSecondaryAutofire);
+targetCellTypeSelect.addEventListener('change', () => { uiDirty.pause = true; });
 shopRepairTarget.addEventListener('change', markShopUiDirty);
 shopAmmoSelect.addEventListener('change', markShopUiDirty);
 shopUpgradeSelect.addEventListener('change', markShopUiDirty);
@@ -713,6 +732,7 @@ const pauseTogglePressed = createButtonPress(pauseToggle);
 const resumeButtonPressed = createButtonPress(resumeButton);
 const targetPreviousPressed = createButtonPress(targetPreviousButton);
 const targetNextPressed = createButtonPress(targetNextButton);
+const targetCellNextPressed = createButtonPress(targetCellNextButton);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
 const shopRepairPressed = createButtonPress(shopRepairButton);
@@ -915,6 +935,7 @@ function syncPauseUi(hoverWorld = null, dt = 0) {
   uiTimers.pause = 0;
   if (!TARGETING_MODES.includes(targetingModeSelect.value)) targetingModeSelect.value = 'mixed';
   targetingModeSelect.value = game.targetingMode ?? targetingModeSelect.value;
+  syncTargetCellFocus();
   pauseSecondarySelect.value = secondarySelect.value;
   pauseSecondaryAutofire.checked = secondaryAutofire.checked;
   pauseLevelNumber.textContent = game.level;
@@ -1409,6 +1430,16 @@ function syncAiLeadToggle() {
   aiLeadToggle.setAttribute('aria-label', aiShotLeading ? 'Disable AI shot leading' : 'Enable AI shot leading');
 }
 
+function syncTargetCellFocus() {
+  const value = GUIDED_TARGET_CELL_TYPES.includes(game.guidedTargetCellType) ? game.guidedTargetCellType : 'auto';
+  if (targetCellTypeSelect.value !== value) targetCellTypeSelect.value = value;
+  const label = GUIDED_TARGET_CELL_TYPE_LABELS[value] ?? GUIDED_TARGET_CELL_TYPE_LABELS.auto;
+  targetCycleButton.title = game.guidedTargetId ? `AI target: ${game.guidedTargetId}` : 'Cycle guided AI enemy target';
+  targetCellCycleButton.textContent = value === 'auto' ? 'AIM' : label.split(' ')[0].toUpperCase();
+  targetCellCycleButton.setAttribute('aria-label', `Cycle guided AI target part. Current focus: ${label}`);
+  targetCellCycleButton.title = `AI focus: ${label}`;
+}
+
 function saveControlBindings() {
   localStorage.setItem(CONTROL_BINDINGS_STORAGE_KEY, JSON.stringify(controlBindings));
   keyboard.setBindings(controlBindings);
@@ -1752,7 +1783,8 @@ function renderTargetInfo(hoverWorld) {
   const living = enemy.cells.filter((cell) => !cell.state.destroyed).length;
   const guns = enemy.cells.filter((cell) => cell.type === 'gun' && !cell.state.destroyed).length;
   const engines = enemy.cells.filter((cell) => cell.type === 'engine' && !cell.state.destroyed).length;
-  targetInfo.textContent = `${enemy.kind ?? 'enemy'} ${hover ? 'hover' : 'target'} | cells ${living}/${enemy.cells.length} | guns ${guns} | engines ${engines}`;
+  const focus = GUIDED_TARGET_CELL_TYPE_LABELS[game.guidedTargetCellType ?? 'auto'] ?? GUIDED_TARGET_CELL_TYPE_LABELS.auto;
+  targetInfo.textContent = `${enemy.kind ?? 'enemy'} ${hover ? 'hover' : 'target'} | focus ${focus} | cells ${living}/${enemy.cells.length} | guns ${guns} | engines ${engines}`;
 }
 
 function enemyAtWorld(point) {

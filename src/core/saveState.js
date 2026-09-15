@@ -20,6 +20,7 @@ export function createSaveState(game, playerAccount, options = {}) {
     secondary: structuredClone(game.secondary ?? {}),
     score: structuredClone(game.score ?? {}),
     targetingMode: game.targetingMode ?? 'mixed',
+    guidedTargetCellType: game.guidedTargetCellType ?? 'auto',
     targetingAi: structuredClone(game.targetingAi ?? {}),
     music: structuredClone(game.music ?? {}),
     encounters: serializeEncounterRuntime(game.encounters),
@@ -70,6 +71,7 @@ export function applySaveStateToGame(game, saveState) {
   if (isPlainObject(payload.secondary)) game.secondary = structuredClone(payload.secondary);
   game.score = isPlainObject(payload.score) ? structuredClone(payload.score) : game.score;
   game.targetingMode = typeof payload.targetingMode === 'string' ? payload.targetingMode : game.targetingMode;
+  game.guidedTargetCellType = typeof payload.guidedTargetCellType === 'string' ? payload.guidedTargetCellType : game.guidedTargetCellType;
   if (isPlainObject(payload.targetingAi)) game.targetingAi = structuredClone(payload.targetingAi);
   if (isPlainObject(payload.music)) game.music = structuredClone(payload.music);
   if (isPlainObject(payload.encounters)) game.encounters = hydrateEncounterRuntime(payload.encounters);

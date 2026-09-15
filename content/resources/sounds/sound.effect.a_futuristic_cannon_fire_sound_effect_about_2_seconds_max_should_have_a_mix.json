@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.a_futuristic_cannon_fire_sound_effect_about_2_seconds_max_should_have_a_mix",
+  "displayName": "A Futuristic Cannon Fire Sound Effect. About 2 Seconds Max. Should Have A Mix",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/A Futuristic Cannon Fire Sound Effect. About 2 Seconds Max. Should Have A Mix.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "weapon",
+    "cannon",
+    "gunfire"
+  ],
+  "usage": {
+    "events": [
+      "weaponFire",
+      "explosion"
+    ]
+  }
+}

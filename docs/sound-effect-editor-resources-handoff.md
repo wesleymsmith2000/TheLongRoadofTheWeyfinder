@@ -4,11 +4,11 @@ Runtime version target: `v1.0.8.42+`
 
 ## Summary
 
-The new sound files listed in `new_sound_effects.md` are now exposed to editor/content tooling as first-party sound resource descriptors.
+The sound files in `assets/sounds` are now exposed to editor/content tooling as first-party sound resource descriptors. The explicitly requested sounds from `new_sound_effects.md` keep curated usage metadata, and any additional `.mp3` files are auto-declared so editor tooling can still find them.
 
 Generated assets:
 
-- `59` sound resource descriptors in `content/resources/sounds/`
+- one sound resource descriptor for every `.mp3` in `assets/sounds`
 - dedicated sound pack manifest: `content/packs/canon.prototype0_sound_effects.json`
 - canon manifest `sounds` entries in `content/packs/canon.prototype0.json`
 
@@ -16,7 +16,7 @@ Editor wiring:
 
 - Creator Suite now has an `Install Sounds` button.
 - The button installs `canon.prototype0_sound_effects` into browser-local content storage.
-- Installed local modules should report `59 sound`.
+- Installed local modules should report the current number of bundled sound descriptors.
 - Editor code can import `SOUND_EFFECT_RESOURCE_BUNDLE` or `SOUND_EFFECT_RESOURCES_BY_ID` from `src/editor/soundEffectResourceSet.js`.
 
 ## Resource Ids
@@ -35,6 +35,8 @@ Examples:
 - `sound.effect.player_mortar_fire`
 - `sound.effect.enemy_mortar_fire`
 - `sound.effect.laser_scorch_constant`
+- `sound.effect.button_chirp`
+- `sound.effect.kraken_enter`
 - `sound.ambient.ocean_waves_1`
 - `sound.ambient.night_forrest_1`
 - `sound.ambient.rolling_thunder_1`
@@ -52,6 +54,7 @@ Every descriptor has a `usage` object so editors can group and suggest sounds:
   - `usage.ambientChain.maxLength: 10`
   - `usage.ambientChain.meanIntervalSoundSetLengthMultiplier: 5`
   - `usage.ambientChain.levelMatchers`
+- auto-declared legacy/runtime sounds carry best-effort tags and `usage.events` hints such as `playerMainGun`, `playerBeam`, `stageVictory`, `bossInternalExplosion`, `pirateEnemyBark`, or `krakenEntrance`
 
 ## Runtime Wiring
 

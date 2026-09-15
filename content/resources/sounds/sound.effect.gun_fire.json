@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.gun_fire",
+  "displayName": "Gun Fire",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/GunFire.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "uncategorized"
+  ],
+  "usage": {
+    "events": [
+      "unassignedEditorSound"
+    ]
+  }
+}

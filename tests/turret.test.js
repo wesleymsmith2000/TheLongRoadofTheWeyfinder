@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
 import { createStartingVehicle, gunMuzzleWorld } from '../src/core/vehicle.js';
 import { PRIMARY_PROJECTILE_SPEED, compensatedAimHeading, gunnerAim, resolveTurretAim, stepTurretAim } from '../src/core/turret.js';
+import { CELL_SIZE } from '../src/core/voxelMask.js';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
 import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
 
@@ -165,6 +166,35 @@ test('guided targeting leads using the next primary weapon profile', () => {
   assert.equal(bulletGame.aimReticle.y - beamGame.aimReticle.y > 100, true);
 });
 
+test('guided targeting can focus a live weapon cell on the selected enemy', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.targetingMode = 'guided';
+  game.guidedTargetCellType = 'gun';
+  game.targetingAi.xp = 1_000_000;
+  const enemy = game.enemies[0];
+  enemy.targetId = 'weapon-focus-target';
+  enemy.x = game.vehicle.x + 260;
+  enemy.y = game.vehicle.y;
+  enemy.vx = 0;
+  enemy.vy = 0;
+  game.guidedTargetId = enemy.targetId;
+  const gun = enemy.cells.find((cell) => cell.type === 'gun' && !cell.state.destroyed);
+  assert.ok(gun);
+  const gunPoint = {
+    x: enemy.x + gun.gridX * CELL_SIZE * (enemy.visualScale ?? 1),
+    y: enemy.y + gun.gridY * CELL_SIZE * (enemy.visualScale ?? 1),
+  };
+  game.aiAimMode = 'guided';
+  game.aiAimTargetId = enemy.targetId;
+  game.aiAimReticle = { ...gunPoint };
+
+  stepGame(game, { targetingMode: 'guided', gunnerEnabled: true, aiShotLeading: false }, 1 / 60);
+
+  assert.equal(game.aimReticle.source, 'ai');
+  assert.equal(distance(game.aimReticle, gunPoint) < CELL_SIZE * 1.5, true);
+});
+
 test('mixed targeting uses the moving experienced AI lead reticle', () => {
   const led = createGame();
   const direct = createGame();
@@ -186,3 +216,7 @@ test('mixed targeting uses the moving experienced AI lead reticle', () => {
   assert.equal(led.aimReticle.y - direct.aimReticle.y > 100, true);
   assert.equal(led.targetingAi.xp > 1_000_000, true);
 });
+
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}

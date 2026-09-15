@@ -45,13 +45,15 @@ test('pause and guided targeting defaults are bindable', () => {
   assert.deepEqual(bindings.keyboard.sandboxToggle, ['KeyB']);
   assert.deepEqual(bindings.keyboard.aiLeadToggle, ['KeyL']);
   assert.deepEqual(bindings.keyboard.targetNext, ['Tab']);
+  assert.deepEqual(bindings.keyboard.targetCellNext, ['KeyT']);
   assert.deepEqual(bindings.keyboard.encounterConfirm, ['Enter']);
   assert.deepEqual(bindings.keyboard.encounterChoiceLeft, ['BracketLeft']);
   assert.deepEqual(bindings.keyboard.encounterChoiceRight, ['BracketRight']);
   assert.deepEqual(bindings.keyboard.secondaryFire.includes('Space'), true);
   assert.deepEqual(bindings.gamepad.primaryAutofire, [12]);
   assert.deepEqual(bindings.gamepad.aiLeadToggle, [13]);
-  assert.deepEqual(bindings.gamepad.targetPrevious, [6]);
-  assert.deepEqual(bindings.gamepad.targetNext, [7]);
+  assert.deepEqual(bindings.gamepad.targetPrevious, []);
+  assert.deepEqual(bindings.gamepad.targetNext, [6]);
+  assert.deepEqual(bindings.gamepad.targetCellNext, [7]);
   assert.deepEqual(bindings.gamepad.encounterConfirm, [0]);
 });

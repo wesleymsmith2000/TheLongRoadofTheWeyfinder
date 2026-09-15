@@ -39,11 +39,13 @@ test('standard gamepad button toggles only fire on the press edge', () => {
   assert.equal(input.dodgePressed, false);
 });
 
-test('standard gamepad uses triggers for turning and bumpers for secondary cycling', () => {
+test('standard gamepad uses triggers for turning, enemy cycling, and focus cycling', () => {
   const triggerInput = mapStandardGamepad(createPad({ buttons: { 7: 0.8 } }));
+  const leftTriggerInput = mapStandardGamepad(createPad({ buttons: { 6: 0.8 } }));
   const bumperInput = mapStandardGamepad(createPad({ pressed: [4] }));
   assert.equal(triggerInput.turn > 0.7, true);
-  assert.equal(triggerInput.targetCycle, 1);
+  assert.equal(leftTriggerInput.targetCycle, 1);
+  assert.equal(triggerInput.targetCellCycle, 1);
   assert.equal(bumperInput.turn, 0);
   assert.equal(bumperInput.secondaryCycle, -1);
 });
@@ -76,6 +78,7 @@ test('standard gamepad honors custom button bindings', () => {
     sandboxToggle: [7],
     gunnerToggle: [13],
     aiLeadToggle: [14],
+    targetCellNext: [5],
   });
   assert.equal(input.secondaryFirePressed, true);
   assert.equal(input.cursorClickPressed, false);
@@ -85,6 +88,7 @@ test('standard gamepad honors custom button bindings', () => {
   assert.equal(input.sandboxTogglePressed, true);
   assert.equal(input.gunnerTogglePressed, true);
   assert.equal(input.aiLeadTogglePressed, true);
+  assert.equal(input.targetCellCycle, 1);
 });
 
 function createPad({ axes = [0, 0, 0, 0], pressed = [], buttons = {} } = {}) {

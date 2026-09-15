@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.pirate_boss_entrance_taunt",
+  "displayName": "Pirate Boss Entrance taunt",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/Pirate_Boss__Entrance_taunt.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "boss",
+    "pirate",
+    "voice"
+  ],
+  "usage": {
+    "events": [
+      "pirateBossEntrance"
+    ]
+  }
+}

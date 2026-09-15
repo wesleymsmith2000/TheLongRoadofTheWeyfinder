@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.pirate_give_em_a_broadside",
+  "displayName": "Pirate Give em a broadside",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/Pirate__Give_em_a_broadside.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "pirate",
+    "voice"
+  ],
+  "usage": {
+    "events": [
+      "pirateEnemyBark"
+    ]
+  }
+}

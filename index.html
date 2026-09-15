@@ -144,6 +144,8 @@
       body.title-active .boost-gauge,
       body.title-active .primary-fire-toggle,
       body.title-active .ai-lead-toggle,
+      body.title-active .target-cycle-button,
+      body.title-active .target-cell-cycle-button,
       body.title-active .boost-button,
       body.title-active .secondary-touch-button,
       body.title-active .secondary-cycle-button,
@@ -867,6 +869,8 @@
 
       .primary-fire-toggle,
       .ai-lead-toggle,
+      .target-cycle-button,
+      .target-cell-cycle-button,
       .secondary-touch-button,
       .secondary-cycle-button {
         position: fixed;
@@ -889,6 +893,14 @@
 
       .ai-lead-toggle {
         bottom: 282px;
+      }
+
+      .target-cell-cycle-button {
+        bottom: 344px;
+      }
+
+      .target-cycle-button {
+        bottom: 406px;
       }
 
       .primary-fire-toggle[aria-pressed="true"],
@@ -1610,6 +1622,8 @@
 
         .primary-fire-toggle,
         .ai-lead-toggle,
+        .target-cycle-button,
+        .target-cell-cycle-button,
         .secondary-touch-button,
         .secondary-cycle-button {
           right: 12px;
@@ -1625,6 +1639,14 @@
 
         .ai-lead-toggle {
           bottom: 250px;
+        }
+
+        .target-cell-cycle-button {
+          bottom: 306px;
+        }
+
+        .target-cycle-button {
+          bottom: 362px;
         }
 
         .secondary-cycle-button {
@@ -1854,8 +1876,8 @@
     <div id="controlsPanel" class="controls-panel hidden">
       <h2>Help</h2>
       <h3>Controls</h3>
-      <p>Keyboard: WASD/arrows move, mouse aims, Space fires secondary, Q/E cycles secondary, Tab cycles guided targets, Esc/P pauses.</p>
-      <p>Controller: left stick moves, right stick aims, bumpers cycle secondary, L2/R2 cycle guided targets, Start pauses.</p>
+      <p>Keyboard: WASD/arrows move, mouse aims, Space fires secondary, Q/E cycles secondary, Tab cycles guided targets, T cycles guided focus, Esc/P pauses.</p>
+      <p>Controller: left stick moves, right stick aims, bumpers cycle secondary, L2 cycles guided targets, R2 cycles guided focus, Start pauses.</p>
       <p>When a menu is open, left stick/D-pad moves the cursor, A/B clicks, and right stick scrolls or changes selects.</p>
       <p>Mobile: left side drags movement, right side aims and fires.</p>
       <p>Right stick moves an aim reticle. Comp aim bends manual aim against vehicle velocity so shots pass through the selected point.</p>
@@ -1902,6 +1924,18 @@
               <button id="targetPreviousButton" type="button">Previous Target</button>
               <button id="targetNextButton" type="button">Next Target</button>
             </div>
+            <label for="targetCellTypeSelect">
+              Focus
+              <select id="targetCellTypeSelect">
+                <option value="auto">Auto</option>
+                <option value="gun">Weapons</option>
+                <option value="engine">Engines</option>
+                <option value="wheel">Wheels / Propulsion</option>
+                <option value="core">Core</option>
+                <option value="armor">Nearest Armor</option>
+              </select>
+            </label>
+            <button id="targetCellNextButton" type="button">Next Focus</button>
             <div id="targetInfo" class="target-info"></div>
           </section>
           <section class="pause-section">
@@ -1930,6 +1964,8 @@
     <div id="victoryBanner" class="victory-banner hidden" data-kind="level" aria-hidden="true"></div>
     <button id="primaryFireToggle" class="primary-fire-toggle" type="button" aria-label="Toggle primary fire mode" aria-pressed="true">FIRE</button>
     <button id="aiLeadToggle" class="ai-lead-toggle" type="button" aria-label="Disable AI shot leading" aria-pressed="true">AI LEAD</button>
+    <button id="targetCycleButton" class="target-cycle-button" type="button" aria-label="Cycle guided AI enemy target">TGT</button>
+    <button id="targetCellCycleButton" class="target-cell-cycle-button" type="button" aria-label="Cycle guided AI target part">AIM</button>
     <button id="secondaryTouchCycle" class="secondary-cycle-button" type="button" aria-label="Cycle secondary weapon">SWAP</button>
     <button id="secondaryTouchFire" class="secondary-touch-button" type="button" aria-label="Fire secondary weapon">2ND</button>
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>

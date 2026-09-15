@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "sound.effect.error_click",
+  "displayName": "Error Click",
+  "author": "Weyfinder prototype",
+  "provenance": "Auto-declared from assets/sounds so editor tooling can offer every bundled sound file.",
+  "canonStatus": "CANON",
+  "kind": "sound",
+  "path": "assets/sounds/ErrorClick.mp3",
+  "mimeType": "audio/mpeg",
+  "tags": [
+    "sound",
+    "enemy",
+    "bullet"
+  ],
+  "usage": {
+    "events": [
+      "enemyBullet"
+    ]
+  }
+}

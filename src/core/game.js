@@ -93,6 +93,15 @@ import mothBomberSculptedDefinition from '../../content/examples/prototype0-zone
 
 export const LEVEL_TARGET_DURATION = 180;
 export const TARGETING_MODES = ['manual', 'guided', 'mixed'];
+export const GUIDED_TARGET_CELL_TYPES = ['auto', 'gun', 'engine', 'wheel', 'core', 'armor'];
+export const GUIDED_TARGET_CELL_TYPE_LABELS = Object.freeze({
+  auto: 'Auto',
+  gun: 'Weapons',
+  engine: 'Engines',
+  wheel: 'Wheels / Propulsion',
+  core: 'Core',
+  armor: 'Nearest Armor',
+});
 const SPAWN_WARNING_LEAD = 2.4;
 const BOSS_LASER_CHARGE_TIME = 3;
 const BOSS_LASER_LOCK_TIME = 1;
@@ -495,6 +504,7 @@ export function createGame(seed = 1147, options = {}) {
     paused: false,
     targetingMode: 'mixed',
     guidedTargetId: null,
+    guidedTargetCellType: 'auto',
     targetingAi: createTargetingAiState(options.targetingAi),
     playerDamageShake: { timer: 0, lostCells: 0 },
     encounters: createEncounterRuntimeState(options.encounters ?? []),
@@ -514,6 +524,8 @@ export function stepGame(game, input, dt) {
   }
   if (input.pausePressed) game.paused = !game.paused;
   if (input.targetCycle) cycleGuidedTarget(game, input.targetCycle);
+  if (input.targetCellType) setGuidedTargetCellType(game, input.targetCellType);
+  if (input.targetCellCycle) cycleGuidedTargetCellType(game, input.targetCellCycle);
   if (game.paused) {
     stepPausedGame(game, input, dt);
     stepProceduralMusic(game, dt);
@@ -1725,23 +1737,32 @@ function gunnerAimTarget(game, shotLeading = true) {
 
 function aiAimTargetForEnemy(game, enemy, shotLeading = true) {
   const profile = nextPrimaryAimProfile(game);
-  const leadTime = shotLeading ? targetLeadTime(game, enemy, profile) : 0;
+  const aimBase = guidedEnemyAimBase(game, enemy);
+  const leadTime = shotLeading ? targetLeadTime(game, enemy, profile, aimBase) : 0;
   return {
-    x: enemy.x + (enemy.vx ?? 0) * leadTime,
-    y: enemy.y + (enemy.vy ?? 0) * leadTime,
+    x: aimBase.x + (enemy.vx ?? 0) * leadTime,
+    y: aimBase.y + (enemy.vy ?? 0) * leadTime,
     enemy,
     targetId: enemyTargetId(enemy),
+    cellType: game.guidedTargetCellType ?? 'auto',
+    cellId: aimBase.cellId ?? null,
     weaponId: profile.weaponId,
     projectileSpeed: profile.projectileSpeed,
     compensatedAim: profile.compensatedAim,
   };
 }
 
-function targetLeadTime(game, enemy, profile) {
+function targetLeadTime(game, enemy, profile, aimBase = enemy) {
   if (!profile.shotLeading || profile.projectileSpeed >= 999_999) return 0;
   if (Number.isFinite(profile.fixedFlightTime)) return Math.min(profile.maxLeadTime, Math.max(0, profile.fixedFlightTime));
-  const distance = Math.hypot(enemy.x - game.vehicle.x, enemy.y - game.vehicle.y);
+  const distance = Math.hypot(aimBase.x - game.vehicle.x, aimBase.y - game.vehicle.y);
   return Math.min(profile.maxLeadTime, distance / Math.max(1, profile.projectileSpeed));
+}
+
+function guidedEnemyAimBase(game, enemy) {
+  const cellType = normalizedGuidedTargetCellType(game.guidedTargetCellType);
+  if (cellType === 'auto') return { x: enemy.x, y: enemy.y };
+  return nearestGuidedTargetCellPoint(game, enemy, cellType) ?? { x: enemy.x, y: enemy.y };
 }
 
 function nextPrimaryAimProfile(game) {
@@ -1830,6 +1851,36 @@ function cycleGuidedTarget(game, direction = 1) {
   return enemies[next];
 }
 
+function setGuidedTargetCellType(game, cellType) {
+  const next = normalizedGuidedTargetCellType(cellType);
+  if ((game.guidedTargetCellType ?? 'auto') === next) return next;
+  game.guidedTargetCellType = next;
+  resetAiAimReticle(game);
+  return next;
+}
+
+function cycleGuidedTargetCellType(game, direction = 1) {
+  const enemy = guidedTarget(game) ?? nearestTargetedEnemy(game);
+  const options = availableGuidedTargetCellTypes(enemy);
+  const current = normalizedGuidedTargetCellType(game.guidedTargetCellType);
+  const currentIndex = Math.max(0, options.indexOf(current));
+  const nextIndex = (currentIndex + Math.sign(direction || 1) + options.length) % options.length;
+  return setGuidedTargetCellType(game, options[nextIndex]);
+}
+
+function availableGuidedTargetCellTypes(enemy) {
+  const options = ['auto'];
+  if (!enemy) return options;
+  for (const cellType of GUIDED_TARGET_CELL_TYPES.slice(1)) {
+    if (liveGuidedTargetCells(enemy, cellType).length > 0) options.push(cellType);
+  }
+  return options;
+}
+
+function normalizedGuidedTargetCellType(cellType) {
+  return GUIDED_TARGET_CELL_TYPES.includes(cellType) ? cellType : 'auto';
+}
+
 function guidedTarget(game) {
   const enemies = activeEnemies(game);
   if (enemies.length === 0) {
@@ -1844,6 +1895,46 @@ function guidedTarget(game) {
 function enemyTargetId(enemy) {
   enemy.targetId ??= `${enemy.assetId ?? enemy.kind ?? 'enemy'}:${Math.round(enemy.x * 100)}:${Math.round(enemy.y * 100)}`;
   return enemy.targetId;
+}
+
+function nearestGuidedTargetCellPoint(game, enemy, cellType) {
+  const cells = liveGuidedTargetCells(enemy, cellType);
+  if (cells.length === 0) return null;
+  const anchor = game.aimReticle ?? game.aiAimReticle ?? game.vehicle ?? enemy;
+  return cells.reduce((nearest, cell) => {
+    const point = enemyGuidedCellWorldPoint(enemy, cell);
+    if (!nearest || distanceSquared(anchor, point) < distanceSquared(anchor, nearest)) return point;
+    return nearest;
+  }, null);
+}
+
+function liveGuidedTargetCells(enemy, cellType) {
+  return (enemy.cells ?? []).filter((cell) => guidedTargetCellMatches(cell, cellType) && guidedTargetCellIsLive(cell));
+}
+
+function guidedTargetCellMatches(cell, cellType) {
+  if (cellType === 'gun') return cell.type === 'gun';
+  if (cellType === 'engine') return cell.type === 'engine';
+  if (cellType === 'wheel') return cell.type === 'wheel' || cell.role === 'wheel' || cell.role === 'legWheel';
+  if (cellType === 'core') return cell.type === 'core';
+  if (cellType === 'armor') return cell.type === 'armor';
+  return false;
+}
+
+function guidedTargetCellIsLive(cell) {
+  if (!cell || cell.state?.destroyed) return false;
+  if (!Array.isArray(cell.mask)) return true;
+  return cell.mask.some((row) => row.some((voxel) => (voxel?.hp ?? 0) > 0));
+}
+
+function enemyGuidedCellWorldPoint(enemy, cell) {
+  const localX = cell.gridX * CELL_SIZE;
+  const localY = cell.gridY * CELL_SIZE;
+  return {
+    ...enemyLocalToWorldPoint(enemy, { x: localX, y: localY }),
+    z: enemyCellWorldZ(enemy, cell),
+    cellId: cell.id,
+  };
 }
 
 function moveToward(from, to, maxDistance) {

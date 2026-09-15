@@ -68,6 +68,7 @@ export function mapStandardGamepad(pad, previousButtons = new Set(), bindings = 
     secondaryCycle: actionJustPressed(pad, previousButtons, controlBindings.secondaryRight) ? 1 : actionJustPressed(pad, previousButtons, controlBindings.secondaryLeft) ? -1 : 0,
     secondaryFirePressed: actionJustPressed(pad, previousButtons, controlBindings.secondaryFire),
     targetCycle: actionJustPressed(pad, previousButtons, controlBindings.targetNext) ? 1 : actionJustPressed(pad, previousButtons, controlBindings.targetPrevious) ? -1 : 0,
+    targetCellCycle: actionJustPressed(pad, previousButtons, controlBindings.targetCellNext) ? 1 : actionJustPressed(pad, previousButtons, controlBindings.targetCellPrevious) ? -1 : 0,
     encounterConfirmPressed: actionJustPressed(pad, previousButtons, controlBindings.encounterConfirm),
     encounterCancelPressed: actionJustPressed(pad, previousButtons, controlBindings.encounterCancel),
     encounterChoiceDelta: actionJustPressed(pad, previousButtons, controlBindings.encounterChoiceRight)
@@ -112,6 +113,7 @@ function emptyInput() {
     secondaryCycle: 0,
     secondaryFirePressed: false,
     targetCycle: 0,
+    targetCellCycle: 0,
     encounterConfirmPressed: false,
     encounterCancelPressed: false,
     encounterChoiceDelta: 0,
