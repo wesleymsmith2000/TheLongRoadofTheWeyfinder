@@ -897,6 +897,15 @@
 
       .target-cell-cycle-button {
         bottom: 344px;
+        width: 108px;
+        height: 60px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        font-size: 10px;
+        line-height: 1.05;
       }
 
       .target-cycle-button {
@@ -1643,6 +1652,9 @@
 
         .target-cell-cycle-button {
           bottom: 306px;
+          width: 98px;
+          height: 54px;
+          font-size: 9px;
         }
 
         .target-cycle-button {
@@ -1965,7 +1977,10 @@
     <button id="primaryFireToggle" class="primary-fire-toggle" type="button" aria-label="Toggle primary fire mode" aria-pressed="true">FIRE</button>
     <button id="aiLeadToggle" class="ai-lead-toggle" type="button" aria-label="Disable AI shot leading" aria-pressed="true">AI LEAD</button>
     <button id="targetCycleButton" class="target-cycle-button" type="button" aria-label="Cycle guided AI enemy target">TGT</button>
-    <button id="targetCellCycleButton" class="target-cell-cycle-button" type="button" aria-label="Cycle guided AI target part">AIM</button>
+    <button id="targetCellCycleButton" class="target-cell-cycle-button" type="button" aria-label="Cycle guided AI target part">
+      <span>System Target</span>
+      <span id="targetCellCycleLabel">Auto</span>
+    </button>
     <button id="secondaryTouchCycle" class="secondary-cycle-button" type="button" aria-label="Cycle secondary weapon">SWAP</button>
     <button id="secondaryTouchFire" class="secondary-touch-button" type="button" aria-label="Fire secondary weapon">2ND</button>
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>

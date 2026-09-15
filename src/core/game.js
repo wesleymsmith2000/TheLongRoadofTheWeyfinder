@@ -1855,7 +1855,7 @@ function setGuidedTargetCellType(game, cellType) {
   const next = normalizedGuidedTargetCellType(cellType);
   if ((game.guidedTargetCellType ?? 'auto') === next) return next;
   game.guidedTargetCellType = next;
-  resetAiAimReticle(game);
+  clearAiAimError(game);
   return next;
 }
 
@@ -1993,9 +1993,13 @@ function startTargetingAiLevel(game) {
 
 function resetAiAimReticle(game) {
   game.aiAimReticle = { x: game.vehicle.x, y: game.vehicle.y };
-  game.aiAimError = null;
+  clearAiAimError(game);
   game.aiAimTargetId = null;
   game.aiAimMode = null;
+}
+
+function clearAiAimError(game) {
+  game.aiAimError = null;
 }
 
 function applyTargetingAiWobble(game, target, stats, dt = 0) {
@@ -2011,7 +2015,7 @@ function applyTargetingAiWobble(game, target, stats, dt = 0) {
 }
 
 function targetingAiGaussianError(game, target, stats, dt) {
-  const key = `${target.targetId ?? 'target'}:${target.weaponId ?? 'primary'}`;
+  const key = `${target.targetId ?? 'target'}:${target.weaponId ?? 'primary'}:${target.cellType ?? 'auto'}:${target.cellId ?? 'center'}`;
   const current = game.aiAimError;
   if (!current || current.key !== key || current.refreshTimer <= 0) {
     game.aiAimError = {

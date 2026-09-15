@@ -195,6 +195,26 @@ test('guided targeting can focus a live weapon cell on the selected enemy', () =
   assert.equal(distance(game.aimReticle, gunPoint) < CELL_SIZE * 1.5, true);
 });
 
+test('cycling guided target focus keeps the AI reticle in place', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.targetingMode = 'guided';
+  const enemy = game.enemies[0];
+  enemy.targetId = 'steady-focus-target';
+  enemy.x = game.vehicle.x + 280;
+  enemy.y = game.vehicle.y + 40;
+  game.guidedTargetId = enemy.targetId;
+  game.aiAimMode = 'guided';
+  game.aiAimTargetId = enemy.targetId;
+  game.aiAimReticle = { x: enemy.x + 11, y: enemy.y - 9 };
+  const previous = { ...game.aiAimReticle };
+
+  stepGame(game, { targetingMode: 'guided', targetCellCycle: 1, gunnerEnabled: true, aiShotLeading: false }, 0);
+
+  assert.notEqual(game.guidedTargetCellType, 'auto');
+  assert.equal(distance(game.aimReticle, previous) < 0.001, true);
+});
+
 test('mixed targeting uses the moving experienced AI lead reticle', () => {
   const led = createGame();
   const direct = createGame();

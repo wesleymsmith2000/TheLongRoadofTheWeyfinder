@@ -318,6 +318,7 @@ const primaryFireToggle = document.querySelector('#primaryFireToggle');
 const aiLeadToggle = document.querySelector('#aiLeadToggle');
 const targetCycleButton = document.querySelector('#targetCycleButton');
 const targetCellCycleButton = document.querySelector('#targetCellCycleButton');
+const targetCellCycleLabel = document.querySelector('#targetCellCycleLabel');
 const boostButton = document.querySelector('#boostButton');
 const boostFill = document.querySelector('#boostFill');
 const secondarySelect = document.querySelector('#secondarySelect');
@@ -1435,7 +1436,7 @@ function syncTargetCellFocus() {
   if (targetCellTypeSelect.value !== value) targetCellTypeSelect.value = value;
   const label = GUIDED_TARGET_CELL_TYPE_LABELS[value] ?? GUIDED_TARGET_CELL_TYPE_LABELS.auto;
   targetCycleButton.title = game.guidedTargetId ? `AI target: ${game.guidedTargetId}` : 'Cycle guided AI enemy target';
-  targetCellCycleButton.textContent = value === 'auto' ? 'AIM' : label.split(' ')[0].toUpperCase();
+  targetCellCycleLabel.textContent = label;
   targetCellCycleButton.setAttribute('aria-label', `Cycle guided AI target part. Current focus: ${label}`);
   targetCellCycleButton.title = `AI focus: ${label}`;
 }
