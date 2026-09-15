@@ -164,6 +164,72 @@ test('fired primary weapons rotate behind other ready weapons in the gun queue',
   assert.deepEqual(game.primaryGunQueues.gun.order, [1, 0]);
 });
 
+test('fired primary weapons move behind every other queued weapon after cooldown bypasses', () => {
+  let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'mortar').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 2, 'blade_launcher').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 3, 'tracking_flechette').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  game.primaryGunQueues.gun = { order: [0, 1, 2, 3], queueLength: 4 };
+  game.primaryWeaponCooldowns['gun:0:mini_beam'] = 1;
+  game.primaryWeaponCooldowns['gun:1:mortar'] = 1;
+
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'blade_launcher'), true);
+  assert.deepEqual(game.primaryGunQueues.gun.order, [0, 1, 3, 2]);
+});
+
+test('heat-blocked ready primary weapons pause the mount instead of being starved by lighter weapons', () => {
+  let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'tracking_flechette').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  game.primaryHeat.heat = 90;
+  game.primaryGunQueues.gun = { order: [0, 1], queueLength: 2 };
+
+  stepGame(game, {}, 1 / 60);
+
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'tracking_flechette'), false);
+  assert.deepEqual(game.primaryGunQueues.gun.order, [0, 1]);
+});
+
+test('repulsors use a defensive queue without taking offensive turns from shared gun cells', () => {
+  let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'repulsor_beam').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 2, 'blade_launcher').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  game.enemies = [createEnemy(game.vehicle.x + CELL_SIZE * 80, game.vehicle.y)];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mortar'), true);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'repulsor_beam'), false);
+  assert.equal(game.primaryGunQueues.gun.queueLength, 2);
+  assert.deepEqual(game.primaryGunQueues.gun.order, [1, 0]);
+  assert.equal(game.primaryDefensiveGunQueues.gun.queueLength, 1);
+  assert.deepEqual(game.primaryDefensiveGunQueues.gun.order, [0]);
+});
+
+test('defensive repulsors can fire while the offensive gun cadence is waiting', () => {
+  let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'repulsor_beam').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  game.playerFireTimer = 2;
+  game.enemies = [createEnemy(game.vehicle.x + CELL_SIZE * 4, game.vehicle.y)];
+  game.enemySpawnQueue = [];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'repulsor_beam'), true);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mortar'), false);
+  assert.deepEqual(game.primaryDefensiveGunQueues.gun.order, [0]);
+});
+
 test('mini beam upgrades affect active beam combat attributes', () => {
   const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
   const game = createGame(1147, { vehicleDefinition });

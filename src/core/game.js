@@ -484,8 +484,11 @@ export function createGame(seed = 1147, options = {}) {
     repulsor: { charges: 5, maxCharges: 5, rechargeTimer: 0, cooldown: 4.5 },
     primaryWeaponCooldowns: {},
     primaryGunQueues: {},
+    primaryDefensiveGunQueues: {},
     playerFireTimer: 0,
+    playerDefensiveFireTimer: 0,
     playerGunIndex: 0,
+    playerDefensiveGunIndex: 0,
     levelComplete: false,
     victoryBanner: null,
     traversal,
@@ -1793,23 +1796,25 @@ function nextPrimaryAimProfile(game) {
     if (weaponId) return primaryAimProfile(game, weaponId);
   }
   const queuedOrder = mounts[startIndex] ? primaryGunQueueReadOrder(game, mounts[startIndex]) : [0];
-  const queued = mounts[startIndex]?.weapons?.[queuedOrder[0] ?? 0] ?? 'main.basic';
+  const queued = primaryMountWeaponEntries(mounts[startIndex])?.[queuedOrder[0] ?? 0]?.weaponId ?? 'main.basic';
   return primaryAimProfile(game, queued);
 }
 
 function nextReadyPrimaryWeaponFromMount(game, mount) {
-  const queue = mount.weapons.length ? mount.weapons : ['main.basic'];
+  const queue = primaryMountWeaponEntries(mount);
+  if (queue.length === 0) return null;
   const order = primaryGunQueueReadOrder(game, mount);
   for (const slotIndex of order) {
-    const weaponId = queue[slotIndex] ?? 'main.basic';
-    const cooldownKey = primaryWeaponCooldownKey(mount.muzzle.cellId, slotIndex, weaponId);
+    const weapon = queue[slotIndex];
+    const weaponId = weapon?.weaponId ?? 'main.basic';
+    const cooldownKey = primaryWeaponCooldownKey(mount.muzzle.cellId, weapon?.slotIndex ?? slotIndex, weaponId);
     if ((game.primaryWeaponCooldowns?.[cooldownKey] ?? 0) <= 0) return weaponId;
   }
   return null;
 }
 
 function primaryGunQueueReadOrder(game, mount) {
-  const queueLength = Math.max(1, mount?.weapons?.length ?? 1);
+  const queueLength = Math.max(1, primaryMountWeaponEntries(mount).length);
   return normalizePrimaryGunQueueOrder(game.primaryGunQueues?.[mount.muzzle.cellId], queueLength);
 }
 
@@ -2089,15 +2094,24 @@ function stepPlayerGun(game, dt) {
   stepPrimaryWeaponCooldowns(game, dt);
   stepRepulsorRecharge(game, dt);
   game.playerFireTimer = Math.max(0, (game.playerFireTimer ?? 0) - dt);
-  if ((!game.autofire && !game.inputFireHeld) || game.playerFireTimer > 0 || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
-  if (!hasActiveOrInboundEnemies(game)) return;
+  game.playerDefensiveFireTimer = Math.max(0, (game.playerDefensiveFireTimer ?? 0) - dt);
+  if ((!game.autofire && !game.inputFireHeld) || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
   const mounts = primaryFiringMounts(game);
   if (mounts.length === 0) return;
-  const activeWeaponSlots = primaryFiringWeaponSlotCount(mounts);
+  stepDefensivePrimaryWeapons(game, mounts);
+  if (!hasActiveOrInboundEnemies(game) || game.playerFireTimer > 0) return;
+  const activeWeaponSlots = primaryFiringWeaponSlotCount(mounts, 'offensive');
+  if (activeWeaponSlots <= 0) return;
   const startIndex = game.playerGunIndex % mounts.length;
   for (let attempt = 0; attempt < mounts.length; attempt += 1) {
     const mountIndex = (startIndex + attempt) % mounts.length;
-    if (!fireReadyPrimaryFromMount(game, mounts[mountIndex], activeWeaponSlots)) continue;
+    const result = fireReadyPrimaryFromMount(game, mounts[mountIndex], activeWeaponSlots);
+    if (result === 'heat-blocked') {
+      game.playerGunIndex = mountIndex;
+      game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots) * 0.5;
+      return;
+    }
+    if (result !== 'fired') continue;
     game.playerGunIndex = (mountIndex + 1) % mounts.length;
     game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots);
     return;
@@ -2106,48 +2120,72 @@ function stepPlayerGun(game, dt) {
   game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots) * 0.5;
 }
 
-function fireReadyPrimaryFromMount(game, mount, activeWeaponSlots) {
-  const queue = mount.weapons.length ? mount.weapons : ['main.basic'];
-  const state = primaryGunQueueState(game, mount.muzzle.cellId, queue.length);
+function stepDefensivePrimaryWeapons(game, mounts) {
+  if ((game.playerDefensiveFireTimer ?? 0) > 0) return;
+  const activeWeaponSlots = primaryFiringWeaponSlotCount(mounts, 'defensive');
+  if (activeWeaponSlots <= 0) return;
+  const startIndex = (game.playerDefensiveGunIndex ?? 0) % mounts.length;
+  for (let attempt = 0; attempt < mounts.length; attempt += 1) {
+    const mountIndex = (startIndex + attempt) % mounts.length;
+    const result = fireReadyPrimaryFromMount(game, mounts[mountIndex], activeWeaponSlots, 'defensive');
+    if (result !== 'fired') continue;
+    game.playerDefensiveGunIndex = (mountIndex + 1) % mounts.length;
+    game.playerDefensiveFireTimer = primaryGunVisitInterval(game, activeWeaponSlots);
+    return;
+  }
+}
+
+function fireReadyPrimaryFromMount(game, mount, activeWeaponSlots, queueKind = 'offensive') {
+  const queue = primaryMountWeaponEntries(mount, queueKind);
+  if (queue.length === 0) return 'empty';
+  const state = primaryGunQueueState(game, mount.muzzle.cellId, queue.length, queueKind);
   for (let orderIndex = 0; orderIndex < state.order.length; orderIndex += 1) {
-    const slotIndex = state.order[orderIndex];
-    const weaponId = queue[slotIndex];
+    const queueIndex = state.order[orderIndex];
+    const weapon = queue[queueIndex];
+    const slotIndex = weapon?.slotIndex ?? queueIndex;
+    const weaponId = weapon?.weaponId;
     if (!weaponId) continue;
     const cooldownKey = primaryWeaponCooldownKey(mount.muzzle.cellId, slotIndex, weaponId);
     if ((game.primaryWeaponCooldowns?.[cooldownKey] ?? 0) > 0) continue;
-    if (!firePrimarySlotWeapon(game, mount.muzzle, slotIndex, weaponId, activeWeaponSlots)) continue;
+    const result = firePrimarySlotWeapon(game, mount.muzzle, slotIndex, weaponId, activeWeaponSlots, {
+      defensive: queueKind === 'defensive',
+    });
+    if (result === 'heat-blocked') return result;
+    if (result !== 'fired') continue;
     state.order.splice(orderIndex, 1);
-    state.order.push(slotIndex);
+    state.order.push(queueIndex);
     state.index = state.order[0] ?? 0;
-    return true;
+    return 'fired';
   }
   state.index = state.order[0] ?? 0;
-  return false;
+  return 'idle';
 }
 
-function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSlots) {
+function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSlots, options = {}) {
   const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy');
   const damage = 16 * upgradeMultiplier(game, 'gunDamage');
   const speed = PRIMARY_PROJECTILE_SPEED * upgradeMultiplier(game, 'gunVelocity');
   if (weaponId !== 'main.basic') {
     const def = upgradedPrimaryWeaponDefinition(game, weaponId);
-    if (!def || game.primaryHeat.heat + def.heat > game.primaryHeat.maxHeat) return false;
-    if (weaponId === 'repulsor_beam' && !repulsorReadyForThreat(game, muzzle)) return false;
+    if (!def) return 'unavailable';
+    const usesHeat = options.defensive !== true;
+    if (usesHeat && game.primaryHeat.heat + def.heat > game.primaryHeat.maxHeat) return 'heat-blocked';
+    if (weaponId === 'repulsor_beam' && !repulsorReadyForThreat(game, muzzle)) return 'no-target';
     firePrimaryWeapon(game, muzzle, def);
     if (weaponId === 'repulsor_beam') consumeRepulsorCharge(game);
-    game.primaryHeat.heat += def.heat;
+    if (usesHeat) game.primaryHeat.heat += def.heat;
     setPrimaryWeaponCooldown(
       game,
       muzzle.cellId,
       slotIndex,
       weaponId,
-      primaryWeaponFireInterval(game, def, activeWeaponSlots) * primaryHeatCooldownScale(game.primaryHeat),
+      primaryWeaponFireInterval(game, def, activeWeaponSlots) * (usesHeat ? primaryHeatCooldownScale(game.primaryHeat) : 1),
     );
-    return true;
+    return 'fired';
   }
   firePrimaryBullet(game, muzzle, damage, speed, spread, primaryProjectileVisualScale(game, 'main.basic'));
   setPrimaryWeaponCooldown(game, muzzle.cellId, slotIndex, weaponId, playerGunFireInterval(game, activeWeaponSlots));
-  return true;
+  return 'fired';
 }
 
 function firePrimaryBullet(game, muzzle, damage, speed, spread, visualScale = 1) {
@@ -2175,13 +2213,13 @@ function stepPrimaryWeaponCooldowns(game, dt) {
   }
 }
 
-function primaryGunQueueState(game, cellId, queueLength) {
-  game.primaryGunQueues ??= {};
-  const state = game.primaryGunQueues[cellId] ?? { index: 0 };
+function primaryGunQueueState(game, cellId, queueLength, queueKind = 'offensive') {
+  const queues = queueKind === 'defensive' ? (game.primaryDefensiveGunQueues ??= {}) : (game.primaryGunQueues ??= {});
+  const state = queues[cellId] ?? { index: 0 };
   state.queueLength = Math.max(1, queueLength);
   state.order = normalizePrimaryGunQueueOrder(state, state.queueLength);
   state.index = state.order[0] ?? 0;
-  game.primaryGunQueues[cellId] = state;
+  queues[cellId] = state;
   return state;
 }
 
@@ -2419,12 +2457,23 @@ function primaryFiringMounts(game) {
   const loadouts = new Map(normalizeGunLoadouts(definition).map((loadout) => [loadout.cellId, loadout]));
   return muzzles.map((muzzle) => {
     const weapons = (loadouts.get(muzzle.cellId)?.primary ?? ['main.basic']).filter(Boolean);
-    return { muzzle, weapons: weapons.length ? weapons : ['main.basic'] };
+    const entries = (weapons.length ? weapons : ['main.basic']).map((weaponId, slotIndex) => ({ weaponId, slotIndex }));
+    const offensiveWeapons = entries.filter((weapon) => !isDefensivePrimaryWeapon(weapon.weaponId));
+    const defensiveWeapons = entries.filter((weapon) => isDefensivePrimaryWeapon(weapon.weaponId));
+    return { muzzle, weapons: weapons.length ? weapons : ['main.basic'], offensiveWeapons, defensiveWeapons };
   });
 }
 
-function primaryFiringWeaponSlotCount(mounts) {
-  return mounts.reduce((sum, mount) => sum + Math.max(1, mount.weapons.length), 0);
+function primaryMountWeaponEntries(mount, queueKind = 'offensive') {
+  return queueKind === 'defensive' ? mount?.defensiveWeapons ?? [] : mount?.offensiveWeapons ?? [];
+}
+
+function isDefensivePrimaryWeapon(weaponId) {
+  return weaponId === 'repulsor_beam';
+}
+
+function primaryFiringWeaponSlotCount(mounts, queueKind = 'offensive') {
+  return mounts.reduce((sum, mount) => sum + primaryMountWeaponEntries(mount, queueKind).length, 0);
 }
 
 function hasActiveOrInboundEnemies(game) {
