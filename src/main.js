@@ -64,7 +64,7 @@ import bossDefeatedBannerArt from '../assets/images/boss_defeated_banner.png';
 import levelFailArt from '../assets/images/level_fail_screen.png';
 import pauseArt from '../assets/images/pause_screen.png';
 import repairArt from '../assets/images/repair_screen.png';
-import weaponIconSheet from '../assets/images/weapon_and_ammo_icon_spritesheet.png';
+import weaponIconSheet from '../assets/images/system_icons_2.png';
 import systemIconSheet from '../assets/images/system_icons_1.png';
 import upgradeIconSheetA from '../assets/images/upgrade_types_1.png';
 import upgradeIconSheetB from '../assets/images/upgrade_types_2.png';

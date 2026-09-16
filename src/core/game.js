@@ -1344,6 +1344,7 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
   enemy.zone = archetype.zone;
   if (archetype.palette) enemy.palette = { ...archetype.palette };
   if (archetype.presentation) enemy.presentation = structuredClone(archetype.presentation);
+  if (archetype.entry) enemy.entry = structuredClone(archetype.entry);
   if (archetype.elevation) enemy.elevation = structuredClone(archetype.elevation);
   if (archetype.phase) enemy.phase = structuredClone(archetype.phase);
   if (archetype.targeting) enemy.targeting = structuredClone(archetype.targeting);
@@ -3779,20 +3780,32 @@ function stepRoadDriftCar(game, enemy, dt) {
     state.roadDriftLane = side * game.road.halfWidth * 0.4;
     state.roadDriftPhase = Math.abs(stableEnemySide(enemy)) * 0.017;
   }
+  if (!Number.isFinite(state.roadDriftEntrySign) || state.roadDriftEntrySign === 0) {
+    state.roadDriftEntrySign = roadDriftEntrySign(enemy, offset);
+  }
   const speed = (config.speed ?? enemy.entry?.speed ?? 35) * enemyMovementUpgradeScale(enemy);
   const targetX = clamp(
     state.roadDriftLane + Math.sin(game.time * 0.7 + (state.roadDriftPhase ?? 0)) * CELL_SIZE * 2.2,
     -game.road.halfWidth * 0.78,
     game.road.halfWidth * 0.78,
   );
+  const targetY = -state.roadDriftEntrySign * game.road.halfHeight * 0.22;
   const lateralSpeed = clamp((targetX - offset.x) * 2.6, -speed * 0.75, speed * 0.75);
-  const forwardSpeed = speed * (enemy.kind === 'enhanced' ? -1 : 1);
+  const forwardSpeed = clamp((targetY - offset.y) * 1.45, -speed, speed);
   const desired = roadDirectionToWorld(lateralSpeed, forwardSpeed, game.road);
   const desiredHeading = Math.atan2(desired.y, desired.x);
   enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? desiredHeading, desiredHeading, 3.8 * dt);
   applyVehicleLikeVelocity(enemy, desired, clamp(3.4 * dt, 0, 1));
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
   enemy.renderHeadingOffset ??= Math.PI / 2;
+}
+
+function roadDriftEntrySign(enemy, offset) {
+  const direction = enemy.entry?.direction ?? '';
+  const kind = enemy.entry?.kind ?? '';
+  if (/behind/i.test(direction) || /behind/i.test(kind)) return -1;
+  if (/forward|ahead/i.test(direction) || /ahead/i.test(kind)) return 1;
+  return offset.y <= 0 ? 1 : -1;
 }
 
 function stableEnemySide(enemy) {

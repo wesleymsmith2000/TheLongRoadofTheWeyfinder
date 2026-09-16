@@ -71,6 +71,18 @@ test('Shadowed Road road-drift cars avoid unavoidable center-lane rams on entry'
   assert.equal(Math.abs(enemyOffset.x - playerOffset.x) > game.road.halfWidth * 0.22, true);
 });
 
+test('Weyfinder Road road-drift cars remain inside the play area after entering', () => {
+  const game = createGame(1147, { levelMusic: ['TheWeyfindersRoad_1'] });
+  game.autofire = false;
+  game.enemySpawnQueue = [];
+  for (let index = 0; index < 720; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  const enemy = game.enemies.find((candidate) => candidate.archetypeId === 'weyfinder_road_car.prototype0');
+  const offset = worldToRoadOffset(enemy, game.road);
+  assert.equal(game.gameOver, false);
+  assert.equal(enemy.destroyed, false);
+  assert.equal(Math.abs(offset.y) < game.road.halfHeight * 0.72, true);
+});
+
 test('starlight and twilight boss tracks route to the zeppelin boss', () => {
   const road = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
   const starlight = createLevelEnemies(road, 1, ['StarlightRoad_BossFight']);
