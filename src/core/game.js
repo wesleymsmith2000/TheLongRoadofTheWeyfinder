@@ -2686,6 +2686,7 @@ function stepArchetypeEnemy(game, enemy, dt) {
   if (enemy.archetypeId === 'inchworm_segment.freedoms_pass') stepInchwormSegment(enemy, dt);
   if (enemy.archetypeId === 'moth_bomber.freedoms_pass') stepMothBomber(game, enemy, dt);
   if (enemy.carBehavior?.movement === 'mineDropper') stepShadowedMineDropper(game, enemy, dt);
+  else if ((enemy.carBehavior?.movement ?? enemy.carBehavior?.kind) === 'roadDrift') stepRoadDriftCar(game, enemy, dt);
   else if (isCarLikeEnemy(enemy)) stepRaceCarEnemy(game, enemy, dt);
 }
 
@@ -3766,6 +3767,39 @@ function stepRaceCarEnemy(game, enemy, dt) {
   if (state.flechetteCooldown > 0) return;
   state.flechetteCooldown = config.flechetteCooldown ?? RACE_CAR_FLECHETTE_COOLDOWN;
   fireRaceCarFlechetteStrafe(game, enemy);
+}
+
+function stepRoadDriftCar(game, enemy, dt) {
+  const config = enemy.carBehavior ?? {};
+  const state = enemy.carRuntime ?? {};
+  enemy.carRuntime = state;
+  const offset = worldToRoadOffset(enemy, game.road);
+  if (!Number.isFinite(state.roadDriftLane) || Math.abs(state.roadDriftLane) < CELL_SIZE) {
+    const side = Math.sign(offset.x) || (stableEnemySide(enemy) < 0 ? -1 : 1);
+    state.roadDriftLane = side * game.road.halfWidth * 0.4;
+    state.roadDriftPhase = Math.abs(stableEnemySide(enemy)) * 0.017;
+  }
+  const speed = (config.speed ?? enemy.entry?.speed ?? 35) * enemyMovementUpgradeScale(enemy);
+  const targetX = clamp(
+    state.roadDriftLane + Math.sin(game.time * 0.7 + (state.roadDriftPhase ?? 0)) * CELL_SIZE * 2.2,
+    -game.road.halfWidth * 0.78,
+    game.road.halfWidth * 0.78,
+  );
+  const lateralSpeed = clamp((targetX - offset.x) * 2.6, -speed * 0.75, speed * 0.75);
+  const forwardSpeed = speed * (enemy.kind === 'enhanced' ? -1 : 1);
+  const desired = roadDirectionToWorld(lateralSpeed, forwardSpeed, game.road);
+  const desiredHeading = Math.atan2(desired.y, desired.x);
+  enemy.visualHeading = turnTowardAngle(enemy.visualHeading ?? desiredHeading, desiredHeading, 3.8 * dt);
+  applyVehicleLikeVelocity(enemy, desired, clamp(3.4 * dt, 0, 1));
+  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+  enemy.renderHeadingOffset ??= Math.PI / 2;
+}
+
+function stableEnemySide(enemy) {
+  const text = String(enemy.targetId ?? enemy.archetypeId ?? enemy.assetId ?? enemy.kind ?? 'enemy');
+  let hash = 0;
+  for (let index = 0; index < text.length; index += 1) hash = (hash * 31 + text.charCodeAt(index)) | 0;
+  return hash || 1;
 }
 
 function stepShadowedMineDropper(game, enemy, dt) {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, createLevelEnemies, isBossLevel, stepGame } from '../src/core/game.js';
+import { worldToRoadOffset } from '../src/core/camera.js';
 import { DEFAULT_LEVEL_MUSIC, STEPPES_OF_APOLLON_SKOTEINOS_MUSIC, hasBossMusicBeforeLevel, isBossMusic, musicForLevel } from '../src/core/levelMusic.js';
 
 test('boss levels are selected by boss soundtrack names', () => {
@@ -55,6 +56,19 @@ test('Shadowed Road traversal tracks use car enemies, mine droppers, and the hot
   assert.equal(boss.archetypeId, 'boss.shadowed_road_hotrod.prototype0');
   assert.equal(boss.roadBossCar.variant, 'shadowedRoad');
   assert.equal(boss.roadBossCar.escapeCar, true);
+});
+
+test('Shadowed Road road-drift cars avoid unavoidable center-lane rams on entry', () => {
+  const game = createGame(1147, { levelMusic: ['ShadowedRoad_1'] });
+  game.autofire = true;
+  stepGame(game, { gunnerEnabled: true, targetingMode: 'mixed' }, 1 / 60);
+  assert.equal(game.playerProjectiles.length > 0, true);
+  for (let index = 0; index < 240; index += 1) stepGame(game, { gunnerEnabled: true, targetingMode: 'mixed' }, 1 / 60);
+  assert.equal(game.gameOver, false);
+  const enemy = game.enemies.find((candidate) => candidate.archetypeId === 'weyfinder_road_car.prototype0');
+  const enemyOffset = worldToRoadOffset(enemy, game.road);
+  const playerOffset = worldToRoadOffset(game.vehicle, game.road);
+  assert.equal(Math.abs(enemyOffset.x - playerOffset.x) > game.road.halfWidth * 0.22, true);
 });
 
 test('starlight and twilight boss tracks route to the zeppelin boss', () => {
