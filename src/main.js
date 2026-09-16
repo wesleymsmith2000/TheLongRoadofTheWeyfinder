@@ -66,8 +66,9 @@ import pauseArt from '../assets/images/pause_screen.png';
 import repairArt from '../assets/images/repair_screen.png';
 import weaponIconSheet from '../assets/images/system_icons_2.png';
 import systemIconSheet from '../assets/images/system_icons_1.png';
-import upgradeIconSheetA from '../assets/images/upgrade_types_1.png';
-import upgradeIconSheetB from '../assets/images/upgrade_types_2.png';
+import upgradeIconSheetA from '../assets/images/upgrade_types_2.png';
+import upgradeIconSheetB from '../assets/images/upgrade_types_1.png';
+import uiIconAtlas from '../content/resources/ui/icon_atlas.json' with { type: 'json' };
 import bossFight1Music from '../assets/music/BossFight_1.mp3';
 import bossFight2Music from '../assets/music/BossFight_2.mp3';
 import digitizedStream1Music from '../assets/music/DigitizedStream_1.mp3';
@@ -409,6 +410,7 @@ const uiTimers = {
 let shopUiWasVisible = false;
 let pauseUiWasVisible = false;
 let activeShopSection = 'repair';
+const upgradeSummaryOpenState = new Map();
 const frameAudioCounters = {
   audioPlayCalls: 0,
   enemyBulletSoundEvents: 0,
@@ -2261,6 +2263,40 @@ function performanceCounters(game) {
   };
 }
 
+const ICON_SHEET_KEYS = Object.freeze({
+  weapon: 'weapons',
+  weapons: 'weapons',
+  system: 'general',
+  general: 'general',
+  'upgrade-a': 'upgrades_a',
+  upgrades_a: 'upgrades_a',
+  'upgrade-b': 'upgrades_b',
+  upgrades_b: 'upgrades_b',
+});
+const ICON_ID_ALIASES = Object.freeze({
+  upgrades_a: Object.freeze({
+    velocity: 'velocity_max_velocity',
+    max_velocity: 'velocity_max_velocity',
+  }),
+});
+const ICON_SHEETS = uiIconAtlas?.sheets ?? {};
+
+function iconPositionPercent(value, count) {
+  if (!Number.isFinite(value) || count <= 1) return '0%';
+  return `${((value / (count - 1)) * 100).toFixed(3)}%`;
+}
+
+function atlasIconFor(sheetId, iconId) {
+  const sheetKey = ICON_SHEET_KEYS[sheetId] ?? sheetId;
+  const sheet = ICON_SHEETS[sheetKey];
+  const aliases = ICON_ID_ALIASES[sheetKey] ?? {};
+  const normalizedIconId = aliases[iconId] ?? iconId;
+  return {
+    sheet,
+    icon: sheet?.icons?.[normalizedIconId],
+  };
+}
+
 function weaponIconDescriptor(id = 'none') {
   return { sheet: 'weapon', id: id || 'none' };
 }
@@ -2385,8 +2421,18 @@ function systemIconDescriptorForUpgrade(upgrade) {
 
 function setIconElement(element, descriptor) {
   if (!element) return;
-  element.dataset.sheet = descriptor?.sheet ?? 'weapon';
-  element.dataset.icon = descriptor?.id ?? 'none';
+  const sheetId = descriptor?.sheet ?? 'weapon';
+  const iconId = descriptor?.id ?? 'none';
+  element.dataset.sheet = sheetId;
+  element.dataset.icon = iconId;
+  const { sheet, icon } = atlasIconFor(sheetId, iconId);
+  if (sheet && icon) {
+    element.style.backgroundSize = `${sheet.cols * 100}% ${sheet.rows * 100}%`;
+    element.style.backgroundPosition = `${iconPositionPercent(icon.col, sheet.cols)} ${iconPositionPercent(icon.row, sheet.rows)}`;
+  } else {
+    element.style.removeProperty('background-size');
+    element.style.removeProperty('background-position');
+  }
 }
 
 function iconSpan(descriptor) {
@@ -2461,11 +2507,18 @@ function refreshUpgradeSummary() {
   const system = shopUpgradeSystemSelect.value;
   const upgrades = availableShopUpgrades().filter((upgrade) => !system || upgrade.system === system);
   const systemLevel = upgrades.reduce((sum, upgrade) => sum + (game.upgrades?.[upgrade.id] ?? 0), 0);
+  for (const details of upgradeSummary.querySelectorAll('details[data-system-key]')) {
+    upgradeSummaryOpenState.set(details.dataset.systemKey, details.open);
+  }
   upgradeSummary.replaceChildren(
     (() => {
       const details = document.createElement('details');
-      details.dataset.system = system;
-      details.open = true;
+      const systemKey = system || 'available';
+      details.dataset.systemKey = systemKey;
+      details.open = upgradeSummaryOpenState.get(systemKey) ?? true;
+      details.addEventListener('toggle', () => {
+        upgradeSummaryOpenState.set(systemKey, details.open);
+      });
       const summary = document.createElement('summary');
       summary.textContent = `${system || 'Available'} upgrades: ${systemLevel}`;
       const list = document.createElement('div');
