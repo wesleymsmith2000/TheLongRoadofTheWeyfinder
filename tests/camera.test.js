@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStartingVehicle } from '../src/core/vehicle.js';
+import { applyImpulse, createStartingVehicle } from '../src/core/vehicle.js';
 import { stepVehicle } from '../src/core/physics.js';
 import {
   addCameraShake,
@@ -30,6 +30,15 @@ test('road frame advances constantly in its forward direction', () => {
   const delta = stepRoadFrame(road, 1);
   assert.equal(road.y < vehicle.y, true);
   assert.equal(delta.dy < 0, true);
+});
+
+test('road frame currently clamps reverse traversal at the route origin', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  road.routeDistance = 8;
+  road.speed = -30;
+  stepRoadFrame(road, 1);
+  assert.equal(road.routeDistance, 0);
 });
 
 test('road frame follows route curves and emits turn events when entering bends', () => {
@@ -115,6 +124,21 @@ test('vehicle is contained inside the road play lane', () => {
   assert.equal(vehicle.vx <= 0, true);
 });
 
+test('lane containment currently deletes outward normal velocity and preserves tangent velocity', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  vehicle.x = road.x + road.halfWidth + 32;
+  vehicle.y = road.y - 12;
+  vehicle.vx = 120;
+  vehicle.vy = -42;
+  const clamped = containVehicleInRoadFrame(vehicle, road);
+  const offset = worldToRoadOffset(vehicle, road);
+  assert.equal(clamped, true);
+  assert.equal(offset.x, road.halfWidth);
+  assert.equal(vehicle.vx, 0);
+  assert.equal(vehicle.vy, -42);
+});
+
 test('lane containment kills downward edge drift without pinning the craft', () => {
   const vehicle = createStartingVehicle();
   const road = createRoadFrame(vehicle);
@@ -124,6 +148,25 @@ test('lane containment kills downward edge drift without pinning the craft', () 
   const offset = worldToRoadOffset(vehicle, road);
   assert.equal(offset.y <= road.halfHeight, true);
   assert.equal(vehicle.vy <= 0, true);
+});
+
+test('rear lane containment currently has no traversal-frame response state', () => {
+  const vehicle = createStartingVehicle();
+  const road = createRoadFrame(vehicle);
+  vehicle.y = road.y + road.halfHeight + 30;
+  vehicle.vy = 90;
+  const clamped = containVehicleInRoadFrame(vehicle, road);
+  assert.equal(clamped, true);
+  assert.equal(vehicle.vy, 0);
+  assert.equal(road.frameLongitudinalVelocity, undefined);
+  assert.equal(road.frameLateralVelocity, undefined);
+});
+
+test('off-center vehicle impulses can add angular velocity for future obstacle contacts', () => {
+  const vehicle = createStartingVehicle();
+  applyImpulse(vehicle, { x: vehicle.x + 30, y: vehicle.y }, { x: 0, y: -1 }, 300);
+  assert.equal(vehicle.vy < 0, true);
+  assert.equal(vehicle.angularVelocity < 0, true);
 });
 
 test('road play lane scales to fill most of the viewport', () => {
