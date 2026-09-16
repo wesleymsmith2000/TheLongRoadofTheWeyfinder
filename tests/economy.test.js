@@ -13,6 +13,7 @@ import {
   repairCost,
   repairStatus,
   repairVehicleWithScrap,
+  replacementCost,
   replacementStatus,
   replaceDetachedWithScrap,
   upgradeCost,
@@ -108,12 +109,25 @@ test('repair shop can target one damaged system', () => {
   assert.equal(gun.state.mass, gunBefore);
 });
 
-test('repair cost rises with total upgrade levels', () => {
+test('repair cost rises only with the damaged system upgrade levels', () => {
   const game = createGame();
   applyVehicleDamage(game.vehicle, { x: -CELL_SIZE, y: -CELL_SIZE }, CELL_SIZE * 0.45, 6);
   const base = repairCost(game);
   game.upgrades.gunDamage = 50;
-  assert.equal(repairCost(game) > base, true);
+  assert.equal(repairCost(game), base);
+  game.upgrades.armorToughness = 50;
+  assert.equal(repairCost(game, 'armor') > base, true);
+});
+
+test('replacement costs scale with the detached cell system level', () => {
+  const game = createGame();
+  const armor = game.vehicle.cells.find((candidate) => candidate.id === 'armor-left');
+  armor.attached = false;
+  const base = replacementCost(game);
+  game.upgrades.gunDamage = 50;
+  assert.equal(replacementCost(game), base);
+  game.upgrades.armorToughness = 50;
+  assert.equal(replacementCost(game) > base, true);
 });
 
 test('ammo refill uses half of a standard ammo load cost', () => {
@@ -158,8 +172,8 @@ test('upgrade shop spends scrap and scales the next cost geometrically', () => {
   assert.equal(bought, true);
   assert.equal(game.upgrades.gunDamage, 1);
   assert.equal(game.scrap, 0);
-  assert.equal(upgradeCost(game, 'gunDamage'), 5);
-  assert.equal(upgradeStatus(game, 'gunDamage'), 'Level 1, need 5');
+  assert.equal(upgradeCost(game, 'gunDamage'), 25);
+  assert.equal(upgradeStatus(game, 'gunDamage'), 'Level 1, need 25');
 });
 
 test('ammo capacity upgrades expand the matching reserve', () => {

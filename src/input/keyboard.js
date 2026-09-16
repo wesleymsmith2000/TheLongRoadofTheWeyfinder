@@ -6,6 +6,7 @@ export function createKeyboardInput(target = window, bindings = {}) {
   const pressed = new Set();
   let dodge = createDoubleTapDodge(controlBindings);
   target.addEventListener('keydown', (event) => {
+    if (shouldLetElementHandleKey(event)) return;
     if (!event.repeat) dodge.keyDown(event.code);
     keys.add(event.code);
     pressed.add(event.code);
@@ -58,6 +59,26 @@ export function createKeyboardInput(target = window, bindings = {}) {
       return snapshot;
     },
   };
+}
+
+function shouldLetElementHandleKey(event) {
+  const element = event.target;
+  if (!element?.closest) return false;
+  const focusedControl = element.closest('button, select, input, textarea, [contenteditable="true"]');
+  if (!focusedControl) return false;
+  return [
+    'ArrowUp',
+    'ArrowDown',
+    'ArrowLeft',
+    'ArrowRight',
+    'Space',
+    'Enter',
+    'Tab',
+    'Home',
+    'End',
+    'PageUp',
+    'PageDown',
+  ].includes(event.code);
 }
 
 function actionHeld(keys, codes = []) {

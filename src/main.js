@@ -43,13 +43,13 @@ import { consumeSoundEvents, SOUND_EVENTS } from './core/soundEvents.js';
 import { consumeHapticEvents, emitHapticEvent, HAPTIC_EVENTS } from './core/hapticEvents.js';
 import { MUSIC_LAYERS, consumeProceduralMusicCue } from './core/proceduralMusic.js';
 import {
-  SHOP_COSTS,
   ammoCapacityWithUpgrades,
   ammoRefillCost,
   ammoStatus,
   availableUpgradeDefinitions,
   repairCost,
   repairStatus,
+  replacementCost,
   replacementStatus,
   upgradeCost,
   upgradeStatus,
@@ -65,6 +65,9 @@ import levelFailArt from '../assets/images/level_fail_screen.png';
 import pauseArt from '../assets/images/pause_screen.png';
 import repairArt from '../assets/images/repair_screen.png';
 import weaponIconSheet from '../assets/images/weapon_and_ammo_icon_spritesheet.png';
+import systemIconSheet from '../assets/images/system_icons_1.png';
+import upgradeIconSheetA from '../assets/images/upgrade_types_1.png';
+import upgradeIconSheetB from '../assets/images/upgrade_types_2.png';
 import bossFight1Music from '../assets/music/BossFight_1.mp3';
 import bossFight2Music from '../assets/music/BossFight_2.mp3';
 import digitizedStream1Music from '../assets/music/DigitizedStream_1.mp3';
@@ -354,8 +357,16 @@ const shopReplaceStatus = document.querySelector('#shopReplaceStatus');
 const shopAmmoStatus = document.querySelector('#shopAmmoStatus');
 const shopRepairTarget = document.querySelector('#shopRepairTarget');
 const shopAmmoSelect = document.querySelector('#shopAmmoSelect');
+const shopRepairTab = document.querySelector('#shopRepairTab');
+const shopUpgradeTab = document.querySelector('#shopUpgradeTab');
+const shopRepairAmmoSection = document.querySelector('#shopRepairAmmoSection');
+const shopUpgradesSection = document.querySelector('#shopUpgradesSection');
+const shopUpgradeSystemSelect = document.querySelector('#shopUpgradeSystemSelect');
 const shopUpgradeSelect = document.querySelector('#shopUpgradeSelect');
+const shopUpgradeSystemIcon = document.querySelector('#shopUpgradeSystemIcon');
 const shopUpgradeIcon = document.querySelector('#shopUpgradeIcon');
+const shopUpgradeReadoutTitle = document.querySelector('#shopUpgradeReadoutTitle');
+const shopUpgradeLevel = document.querySelector('#shopUpgradeLevel');
 const shopBuyUpgradeButton = document.querySelector('#shopBuyUpgradeButton');
 const shopUpgradeCost = document.querySelector('#shopUpgradeCost');
 const shopUpgradeStatus = document.querySelector('#shopUpgradeStatus');
@@ -397,6 +408,7 @@ const uiTimers = {
 };
 let shopUiWasVisible = false;
 let pauseUiWasVisible = false;
+let activeShopSection = 'repair';
 const frameAudioCounters = {
   audioPlayCalls: 0,
   enemyBulletSoundEvents: 0,
@@ -503,6 +515,9 @@ document.documentElement.style.setProperty('--level-fail-art', `url("${levelFail
 document.documentElement.style.setProperty('--pause-art', `url("${pauseArt}")`);
 document.documentElement.style.setProperty('--repair-art', `url("${repairArt}")`);
 document.documentElement.style.setProperty('--weapon-icon-sheet', `url("${weaponIconSheet}")`);
+document.documentElement.style.setProperty('--system-icon-sheet', `url("${systemIconSheet}")`);
+document.documentElement.style.setProperty('--upgrade-icon-sheet-a', `url("${upgradeIconSheetA}")`);
+document.documentElement.style.setProperty('--upgrade-icon-sheet-b', `url("${upgradeIconSheetB}")`);
 if (buildVersionTag) buildVersionTag.textContent = BUILD_VERSION;
 if (titleVersionTag) titleVersionTag.textContent = BUILD_VERSION;
 exposeLocalContentModuleApi();
@@ -554,28 +569,41 @@ function frame(now) {
   const keyInput = keyboard.read();
   const padInput = gamepad.read();
   pollPendingGamepadBinding();
-  updateVirtualPointer(virtualPointer, padInput, dt, isVirtualPointerEnabled());
+  const virtualPointerEnabled = isVirtualPointerEnabled();
+  updateVirtualPointer(virtualPointer, padInput, dt, virtualPointerEnabled);
+  const padActionInput = virtualPointerEnabled
+    ? {
+      ...padInput,
+      fireTogglePressed: false,
+      aiLeadTogglePressed: false,
+      secondaryCycle: 0,
+      secondaryFirePressed: false,
+      targetCycle: 0,
+      targetCellCycle: 0,
+      dodgePressed: false,
+    }
+    : padInput;
   const mouseInput = mouse.read();
-  const movementSource = chooseMovementSource(keyInput, mouseInput, padInput);
-  const primaryFireTogglePressed = keyInput.fireTogglePressed || padInput.fireTogglePressed || touchPrimaryFireToggle.consume();
-  const aiLeadTogglePressed = keyInput.aiLeadTogglePressed || padInput.aiLeadTogglePressed || touchAiLeadToggle.consume();
+  const movementSource = chooseMovementSource(keyInput, mouseInput, padActionInput);
+  const primaryFireTogglePressed = keyInput.fireTogglePressed || padActionInput.fireTogglePressed || touchPrimaryFireToggle.consume();
+  const aiLeadTogglePressed = keyInput.aiLeadTogglePressed || padActionInput.aiLeadTogglePressed || touchAiLeadToggle.consume();
   const touchBoostPressed = touchBoost.consume();
-  const dodgeSource = keyInput.dodgePressed ? keyInput : padInput.dodgePressed ? padInput : touchBoostPressed ? mouseInput : null;
-  const stickAimActive = Math.hypot(padInput.aimX ?? 0, padInput.aimY ?? 0) > 0.2;
-  const targetCycle = keyInput.targetCycle || padInput.targetCycle || targetPreviousPressed.consume() * -1 || targetNextPressed.consume() || touchTargetCycle.consume();
-  const targetCellCycle = keyInput.targetCellCycle || padInput.targetCellCycle || targetCellNextPressed.consume() || touchTargetCellCycle.consume();
+  const dodgeSource = keyInput.dodgePressed ? keyInput : padActionInput.dodgePressed ? padActionInput : touchBoostPressed ? mouseInput : null;
+  const stickAimActive = Math.hypot(padActionInput.aimX ?? 0, padActionInput.aimY ?? 0) > 0.2;
+  const targetCycle = keyInput.targetCycle || padActionInput.targetCycle || targetPreviousPressed.consume() * -1 || targetNextPressed.consume() || touchTargetCycle.consume();
+  const targetCellCycle = keyInput.targetCellCycle || padActionInput.targetCellCycle || targetCellNextPressed.consume() || touchTargetCellCycle.consume();
   const encounterChoiceId = pendingEncounterChoiceId;
   pendingEncounterChoiceId = null;
-  if (keyInput.gunnerTogglePressed || padInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
+  if (keyInput.gunnerTogglePressed || padActionInput.gunnerTogglePressed) gunnerToggle.checked = !gunnerToggle.checked;
   if (aiLeadTogglePressed) toggleAiShotLeading();
-  updatePadReticle(padReticle, padInput, dt);
+  updatePadReticle(padReticle, padActionInput, dt);
   const padAimWorld = padReticle.active && padReticle.idle <= 5 ? screenToWorld(padReticle, game.camera, viewport()) : null;
   const aimWorld = mouseInput.aimWorld ?? padAimWorld;
   game.aimReticle = aimWorld ? { ...aimWorld, active: true, source: mouseInput.aimWorld ? 'pointer' : 'gamepad' } : null;
   const input = {
     x: movementSource.x,
     y: movementSource.y,
-    turn: targetingModeSelect.value === 'guided' ? 0 : keyInput.turn || padInput.turn,
+    turn: targetingModeSelect.value === 'guided' ? 0 : keyInput.turn || padActionInput.turn,
     aimX: 0,
     aimY: 0,
     aimWorld,
@@ -585,12 +613,12 @@ function frame(now) {
     gunnerEnabled: gunnerToggle.checked,
     compensatedAim: compensatedAimToggle.checked,
     fireHeld: false,
-    brake: keyInput.brake || padInput.brake,
-    debugTogglePressed: keyInput.debugTogglePressed || padInput.debugTogglePressed,
+    brake: keyInput.brake || padActionInput.brake,
+    debugTogglePressed: keyInput.debugTogglePressed || padActionInput.debugTogglePressed,
     fireTogglePressed: primaryFireTogglePressed,
     resetPressed: keyInput.resetPressed || restartButtonPressed.consume(),
     pausePressed: keyInput.pausePressed || padInput.pausePressed || pauseTogglePressed.consume() || resumeButtonPressed.consume(),
-    controlsTogglePressed: keyInput.controlsTogglePressed || padInput.controlsTogglePressed,
+    controlsTogglePressed: keyInput.controlsTogglePressed || padActionInput.controlsTogglePressed,
     nextLevelPressed: nextLevelButtonPressed.consume(),
     shopRepairPressed: shopRepairPressed.consume(),
     shopRepairTarget: shopRepairTarget.value,
@@ -604,10 +632,10 @@ function frame(now) {
     dodgeY: dodgeSource?.dodgeY ?? dodgeSource?.y ?? -1,
     secondarySelect: secondarySelect.value,
     secondaryAutofire: secondaryAutofire.checked,
-    secondaryCycle: keyInput.secondaryCycle || padInput.secondaryCycle || (touchSecondaryCycle.consume() ? 1 : 0),
+    secondaryCycle: keyInput.secondaryCycle || padActionInput.secondaryCycle || (touchSecondaryCycle.consume() ? 1 : 0),
     secondaryFirePressed:
       keyInput.secondaryFirePressed ||
-      padInput.secondaryFirePressed ||
+      padActionInput.secondaryFirePressed ||
       mouseInput.firePressed ||
       touchSecondary.consume() ||
       touchSecondaryFloating.consume() ||
@@ -617,9 +645,9 @@ function frame(now) {
     targetCellCycle,
     targetCellType: targetCellTypeSelect.value,
     aiShotLeading,
-    encounterConfirmPressed: keyInput.encounterConfirmPressed || padInput.encounterConfirmPressed,
-    encounterCancelPressed: keyInput.encounterCancelPressed || padInput.encounterCancelPressed,
-    encounterChoiceDelta: keyInput.encounterChoiceDelta || padInput.encounterChoiceDelta,
+    encounterConfirmPressed: keyInput.encounterConfirmPressed || padActionInput.encounterConfirmPressed,
+    encounterCancelPressed: keyInput.encounterCancelPressed || padActionInput.encounterCancelPressed,
+    encounterChoiceDelta: keyInput.encounterChoiceDelta || padActionInput.encounterChoiceDelta,
     encounterChoiceId,
   };
   if (
@@ -636,10 +664,10 @@ function frame(now) {
   configureRoadLaneForViewport(game.road, window.innerWidth, window.innerHeight);
   if (input.debugTogglePressed) toggleDebug();
   if (input.controlsTogglePressed) toggleControls();
-  if (keyInput.hudTogglePressed || padInput.hudTogglePressed) toggleCombatHud();
-  if (keyInput.controlConfigTogglePressed || padInput.controlConfigTogglePressed) toggleControlConfig();
-  if (keyInput.achievementsTogglePressed || padInput.achievementsTogglePressed) toggleAchievements();
-  if (keyInput.sandboxTogglePressed || padInput.sandboxTogglePressed) toggleSandboxPanel();
+  if (keyInput.hudTogglePressed || padActionInput.hudTogglePressed) toggleCombatHud();
+  if (keyInput.controlConfigTogglePressed || padActionInput.controlConfigTogglePressed) toggleControlConfig();
+  if (keyInput.achievementsTogglePressed || padActionInput.achievementsTogglePressed) toggleAchievements();
+  if (keyInput.sandboxTogglePressed || padActionInput.sandboxTogglePressed) toggleSandboxPanel();
   if (!awaitingLaunch) {
     game.performanceDiagnostics = performanceDiagnostics.snapshot();
     const next = stepGame(game, input, dt);
@@ -669,7 +697,7 @@ function frame(now) {
     syncPauseUi(mouseInput.aimWorld ?? padAimWorld, dt);
     boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
     secondarySelect.value = game.secondary.selected;
-    secondaryIcon.dataset.icon = iconIdForWeapon(game.secondary.selected);
+    setIconElement(secondaryIcon, weaponIconDescriptor(game.secondary.selected));
     const selectedAmmo = game.secondary.ammo[game.secondary.selected];
     secondaryAmmo.textContent = selectedAmmo == null ? '-' : formatAmmoValue(selectedAmmo);
     secondaryHeat.style.width = `${game.secondary.heat}%`;
@@ -727,8 +755,16 @@ pauseSecondarySelect.addEventListener('change', syncSecondarySelects);
 secondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 pauseSecondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 targetCellTypeSelect.addEventListener('change', () => { uiDirty.pause = true; });
+shopRepairTab.addEventListener('click', () => setShopSection('repair'));
+shopUpgradeTab.addEventListener('click', () => setShopSection('upgrades'));
+shopRepairTab.addEventListener('keydown', handleShopTabKeydown);
+shopUpgradeTab.addEventListener('keydown', handleShopTabKeydown);
 shopRepairTarget.addEventListener('change', markShopUiDirty);
 shopAmmoSelect.addEventListener('change', markShopUiDirty);
+shopUpgradeSystemSelect.addEventListener('change', () => {
+  refreshUpgradeOptions();
+  markShopUiDirty();
+});
 shopUpgradeSelect.addEventListener('change', markShopUiDirty);
 controlConfigClose.addEventListener('click', closeControlConfig);
 controlConfigReset.addEventListener('click', resetControlBindings);
@@ -799,6 +835,29 @@ function markShopUiDirty() {
   uiDirty.shop = true;
 }
 
+function setShopSection(section) {
+  activeShopSection = section === 'upgrades' ? 'upgrades' : 'repair';
+  shopRepairAmmoSection.classList.toggle('hidden', activeShopSection !== 'repair');
+  shopUpgradesSection.classList.toggle('hidden', activeShopSection !== 'upgrades');
+  shopRepairTab.setAttribute('aria-pressed', String(activeShopSection === 'repair'));
+  shopUpgradeTab.setAttribute('aria-pressed', String(activeShopSection === 'upgrades'));
+  markShopUiDirty();
+}
+
+function blurActiveControl() {
+  document.activeElement?.blur?.();
+}
+
+function handleShopTabKeydown(event) {
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+  event.preventDefault();
+  const nextSection = activeShopSection === 'repair' ? 'upgrades' : 'repair';
+  setShopSection(nextSection);
+  const button = nextSection === 'repair' ? shopRepairTab : shopUpgradeTab;
+  button.focus();
+  flashElementLabel(button, button.textContent.trim());
+}
+
 function toggleDebug() {
   debug.visible = !debug.visible;
   debugToggle.setAttribute('aria-pressed', String(debug.visible));
@@ -811,6 +870,7 @@ function toggleCombatHud() {
 
 function launchVehicle() {
   if (!awaitingLaunch) return;
+  blurActiveControl();
   titleActive = false;
   awaitingLaunch = false;
   game.levelStartTime = game.time;
@@ -890,6 +950,7 @@ function startSandbox(definition) {
         enemyArchetypes,
       });
     }
+    blurActiveControl();
     awaitingLaunch = false;
     game.paused = false;
     game.levelStartTime = game.time;
@@ -2083,7 +2144,7 @@ function updateVirtualSelect(pointer, input, dt) {
     return;
   }
   pointer.selectRepeat = Math.max(0, pointer.selectRepeat - dt);
-  const { y } = virtualScrollAxes(input);
+  const y = virtualSelectAxis(input);
   if (Math.abs(y) <= 0.55) {
     pointer.selectRepeat = 0;
     return;
@@ -2102,10 +2163,20 @@ function changeVirtualSelectOption(select, direction) {
   flashSelectedOption(select);
 }
 
+function virtualSelectAxis(input) {
+  const { y: scrollY } = virtualScrollAxes(input);
+  if (Math.abs(scrollY) > 0.18) return scrollY;
+  return input.cursorY ?? 0;
+}
+
 function flashSelectedOption(select) {
   const label = select.selectedOptions?.[0]?.textContent?.trim();
   if (!label) return;
-  const rect = select.getBoundingClientRect();
+  flashElementLabel(select, label);
+}
+
+function flashElementLabel(element, label) {
+  const rect = element.getBoundingClientRect();
   selectionFlash.textContent = label;
   selectionFlash.hidden = false;
   selectionFlash.style.left = `${Math.max(12, Math.min(window.innerWidth - 12, rect.left + rect.width / 2))}px`;
@@ -2190,52 +2261,181 @@ function performanceCounters(game) {
   };
 }
 
-function iconIdForWeapon(id = 'none') {
-  return id || 'none';
+function weaponIconDescriptor(id = 'none') {
+  return { sheet: 'weapon', id: id || 'none' };
 }
 
-function iconIdForUpgrade(upgrade) {
-  if (upgrade?.requires?.primary) return iconIdForWeapon(upgrade.requires.primary);
-  if (upgrade?.requires?.secondary) return iconIdForWeapon(upgrade.requires.secondary);
-  const system = (upgrade?.system ?? '').toLowerCase();
-  if (system.includes('armor')) return 'repair';
-  if (system.includes('mobility') || system.includes('booster')) return 'boost';
-  if (system.includes('scrap') || system.includes('magnet')) return 'scrap';
-  return 'repair';
+function systemIconDescriptor(id = 'repair') {
+  return { sheet: 'system', id };
 }
 
-function iconSpan(iconId) {
+function upgradeIconDescriptor(upgrade) {
+  if (!upgrade) return { sheet: 'upgrade-a', id: 'damage' };
+  const explicit = upgradeIconDescriptorMap()[upgrade.id];
+  if (explicit) return explicit;
+  if (/Accuracy/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'accuracy' };
+  if (/FireRate/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'fire_rate' };
+  if (/ImpactDamage/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'impact_damage' };
+  if (/BlastDamage/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'blast_damage' };
+  if (/BlastRadius/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'blast_radius' };
+  if (/Damage/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'damage' };
+  if (/MaxVelocity|Velocity/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'max_velocity' };
+  if (/Pierce/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'pierce' };
+  if (/Knockback/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'knockback' };
+  if (/Ammo/i.test(upgrade.id)) return { sheet: 'upgrade-a', id: 'ammo_capacity' };
+  return { sheet: 'upgrade-a', id: 'damage' };
+}
+
+function upgradeIconDescriptorMap() {
+  return {
+  gunAccuracy: { sheet: 'upgrade-a', id: 'accuracy' },
+  gunFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  gunDamage: { sheet: 'upgrade-a', id: 'damage' },
+  gunVelocity: { sheet: 'upgrade-a', id: 'velocity' },
+  trackingFlechetteFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  trackingFlechettePierce: { sheet: 'upgrade-a', id: 'pierce' },
+  trackingFlechetteAcceleration: { sheet: 'upgrade-a', id: 'acceleration' },
+  trackingFlechetteImpactDamage: { sheet: 'upgrade-a', id: 'impact_damage' },
+  trackingFlechetteTurningRate: { sheet: 'upgrade-a', id: 'turning_rate' },
+  miniBeamLength: { sheet: 'upgrade-a', id: 'beam_length' },
+  miniBeamDamage: { sheet: 'upgrade-a', id: 'damage' },
+  miniBeamFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  miniBeamPierce: { sheet: 'upgrade-a', id: 'pierce' },
+  miniBeamHeatSink: { sheet: 'upgrade-a', id: 'heat_sink' },
+  miniBeamHeatEfficiency: { sheet: 'upgrade-a', id: 'heat_efficiency' },
+  cannonAmmo: { sheet: 'upgrade-a', id: 'ammo_capacity' },
+  cannonImpactDamage: { sheet: 'upgrade-a', id: 'impact_damage' },
+  cannonBlastDamage: { sheet: 'upgrade-a', id: 'blast_damage' },
+  cannonBlastRadius: { sheet: 'upgrade-a', id: 'blast_radius' },
+  cannonShrapnelCount: { sheet: 'upgrade-a', id: 'shrapnel_count' },
+  cannonShrapnelDamage: { sheet: 'upgrade-a', id: 'shrapnel_damage' },
+  cannonKnockback: { sheet: 'upgrade-a', id: 'knockback' },
+  cannonVelocity: { sheet: 'upgrade-a', id: 'velocity' },
+  cannonFlechettePierce: { sheet: 'upgrade-a', id: 'pierce' },
+  cannonFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  rocketAmmo: { sheet: 'upgrade-a', id: 'ammo_capacity' },
+  rocketImpactDamage: { sheet: 'upgrade-a', id: 'impact_damage' },
+  rocketBlastDamage: { sheet: 'upgrade-a', id: 'blast_damage' },
+  rocketBlastRadius: { sheet: 'upgrade-a', id: 'blast_radius' },
+  rocketMaxVelocity: { sheet: 'upgrade-a', id: 'max_velocity' },
+  rocketTurning: { sheet: 'upgrade-a', id: 'turning_rate' },
+  rocketKnockback: { sheet: 'upgrade-a', id: 'knockback' },
+  rocketFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  beamHeatEfficiency: { sheet: 'upgrade-a', id: 'heat_efficiency' },
+  beamHeatSink: { sheet: 'upgrade-a', id: 'heat_sink' },
+  beamAmmo: { sheet: 'upgrade-a', id: 'ammo_capacity' },
+  beamDamage: { sheet: 'upgrade-a', id: 'damage' },
+  beamLength: { sheet: 'upgrade-a', id: 'beam_length' },
+  beamPierce: { sheet: 'upgrade-a', id: 'pierce' },
+  beamWidth: { sheet: 'upgrade-a', id: 'beam_width' },
+  beamFireTime: { sheet: 'upgrade-a', id: 'beam_fire_time' },
+  beamFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  staMissileAmmo: { sheet: 'upgrade-a', id: 'ammo_capacity' },
+  staMissileImpactDamage: { sheet: 'upgrade-a', id: 'impact_damage' },
+  staMissileBlastDamage: { sheet: 'upgrade-a', id: 'blast_damage' },
+  staMissileBlastRadius: { sheet: 'upgrade-a', id: 'blast_radius' },
+  orbOfBladesAmmo: { sheet: 'upgrade-a', id: 'ammo_capacity' },
+  orbOfBladesEmissionRate: { sheet: 'upgrade-b', id: 'blade_emission_rate' },
+  orbOfBladesBladeDamage: { sheet: 'upgrade-b', id: 'blade_damage' },
+  orbOfBladesBladesPerCycle: { sheet: 'upgrade-b', id: 'blades_per_cycle' },
+  orbOfBladesBladeKnockback: { sheet: 'upgrade-b', id: 'blade_knockback' },
+  mortarFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  mortarImpactDamage: { sheet: 'upgrade-a', id: 'impact_damage' },
+  mortarBlastDamage: { sheet: 'upgrade-a', id: 'blast_damage' },
+  mortarBlastRadius: { sheet: 'upgrade-a', id: 'blast_radius' },
+  bladeLauncherFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  bladeLauncherMaxRicochets: { sheet: 'upgrade-a', id: 'ricochet_count' },
+  bladeLauncherImpactDamage: { sheet: 'upgrade-a', id: 'impact_damage' },
+  bladeLauncherPierce: { sheet: 'upgrade-a', id: 'pierce' },
+  bladeLauncherRicochetFactor: { sheet: 'upgrade-b', id: 'ricochet_factor' },
+  bladeLauncherProjectileDeflection: { sheet: 'upgrade-b', id: 'projectile_deflection' },
+  repulsorKnockback: { sheet: 'upgrade-a', id: 'knockback' },
+  repulsorFireRate: { sheet: 'upgrade-a', id: 'fire_rate' },
+  armorToughness: { sheet: 'upgrade-a', id: 'damage' },
+  engineAcceleration: { sheet: 'upgrade-a', id: 'acceleration' },
+  engineMaxVelocity: { sheet: 'upgrade-a', id: 'max_velocity' },
+  wheelInertiaCompensation: { sheet: 'upgrade-a', id: 'turning_rate' },
+  boostAcceleration: { sheet: 'upgrade-a', id: 'acceleration' },
+  boostDuration: { sheet: 'upgrade-b', id: 'booster_duration' },
+  boostEfficiency: { sheet: 'upgrade-b', id: 'booster_efficiency' },
+  boostRecharge: { sheet: 'upgrade-b', id: 'booster_recharge' },
+  boostCapacity: { sheet: 'upgrade-b', id: 'booster_charge_capacity' },
+  boostRamDamage: { sheet: 'upgrade-b', id: 'booster_ram_damage' },
+  boostRecoilDamage: { sheet: 'upgrade-b', id: 'booster_recoil_dampening' },
+  boostRecoilKnockback: { sheet: 'upgrade-b', id: 'booster_recoil_dampening' },
+  boostShielding: { sheet: 'upgrade-b', id: 'booster_shielding' },
+  boostCooldown: { sheet: 'upgrade-b', id: 'booster_cooldown' },
+  scrapMagnetDistance: { sheet: 'upgrade-b', id: 'scrap_magnet_distance' },
+  scrapMagnetStrength: { sheet: 'upgrade-b', id: 'scrap_magnet_strength' },
+  scrapCaptureRadius: { sheet: 'upgrade-b', id: 'scrap_capture_radius' },
+  };
+}
+
+function systemIconDescriptorForUpgrade(upgrade) {
+  const requires = upgrade?.requires ?? {};
+  if (requires.primary) return weaponIconDescriptor(requires.primary);
+  if (requires.secondary) return weaponIconDescriptor(requires.secondary);
+  if (requires.module === 'armor') return systemIconDescriptor('armor');
+  if (requires.module === 'engine') return systemIconDescriptor('engine');
+  if (requires.module === 'wheel') return systemIconDescriptor('wheel');
+  if (requires.utility === 'booster') return systemIconDescriptor('boost');
+  if (requires.utility === 'scrap_magnet') return systemIconDescriptor('scrap');
+  return systemIconDescriptor('repair');
+}
+
+function setIconElement(element, descriptor) {
+  if (!element) return;
+  element.dataset.sheet = descriptor?.sheet ?? 'weapon';
+  element.dataset.icon = descriptor?.id ?? 'none';
+}
+
+function iconSpan(descriptor) {
   const icon = document.createElement('span');
   icon.className = 'icon-sprite small';
-  icon.dataset.icon = iconIdForWeapon(iconId);
+  setIconElement(icon, descriptor);
   icon.setAttribute('aria-hidden', 'true');
   return icon;
 }
 
 function annotateWeaponOptionIcons() {
   for (const select of [secondarySelect, pauseSecondarySelect, shopAmmoSelect, ...gunLoadoutSelects]) {
-    for (const option of select?.options ?? []) option.dataset.icon = iconIdForWeapon(option.value);
+    for (const option of select?.options ?? []) option.dataset.icon = option.value || 'none';
   }
 }
 
 function populateUpgradeSelect() {
-  for (const upgrade of availableShopUpgrades()) {
-    const option = document.createElement('option');
-    option.value = upgrade.id;
-    shopUpgradeSelect.append(option);
-  }
+  refreshUpgradeSystems();
   refreshUpgradeOptions();
+}
+
+function refreshUpgradeSystems() {
+  const selected = shopUpgradeSystemSelect.value;
+  const systems = [...new Set(availableShopUpgrades().map((upgrade) => upgrade.system))];
+  shopUpgradeSystemSelect.replaceChildren(
+    ...systems.map((system) => {
+      const option = document.createElement('option');
+      const upgrades = availableShopUpgrades().filter((upgrade) => upgrade.system === system);
+      const systemLevel = upgrades.reduce((sum, upgrade) => sum + (game.upgrades?.[upgrade.id] ?? 0), 0);
+      option.value = system;
+      option.textContent = `${system} (${systemLevel})`;
+      return option;
+    }),
+  );
+  shopUpgradeSystemSelect.value = systems.includes(selected) ? selected : systems[0] || '';
 }
 
 function refreshUpgradeOptions() {
   const selected = shopUpgradeSelect.value;
-  const upgrades = availableShopUpgrades();
+  const system = shopUpgradeSystemSelect.value;
+  const upgrades = availableShopUpgrades().filter((upgrade) => !system || upgrade.system === system);
   shopUpgradeSelect.replaceChildren(
     ...upgrades.map((upgrade) => {
       const option = document.createElement('option');
+      const icon = upgradeIconDescriptor(upgrade);
       option.value = upgrade.id;
-      option.dataset.icon = iconIdForUpgrade(upgrade);
-      option.textContent = `${upgrade.system}: ${upgrade.label} Lv ${game.upgrades?.[upgrade.id] ?? 0}`;
+      option.dataset.icon = icon.id;
+      option.dataset.sheet = icon.sheet;
+      option.textContent = `${upgrade.label} Lv ${game.upgrades?.[upgrade.id] ?? 0}`;
       return option;
     }),
   );
@@ -2258,30 +2458,22 @@ function refreshRepairTargets() {
 }
 
 function refreshUpgradeSummary() {
-  const openSystems = new Set(
-    Array.from(upgradeSummary.querySelectorAll('details'))
-      .filter((details) => details.open)
-      .map((details) => details.dataset.system),
-  );
-  const groups = new Map();
-  for (const upgrade of availableShopUpgrades()) {
-    if (!groups.has(upgrade.system)) groups.set(upgrade.system, []);
-    groups.get(upgrade.system).push(upgrade);
-  }
+  const system = shopUpgradeSystemSelect.value;
+  const upgrades = availableShopUpgrades().filter((upgrade) => !system || upgrade.system === system);
+  const systemLevel = upgrades.reduce((sum, upgrade) => sum + (game.upgrades?.[upgrade.id] ?? 0), 0);
   upgradeSummary.replaceChildren(
-    ...Array.from(groups.entries()).map(([system, upgrades]) => {
+    (() => {
       const details = document.createElement('details');
       details.dataset.system = system;
-      details.open = openSystems.size === 0 ? system === 'Main Gun' : openSystems.has(system);
+      details.open = true;
       const summary = document.createElement('summary');
-      const systemLevel = upgrades.reduce((sum, upgrade) => sum + (game.upgrades?.[upgrade.id] ?? 0), 0);
-      summary.textContent = `${system} upgrades: ${systemLevel}`;
+      summary.textContent = `${system || 'Available'} upgrades: ${systemLevel}`;
       const list = document.createElement('div');
       list.className = 'upgrade-list';
       for (const upgrade of upgrades) {
         const row = document.createElement('div');
         row.className = 'upgrade-line';
-        const icon = iconSpan(iconIdForUpgrade(upgrade));
+        const icon = iconSpan(upgradeIconDescriptor(upgrade));
         const name = document.createElement('span');
         name.textContent = upgrade.label;
         const level = document.createElement('span');
@@ -2294,7 +2486,7 @@ function refreshUpgradeSummary() {
       }
       details.append(summary, list);
       return details;
-    }),
+    })(),
   );
 }
 
@@ -2308,6 +2500,9 @@ function updateShopUi(dt = 0) {
   if (!shopUiWasVisible) {
     shopUiWasVisible = true;
     uiDirty.shop = true;
+    window.requestAnimationFrame(() => {
+      if (game.levelComplete && !awaitingLaunch && !titleActive) shopRepairTab.focus({ preventScroll: true });
+    });
   }
   uiTimers.shop += dt;
   if (!uiDirty.shop && uiTimers.shop < 0.25) return;
@@ -2319,14 +2514,26 @@ function updateShopUi(dt = 0) {
   const ammo = game.secondary.ammo[ammoWeapon];
   const ammoCapacity = ammoCapacityWithUpgrades(game, ammoWeapon);
   refreshRepairTargets();
+  refreshUpgradeSystems();
   refreshUpgradeOptions();
   const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
   const selectedRepairCost = repairCost(game, shopRepairTarget.value);
+  const selectedReplacementCost = replacementCost(game);
   const selectedUpgrade = availableShopUpgrades().find((upgrade) => upgrade.id === shopUpgradeSelect.value);
-  if (selectedUpgrade) shopUpgradeIcon.dataset.icon = iconIdForUpgrade(selectedUpgrade);
+  if (selectedUpgrade) {
+    setIconElement(shopUpgradeSystemIcon, systemIconDescriptorForUpgrade(selectedUpgrade));
+    setIconElement(shopUpgradeIcon, upgradeIconDescriptor(selectedUpgrade));
+    shopUpgradeReadoutTitle.textContent = selectedUpgrade.system;
+    shopUpgradeLevel.textContent = game.upgrades?.[selectedUpgrade.id] ?? 0;
+  } else {
+    setIconElement(shopUpgradeSystemIcon, weaponIconDescriptor('none'));
+    setIconElement(shopUpgradeIcon, upgradeIconDescriptor(null));
+    shopUpgradeReadoutTitle.textContent = 'No upgrade';
+    shopUpgradeLevel.textContent = '-';
+  }
   refreshUpgradeSummary();
   shopRepairCost.textContent = selectedRepairCost;
-  shopReplaceCost.textContent = SHOP_COSTS.replaceDetached;
+  shopReplaceCost.textContent = selectedReplacementCost;
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
   shopUpgradeCost.textContent = Number.isFinite(selectedUpgradeCost) ? selectedUpgradeCost : '-';
   shopScrapAvailable.textContent = game.scrap;
@@ -2336,7 +2543,7 @@ function updateShopUi(dt = 0) {
   shopAmmoStatus.textContent = ammoStatus(game, ammoWeapon);
   shopUpgradeStatus.textContent = upgradeStatus(game, shopUpgradeSelect.value);
   shopRepairButton.disabled = selectedRepairCost <= 0 || game.scrap < selectedRepairCost || !hasRepairableVehicleDamage(game.vehicle, shopRepairTarget.value);
-  shopReplaceButton.disabled = game.scrap < SHOP_COSTS.replaceDetached || countDetachedVehicleCells(game.vehicle) === 0;
+  shopReplaceButton.disabled = game.scrap < selectedReplacementCost || countDetachedVehicleCells(game.vehicle) === 0;
   shopRefillAmmoButton.disabled = !Number.isFinite(ammoCost) || game.scrap < ammoCost || ammo == null || ammo >= ammoCapacity;
   shopBuyUpgradeButton.disabled = !Number.isFinite(selectedUpgradeCost) || game.scrap < selectedUpgradeCost;
 }

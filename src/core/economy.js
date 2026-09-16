@@ -10,7 +10,7 @@ export const SHOP_COSTS = {
   ammoRefillFraction: 0.5,
   ammoModuleMultiplier: 4,
   scrapMagnetVoxels: 30,
-  upgradeBaseFraction: 0.25,
+  upgradeBaseFraction: 1.25,
   upgradeCostGrowth: 1.25,
 };
 
@@ -193,12 +193,45 @@ function weaponInstalled(vehicleDefinition, slotKind, weaponId) {
 
 export function repairCost(game, target = 'all') {
   if (!hasRepairableVehicleDamage(game.vehicle, target)) return 0;
-  return Math.ceil(SHOP_COSTS.repair * repairInflation(game));
+  return Math.ceil(SHOP_COSTS.repair * repairInflation(game, target));
 }
 
-export function repairInflation(game) {
-  const totalUpgradeLevels = Object.values(game.upgrades ?? {}).reduce((sum, value) => sum + value, 0);
-  return 1.01 ** totalUpgradeLevels;
+export function repairInflation(game, target = 'all') {
+  return 1.01 ** repairUpgradeLevel(game, target);
+}
+
+function repairUpgradeLevel(game, target = 'all') {
+  const targets = target === 'all' ? damagedRepairTargets(game) : [repairTargetType(game, target)];
+  return Math.max(
+    0,
+    ...targets.map((type) =>
+      UPGRADE_DEFINITIONS
+        .filter((upgrade) => upgradeAppliesToRepairTarget(upgrade, type))
+        .reduce((sum, upgrade) => sum + upgradeLevel(game, upgrade.id), 0),
+    ),
+  );
+}
+
+function damagedRepairTargets(game) {
+  const targets = new Set();
+  for (const cell of game.vehicle?.cells ?? []) {
+    if (!cell.attached) continue;
+    if (!cell.mask.some((row) => row.some((voxel) => voxel.hp < voxel.maxHp))) continue;
+    targets.add(cell.type);
+  }
+  return targets.size ? [...targets] : ['all'];
+}
+
+function repairTargetType(game, target) {
+  if (['core', 'gun', 'armor', 'wheel', 'engine', 'utility'].includes(target)) return target;
+  return game.vehicle?.cells?.find((cell) => cell.id === target)?.type ?? target;
+}
+
+function upgradeAppliesToRepairTarget(upgrade, target) {
+  const requires = upgrade.requires ?? {};
+  if (target === 'gun') return requires.module === 'gun' || Boolean(requires.primary) || Boolean(requires.secondary);
+  if (target === 'utility') return Boolean(requires.utility);
+  return requires.module === target;
 }
 
 export function repairVehicleWithScrap(game, target = 'all') {
@@ -218,8 +251,9 @@ export function repairStatus(game, target = 'all') {
 
 export function replacementStatus(game) {
   const detached = countDetachedVehicleCells(game.vehicle);
+  const cost = replacementCost(game);
   if (detached === 0) return 'None missing';
-  if (game.scrap < SHOP_COSTS.replaceDetached) return `${detached} missing, need ${SHOP_COSTS.replaceDetached - game.scrap}`;
+  if (game.scrap < cost) return `${detached} missing, need ${cost - game.scrap}`;
   return `${detached} missing`;
 }
 
@@ -233,11 +267,23 @@ export function ammoStatus(game, weapon = game.secondary.selected) {
 }
 
 export function replaceDetachedWithScrap(game) {
-  if (game.scrap < SHOP_COSTS.replaceDetached) return false;
+  const cost = replacementCost(game);
+  if (game.scrap < cost) return false;
   const replaced = replaceDetachedVehicleCell(game.vehicle);
   if (!replaced) return false;
-  game.scrap -= SHOP_COSTS.replaceDetached;
+  game.scrap -= cost;
   return true;
+}
+
+export function replacementCost(game) {
+  if (countDetachedVehicleCells(game.vehicle) === 0) return SHOP_COSTS.replaceDetached;
+  const target = nextDetachedRepairTarget(game);
+  return Math.max(SHOP_COSTS.replaceDetached, Math.ceil(SHOP_COSTS.replaceDetached * repairInflation(game, target)));
+}
+
+function nextDetachedRepairTarget(game) {
+  const cell = game.vehicle?.cells?.find((candidate) => !candidate.attached);
+  return cell?.type ?? 'all';
 }
 
 export function refillAmmoWithScrap(game, weapon = game.secondary.selected) {

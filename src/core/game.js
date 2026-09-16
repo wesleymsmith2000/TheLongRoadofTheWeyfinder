@@ -917,10 +917,10 @@ function createSandboxEnemies(spawn, x, y, road, options = {}) {
     enemy.vy = direction.y * speed;
   }
   const level = spawn.level ?? options.level ?? 1;
-  applyEnemyLevelUpgrades(enemy, level);
+  applyEnemyLevelUpgrades(enemy, level, options.trackName ?? options.music ?? spawn.music ?? null);
   const enemies =
     archetype?.id === 'inchworm_carrier.freedoms_pass'
-      ? createLinkedInchwormEnemies(enemy, archetype, road, level, options.spawnIndex ?? 0)
+      ? createLinkedInchwormEnemies(enemy, archetype, road, level, options.spawnIndex ?? 0, options.trackName ?? options.music ?? spawn.music ?? null)
       : [enemy];
   for (const spawned of enemies) {
     spawned.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
@@ -1032,14 +1032,14 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
       enemy.vx = velocity.x * 17.5;
       enemy.vy = velocity.y * 17.5;
     }
-    applyEnemyLevelUpgrades(enemy, level);
+    applyEnemyLevelUpgrades(enemy, level, currentMusic);
     if (archetype?.id === 'inchworm_carrier.freedoms_pass') {
-      enemies.push(...createLinkedInchwormEnemies(enemy, archetype, road, level, i));
+      enemies.push(...createLinkedInchwormEnemies(enemy, archetype, road, level, i, currentMusic));
     } else {
       enemies.push(enemy);
     }
     if (archetype && isBroodableArchetype(archetype)) {
-      enemies.push(...createBroodTurretsForEnemy(archetype, road, offset, level, i, kind));
+      enemies.push(...createBroodTurretsForEnemy(archetype, road, offset, level, i, kind, currentMusic));
     }
   }
   if (isBoss) {
@@ -1062,26 +1062,56 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
     applyDefaultEnemyCueHooks(boss);
     boss.vx = roadDirectionToWorld(0, 1, road).x * 18;
     boss.vy = roadDirectionToWorld(0, 1, road).y * 18;
-    applyEnemyLevelUpgrades(boss, level);
+    applyEnemyLevelUpgrades(boss, level, currentMusic);
     enemies.push(boss);
   }
   return enemies;
 }
 
-function enemyLevelUpgradeCounts(level) {
-  const counts = Object.fromEntries(ENEMY_UPGRADE_TYPES.map((type) => [type, 0]));
-  const rng = new Rng(level * 1009 + 77);
-  for (let round = 2; round <= level; round += 1) {
-    const picks = new Set();
-    while (picks.size < 2) picks.add(ENEMY_UPGRADE_TYPES[Math.floor(rng.range(0, ENEMY_UPGRADE_TYPES.length))]);
-    for (const pick of picks) counts[pick] += 1;
-  }
-  return counts;
+function enemyLevelUpgradeCounts(level, trackName = null) {
+  const rank = enemyUpgradeRank(level, trackName);
+  return Object.fromEntries(ENEMY_UPGRADE_TYPES.map((type) => [type, rank]));
 }
 
-function applyEnemyLevelUpgrades(enemy, level) {
-  const counts = enemyLevelUpgradeCounts(level);
+function enemyUpgradeRank(level, trackName = null) {
+  const localLevel = localZoneLevel(level, trackName);
+  const zone = enemyZoneRank(trackName);
+  return Math.max(0, localLevel + zone * 2);
+}
+
+function localZoneLevel(level, trackName = null) {
+  const name = String(trackName ?? '');
+  const match = name.match(/_(\d+)$/);
+  if (match && !/BossFight/i.test(name)) return Math.max(1, Number(match[1]));
+  return Math.max(1, Math.floor(level));
+}
+
+function enemyZoneRank(trackName = null) {
+  const name = String(trackName ?? '');
+  if (/^BossFight_1$/i.test(name)) return 1;
+  if (/^BossFight_2$/i.test(name)) return 2;
+  const zone = zoneNameFromTrack(name);
+  const order = [
+    'TheWeyfindersRoad',
+    'DigitizedStream',
+    'PiratesRoad',
+    'StarlightRoad',
+    'TwilightCrossroads',
+    'ShadowedRoad',
+    'GhostForrestPathway',
+    'GhostForrestBanshee',
+    'ShadowedDesert',
+    'FreedomsPass',
+    'SteppesOfApollonSkoteinos',
+  ];
+  const index = order.indexOf(zone);
+  return index >= 0 ? index + 1 : 0;
+}
+
+function applyEnemyLevelUpgrades(enemy, level, trackName = null) {
+  const counts = enemyLevelUpgradeCounts(level, trackName);
   enemy.levelUpgrades = counts;
+  enemy.scrapDropScale = Math.sqrt(Math.max(1, enemyUpgradeRank(level, trackName)));
   enemy.combatScale = {
     damage: 1.05 ** counts.damage,
     attackRate: 1.05 ** counts.attackRate,
@@ -1206,9 +1236,9 @@ function isBroodableArchetype(archetype) {
   return BROODABLE_ARCHETYPES.has(archetype.id);
 }
 
-function createBroodTurretsForEnemy(archetype, road, offset, level, index, kind) {
+function createBroodTurretsForEnemy(archetype, road, offset, level, index, kind, trackName = null) {
   if (kind !== 'standard') return [];
-  if (isWalkerEnemy(archetype)) return createWalkerBroodEscorts(archetype, road, offset, level, index);
+  if (isWalkerEnemy(archetype)) return createWalkerBroodEscorts(archetype, road, offset, level, index, trackName);
   const count = 1 + ((level + index + archetype.id.length) % 3);
   const velocity = roadDirectionToWorld(0, 1, road);
   const sideDirection = roadDirectionToWorld(1, 0, road);
@@ -1227,13 +1257,13 @@ function createBroodTurretsForEnemy(archetype, road, offset, level, index, kind)
     escort.palette = archetype.palette ? { ...archetype.palette } : escort.palette;
     escort.vx = velocity.x * 17.5 + sideDirection.x * side * 8;
     escort.vy = velocity.y * 17.5 + sideDirection.y * side * 8;
-    applyEnemyLevelUpgrades(escort, level);
+    applyEnemyLevelUpgrades(escort, level, trackName);
     escorts.push(escort);
   }
   return escorts;
 }
 
-function createWalkerBroodEscorts(archetype, road, offset, level, index) {
+function createWalkerBroodEscorts(archetype, road, offset, level, index, trackName = null) {
   const alternate = getEnemyArchetype('starlight_walker.prototype0') ?? RUNTIME_ENEMY_ARCHETYPES['starlight_walker.prototype0'];
   if (!alternate) return [];
   const count = 1 + ((level + index + archetype.id.length) % 3);
@@ -1255,13 +1285,13 @@ function createWalkerBroodEscorts(archetype, road, offset, level, index) {
     escort.palette = archetype.palette ? { ...archetype.palette } : escort.palette;
     escort.vx = velocity.x * 18 + sideDirection.x * side * 8;
     escort.vy = velocity.y * 18 + sideDirection.y * side * 8;
-    applyEnemyLevelUpgrades(escort, level);
+    applyEnemyLevelUpgrades(escort, level, trackName);
     escorts.push(escort);
   }
   return escorts;
 }
 
-function createLinkedInchwormEnemies(head, archetype, road, level, index) {
+function createLinkedInchwormEnemies(head, archetype, road, level, index, trackName = null) {
   const segmentCount = Math.min(archetype.segments?.maxCount ?? 8, Math.max(archetype.segments?.minCount ?? 4, 4 + (level + index) % 5));
   const chainId = `inchworm:${level}:${index}:${Math.round(head.x)}:${Math.round(head.y)}`;
   const heading = Math.atan2(head.vy, head.vx);
@@ -1301,7 +1331,7 @@ function createLinkedInchwormEnemies(head, archetype, road, level, index) {
     segment.targetId = `${chainId}:segment:${i}`;
     segment.vx = head.vx;
     segment.vy = head.vy;
-    applyEnemyLevelUpgrades(segment, level);
+    applyEnemyLevelUpgrades(segment, level, trackName);
     head.inchworm.segmentIds.push(segment.targetId);
     segments.push(segment);
   }
@@ -7679,9 +7709,11 @@ function isWaterConstructEnemy(enemy) {
 function enemyDeathPickups(game, enemy) {
   if (enemy.dropNoScrap) return [];
   const scrap = harvestEnemyScrap(enemy, game.rng);
+  const scrapScale = enemy.scrapDropScale ?? 1;
+  for (const pickup of scrap) pickup.value = Math.max(1, Math.round((pickup.value ?? 1) * scrapScale));
   if ((enemy.buzzard?.feedValue ?? 0) > 0) {
     scrap.push(createRewardPickup(game, enemy, 'scrap', {
-      value: Math.max(1, Math.floor(enemy.buzzard.feedValue)),
+      value: Math.max(1, Math.round(enemy.buzzard.feedValue * scrapScale)),
       radius: CELL_SIZE * 1.25,
     }));
   }

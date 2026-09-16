@@ -1103,7 +1103,8 @@ test('digitized stream hopper is enlarged and uses the slower hop impulse', () =
   assert.equal(frog.assetId, 'example.construct.tractor_frog_sculpted');
   assert.equal(frog.hopperVisualBias, 1.5);
   assert.equal(frog.radius > CELL_SIZE * 3, true);
-  assert.equal(frog.vx > 70 && frog.vx < 72, true);
+  assert.equal(frog.levelUpgrades.movementSpeed, 5);
+  assert.equal(Math.abs(frog.vx - 71.25 * 1.05 ** 5) < 0.03, true);
 });
 
 test('destroyed enemy remaining voxels become collectible scrap', () => {

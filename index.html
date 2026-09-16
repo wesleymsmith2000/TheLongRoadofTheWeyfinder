@@ -986,7 +986,7 @@
         flex: 0 0 auto;
         vertical-align: middle;
         background-image: var(--weapon-icon-sheet);
-        background-size: 300% 300%;
+        background-size: 400% 300%;
         background-repeat: no-repeat;
         filter: drop-shadow(0 1px 4px rgb(0 0 0 / 0.5));
       }
@@ -996,45 +996,89 @@
         height: 22px;
       }
 
-      .icon-sprite[data-icon="repair"] {
-        background-position: 0% 0%;
-      }
-
-      .icon-sprite[data-icon="cannon"],
-      .icon-sprite[data-icon="main.basic"],
-      .icon-sprite[data-icon="tracking_flechette"],
-      .icon-sprite[data-icon="blade_launcher"],
-      .icon-sprite[data-icon="orb_of_blades"] {
-        background-position: 0% 100%;
-      }
-
-      .icon-sprite[data-icon="beam"],
-      .icon-sprite[data-icon="mini_beam"],
-      .icon-sprite[data-icon="repulsor_beam"],
-      .icon-sprite[data-icon="tractor_beam"] {
-        background-position: 100% 0%;
-      }
-
-      .icon-sprite[data-icon="rocket"],
-      .icon-sprite[data-icon="mortar"],
-      .icon-sprite[data-icon="sta_missile"] {
-        background-position: 50% 50%;
-      }
-
-      .icon-sprite[data-icon="ammo"] {
-        background-position: 50% 100%;
-      }
-
-      .icon-sprite[data-icon="boost"],
-      .icon-sprite[data-icon="wheel"],
-      .icon-sprite[data-icon="engine"] {
-        background-position: 50% 0%;
-      }
-
+      .icon-sprite[data-sheet="system"],
+      .icon-sprite[data-icon="ammo"],
       .icon-sprite[data-icon="scrap"],
-      .icon-sprite[data-icon="replace"] {
-        background-position: 100% 100%;
+      .icon-sprite[data-icon="repair"],
+      .icon-sprite[data-icon="replace"],
+      .icon-sprite[data-icon="boost"],
+      .icon-sprite[data-icon="armor"],
+      .icon-sprite[data-icon="engine"],
+      .icon-sprite[data-icon="wheel"] {
+        background-image: var(--system-icon-sheet);
+        background-size: 400% 300%;
       }
+
+      .icon-sprite[data-sheet="upgrade-a"] {
+        background-image: var(--upgrade-icon-sheet-a);
+        background-size: 500% 400%;
+      }
+
+      .icon-sprite[data-sheet="upgrade-b"] {
+        background-image: var(--upgrade-icon-sheet-b);
+        background-size: 500% 400%;
+      }
+
+      .icon-sprite[data-icon="main.basic"] { background-position: 0% 0%; }
+      .icon-sprite[data-icon="tracking_flechette"] { background-position: 33.333% 0%; }
+      .icon-sprite[data-icon="mortar"] { background-position: 66.667% 0%; }
+      .icon-sprite[data-icon="blade_launcher"] { background-position: 100% 0%; }
+      .icon-sprite[data-icon="mini_beam"] { background-position: 0% 50%; }
+      .icon-sprite[data-icon="repulsor_beam"] { background-position: 33.333% 50%; }
+      .icon-sprite[data-icon="rocket"] { background-position: 66.667% 50%; }
+      .icon-sprite[data-icon="cannon"] { background-position: 100% 50%; }
+      .icon-sprite[data-icon="beam"] { background-position: 0% 100%; }
+      .icon-sprite[data-icon="tractor_beam"] { background-position: 33.333% 100%; }
+      .icon-sprite[data-icon="sta_missile"] { background-position: 66.667% 100%; }
+      .icon-sprite[data-icon="orb_of_blades"] { background-position: 100% 100%; }
+
+      .icon-sprite[data-icon="ammo"] { background-position: 0% 0%; }
+      .icon-sprite[data-icon="scrap"] { background-position: 33.333% 0%; }
+      .icon-sprite[data-icon="repair"] { background-position: 66.667% 0%; }
+      .icon-sprite[data-icon="replace"] { background-position: 100% 0%; }
+      .icon-sprite[data-icon="boost"] { background-position: 0% 50%; }
+      .icon-sprite[data-icon="armor"] { background-position: 33.333% 50%; }
+      .icon-sprite[data-icon="engine"] { background-position: 66.667% 50%; }
+      .icon-sprite[data-icon="wheel"] { background-position: 100% 50%; }
+
+      .icon-sprite[data-icon="accuracy"],
+      .icon-sprite[data-icon="ricochet_factor"] { background-position: 0% 0%; }
+      .icon-sprite[data-icon="fire_rate"],
+      .icon-sprite[data-icon="projectile_deflection"] { background-position: 25% 0%; }
+      .icon-sprite[data-icon="damage"],
+      .icon-sprite[data-icon="blades_per_cycle"] { background-position: 50% 0%; }
+      .icon-sprite[data-icon="impact_damage"],
+      .icon-sprite[data-icon="blade_emission_rate"] { background-position: 75% 0%; }
+      .icon-sprite[data-icon="velocity"],
+      .icon-sprite[data-icon="max_velocity"],
+      .icon-sprite[data-icon="blade_damage"] { background-position: 100% 0%; }
+      .icon-sprite[data-icon="pierce"],
+      .icon-sprite[data-icon="blade_knockback"] { background-position: 0% 33.333%; }
+      .icon-sprite[data-icon="blast_damage"],
+      .icon-sprite[data-icon="booster_duration"] { background-position: 25% 33.333%; }
+      .icon-sprite[data-icon="blast_radius"],
+      .icon-sprite[data-icon="booster_efficiency"] { background-position: 50% 33.333%; }
+      .icon-sprite[data-icon="knockback"],
+      .icon-sprite[data-icon="booster_recharge"] { background-position: 75% 33.333%; }
+      .icon-sprite[data-icon="ammo_capacity"],
+      .icon-sprite[data-icon="booster_charge_capacity"] { background-position: 100% 33.333%; }
+      .icon-sprite[data-icon="heat_sink"],
+      .icon-sprite[data-icon="booster_ram_damage"] { background-position: 0% 66.667%; }
+      .icon-sprite[data-icon="heat_efficiency"],
+      .icon-sprite[data-icon="booster_recoil_dampening"] { background-position: 25% 66.667%; }
+      .icon-sprite[data-icon="beam_length"],
+      .icon-sprite[data-icon="booster_shielding"] { background-position: 50% 66.667%; }
+      .icon-sprite[data-icon="beam_width"],
+      .icon-sprite[data-icon="booster_cooldown"] { background-position: 75% 66.667%; }
+      .icon-sprite[data-icon="beam_fire_time"],
+      .icon-sprite[data-icon="scrap_magnet_distance"] { background-position: 100% 66.667%; }
+      .icon-sprite[data-icon="acceleration"],
+      .icon-sprite[data-icon="scrap_magnet_strength"] { background-position: 0% 100%; }
+      .icon-sprite[data-icon="turning_rate"],
+      .icon-sprite[data-icon="scrap_capture_radius"] { background-position: 25% 100%; }
+      .icon-sprite[data-icon="shrapnel_count"] { background-position: 50% 100%; }
+      .icon-sprite[data-icon="shrapnel_damage"] { background-position: 75% 100%; }
+      .icon-sprite[data-icon="ricochet_count"] { background-position: 100% 100%; }
 
       .icon-sprite[data-icon="none"] {
         background-position: 0% 50%;
@@ -1058,7 +1102,7 @@
       .shop-panel {
         display: grid;
         gap: 10px;
-        width: min(460px, calc(100vw - 32px));
+        width: min(720px, calc(100vw - 32px));
         margin-top: 14px;
         padding: 14px;
         border: 1px solid rgb(244 238 228 / 0.2);
@@ -1093,11 +1137,71 @@
         background: rgb(12 13 13 / 0.62);
       }
 
+      .shop-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .shop-tabs button {
+        min-height: 38px;
+        background: rgb(12 13 13 / 0.72);
+      }
+
+      .shop-tabs button[aria-pressed="true"] {
+        border-color: rgb(247 192 106 / 0.75);
+        color: #f7c06a;
+        box-shadow: inset 0 0 0 1px rgb(247 192 106 / 0.24);
+      }
+
+      .shop-section {
+        display: grid;
+        gap: 10px;
+      }
+
+      .shop-section.hidden {
+        display: none;
+      }
+
       .shop-upgrade-row {
         display: grid;
         grid-template-columns: 1fr auto;
         gap: 8px;
         align-items: end;
+      }
+
+      .shop-repair-grid,
+      .shop-upgrade-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        align-items: end;
+      }
+
+      .shop-upgrade-readout {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid rgb(244 238 228 / 0.16);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.62);
+      }
+
+      .shop-upgrade-readout strong,
+      .shop-upgrade-readout span {
+        display: block;
+      }
+
+      .shop-upgrade-readout strong {
+        color: #f4eee4;
+        font-size: 15px;
+      }
+
+      .shop-upgrade-readout span {
+        color: #d7ceb8;
+        font-size: 12px;
       }
 
       .shop-field {
@@ -1761,6 +1865,12 @@
           grid-template-columns: 1fr;
         }
 
+        .shop-repair-grid,
+        .shop-upgrade-controls,
+        .shop-upgrade-readout {
+          grid-template-columns: 1fr;
+        }
+
         .shop-upgrade-row button {
           width: 100%;
         }
@@ -2064,52 +2174,69 @@
             <span><span class="icon-sprite" data-icon="scrap" aria-hidden="true"></span> Scrap Available</span>
             <strong id="shopScrapAvailable">0</strong>
           </div>
-          <div class="shop-upgrade-row">
-            <label class="shop-field" for="shopRepairTarget">
-              <span>Repair target</span>
-              <select id="shopRepairTarget" aria-label="Select repair target">
-                <option value="all">All Systems</option>
-              </select>
-            </label>
+          <div class="shop-tabs" role="group" aria-label="Shop section">
+            <button id="shopRepairTab" type="button" aria-pressed="true">Repair / Ammo</button>
+            <button id="shopUpgradeTab" type="button" aria-pressed="false">Upgrades</button>
           </div>
-          <button id="shopRepairButton" type="button">
-            <span class="icon-sprite" data-icon="repair" aria-hidden="true"></span>
-            Repair Systems
-            <span>Cost <span id="shopRepairCost">2</span> scrap, <span id="shopRepairStatus">Ready</span></span>
-          </button>
-          <button id="shopReplaceButton" type="button">
-            <span class="icon-sprite" data-icon="replace" aria-hidden="true"></span>
-            Replace Detached
-            <span>Cost <span id="shopReplaceCost">16</span> scrap each, <span id="shopReplaceStatus">None missing</span></span>
-          </button>
-          <button id="shopRefillAmmoButton" type="button">
-            <span class="icon-sprite" data-icon="ammo" aria-hidden="true"></span>
-            Refill <span id="shopSelectedAmmo">rocket</span> Ammo
-            <span>Cost <span id="shopAmmoCost">6</span> scrap, <span id="shopAmmoStatus">Full</span></span>
-          </button>
-          <label class="shop-field" for="shopAmmoSelect">
-            <span>Ammo target</span>
-            <select id="shopAmmoSelect" aria-label="Select ammo refill target">
-              <option value="rocket">Rocket</option>
-              <option value="cannon">Cannon</option>
-              <option value="beam">Particle Beam</option>
-              <option value="tractor_beam">Tractor Beam</option>
-              <option value="sta_missile">STA Missile</option>
-              <option value="orb_of_blades">Orb Of Blades</option>
-            </select>
-          </label>
-          <div class="shop-upgrade-row">
-            <span id="shopUpgradeIcon" class="icon-sprite" data-icon="repair" aria-hidden="true"></span>
-            <label class="shop-field" for="shopUpgradeSelect">
-              <span>Upgrade target</span>
-              <select id="shopUpgradeSelect" aria-label="Select upgrade"></select>
-            </label>
-            <button id="shopBuyUpgradeButton" type="button">
-              Buy Upgrade
-              <span>Cost <span id="shopUpgradeCost">4</span>, <span id="shopUpgradeStatus">Ready</span></span>
+          <div id="shopRepairAmmoSection" class="shop-section">
+            <div class="shop-repair-grid">
+              <label class="shop-field" for="shopRepairTarget">
+                <span>Repair target</span>
+                <select id="shopRepairTarget" aria-label="Select repair target">
+                  <option value="all">All Systems</option>
+                </select>
+              </label>
+              <label class="shop-field" for="shopAmmoSelect">
+                <span>Ammo target</span>
+                <select id="shopAmmoSelect" aria-label="Select ammo refill target">
+                  <option value="rocket">Rocket</option>
+                  <option value="cannon">Cannon</option>
+                  <option value="beam">Particle Beam</option>
+                  <option value="tractor_beam">Tractor Beam</option>
+                  <option value="sta_missile">STA Missile</option>
+                  <option value="orb_of_blades">Orb Of Blades</option>
+                </select>
+              </label>
+            </div>
+            <button id="shopRepairButton" type="button">
+              <span class="icon-sprite" data-sheet="system" data-icon="repair" aria-hidden="true"></span>
+              Repair Systems
+              <span>Cost <span id="shopRepairCost">2</span> scrap, <span id="shopRepairStatus">Ready</span></span>
+            </button>
+            <button id="shopReplaceButton" type="button">
+              <span class="icon-sprite" data-sheet="system" data-icon="replace" aria-hidden="true"></span>
+              Replace Detached
+              <span>Cost <span id="shopReplaceCost">16</span> scrap each, <span id="shopReplaceStatus">None missing</span></span>
+            </button>
+            <button id="shopRefillAmmoButton" type="button">
+              <span class="icon-sprite" data-sheet="system" data-icon="ammo" aria-hidden="true"></span>
+              Refill <span id="shopSelectedAmmo">rocket</span> Ammo
+              <span>Cost <span id="shopAmmoCost">6</span> scrap, <span id="shopAmmoStatus">Full</span></span>
             </button>
           </div>
-          <div id="upgradeSummary" class="upgrade-summary" aria-label="Upgrade levels"></div>
+          <div id="shopUpgradesSection" class="shop-section hidden">
+            <div class="shop-upgrade-controls">
+              <label class="shop-field" for="shopUpgradeSystemSelect">
+                <span>System</span>
+                <select id="shopUpgradeSystemSelect" aria-label="Select upgrade system"></select>
+              </label>
+              <label class="shop-field" for="shopUpgradeSelect">
+                <span>Subsystem</span>
+                <select id="shopUpgradeSelect" aria-label="Select upgrade subsystem"></select>
+              </label>
+            </div>
+            <div class="shop-upgrade-readout">
+              <span id="shopUpgradeSystemIcon" class="icon-sprite" data-sheet="weapon" data-icon="main.basic" aria-hidden="true"></span>
+              <div>
+                <strong id="shopUpgradeReadoutTitle">Main Gun</strong>
+                <span>Level <span id="shopUpgradeLevel">0</span></span>
+                <span>Cost <span id="shopUpgradeCost">20</span> scrap, <span id="shopUpgradeStatus">Ready</span></span>
+              </div>
+              <span id="shopUpgradeIcon" class="icon-sprite" data-sheet="upgrade-a" data-icon="damage" aria-hidden="true"></span>
+            </div>
+            <button id="shopBuyUpgradeButton" type="button">Buy Upgrade</button>
+            <div id="upgradeSummary" class="upgrade-summary" aria-label="Upgrade levels"></div>
+          </div>
         </div>
         <button id="nextLevelButton" type="button">Start Next Level</button>
       </div>
