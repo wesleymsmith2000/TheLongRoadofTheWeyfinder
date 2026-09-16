@@ -354,9 +354,10 @@
       }
 
       .level-complete-content {
-        width: min(520px, calc(100vw - 28px));
+        width: min(720px, calc(100vw - 28px));
         max-height: calc(100vh - 24px);
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
         padding: 10px 0 14px;
       }
 
@@ -1102,7 +1103,8 @@
       .shop-panel {
         display: grid;
         gap: 10px;
-        width: min(720px, calc(100vw - 32px));
+        width: 100%;
+        min-width: 0;
         margin-top: 14px;
         padding: 14px;
         border: 1px solid rgb(244 238 228 / 0.2);
@@ -1115,14 +1117,27 @@
 
       .shop-panel button {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 8px;
         width: 100%;
+        min-width: 0;
         margin: 0;
+        text-align: left;
       }
 
-      .shop-panel button span:last-child {
+      .shop-button-label {
+        flex: 1 1 150px;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        text-align: left;
+      }
+
+      .shop-button-detail {
+        flex: 999 1 210px;
+        min-width: 0;
+        overflow-wrap: anywhere;
         font-weight: 500;
         color: #d7ceb8;
       }
@@ -1141,10 +1156,13 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
+        min-width: 0;
       }
 
       .shop-tabs button {
+        justify-content: center;
         min-height: 38px;
+        text-align: center;
         background: rgb(12 13 13 / 0.72);
       }
 
@@ -1157,6 +1175,7 @@
       .shop-section {
         display: grid;
         gap: 10px;
+        min-width: 0;
       }
 
       .shop-section.hidden {
@@ -1165,17 +1184,19 @@
 
       .shop-upgrade-row {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 8px;
         align-items: end;
+        min-width: 0;
       }
 
       .shop-repair-grid,
       .shop-upgrade-controls {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
         align-items: end;
+        min-width: 0;
       }
 
       .shop-upgrade-readout {
@@ -1183,6 +1204,7 @@
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 14px;
         align-items: center;
+        min-width: 0;
         padding: 10px;
         border: 1px solid rgb(244 238 228 / 0.16);
         border-radius: 8px;
@@ -1192,6 +1214,8 @@
       .shop-upgrade-readout strong,
       .shop-upgrade-readout span {
         display: block;
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .shop-upgrade-readout strong {
@@ -1232,6 +1256,7 @@
       .upgrade-summary {
         display: grid;
         gap: 6px;
+        min-width: 0;
         max-height: 26vh;
         overflow: auto;
         scrollbar-gutter: stable;
@@ -1267,11 +1292,20 @@
 
       .upgrade-line {
         display: grid;
-        grid-template-columns: auto 1fr auto auto;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
         gap: 8px;
         align-items: center;
+        min-width: 0;
         color: #d7ceb8;
         font-size: 12px;
+      }
+
+      .upgrade-line span {
+        min-width: 0;
+      }
+
+      .upgrade-line span:nth-child(2) {
+        overflow-wrap: anywhere;
       }
 
       .launch-screen {
@@ -1480,6 +1514,32 @@
       .upgrade-summary {
         scrollbar-color: rgb(247 192 106 / 0.68) rgb(20 23 24 / 0.62);
         scrollbar-width: auto;
+      }
+
+      @media (max-width: 760px) {
+        .level-complete-content {
+          width: calc(100vw - 20px);
+        }
+
+        .shop-panel {
+          padding: 10px;
+          font-size: 12px;
+        }
+
+        .shop-repair-grid,
+        .shop-upgrade-controls,
+        .shop-upgrade-row {
+          grid-template-columns: 1fr;
+        }
+
+        .shop-panel button {
+          min-height: 46px;
+        }
+
+        .shop-upgrade-readout {
+          gap: 8px;
+          padding: 8px;
+        }
       }
 
       .vehicle-editor {
@@ -1856,8 +1916,7 @@
           gap: 6px;
         }
 
-        .shop-panel button span:last-child {
-          flex-basis: 100%;
+        .shop-button-detail {
           font-size: 11px;
         }
 
@@ -1866,9 +1925,14 @@
         }
 
         .shop-repair-grid,
-        .shop-upgrade-controls,
-        .shop-upgrade-readout {
+        .shop-upgrade-controls {
           grid-template-columns: 1fr;
+        }
+
+        .shop-upgrade-readout {
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          gap: 8px;
+          padding: 8px;
         }
 
         .shop-upgrade-row button {
@@ -2200,18 +2264,18 @@
             </div>
             <button id="shopRepairButton" type="button">
               <span class="icon-sprite" data-sheet="system" data-icon="repair" aria-hidden="true"></span>
-              Repair Systems
-              <span>Cost <span id="shopRepairCost">2</span> scrap, <span id="shopRepairStatus">Ready</span></span>
+              <span class="shop-button-label">Repair Systems</span>
+              <span class="shop-button-detail">Cost <span id="shopRepairCost">2</span> scrap, <span id="shopRepairStatus">Ready</span></span>
             </button>
             <button id="shopReplaceButton" type="button">
               <span class="icon-sprite" data-sheet="system" data-icon="replace" aria-hidden="true"></span>
-              Replace Detached
-              <span>Cost <span id="shopReplaceCost">16</span> scrap each, <span id="shopReplaceStatus">None missing</span></span>
+              <span class="shop-button-label">Replace Detached</span>
+              <span class="shop-button-detail">Cost <span id="shopReplaceCost">16</span> scrap each, <span id="shopReplaceStatus">None missing</span></span>
             </button>
             <button id="shopRefillAmmoButton" type="button">
               <span class="icon-sprite" data-sheet="system" data-icon="ammo" aria-hidden="true"></span>
-              Refill <span id="shopSelectedAmmo">rocket</span> Ammo
-              <span>Cost <span id="shopAmmoCost">6</span> scrap, <span id="shopAmmoStatus">Full</span></span>
+              <span class="shop-button-label">Refill <span id="shopSelectedAmmo">rocket</span> Ammo</span>
+              <span class="shop-button-detail">Cost <span id="shopAmmoCost">6</span> scrap, <span id="shopAmmoStatus">Full</span></span>
             </button>
           </div>
           <div id="shopUpgradesSection" class="shop-section hidden">
