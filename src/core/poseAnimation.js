@@ -3,7 +3,10 @@ import { normalizeCellWeights, POSE_RIG_SCHEMA_VERSION, validateCellBindings } f
 
 const TAU = Math.PI * 2;
 
-export const POSE_RIG_ANIMATION_KINDS = ['oscillate', 'poseCycle', 'aimAtTarget'];
+export const POSE_RIG_ANIMATION_KINDS = ['oscillate', 'poseCycle', 'aimAtTarget', 'clip'];
+export const POSE_CLIP_PATHS = ['translation', 'rotation', 'scale'];
+export const POSE_CLIP_INTERPOLATIONS = ['STEP', 'LINEAR'];
+export const POSE_CLIP_COORDINATE_MODES = ['XY_Z_UP'];
 export const POSE_RIG_TARGET_PREFIXES = ['group:', 'joint:', 'cell:', 'role:', 'type:', 'slot:', 'tag:'];
 
 export function normalizePoseRig(rig = {}) {
@@ -13,6 +16,7 @@ export function normalizePoseRig(rig = {}) {
     groups: Array.isArray(rig.groups) ? structuredClone(rig.groups) : [],
     joints: Array.isArray(rig.joints) ? structuredClone(rig.joints) : [],
     poses: Array.isArray(rig.poses) ? structuredClone(rig.poses) : [],
+    clips: Array.isArray(rig.clips) ? structuredClone(rig.clips) : [],
     animations: Array.isArray(rig.animations) ? structuredClone(rig.animations) : [],
     cellBindings: normalizeCellWeights(rig.cellBindings),
     dynamics: isPlainObject(rig.dynamics) ? structuredClone(rig.dynamics) : null,
@@ -30,7 +34,8 @@ export function validatePoseRig(rig, path, cellIds, errors, warnings) {
   const groupIds = new Set((rig.groups ?? []).map((group) => group?.id).filter(Boolean));
   const jointIds = validateJoints(rig.joints, `${path}.joints`, groupIds, errors);
   const poseIds = validatePoses(rig.poses, `${path}.poses`, groupIds, jointIds, cellIds, errors);
-  validateAnimations(rig.animations, `${path}.animations`, groupIds, jointIds, poseIds, cellIds, errors, warnings);
+  const clipIds = validateClips(rig.clips, `${path}.clips`, jointIds, errors);
+  validateAnimations(rig.animations, `${path}.animations`, groupIds, jointIds, poseIds, clipIds, cellIds, errors, warnings);
   validateCellBindings(rig.cellBindings, `${path}.cellBindings`, cellIds, jointIds, errors, warnings);
   validateDynamics(rig.dynamics, `${path}.dynamics`, errors);
   validateImports(rig.imports, `${path}.imports`, errors);
@@ -99,7 +104,7 @@ export function evaluatePoseRig(entity, context = {}) {
   const rig = cachedNormalizedPoseRig(entity);
   const transforms = new Map();
   if (!rig) return transforms;
-  const { groupMap, jointMap, poseMap } = cachedPoseRigTopology(entity, rig);
+  const { groupMap, jointMap, poseMap, clipMap } = cachedPoseRigTopology(entity, rig);
   const jointTransforms = new Map();
   const addToTarget = (target, transform) => {
     addToJointsForTarget(target, transform, jointMap, jointTransforms);
@@ -121,9 +126,11 @@ export function evaluatePoseRig(entity, context = {}) {
       for (const entry of poseCycleTransforms(animation, poseMap, context, groupMap)) addToTarget(entry.target, entry.transform);
     } else if (animation.kind === 'aimAtTarget') {
       addToTarget(animation.target, aimAtTargetTransform(entity, animation, context, groupMap));
+    } else if (animation.kind === 'clip') {
+      for (const entry of animationClipTransforms(animation, clipMap.get(animation.clip), context, jointMap)) addToTarget(entry.target, entry.transform);
     }
   }
-  applyWeightedCellBindings(entity, rig, jointMap, jointTransforms, transforms);
+  applyWeightedCellBindings(entity, rig, jointMap, resolveJointHierarchyTransforms(rig, jointTransforms), transforms);
   return transforms;
 }
 
@@ -144,7 +151,8 @@ function cachedPoseRigTopology(entity, rig) {
   const groupMap = buildGroupMap(entity, rig);
   const jointMap = buildJointMap(rig, groupMap);
   const poseMap = new Map(rig.poses.map((pose) => [pose.id, pose]));
-  const topology = { rig, cells, groupMap, jointMap, poseMap };
+  const clipMap = new Map(rig.clips.map((clip) => [clip.id, clip]));
+  const topology = { rig, cells, groupMap, jointMap, poseMap, clipMap };
   if (entity && Object.isExtensible(entity)) entity._poseRigTopologyCache = topology;
   return topology;
 }
@@ -154,11 +162,16 @@ export function applyCellPoseTransform(cell, point, transforms) {
   if (!transform) return { ...point, z: 0, rotation: 0 };
   const pivot = transform.pivot ?? [point.x, point.y, 0];
   const angle = transform.rotation ?? 0;
+  const scale = transform.scale ?? [1, 1, 1];
   let x = point.x;
   let y = point.y;
+  if (scale[0] !== 1 || scale[1] !== 1) {
+    x = pivot[0] + (x - pivot[0]) * scale[0];
+    y = pivot[1] + (y - pivot[1]) * scale[1];
+  }
   if (Math.abs(angle) > 0.000001) {
-    const dx = point.x - pivot[0];
-    const dy = point.y - pivot[1];
+    const dx = x - pivot[0];
+    const dy = y - pivot[1];
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
     x = pivot[0] + dx * cos - dy * sin;
@@ -167,7 +180,7 @@ export function applyCellPoseTransform(cell, point, transforms) {
   return {
     x: x + (transform.x ?? 0),
     y: y + (transform.y ?? 0),
-    z: transform.z ?? 0,
+    z: (transform.z ?? 0) + ((point.z ?? 0) - (pivot[2] ?? 0)) * ((scale[2] ?? 1) - 1),
     rotation: angle,
   };
 }
@@ -256,7 +269,61 @@ function validatePoses(poses, path, groupIds, jointIds, cellIds, errors) {
   return poseIds;
 }
 
-function validateAnimations(animations, path, groupIds, jointIds, poseIds, cellIds, errors, warnings) {
+function validateClips(clips, path, jointIds, errors) {
+  const clipIds = new Set();
+  if (clips == null) return clipIds;
+  if (!Array.isArray(clips)) {
+    errors.push(`${path} must be an array when provided.`);
+    return clipIds;
+  }
+  for (const [index, clip] of clips.entries()) {
+    const label = `${path}[${index}]`;
+    if (!isPlainObject(clip)) {
+      errors.push(`${label} must be an object.`);
+      continue;
+    }
+    if (!isNonEmptyString(clip.id)) errors.push(`${label}.id must be a non-empty string.`);
+    else if (clipIds.has(clip.id)) errors.push(`${label}.id "${clip.id}" is duplicated.`);
+    else clipIds.add(clip.id);
+    if (!Number.isFinite(clip.duration) || clip.duration <= 0) errors.push(`${label}.duration must be a positive finite number.`);
+    if (clip.loop != null && typeof clip.loop !== 'boolean') errors.push(`${label}.loop must be boolean when provided.`);
+    if (clip.coordinateMode != null && !POSE_CLIP_COORDINATE_MODES.includes(clip.coordinateMode)) {
+      errors.push(`${label}.coordinateMode must be one of: ${POSE_CLIP_COORDINATE_MODES.join(', ')}.`);
+    }
+    if (!Array.isArray(clip.tracks)) {
+      errors.push(`${label}.tracks must be an array.`);
+      continue;
+    }
+    for (const [trackIndex, track] of clip.tracks.entries()) validateClipTrack(track, `${label}.tracks[${trackIndex}]`, jointIds, clip.duration, errors);
+  }
+  return clipIds;
+}
+
+function validateClipTrack(track, label, jointIds, duration, errors) {
+  if (!isPlainObject(track)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  if (!jointIds.has(track.joint)) errors.push(`${label}.joint references unknown joint "${track.joint}".`);
+  if (!POSE_CLIP_PATHS.includes(track.path)) errors.push(`${label}.path must be one of: ${POSE_CLIP_PATHS.join(', ')}.`);
+  if (track.interpolation != null && !POSE_CLIP_INTERPOLATIONS.includes(track.interpolation)) {
+    errors.push(`${label}.interpolation must be one of: ${POSE_CLIP_INTERPOLATIONS.join(', ')}.`);
+  }
+  if (!Array.isArray(track.times) || !track.times.every((time) => Number.isFinite(time) && time >= 0 && time <= duration)) {
+    errors.push(`${label}.times must contain finite values between 0 and the clip duration.`);
+  }
+  if (!Array.isArray(track.values) || track.values.length !== track.times?.length) {
+    errors.push(`${label}.values must contain one value per keyframe time.`);
+    return;
+  }
+  const valueLength = track.path === 'rotation' ? 4 : 3;
+  for (const value of track.values) validateVectorLength(value, valueLength, `${label}.values`, errors);
+  for (let index = 1; index < (track.times?.length ?? 0); index += 1) {
+    if (track.times[index] < track.times[index - 1]) errors.push(`${label}.times must be sorted in ascending order.`);
+  }
+}
+
+function validateAnimations(animations, path, groupIds, jointIds, poseIds, clipIds, cellIds, errors, warnings) {
   if (animations == null) return;
   if (!Array.isArray(animations)) {
     errors.push(`${path} must be an array when provided.`);
@@ -275,6 +342,8 @@ function validateAnimations(animations, path, groupIds, jointIds, poseIds, cellI
     if (animation.driver != null && !isNonEmptyString(animation.driver)) errors.push(`${label}.driver must be a non-empty string when provided.`);
     if (animation.kind === 'poseCycle' && !Array.isArray(animation.keyframes)) errors.push(`${label}.keyframes must be an array for poseCycle animations.`);
     if (animation.kind === 'aimAtTarget' && !animation.target) warnings.push(`${label}.target should identify the group or cells that rotate.`);
+    if (animation.kind === 'clip' && !clipIds.has(animation.clip)) errors.push(`${label}.clip references unknown clip "${animation.clip}".`);
+    if (animation.speed != null && !Number.isFinite(animation.speed)) errors.push(`${label}.speed must be finite when provided.`);
   }
 }
 
@@ -383,6 +452,12 @@ function validateVector(vector, path, errors) {
   if (vector == null) return;
   if (!Array.isArray(vector) || vector.length < 2 || vector.length > 3 || !vector.every(Number.isFinite)) {
     errors.push(`${path} must be a [x, y] or [x, y, z] number array when provided.`);
+  }
+}
+
+function validateVectorLength(vector, length, path, errors) {
+  if (!Array.isArray(vector) || vector.length !== length || !vector.every(Number.isFinite)) {
+    errors.push(`${path} entries must be ${length}-number arrays.`);
   }
 }
 
@@ -499,8 +574,9 @@ function blendInfluencedCellPose(rest, influences, jointMap, jointTransforms) {
 function transformPoint(point, transform, fallbackPivot) {
   const pivot = transform.pivot ?? fallbackPivot ?? [point.x, point.y, point.z ?? 0];
   const angle = transform.rotation ?? 0;
-  let x = point.x;
-  let y = point.y;
+  const scale = transform.scale ?? [1, 1, 1];
+  let x = pivot[0] + (point.x - pivot[0]) * scale[0];
+  let y = pivot[1] + (point.y - pivot[1]) * scale[1];
   if (Math.abs(angle) > 0.000001) {
     const dx = point.x - pivot[0];
     const dy = point.y - pivot[1];
@@ -512,7 +588,7 @@ function transformPoint(point, transform, fallbackPivot) {
   return {
     x: x + (transform.x ?? 0),
     y: y + (transform.y ?? 0),
-    z: (point.z ?? 0) + (transform.z ?? 0),
+    z: (pivot[2] ?? 0) + ((point.z ?? 0) - (pivot[2] ?? 0)) * (scale[2] ?? 1) + (transform.z ?? 0),
     rotation: angle,
   };
 }
@@ -569,6 +645,69 @@ function poseCycleTransforms(animation, poseMap, context, groupMap) {
   }));
 }
 
+function animationClipTransforms(animation, clip, context, jointMap) {
+  if (!clip || !(clip.duration > 0)) return [];
+  const driver = driverValue(animation, context) * (animation.speed ?? 1) + (animation.startOffset ?? 0);
+  const shouldLoop = animation.loop ?? clip.loop ?? true;
+  const time = shouldLoop
+    ? ((driver % clip.duration) + clip.duration) % clip.duration
+    : Math.max(0, Math.min(clip.duration, driver));
+  const byJoint = new Map();
+  for (const track of clip.tracks ?? []) {
+    if (!jointMap.has(track.joint)) continue;
+    const sampled = sampleClipTrack(track, time);
+    if (!sampled) continue;
+    const transform = byJoint.get(track.joint) ?? baseTransform(jointMap.get(track.joint)?.pivot);
+    if (track.path === 'translation') {
+      transform.x = sampled[0];
+      transform.y = sampled[1];
+      transform.z = sampled[2];
+    } else if (track.path === 'rotation') {
+      transform.rotation = quaternionZAngle(sampled);
+    } else if (track.path === 'scale') {
+      transform.scale = sampled;
+    }
+    byJoint.set(track.joint, transform);
+  }
+  return [...byJoint].map(([jointId, transform]) => ({ target: `joint:${jointId}`, transform }));
+}
+
+function sampleClipTrack(track, time) {
+  const times = track.times ?? [];
+  const values = track.values ?? [];
+  if (times.length === 0 || values.length !== times.length) return null;
+  if (time <= times[0]) return [...values[0]];
+  const last = times.length - 1;
+  if (time >= times[last]) return [...values[last]];
+  let upper = 1;
+  while (upper < times.length && times[upper] < time) upper += 1;
+  const lower = upper - 1;
+  if (track.interpolation === 'STEP') return [...values[lower]];
+  const span = times[upper] - times[lower];
+  const t = span <= 0 ? 0 : (time - times[lower]) / span;
+  if (track.path === 'rotation') return normalizeQuaternion(values[lower].map((value, index) => lerp(value, values[upper][index], t)));
+  return values[lower].map((value, index) => lerp(value, values[upper][index], t));
+}
+
+function resolveJointHierarchyTransforms(rig, transforms) {
+  const joints = new Map((rig.joints ?? []).map((joint) => [joint.id, joint]));
+  const resolved = new Map();
+  const visiting = new Set();
+  const resolve = (jointId) => {
+    if (resolved.has(jointId)) return resolved.get(jointId);
+    if (visiting.has(jointId)) return transforms.get(jointId) ?? baseTransform();
+    visiting.add(jointId);
+    const joint = joints.get(jointId);
+    const local = transforms.get(jointId) ?? baseTransform(joint?.pivot ?? null);
+    const result = joint?.parent ? combineTransforms(resolve(joint.parent), local) : local;
+    visiting.delete(jointId);
+    resolved.set(jointId, result);
+    return result;
+  };
+  for (const jointId of joints.keys()) resolve(jointId);
+  return resolved;
+}
+
 function aimAtTargetTransform(entity, animation, context, groupMap) {
   const target = context.targetLocal ?? worldToOwnerLocal(entity, context.target);
   const group = animation.target?.startsWith('group:') ? groupMap.get(animation.target.slice(6)) : null;
@@ -605,6 +744,7 @@ function combineTransforms(a, b) {
     y: (a.y ?? 0) + (b.y ?? 0),
     z: (a.z ?? 0) + (b.z ?? 0),
     rotation: (a.rotation ?? 0) + (b.rotation ?? 0),
+    scale: [0, 1, 2].map((index) => (a.scale?.[index] ?? 1) * (b.scale?.[index] ?? 1)),
     pivot: b.pivot ?? a.pivot ?? null,
   };
 }
@@ -617,12 +757,13 @@ function lerpTransform(a = baseTransform(), b = baseTransform(), t = 0) {
     y: lerp(start.y ?? 0, end.y ?? 0, t),
     z: lerp(start.z ?? 0, end.z ?? 0, t),
     rotation: lerpAngle(start.rotation ?? 0, end.rotation ?? 0, t),
+    scale: [0, 1, 2].map((index) => lerp(start.scale?.[index] ?? 1, end.scale?.[index] ?? 1, t)),
     pivot: end.pivot ?? start.pivot ?? null,
   };
 }
 
 function baseTransform(pivot = null) {
-  return { x: 0, y: 0, z: 0, rotation: 0, pivot };
+  return { x: 0, y: 0, z: 0, rotation: 0, scale: [1, 1, 1], pivot };
 }
 
 function groupPivot(cells) {
@@ -683,4 +824,15 @@ function lerp(a, b, t) {
 function lerpAngle(a, b, t) {
   const delta = Math.atan2(Math.sin(b - a), Math.cos(b - a));
   return a + delta * Math.max(0, Math.min(1, t));
+}
+
+function normalizeQuaternion(value) {
+  const length = Math.hypot(...value);
+  if (length <= 0.000001) return [0, 0, 0, 1];
+  return value.map((entry) => entry / length);
+}
+
+function quaternionZAngle(value) {
+  const [x, y, z, w] = normalizeQuaternion(value);
+  return Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
 }

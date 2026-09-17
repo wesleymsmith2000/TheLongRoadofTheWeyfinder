@@ -268,6 +268,42 @@ test('construct validation rejects invalid pose rig import metadata', () => {
   assert.equal(report.errors.some((error) => error.includes('imports[0].mode')), true);
 });
 
+test('construct definitions preserve normalized imported face metadata', () => {
+  const definition = structuredClone(startingVehicleDefinition);
+  definition.cells[0].render = {
+    surfaces: {
+      top: {
+        materialId: 'material.imported.body',
+        normal: [0, 0, 2],
+        uvOrigin: [0.1, 0.2],
+        uvStepX: [0.01, 0],
+        uvStepY: [0, 0.01],
+      },
+    },
+  };
+
+  const report = validateConstructDefinition(definition);
+  const construct = instantiateConstruct(definition);
+
+  assert.equal(report.valid, true);
+  assert.deepEqual(construct.cells[0].render.surfaces.top.normal, [0, 0, 1]);
+  assert.equal(construct.cells[0].render.surfaces.top.materialId, 'material.imported.body');
+});
+
+test('construct validation rejects malformed imported face metadata', () => {
+  const definition = structuredClone(startingVehicleDefinition);
+  definition.cells[0].render = {
+    surfaces: {
+      diagonal: { materialId: '', normal: [0, 1], uvOrigin: [0, 0], uvStepX: [1, 0], uvStepY: [0, 1] },
+    },
+  };
+
+  const report = validateConstructDefinition(definition);
+
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('unknown face key')), true);
+});
+
 test('construct validation rejects pose rigs that reference unknown groups or cells', () => {
   const report = validateConstructDefinition({
     ...startingVehicleDefinition,

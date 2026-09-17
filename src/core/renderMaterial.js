@@ -3,6 +3,8 @@ import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNo
 
 export const MATERIAL_TEXTURE_PATTERNS = ['none', 'noise', 'mottle', 'grain', 'brushed', 'diagonal_weave', 'speckle', 'strata', 'scorch'];
 export const MATERIAL_TEXTURE_COORDINATE_MODES = ['WORLD_SPACE', 'CONSTRUCT_LOCAL', 'CELL_LOCAL'];
+export const CELL_SURFACE_KEYS = ['top', 'bottom', 'left', 'right', 'front', 'back'];
+export const MATERIAL_ALPHA_MODES = ['OPAQUE', 'MASK', 'BLEND'];
 export const SPECTRAL_BANDS = ['UV', 'VIOLET', 'BLUE', 'GREEN', 'RED', 'IR', 'BROAD_WHITE'];
 export const PREVIEW_LIGHT_BANDS = ['OFF', 'BROAD_WHITE', 'UV', 'VIOLET', 'BLUE', 'GREEN', 'RED', 'IR'];
 export const LIGHT_SOURCE_TYPES = ['point', 'spot', 'pulse'];
@@ -120,10 +122,12 @@ export function resolveEnvironmentLighting(source = 'DAY') {
 
 export function normalizeRenderMaterial(source = {}, fallback = {}) {
   const render = source?.render ?? source ?? {};
+  const pbr = render.pbr ?? {};
+  const baseColorFactor = normalizeNumberVector(pbr.baseColorFactor, 4, [1, 1, 1, 1], { min: 0, max: 1 });
   const base = {
     ...DEFAULT_RENDER_MATERIAL,
     id: render.id ?? source?.materialId ?? source?.material ?? source?.type ?? fallback.id ?? DEFAULT_RENDER_MATERIAL.id,
-    albedo: validHex(render.albedo) ? render.albedo : fallback.albedo ?? DEFAULT_RENDER_MATERIAL.albedo,
+    albedo: validHex(render.albedo) ? render.albedo : pbr.baseColorFactor ? colorFactorHex(baseColorFactor) : fallback.albedo ?? DEFAULT_RENDER_MATERIAL.albedo,
   };
   const texture = render.texture ?? {};
   const shading = render.shading ?? {};
@@ -180,7 +184,78 @@ export function normalizeRenderMaterial(source = {}, fallback = {}) {
         ? phosphorescence.chargeGranularity
         : DEFAULT_RENDER_MATERIAL.phosphorescence.chargeGranularity,
     },
+    pbr: {
+      baseColorFactor,
+      baseColorTexture: normalizeTextureReference(pbr.baseColorTexture),
+      metallicFactor: clamp(finiteOr(pbr.metallicFactor, shading.metallic ?? DEFAULT_RENDER_MATERIAL.shading.metallic), 0, 1),
+      roughnessFactor: clamp(finiteOr(pbr.roughnessFactor, shading.roughness ?? DEFAULT_RENDER_MATERIAL.shading.roughness), 0, 1),
+      emissiveFactor: normalizeNumberVector(pbr.emissiveFactor, 3, [0, 0, 0], { min: 0 }),
+      emissiveTexture: normalizeTextureReference(pbr.emissiveTexture),
+      normalTexture: normalizeTextureReference(pbr.normalTexture, { scale: 1 }),
+      alphaMode: MATERIAL_ALPHA_MODES.includes(pbr.alphaMode) ? pbr.alphaMode : 'OPAQUE',
+      alphaCutoff: clamp(finiteOr(pbr.alphaCutoff, 0.5), 0, 1),
+      doubleSided: pbr.doubleSided === true,
+    },
+    surfaces: normalizeRenderSurfaces(render.surfaces),
     pseudoHeight: clamp(finiteOr(render.pseudoHeight, DEFAULT_RENDER_MATERIAL.pseudoHeight), 0, 3),
+  };
+}
+
+export function normalizeRenderSurfaces(surfaces) {
+  if (!isPlainObject(surfaces)) return {};
+  const normalized = {};
+  for (const face of CELL_SURFACE_KEYS) {
+    const surface = surfaces[face];
+    if (!isPlainObject(surface)) continue;
+    normalized[face] = {
+      materialId: nonEmptyString(surface.materialId, null),
+      normal: normalizeDirection3(surface.normal, defaultSurfaceNormal(face)),
+      uvOrigin: normalizeNumberVector(surface.uvOrigin, 2, [0, 0]),
+      uvStepX: normalizeNumberVector(surface.uvStepX, 2, [0, 0]),
+      uvStepY: normalizeNumberVector(surface.uvStepY, 2, [0, 0]),
+    };
+  }
+  return normalized;
+}
+
+export function resolveSurfaceTextureSample(surface, imageWidth, imageHeight, localVoxelX, localVoxelY, voxelCount = 4) {
+  if (!surface || !(imageWidth > 0) || !(imageHeight > 0)) return null;
+  const origin = surface.uvOrigin ?? [0, 0];
+  const stepX = surface.uvStepX ?? [0, 0];
+  const stepY = surface.uvStepY ?? [0, 0];
+  const u = origin[0] + localVoxelX * stepX[0] + localVoxelY * stepY[0];
+  const v = origin[1] + localVoxelX * stepX[1] + localVoxelY * stepY[1];
+  const sampleWidth = Math.max(1, Math.hypot(stepX[0], stepX[1]) * imageWidth || imageWidth / Math.max(1, voxelCount));
+  const sampleHeight = Math.max(1, Math.hypot(stepY[0], stepY[1]) * imageHeight || imageHeight / Math.max(1, voxelCount));
+  return {
+    x: clamp(u * imageWidth, 0, Math.max(0, imageWidth - sampleWidth)),
+    y: clamp(v * imageHeight, 0, Math.max(0, imageHeight - sampleHeight)),
+    width: Math.min(imageWidth, sampleWidth),
+    height: Math.min(imageHeight, sampleHeight),
+  };
+}
+
+export function importedNormalLight(normal, environmentInput = 'DAY') {
+  const normal3 = normalizeDirection3(normal, [0, 0, 1]);
+  const environment = resolveEnvironmentLighting(environmentInput);
+  const light2 = normalizeDirection(environment.keyLightDirection);
+  const lightZ = 0.72;
+  const length = Math.hypot(light2.x, light2.y, lightZ);
+  return clamp((-light2.x * normal3[0] - light2.y * normal3[1] + lightZ * normal3[2]) / length, -1, 1);
+}
+
+export function createRegistryRenderAssetResolver(registry) {
+  const materials = registry?.assets?.get?.('material') ?? new Map();
+  const images = registry?.assets?.get?.('image') ?? new Map();
+  const materialById = new Map();
+  for (const definition of materials.values()) materialById.set(definition.materialId ?? definition.id ?? definition.assetId, definition);
+  return {
+    material(materialId) {
+      return materials.get(materialId) ?? materialById.get(materialId) ?? null;
+    },
+    image(assetId) {
+      return images.get(assetId) ?? null;
+    },
   };
 }
 
@@ -396,6 +471,8 @@ export function validateRenderMaterialFields(render, label = 'render') {
   validateEmissiveFields(render.emissive, `${label}.emissive`, errors);
   validateFluorescenceFields(render.fluorescence, `${label}.fluorescence`, errors);
   validatePhosphorescenceFields(render.phosphorescence, `${label}.phosphorescence`, errors);
+  validatePbrFields(render.pbr, `${label}.pbr`, errors);
+  validateRenderSurfaces(render.surfaces, `${label}.surfaces`, errors);
   return errors;
 }
 
@@ -437,6 +514,57 @@ function validateTextureFields(texture, label, errors) {
   validateFiniteNumber(texture.strength ?? 0, `${label}.strength`, errors, { min: 0, max: 1 });
   validateFiniteNumber(texture.seedOffset ?? 0, `${label}.seedOffset`, errors);
   validateFiniteNumber(texture.orientation ?? 0, `${label}.orientation`, errors);
+}
+
+function validateRenderSurfaces(surfaces, label, errors) {
+  if (surfaces == null) return;
+  if (!isPlainObject(surfaces)) {
+    errors.push(`${label} must be an object when provided.`);
+    return;
+  }
+  for (const [face, surface] of Object.entries(surfaces)) {
+    const surfaceLabel = `${label}.${face}`;
+    if (!CELL_SURFACE_KEYS.includes(face)) {
+      errors.push(`${surfaceLabel} uses an unknown face key. Expected one of: ${CELL_SURFACE_KEYS.join(', ')}.`);
+      continue;
+    }
+    if (!isPlainObject(surface)) {
+      errors.push(`${surfaceLabel} must be an object.`);
+      continue;
+    }
+    if (!isNonEmptyString(surface.materialId)) errors.push(`${surfaceLabel}.materialId must be a non-empty string.`);
+    validateFixedVector(surface.normal, 3, `${surfaceLabel}.normal`, errors);
+    validateFixedVector(surface.uvOrigin, 2, `${surfaceLabel}.uvOrigin`, errors);
+    validateFixedVector(surface.uvStepX, 2, `${surfaceLabel}.uvStepX`, errors);
+    validateFixedVector(surface.uvStepY, 2, `${surfaceLabel}.uvStepY`, errors);
+  }
+}
+
+function validatePbrFields(pbr, label, errors) {
+  if (pbr == null) return;
+  if (!isPlainObject(pbr)) {
+    errors.push(`${label} must be an object when provided.`);
+    return;
+  }
+  validateOptionalFixedVector(pbr.baseColorFactor, 4, `${label}.baseColorFactor`, errors);
+  validateOptionalFixedVector(pbr.emissiveFactor, 3, `${label}.emissiveFactor`, errors);
+  for (const key of ['metallicFactor', 'roughnessFactor', 'alphaCutoff']) {
+    if (pbr[key] != null) validateFiniteNumber(pbr[key], `${label}.${key}`, errors, { min: 0, max: 1 });
+  }
+  if (pbr.alphaMode != null && !MATERIAL_ALPHA_MODES.includes(pbr.alphaMode)) errors.push(`${label}.alphaMode must be one of: ${MATERIAL_ALPHA_MODES.join(', ')}.`);
+  if (pbr.doubleSided != null && typeof pbr.doubleSided !== 'boolean') errors.push(`${label}.doubleSided must be boolean when provided.`);
+  for (const key of ['baseColorTexture', 'emissiveTexture', 'normalTexture']) validateTextureReference(pbr[key], `${label}.${key}`, errors);
+}
+
+function validateTextureReference(reference, label, errors) {
+  if (reference == null) return;
+  if (!isPlainObject(reference)) {
+    errors.push(`${label} must be an object when provided.`);
+    return;
+  }
+  if (!isNonEmptyString(reference.atlasAssetId ?? reference.assetId)) errors.push(`${label}.atlasAssetId must be a non-empty string.`);
+  if (reference.texCoord != null && (!Number.isInteger(reference.texCoord) || reference.texCoord < 0)) errors.push(`${label}.texCoord must be a non-negative integer.`);
+  if (reference.scale != null && !Number.isFinite(reference.scale)) errors.push(`${label}.scale must be finite.`);
 }
 
 function validateShadingFields(shading, label, errors) {
@@ -517,12 +645,61 @@ function validateFiniteNumber(value, label, errors, options = {}) {
   if (options.max != null && value > options.max) errors.push(`${label} must be at most ${options.max}.`);
 }
 
+function validateFixedVector(vector, length, label, errors) {
+  if (!Array.isArray(vector) || vector.length !== length || !vector.every(Number.isFinite)) {
+    errors.push(`${label} must be a ${length}-number array.`);
+  }
+}
+
+function validateOptionalFixedVector(vector, length, label, errors) {
+  if (vector != null) validateFixedVector(vector, length, label, errors);
+}
+
 function normalizeDirection(direction) {
   const x = Number(direction?.x ?? 0);
   const y = Number(direction?.y ?? -1);
   const length = Math.hypot(x, y);
   if (length <= 0.000001) return { x: 0, y: -1 };
   return { x: x / length, y: y / length };
+}
+
+function normalizeDirection3(direction, fallback) {
+  const value = normalizeNumberVector(direction, 3, fallback);
+  const length = Math.hypot(value[0], value[1], value[2]);
+  if (length <= 0.000001) return [...fallback];
+  return value.map((entry) => entry / length);
+}
+
+function normalizeNumberVector(value, length, fallback, limits = {}) {
+  if (!Array.isArray(value) || value.length !== length || !value.every(Number.isFinite)) return [...fallback];
+  return value.map((entry) => clamp(entry, limits.min ?? -Infinity, limits.max ?? Infinity));
+}
+
+function normalizeTextureReference(reference, defaults = {}) {
+  if (!isPlainObject(reference)) return null;
+  const atlasAssetId = nonEmptyString(reference.atlasAssetId ?? reference.assetId, null);
+  if (!atlasAssetId) return null;
+  return {
+    ...defaults,
+    atlasAssetId,
+    texCoord: Math.max(0, Math.trunc(finiteOr(reference.texCoord, 0))),
+    ...(Number.isFinite(reference.scale) ? { scale: reference.scale } : {}),
+  };
+}
+
+function defaultSurfaceNormal(face) {
+  return {
+    top: [0, 0, 1],
+    bottom: [0, 0, -1],
+    left: [-1, 0, 0],
+    right: [1, 0, 0],
+    front: [0, -1, 0],
+    back: [0, 1, 0],
+  }[face] ?? [0, 0, 1];
+}
+
+function colorFactorHex(factor) {
+  return `#${factor.slice(0, 3).map((value) => clampColor(value * 255).toString(16).padStart(2, '0')).join('')}`;
 }
 
 function normalizeTexturePattern(pattern) {

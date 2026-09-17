@@ -3,7 +3,16 @@ import { livePirateBossGunPodCount } from '../core/enemy.js';
 import { cameraViewScale } from '../core/camera.js';
 import { collectDynamicLights, DEFAULT_DYNAMIC_LIGHT_BUDGET } from '../core/dynamicLighting.js';
 import { applyCellPoseTransform, evaluatePoseRig } from '../core/poseAnimation.js';
-import { computeVoxelSurfaceLight, normalizeRenderMaterial, resolveEnvironmentLighting, sampleMaterialVariation, shadeMaterialColor } from '../core/renderMaterial.js';
+import {
+  computeVoxelSurfaceLight,
+  createRegistryRenderAssetResolver,
+  importedNormalLight,
+  normalizeRenderMaterial,
+  resolveEnvironmentLighting,
+  resolveSurfaceTextureSample,
+  sampleMaterialVariation,
+  shadeMaterialColor,
+} from '../core/renderMaterial.js';
 import { drawDebugOverlay } from '../debug/debugOverlay.js';
 import { createPerformanceDiagnostics } from '../debug/performanceConfig.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
@@ -99,6 +108,7 @@ export class CanvasRenderer {
     this.ctx = canvas.getContext('2d');
     this.terrainRenderer = new TerrainRenderer(createTerrainAtlasLibrary());
     this.imageAssets = createImageAssetLibrary();
+    this.renderAssets = options.renderAssets ?? createRegistryRenderAssetResolver(options.contentRegistry);
     this.diagnostics = options.diagnostics ?? createPerformanceDiagnostics();
     this.cellSpriteCache = new Map();
     this.lightBuffer = document.createElement('canvas');
@@ -133,14 +143,14 @@ export class CanvasRenderer {
     drawIncomingMarkers(ctx, game.incomingMarkers, game.time);
     drawScrapPickups(ctx, game.scrapPickups);
     drawHarpoonPowerups(ctx, game.enemies, game.time);
-    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics, this.cellSpriteCache);
+    for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics, this.cellSpriteCache, this.imageAssets, this.renderAssets);
     drawSmokeParticles(ctx, game.smokeParticles);
     if (!diagnostics.noProjectileRender) {
       drawHarpoonShots(ctx, game.harpoonShots, game.time, this.imageAssets);
       drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
       drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
     }
-    drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets, this.cellSpriteCache, game.environmentLighting);
+    drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets, this.cellSpriteCache, game.environmentLighting, this.renderAssets);
     drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
@@ -437,7 +447,7 @@ function drawRoadLane(ctx, road) {
   ctx.restore();
 }
 
-function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = null, environmentLighting = 'DAY') {
+function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = null, environmentLighting = 'DAY', renderAssets = null) {
   ctx.save();
   ctx.translate(vehicle.x, vehicle.y);
   ctx.rotate(vehicle.heading);
@@ -449,7 +459,7 @@ function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = n
   for (const cell of attached) {
     const posed = applyCellPoseTransform(cell, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE }, poseTransforms);
     const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
-    drawCell(ctx, cell, posed.x, posed.y - projectHeight(layerLift + (posed.z ?? 0)), 1, COLORS, posed.rotation, { cellSpriteCache, environmentLighting });
+    drawCell(ctx, cell, posed.x, posed.y - projectHeight(layerLift + (posed.z ?? 0)), 1, COLORS, posed.rotation, { cellSpriteCache, environmentLighting, imageAssets, renderAssets });
   }
   drawTurret(ctx, vehicle);
   drawComMarker(ctx, vehicle.centerOfMass);
@@ -526,7 +536,9 @@ function drawCell(ctx, cell, x, y, alpha, palette = COLORS, renderRotation = cel
 function drawCellMicrovoxels(ctx, cell, palette = COLORS, renderOptions = {}) {
   const unit = CELL_SIZE / VOXELS;
   const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
-  const material = normalizeRenderMaterial(cell, { id: cell.material ?? cell.type, albedo: base });
+  const cellMaterial = normalizeRenderMaterial(cell, { id: cell.material ?? cell.type, albedo: base });
+  const surfaceRender = resolveCellSurfaceRender(cellMaterial, renderOptions);
+  const material = surfaceRender.material;
   const environment = resolveEnvironmentLighting(renderOptions.environmentLighting ?? 'DAY');
   const depth = projectHeight(CELL_SIZE * (0.08 + material.pseudoHeight * 0.035));
   const shadowOffset = CELL_SIZE * 0.15;
@@ -549,9 +561,12 @@ function drawCellMicrovoxels(ctx, cell, palette = COLORS, renderOptions = {}) {
         variation * 42 +
         surface.directional * environment.keyLightIntensity * material.shading.diffuse * 34 -
         surface.ao * 18 +
-        material.emissive.intensity * 32;
-      ctx.fillStyle = shadeMaterialColor(material.albedo, shadeAmount);
-      ctx.fillRect(px + gap, py + gap - lift, width, width);
+        material.emissive.intensity * 32 +
+        surfaceRender.normalLight * environment.keyLightIntensity * material.shading.diffuse * 22;
+      if (!drawAtlasVoxel(ctx, surfaceRender, vx, vy, px + gap, py + gap - lift, width, shadeAmount)) {
+        ctx.fillStyle = shadeMaterialColor(material.albedo, shadeAmount);
+        ctx.fillRect(px + gap, py + gap - lift, width, width);
+      }
       if (!isVoxelOccupied(cell.mask, vx, vy + 1)) {
         ctx.fillStyle = shadeMaterialColor(material.albedo, -44 - surface.ao * 20);
         ctx.fillRect(px + gap, py + unit - gap * 2 - lift, width, Math.max(1, depth * 0.65));
@@ -575,9 +590,47 @@ function drawCellMicrovoxels(ctx, cell, palette = COLORS, renderOptions = {}) {
   ctx.strokeRect(-CELL_SIZE / 2, -CELL_SIZE / 2 - depth, CELL_SIZE, CELL_SIZE);
 }
 
+function resolveCellSurfaceRender(cellMaterial, renderOptions) {
+  const surface = cellMaterial.surfaces?.top ?? null;
+  const definition = surface?.materialId ? renderOptions.renderAssets?.material?.(surface.materialId) : null;
+  const material = definition ? normalizeRenderMaterial(definition, cellMaterial) : cellMaterial;
+  const atlasAssetId = material.pbr?.baseColorTexture?.atlasAssetId ?? material.texture?.atlasAssetId;
+  const descriptor = atlasAssetId ? renderOptions.renderAssets?.image?.(atlasAssetId) : null;
+  const image = descriptor ? renderOptions.imageAssets?.get(descriptor) : null;
+  return {
+    surface,
+    material,
+    atlasAssetId,
+    image: image?.complete && (image.naturalWidth ?? image.width) > 0 ? image : null,
+    normalLight: surface?.normal ? importedNormalLight(surface.normal, renderOptions.environmentLighting) : 0,
+  };
+}
+
+function drawAtlasVoxel(ctx, surfaceRender, vx, vy, x, y, size, shadeAmount) {
+  const { image, surface } = surfaceRender;
+  if (!image || !surface) return false;
+  const imageWidth = image.naturalWidth ?? image.width;
+  const imageHeight = image.naturalHeight ?? image.height;
+  const source = resolveSurfaceTextureSample(surface, imageWidth, imageHeight, vx, vy, VOXELS);
+  if (!source) return false;
+  ctx.drawImage(image, source.x, source.y, source.width, source.height, x, y, size, size);
+  const overlayAlpha = Math.min(0.7, Math.abs(shadeAmount) / 180);
+  if (overlayAlpha > 0.001) {
+    ctx.save();
+    ctx.globalAlpha *= overlayAlpha;
+    ctx.fillStyle = shadeAmount >= 0 ? '#ffffff' : '#000000';
+    ctx.fillRect(x, y, size, size);
+    ctx.restore();
+  }
+  return true;
+}
+
 function getCachedCellSprite(cell, palette, renderOptions) {
   const cache = renderOptions.cellSpriteCache;
-  const key = cellSpriteCacheKey(cell, palette, renderOptions.environmentLighting);
+  const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
+  const surfaceRender = resolveCellSurfaceRender(normalizeRenderMaterial(cell, { id: cell.material ?? cell.type, albedo: base }), renderOptions);
+  if (surfaceRender.atlasAssetId && !surfaceRender.image) return null;
+  const key = cellSpriteCacheKey(cell, palette, renderOptions);
   const cached = cache.get(key);
   if (cached) return cached;
   if (cache.size >= CELL_SPRITE_CACHE_MAX) cache.delete(cache.keys().next().value);
@@ -602,10 +655,11 @@ function buildCellSprite(cell, palette, renderOptions) {
   return { canvas, anchorX, anchorY };
 }
 
-function cellSpriteCacheKey(cell, palette, environmentLighting) {
+function cellSpriteCacheKey(cell, palette, renderOptions) {
   const base = palette[cell.type] ?? COLORS[cell.type] ?? '#bcc2b1';
-  const material = normalizeRenderMaterial(cell, { id: cell.material ?? cell.type, albedo: base });
-  const environment = resolveEnvironmentLighting(environmentLighting ?? 'DAY');
+  const cellMaterial = normalizeRenderMaterial(cell, { id: cell.material ?? cell.type, albedo: base });
+  const { material, surface } = resolveCellSurfaceRender(cellMaterial, renderOptions);
+  const environment = resolveEnvironmentLighting(renderOptions.environmentLighting ?? 'DAY');
   return [
     cell.type,
     cell.material ?? '',
@@ -617,6 +671,12 @@ function cellSpriteCacheKey(cell, palette, environmentLighting) {
     material.texture.scale,
     material.texture.strength,
     material.texture.seedOffset,
+    material.pbr?.baseColorTexture?.atlasAssetId ?? '',
+    surface?.materialId ?? '',
+    ...(surface?.normal ?? []),
+    ...(surface?.uvOrigin ?? []),
+    ...(surface?.uvStepX ?? []),
+    ...(surface?.uvStepY ?? []),
     material.pseudoHeight,
     Math.round(environment.keyLightDirection.x * 10),
     Math.round(environment.keyLightDirection.y * 10),
@@ -719,7 +779,7 @@ function drawComMarker(ctx, com) {
   ctx.stroke();
 }
 
-function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCache = null) {
+function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCache = null, imageAssets = null, renderAssets = null) {
   const remnantAlpha = destroyedEnemyRemnantAlpha(enemy, time);
   if (enemy.destroyed && remnantAlpha <= 0) return;
   ctx.save();
@@ -768,7 +828,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
         (enemy.destroyed ? 0.35 : 1) * phasedCoreAlpha,
         palette,
         posed.rotation,
-        { cellSpriteCache, environmentLighting: game?.environmentLighting },
+        { cellSpriteCache, environmentLighting: game?.environmentLighting, imageAssets, renderAssets },
       );
     }
   }

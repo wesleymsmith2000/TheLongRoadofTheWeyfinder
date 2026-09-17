@@ -180,3 +180,39 @@ test('weight helpers normalize bindings and derive rigid defaults from groups', 
     { gun: [{ joint: 'gunJoint', weight: 1 }] },
   );
 });
+
+test('native imported clips interpolate translation and flattened glTF rotation through joint parents', () => {
+  const cell = createCell('hand-cell', 'gun', 1, 0);
+  const entity = {
+    cells: [cell],
+    poseRig: {
+      groups: [
+        { id: 'body', cells: [], pivot: [0, 0, 0] },
+        { id: 'hand', cells: [cell.id], pivot: [0, 0, 0] },
+      ],
+      joints: [
+        { id: 'bodyJoint', group: 'body' },
+        { id: 'handJoint', group: 'hand', parent: 'bodyJoint' },
+      ],
+      cellBindings: { [cell.id]: [{ joint: 'handJoint', weight: 1 }] },
+      clips: [{
+        id: 'imported-wave',
+        duration: 1,
+        loop: false,
+        coordinateMode: 'XY_Z_UP',
+        tracks: [
+          { joint: 'bodyJoint', path: 'translation', interpolation: 'LINEAR', times: [0, 1], values: [[0, 0, 0], [10, 0, 0]] },
+          { joint: 'handJoint', path: 'rotation', interpolation: 'LINEAR', times: [0, 1], values: [[0, 0, 0, 1], [0, 0, Math.SQRT1_2, Math.SQRT1_2]] },
+        ],
+      }],
+      animations: [{ id: 'play-wave', kind: 'clip', clip: 'imported-wave', driver: 'time', loop: false }],
+    },
+  };
+
+  const transform = evaluatePoseRig(entity, { time: 0.5 }).get(cell.id);
+  const posed = applyCellPoseTransform(cell, { x: CELL_SIZE, y: 0 }, new Map([[cell.id, transform]]));
+
+  assert.equal(posed.x.toFixed(3), (5 + CELL_SIZE * Math.SQRT1_2).toFixed(3));
+  assert.equal(posed.y.toFixed(3), (CELL_SIZE * Math.SQRT1_2).toFixed(3));
+  assert.equal(transform.rotation.toFixed(3), (Math.PI / 4).toFixed(3));
+});

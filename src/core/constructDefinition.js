@@ -2,7 +2,7 @@ import { createCell } from './cell.js';
 import { coreDistanceMap, createConnection, OPPOSITE } from './connections.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { normalizePoseRig, validatePoseRig } from './poseAnimation.js';
-import { validateRenderMaterialFields } from './renderMaterial.js';
+import { normalizeRenderSurfaces, validateRenderMaterialFields } from './renderMaterial.js';
 
 export const CONSTRUCT_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export { CANON_STATUSES };
@@ -100,6 +100,9 @@ export function instantiateConstruct(definition) {
       if (['id', 'type', 'gridX', 'gridY', 'gridZ', 'layer'].includes(key)) continue;
       runtimeCell[key] = structuredClone(value);
     }
+    if (runtimeCell.render?.surfaces) {
+      runtimeCell.render.surfaces = normalizeRenderSurfaces(runtimeCell.render.surfaces);
+    }
     runtimeCell.sourceId = cell.id;
     return runtimeCell;
   });
@@ -160,11 +163,12 @@ export function annotateConstructRuntimeMetadata(construct, definition = null) {
 
 function constructPoseRigDefinition(definition) {
   if (definition?.poseRig) return definition.poseRig;
-  if (definition?.cellGroups || definition?.joints || definition?.poses || definition?.poseAnimations || definition?.cellBindings || definition?.poseDynamics || definition?.poseRigImports) {
+  if (definition?.cellGroups || definition?.joints || definition?.poses || definition?.animationClips || definition?.poseAnimations || definition?.cellBindings || definition?.poseDynamics || definition?.poseRigImports) {
     return {
       groups: definition.cellGroups,
       joints: definition.joints,
       poses: definition.poses,
+      clips: definition.animationClips,
       animations: definition.poseAnimations,
       cellBindings: definition.cellBindings,
       dynamics: definition.poseDynamics,
