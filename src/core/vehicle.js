@@ -177,8 +177,8 @@ export function repairVehicleDamage(vehicle, repairPower, target = 'all') {
   return repaired;
 }
 
-export function replaceDetachedVehicleCell(vehicle) {
-  const cell = nextReplaceableDetachedCell(vehicle);
+export function replaceDetachedVehicleCell(vehicle, target = 'all') {
+  const cell = nextReplaceableDetachedVehicleCell(vehicle, target);
   if (!cell) return null;
   cell.mask = createVoxelMask(cell.type);
   cell.attached = true;
@@ -189,8 +189,10 @@ export function replaceDetachedVehicleCell(vehicle) {
   return cell;
 }
 
-function nextReplaceableDetachedCell(vehicle) {
-  return vehicle.cells.find((candidate) => !candidate.attached && canAttachReplacement(vehicle, candidate));
+export function nextReplaceableDetachedVehicleCell(vehicle, target = 'all') {
+  return vehicle.cells.find(
+    (candidate) => !candidate.attached && cellMatchesRepairTarget(candidate, target) && canAttachReplacement(vehicle, candidate),
+  );
 }
 
 function canAttachReplacement(vehicle, candidate) {
@@ -207,6 +209,10 @@ function canAttachReplacement(vehicle, candidate) {
 
 export function countDetachedVehicleCells(vehicle) {
   return vehicle.cells.filter((cell) => !cell.attached).length;
+}
+
+export function countDetachedVehicleCellsForTarget(vehicle, target = 'all') {
+  return vehicle.cells.filter((cell) => !cell.attached && cellMatchesRepairTarget(cell, target)).length;
 }
 
 export function hasRepairableVehicleDamage(vehicle, target = 'all') {

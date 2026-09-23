@@ -47,17 +47,27 @@ import {
   ammoRefillCost,
   ammoStatus,
   availableUpgradeDefinitions,
+  configureSandboxLoadout,
   repairCost,
+  repairAllStatus,
+  repairSandboxVehicle,
+  refillSandboxAmmo,
   repairStatus,
   replacementCost,
   replacementStatus,
   upgradeCost,
   upgradeStatus,
 } from './core/economy.js';
-import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairTargetOptions } from './core/vehicle.js';
+import {
+  countDetachedVehicleCells,
+  hasRepairableVehicleDamage,
+  nextReplaceableDetachedVehicleCell,
+  repairTargetOptions,
+} from './core/vehicle.js';
 import { DEFAULT_SANDBOX_DEFINITION, sandboxDefinitionFromEnemy, sandboxDefinitionFromLevel, validateSandboxDefinition } from './core/sandboxMode.js';
 import { beginEncounter, activeEncounterView, chooseEncounterChoice } from './core/encounterRuntime.js';
 import { normalizeEncounterDefinition, validateEncounterDefinition } from './core/encounterDefinition.js';
+import { ENCOUNTER_CONDITION_TYPES, ENCOUNTER_EFFECT_TYPES } from './core/encounterVerbRegistry.js';
 import levelCompleteBannerArt from '../assets/images/level_complete_banner.png';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import bossDefeatedBannerArt from '../assets/images/boss_defeated_banner.png';
@@ -310,6 +320,13 @@ const sandboxStatus = document.querySelector('#sandboxStatus');
 const sandboxContentInput = document.querySelector('#sandboxContentInput');
 const sandboxLevelSelect = document.querySelector('#sandboxLevelSelect');
 const sandboxPlayLevel = document.querySelector('#sandboxPlayLevel');
+const sandboxLoadoutToggle = document.querySelector('#sandboxLoadoutToggle');
+const sandboxLoadoutPanel = document.querySelector('#sandboxLoadoutPanel');
+const sandboxUpgradeSelect = document.querySelector('#sandboxUpgradeSelect');
+const sandboxUpgradeLevel = document.querySelector('#sandboxUpgradeLevel');
+const sandboxApplyUpgrade = document.querySelector('#sandboxApplyUpgrade');
+const sandboxRepairVehicle = document.querySelector('#sandboxRepairVehicle');
+const sandboxRefillAmmo = document.querySelector('#sandboxRefillAmmo');
 const encounterVignette = document.querySelector('#encounterVignette');
 const encounterSpeaker = document.querySelector('#encounterSpeaker');
 const encounterTitle = document.querySelector('#encounterTitle');
@@ -351,6 +368,7 @@ const levelNumber = document.querySelector('#levelNumber');
 const levelsCompleted = document.querySelector('#levelsCompleted');
 const nextLevelButton = document.querySelector('#nextLevelButton');
 const shopRepairButton = document.querySelector('#shopRepairButton');
+const shopRepairAllButton = document.querySelector('#shopRepairAllButton');
 const shopReplaceButton = document.querySelector('#shopReplaceButton');
 const shopRefillAmmoButton = document.querySelector('#shopRefillAmmoButton');
 const shopRepairCost = document.querySelector('#shopRepairCost');
@@ -359,6 +377,7 @@ const shopAmmoCost = document.querySelector('#shopAmmoCost');
 const shopSelectedAmmo = document.querySelector('#shopSelectedAmmo');
 const shopScrapAvailable = document.querySelector('#shopScrapAvailable');
 const shopRepairStatus = document.querySelector('#shopRepairStatus');
+const shopRepairAllStatus = document.querySelector('#shopRepairAllStatus');
 const shopReplaceStatus = document.querySelector('#shopReplaceStatus');
 const shopAmmoStatus = document.querySelector('#shopAmmoStatus');
 const shopRepairTarget = document.querySelector('#shopRepairTarget');
@@ -630,6 +649,7 @@ function frame(now) {
     controlsTogglePressed: keyInput.controlsTogglePressed || padActionInput.controlsTogglePressed,
     nextLevelPressed: nextLevelButtonPressed.consume(),
     shopRepairPressed: shopRepairPressed.consume(),
+    shopRepairAllPressed: shopRepairAllPressed.consume(),
     shopRepairTarget: shopRepairTarget.value,
     shopReplacePressed: shopReplacePressed.consume(),
     shopRefillAmmoPressed: shopRefillAmmoPressed.consume(),
@@ -661,6 +681,7 @@ function frame(now) {
   };
   if (
     input.shopRepairPressed ||
+    input.shopRepairAllPressed ||
     input.shopReplacePressed ||
     input.shopRefillAmmoPressed ||
     input.shopBuyUpgradePressed ||
@@ -786,6 +807,10 @@ sandboxRefresh.addEventListener('click', () => {
 });
 sandboxContentInput.addEventListener('change', importSandboxContentFiles);
 sandboxPlayLevel.addEventListener('click', playSelectedSandboxLevel);
+sandboxLoadoutToggle.addEventListener('click', toggleSandboxLoadout);
+sandboxApplyUpgrade.addEventListener('click', applySandboxLoadoutUpgrade);
+sandboxRepairVehicle.addEventListener('click', repairSandboxLoadoutVehicle);
+sandboxRefillAmmo.addEventListener('click', refillSandboxLoadoutAmmo);
 sandboxEnemySelect.addEventListener('change', updateSandboxScriptFromQuick);
 sandboxCountInput.addEventListener('input', updateSandboxScriptFromQuick);
 sandboxFrequencyInput.addEventListener('input', updateSandboxScriptFromQuick);
@@ -800,6 +825,7 @@ const targetCellNextPressed = createButtonPress(targetCellNextButton);
 const nextLevelButtonPressed = createButtonPress(nextLevelButton);
 const restartButtonPressed = createButtonPress(restartButton);
 const shopRepairPressed = createButtonPress(shopRepairButton);
+const shopRepairAllPressed = createButtonPress(shopRepairAllButton);
 const shopReplacePressed = createButtonPress(shopReplaceButton);
 const shopRefillAmmoPressed = createButtonPress(shopRefillAmmoButton);
 const shopBuyUpgradePressed = createButtonPress(shopBuyUpgradeButton);
@@ -827,6 +853,56 @@ function toggleAchievements() {
 function toggleSandboxPanel() {
   sandboxPanel.classList.toggle('hidden');
   sandboxToggle.setAttribute('aria-pressed', String(!sandboxPanel.classList.contains('hidden')));
+}
+
+function toggleSandboxLoadout() {
+  const visible = sandboxLoadoutPanel.classList.toggle('hidden') === false;
+  sandboxLoadoutToggle.setAttribute('aria-pressed', String(visible));
+  if (visible) refreshSandboxLoadoutOptions();
+}
+
+function refreshSandboxLoadoutOptions() {
+  const selected = sandboxUpgradeSelect.value;
+  const upgrades = availableUpgradeDefinitions(game, game.account, game.vehicleDefinition);
+  sandboxUpgradeSelect.replaceChildren(
+    new Option('All installed upgrades', 'all'),
+    ...upgrades.map((upgrade) => new Option(`${upgrade.system}: ${upgrade.label}`, upgrade.id)),
+  );
+  sandboxUpgradeSelect.value = selected === 'all' || upgrades.some((upgrade) => upgrade.id === selected) ? selected : 'all';
+}
+
+function applySandboxLoadoutUpgrade() {
+  if (!game.sandbox?.enabled) {
+    sandboxStatus.textContent = 'Start a sandbox run before changing its loadout.';
+    return;
+  }
+  const level = Math.max(0, Math.min(99, Math.trunc(Number(sandboxUpgradeLevel.value) || 0)));
+  const selected = sandboxUpgradeSelect.value;
+  const result = configureSandboxLoadout(game, selected === 'all'
+    ? { allUpgradeLevel: level }
+    : { upgradeLevels: { [selected]: level } });
+  sandboxStatus.textContent = `Sandbox loadout updated: ${result.applied.length} upgrade${result.applied.length === 1 ? '' : 's'} set to level ${level}.`;
+  uiDirty.shop = true;
+}
+
+function repairSandboxLoadoutVehicle() {
+  if (!game.sandbox?.enabled) {
+    sandboxStatus.textContent = 'Start a sandbox run before repairing its vehicle.';
+    return;
+  }
+  const result = repairSandboxVehicle(game);
+  sandboxStatus.textContent = result.changed
+    ? `Sandbox vehicle restored: ${result.replaced} cells replaced and ${Math.ceil(result.repaired)} damage repaired.`
+    : 'Sandbox vehicle is already fully repaired.';
+}
+
+function refillSandboxLoadoutAmmo() {
+  if (!game.sandbox?.enabled) {
+    sandboxStatus.textContent = 'Start a sandbox run before refilling its ammo.';
+    return;
+  }
+  const refilled = refillSandboxAmmo(game);
+  sandboxStatus.textContent = refilled ? `Refilled ${refilled} sandbox ammo reserve${refilled === 1 ? '' : 's'}.` : 'Sandbox ammo is already full.';
 }
 
 function syncSecondarySelects(event) {
@@ -1939,6 +2015,20 @@ function exposeSandboxApi() {
         dependencies: structuredClone(runPackage.dependencies ?? []),
       };
     },
+    loadout(options = {}) {
+      if (!game.sandbox?.enabled) return { ok: false, error: 'Start a sandbox run before changing its loadout.' };
+      const result = configureSandboxLoadout(game, options);
+      refreshSandboxLoadoutOptions();
+      return { ok: true, ...structuredClone(result) };
+    },
+    repair(target = 'all') {
+      if (!game.sandbox?.enabled) return { ok: false, error: 'Start a sandbox run before repairing its vehicle.' };
+      return { ok: true, ...repairSandboxVehicle(game, target) };
+    },
+    refillAmmo(weapon = 'all') {
+      if (!game.sandbox?.enabled) return { ok: false, error: 'Start a sandbox run before refilling its ammo.' };
+      return { ok: true, refilled: refillSandboxAmmo(game, weapon) };
+    },
     stop: stopSandbox,
     current() {
       return game.sandbox?.definition ? structuredClone(game.sandbox.definition) : null;
@@ -1950,6 +2040,15 @@ function exposeEncounterApi() {
   window.WeyfinderEncounters = Object.freeze({
     normalize: normalizeEncounterDefinition,
     validate: validateEncounterDefinition,
+    verbs() {
+      return {
+        conditions: [...ENCOUNTER_CONDITION_TYPES],
+        effects: [...ENCOUNTER_EFFECT_TYPES],
+      };
+    },
+    diagnostics() {
+      return structuredClone(game.encounters?.diagnostics ?? []);
+    },
     start(definitionOrId, options = {}) {
       const instance = beginEncounter(game, definitionOrId, options);
       return structuredClone(instance);
@@ -2673,7 +2772,7 @@ function updateShopUi(dt = 0) {
   uiTimers.shop = 0;
   if (!shopAmmoSelect.value) shopAmmoSelect.value = game.secondary.selected;
   const ammoWeapon = shopAmmoSelect.value;
-  const ammoCost = ammoRefillCost(ammoWeapon);
+  const ammoCost = ammoRefillCost(game, ammoWeapon);
   const ammo = game.secondary.ammo[ammoWeapon];
   const ammoCapacity = ammoCapacityWithUpgrades(game, ammoWeapon);
   refreshRepairTargets();
@@ -2682,6 +2781,8 @@ function updateShopUi(dt = 0) {
   const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
   const selectedRepairCost = repairCost(game, shopRepairTarget.value);
   const selectedReplacementCost = replacementCost(game);
+  const selectedRepairAllReplacement = nextReplaceableDetachedVehicleCell(game.vehicle, shopRepairTarget.value);
+  const selectedRepairAllReplacementCost = replacementCost(game, shopRepairTarget.value);
   const selectedUpgrade = availableShopUpgrades().find((upgrade) => upgrade.id === shopUpgradeSelect.value);
   if (selectedUpgrade) {
     setIconElement(shopUpgradeSystemIcon, systemIconDescriptorForUpgrade(selectedUpgrade));
@@ -2702,10 +2803,15 @@ function updateShopUi(dt = 0) {
   shopScrapAvailable.textContent = game.scrap;
   shopSelectedAmmo.textContent = ammoWeapon;
   shopRepairStatus.textContent = repairStatus(game, shopRepairTarget.value);
+  shopRepairAllStatus.textContent = repairAllStatus(game, shopRepairTarget.value);
   shopReplaceStatus.textContent = replacementStatus(game);
   shopAmmoStatus.textContent = ammoStatus(game, ammoWeapon);
   shopUpgradeStatus.textContent = upgradeStatus(game, shopUpgradeSelect.value);
   shopRepairButton.disabled = selectedRepairCost <= 0 || game.scrap < selectedRepairCost || !hasRepairableVehicleDamage(game.vehicle, shopRepairTarget.value);
+  shopRepairAllButton.disabled = !(
+    (selectedRepairAllReplacement && game.scrap >= selectedRepairAllReplacementCost)
+    || (selectedRepairCost > 0 && game.scrap >= selectedRepairCost)
+  );
   shopReplaceButton.disabled = game.scrap < selectedReplacementCost || countDetachedVehicleCells(game.vehicle) === 0;
   shopRefillAmmoButton.disabled = !Number.isFinite(ammoCost) || game.scrap < ammoCost || ammo == null || ammo >= ammoCapacity;
   shopBuyUpgradeButton.disabled = !Number.isFinite(selectedUpgradeCost) || game.scrap < selectedUpgradeCost;

@@ -632,6 +632,48 @@
         font-size: 12px;
       }
 
+      .sandbox-loadout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(90px, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgb(244 238 228 / 0.18);
+      }
+
+      .sandbox-loadout.hidden {
+        display: none;
+      }
+
+      .sandbox-loadout label {
+        display: grid;
+        gap: 4px;
+        color: #d7ceb8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .sandbox-loadout select,
+      .sandbox-loadout input {
+        min-width: 0;
+        min-height: 36px;
+        border: 1px solid rgb(244 238 228 / 0.24);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.84);
+        color: #f4eee4;
+      }
+
+      .sandbox-loadout-actions {
+        display: flex;
+        grid-column: 1 / -1;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .sandbox-loadout-actions button {
+        flex: 1 1 140px;
+      }
+
       .pause-screen {
         position: fixed;
         inset: 0;
@@ -2094,6 +2136,22 @@
         <button id="sandboxPlayLevel" type="button">Play Custom Level</button>
         <button id="sandboxStop" type="button">Stop</button>
         <button id="sandboxRefresh" type="button">Refresh Content</button>
+        <button id="sandboxLoadoutToggle" type="button" aria-pressed="false">Loadout</button>
+      </div>
+      <div id="sandboxLoadoutPanel" class="sandbox-loadout hidden">
+        <label for="sandboxUpgradeSelect">
+          Upgrade
+          <select id="sandboxUpgradeSelect"></select>
+        </label>
+        <label for="sandboxUpgradeLevel">
+          Level
+          <input id="sandboxUpgradeLevel" type="number" min="0" max="99" step="1" value="10" />
+        </label>
+        <div class="sandbox-loadout-actions">
+          <button id="sandboxApplyUpgrade" type="button">Set Upgrade Level</button>
+          <button id="sandboxRepairVehicle" type="button">Repair Vehicle</button>
+          <button id="sandboxRefillAmmo" type="button">Refill All Ammo</button>
+        </div>
       </div>
       <div id="sandboxStatus" class="sandbox-status" aria-live="polite"></div>
     </div>
@@ -2281,6 +2339,11 @@
               <span class="icon-sprite" data-sheet="system" data-icon="repair" aria-hidden="true"></span>
               <span class="shop-button-label">Repair Systems</span>
               <span class="shop-button-detail">Cost <span id="shopRepairCost">2</span> scrap, <span id="shopRepairStatus">Ready</span></span>
+            </button>
+            <button id="shopRepairAllButton" type="button">
+              <span class="icon-sprite" data-sheet="system" data-icon="repair" aria-hidden="true"></span>
+              <span class="shop-button-label">Repair All Selected</span>
+              <span class="shop-button-detail"><span id="shopRepairAllStatus">Repair all damage and replace matching cells</span></span>
             </button>
             <button id="shopReplaceButton" type="button">
               <span class="icon-sprite" data-sheet="system" data-icon="replace" aria-hidden="true"></span>

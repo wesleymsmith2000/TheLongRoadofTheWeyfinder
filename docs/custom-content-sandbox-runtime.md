@@ -1,6 +1,6 @@
 # Custom Content Sandbox Runtime
 
-Version `v1.0.9.2` adds a JSON-first test path for local levels and their dependencies.
+Version `v1.0.9.3` extends the JSON-first test path for local levels and their dependencies.
 The game Sandbox can import one or more JSON files, install/reinstall their local pack,
 select a level, and launch it without adding that content to the bundled campaign.
 
@@ -18,12 +18,38 @@ WeyfinderSandbox.levels()
 WeyfinderSandbox.runLevel(levelId, { seed: 1147 })
 WeyfinderSandbox.enemies()
 WeyfinderSandbox.quickSpawn(enemyId)
+WeyfinderSandbox.loadout({ allUpgradeLevel: 12, repair: true, refillAmmo: true })
+WeyfinderSandbox.loadout({ upgradeLevels: { rocketBlastDamage: 8 } })
+WeyfinderSandbox.repair('gun')
+WeyfinderSandbox.refillAmmo('rocket')
 WeyfinderSandbox.stop()
 ```
 
 `runLevel` validates and resolves the installed level, translates distance-authored waves
 into the Sandbox clock, applies the level route and lighting, and loads local constructs,
 patterns, encounters, and voxel models from the merged registry.
+
+The in-game Sandbox `Loadout` panel exposes the same testing operations without requiring
+the browser console. It can set one upgrade or every currently installed upgrade to an
+explicit level, restore detached/damaged cells for free, and refill every ammo reserve.
+
+## Runtime verb discovery
+
+Encounter validation and execution share one registry. Editor/runtime integrations can
+inspect the executable vocabulary and runtime diagnostics with:
+
+```js
+WeyfinderEncounters.verbs()
+WeyfinderEncounters.diagnostics()
+```
+
+An unknown encounter condition fails closed and records a diagnostic. Unknown condition
+or effect names fail validation rather than being accepted as if the runtime supported them.
+
+When `createGame` receives a `levelDefinition`, its route, lighting, waves, obstacles,
+constructs, patterns, and voxel models are authoritative. The legacy campaign schedule is
+used only when no authored level is supplied. Wave `atDistance` and `distanceInterval`
+values remain route-distance triggers in the runtime spawn queue.
 
 ## Custom model references
 

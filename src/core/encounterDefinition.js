@@ -1,55 +1,20 @@
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
+import {
+  ENCOUNTER_CONDITION_TYPES,
+  ENCOUNTER_EFFECT_TYPES,
+  ENCOUNTER_MUSIC_STATES,
+  validateEncounterConditionVerb,
+  validateEncounterEffectVerb,
+} from './encounterVerbRegistry.js';
 
 export const ENCOUNTER_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 
 export const ENCOUNTER_TRIGGER_TYPES = ['route_distance', 'enter_zone', 'interact_button', 'collision', 'projectile_hit', 'manual'];
 export const ENCOUNTER_PRESENTATION_MODES = ['liveRouteChoice', 'modalChoicePaused', 'worldHoldInteraction'];
 export const ENCOUNTER_PAUSE_POLICIES = ['none', 'traversalHold', 'encounterHold', 'fullPause', 'custom'];
-export const ENCOUNTER_EFFECT_TYPES = [
-  'selectRouteBranch',
-  'spawnEncounter',
-  'scheduleEncounter',
-  'giveResource',
-  'consumeResource',
-  'changeWeather',
-  'changeMusicState',
-  'setWorldFlag',
-  'setEncounterVariable',
-  'advanceTime',
-  'setRouteModifier',
-  'addChronicleEntry',
-  'addDirectorInfluence',
-  'setTerrainHold',
-  'setLightingPreset',
-  'transitionLightingPreset',
-  'enableLight',
-  'disableLight',
-  'changeLightBand',
-  'revealFluorescentLayer',
-  'chargeMaterial',
-  'clearPhosphorCharge',
-  'showText',
-  'revealObjectState',
-];
-export const ENCOUNTER_CONDITION_TYPES = [
-  'flagEquals',
-  'resourceAbove',
-  'resourceBelow',
-  'vehicleIntegrityBelow',
-  'choiceWas',
-  'interactionCount',
-  'timeOfDayAtLeast',
-  'chronicleHas',
-  'directorInfluenceAbove',
-  'routeBranchSelected',
-  'materialIsExcited',
-  'phosphorChargeAbove',
-  'lightBandPresent',
-  'lightIntensityAbove',
-  'objectIlluminatedBy',
-];
+export { ENCOUNTER_CONDITION_TYPES, ENCOUNTER_EFFECT_TYPES };
 export const ENCOUNTER_REPERCUSSION_TRIGGER_TYPES = ['after_route_distance', 'next_level', 'enter_biome', 'timer', 'after_event', 'resource_threshold', 'run_end'];
-export const ENCOUNTER_MUSIC_STATES = ['TRAVEL', 'ATTENTION', 'SUSPICION', 'MANIFESTATION', 'AFTERIMAGE', 'ROAD_ATTENTION', 'FATE_ATTENTION'];
+export { ENCOUNTER_MUSIC_STATES };
 
 const CUSTOM_PAUSE_FLAGS = [
   'advanceVehicle',
@@ -381,7 +346,7 @@ function validateConditions(conditions, label, errors) {
     return;
   }
   for (const [index, condition] of conditions.entries()) {
-    if (!ENCOUNTER_CONDITION_TYPES.includes(condition.type)) errors.push(`${label}[${index}].type must be one of: ${ENCOUNTER_CONDITION_TYPES.join(', ')}.`);
+    errors.push(...validateEncounterConditionVerb(condition, `${label}[${index}]`));
   }
 }
 
@@ -403,25 +368,7 @@ function validateEffects(effects, label, errors, warnings) {
   if (effects.length > 12) warnings.push(`${label} has many effects; mobile runtime should avoid large synchronous effect bursts.`);
   for (const [index, effect] of effects.entries()) {
     const entryLabel = `${label}[${index}]`;
-    if (!ENCOUNTER_EFFECT_TYPES.includes(effect.type)) errors.push(`${entryLabel}.type must be one of: ${ENCOUNTER_EFFECT_TYPES.join(', ')}.`);
-    if (effect.type === 'selectRouteBranch' && !isNonEmptyString(effect.branchId)) errors.push(`${entryLabel}.branchId is required for selectRouteBranch.`);
-    if ((effect.type === 'spawnEncounter' || effect.type === 'scheduleEncounter') && !isNonEmptyString(effect.encounterId)) {
-      errors.push(`${entryLabel}.encounterId is required for ${effect.type}.`);
-    }
-    if (effect.type === 'changeMusicState' && !ENCOUNTER_MUSIC_STATES.includes(effect.state)) {
-      errors.push(`${entryLabel}.state must be one of: ${ENCOUNTER_MUSIC_STATES.join(', ')}.`);
-    }
-    if (effect.type === 'setEncounterVariable' && !isNonEmptyString(effect.key)) errors.push(`${entryLabel}.key is required for setEncounterVariable.`);
-    if ((effect.type === 'giveResource' || effect.type === 'consumeResource') && !isNonEmptyString(effect.resource)) errors.push(`${entryLabel}.resource is required for ${effect.type}.`);
-    if ((effect.type === 'setLightingPreset' || effect.type === 'transitionLightingPreset') && !isNonEmptyString(effect.presetId)) {
-      errors.push(`${entryLabel}.presetId is required for ${effect.type}.`);
-    }
-    if ((effect.type === 'enableLight' || effect.type === 'disableLight' || effect.type === 'changeLightBand') && !isNonEmptyString(effect.lightId)) {
-      errors.push(`${entryLabel}.lightId is required for ${effect.type}.`);
-    }
-    if ((effect.type === 'revealFluorescentLayer' || effect.type === 'chargeMaterial' || effect.type === 'clearPhosphorCharge') && !isNonEmptyString(effect.targetId)) {
-      errors.push(`${entryLabel}.targetId is required for ${effect.type}.`);
-    }
+    errors.push(...validateEncounterEffectVerb(effect, entryLabel));
   }
 }
 

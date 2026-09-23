@@ -246,3 +246,35 @@ test('custom hazard obstacles apply data-driven effects and remain terrain ancho
   assert.equal(obstacle.x, start.x);
   assert.equal(obstacle.y, start.y);
 });
+
+test('supplied level definitions replace the legacy schedule and use route-distance spawns', () => {
+  const level = {
+    schemaVersion: '0.1',
+    assetId: 'community.authoritative_level',
+    displayName: 'Authoritative Level',
+    background: { mode: 'procedural', layers: [{ id: 'road', source: 'procedural', generator: 'roadGrid', parallax: 1 }] },
+    route: { startHeading: 0.4, segments: [{ id: 'short', length: 120, turnRadians: 0 }] },
+    waves: [{ id: 'only-wave', atDistance: 30, spawn: [{ construct: 'community.only_enemy', count: 1, spacing: 0 }] }],
+    obstacles: [],
+    triggers: [],
+  };
+  const construct = {
+    schemaVersion: '0.1',
+    assetId: 'community.only_enemy',
+    cells: [{ id: 'core', type: 'core', gridX: 0, gridY: 0 }],
+    connections: [],
+  };
+  const game = createGame(91, { levelDefinition: level, constructDefinitions: [construct] });
+
+  assert.equal(game.sandbox, null);
+  assert.equal(game.levelDefinition.assetId, level.assetId);
+  assert.equal(game.road.route, level.route);
+  assert.equal(game.enemies.length, 0);
+  assert.equal(game.enemySpawnQueue.length, 1);
+  assert.equal(game.enemySpawnQueue[0].triggerDistance, 30);
+  assert.equal(game.enemySpawnQueue[0].enemy.assetId, construct.assetId);
+
+  game.road.routeDistance = 30;
+  stepGame(game, {}, 1 / 60);
+  assert.equal(game.enemies.some((enemy) => enemy.assetId === construct.assetId), true);
+});

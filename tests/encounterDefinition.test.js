@@ -55,3 +55,25 @@ test('encounter validation accepts state maps for runtime importer flexibility',
 
   assert.equal(report.valid, true);
 });
+
+test('encounter validation rejects advertised-only verbs without runtime implementations', () => {
+  const report = validateEncounterDefinition({
+    ...moonlitBeaconEncounter,
+    initialState: 'start',
+    states: [{
+      id: 'start',
+      choices: [{
+        id: 'unsupported',
+        label: 'Unsupported',
+        conditions: [{ type: 'vehicleIntegrityBelow', amount: 0.5 }],
+        effects: [{ type: 'changeWeather', profileId: 'storm' }],
+      }],
+    }],
+    interactions: [],
+    repercussions: [],
+  });
+
+  assert.equal(report.valid, false);
+  assert.equal(report.errors.some((error) => error.includes('vehicleIntegrityBelow')), true);
+  assert.equal(report.errors.some((error) => error.includes('changeWeather')), true);
+});

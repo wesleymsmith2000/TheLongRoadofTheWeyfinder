@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
 import { beginEncounter, activeEncounterView, chooseEncounterChoice, encounterPausePolicy } from '../src/core/encounterRuntime.js';
 import { normalizeEncounterDefinition, validateEncounterDefinition } from '../src/core/encounterDefinition.js';
+import { evaluateEncounterCondition, executeEncounterEffect } from '../src/core/encounterVerbRegistry.js';
 
 const FORK_ENCOUNTER = {
   schemaVersion: '0.1',
@@ -96,4 +97,15 @@ test('sandbox encounter event starts an inline vignette', () => {
   stepGame(game, {}, 1 / 60);
   assert.equal(activeEncounterView(game).definitionId, 'encounter.test.fork');
   assert.equal(game.sandbox.lastMessage, 'fork: encounter started.');
+});
+
+test('encounter verb registry fails closed and executes registered effects', () => {
+  const game = createGame(1147);
+  const instance = { definitionId: 'test', selectedChoices: [], variables: {}, instanceId: 'test:1' };
+  const unsupported = evaluateEncounterCondition(game, instance, { type: 'notImplemented' });
+
+  assert.deepEqual(unsupported, { supported: false, passed: false });
+  assert.equal(executeEncounterEffect(game, instance, { type: 'notImplemented' }), false);
+  assert.equal(executeEncounterEffect(game, instance, { type: 'setWorldFlag', flag: 'doorOpen', value: true }), true);
+  assert.equal(game.encounters.worldFlags.doorOpen, true);
 });

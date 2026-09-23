@@ -9,7 +9,9 @@ import {
   ammoRefillCost,
   availableUpgradeDefinitions,
   buyUpgradeWithScrap,
+  configureSandboxLoadout,
   refillAmmoWithScrap,
+  repairAllVehicleWithScrap,
   repairCost,
   repairStatus,
   repairVehicleWithScrap,
@@ -109,6 +111,21 @@ test('repair shop can target one damaged system', () => {
   assert.equal(gun.state.mass, gunBefore);
 });
 
+test('repair all replaces and fully repairs only the selected system type', () => {
+  const game = createGame();
+  const wheel = game.vehicle.cells.find((candidate) => candidate.id === 'wheel-left');
+  const armor = game.vehicle.cells.find((candidate) => candidate.id === 'armor-left');
+  wheel.attached = false;
+  game.vehicle.detachedPieces.push({ cell: wheel });
+  armor.mask[0][0].hp = Math.max(0, armor.mask[0][0].hp - 5);
+  game.scrap = 1_000;
+  const result = repairAllVehicleWithScrap(game, 'wheel');
+  assert.equal(result.changed, true);
+  assert.equal(result.replaced, 1);
+  assert.equal(wheel.attached, true);
+  assert.equal(armor.mask[0][0].hp < armor.mask[0][0].maxHp, true);
+});
+
 test('repair cost rises only with the damaged system upgrade levels', () => {
   const game = createGame();
   applyVehicleDamage(game.vehicle, { x: -CELL_SIZE, y: -CELL_SIZE }, CELL_SIZE * 0.45, 6);
@@ -138,6 +155,32 @@ test('ammo refill uses half of a standard ammo load cost', () => {
   assert.equal(refilled, true);
   assert.equal(game.secondary.ammo.rocket, 17);
   assert.equal(game.scrap, 0);
+});
+
+test('ammo refill cost scales with missing fraction and mean weapon upgrade level', () => {
+  const game = createGame();
+  const capacity = ammoCapacityWithUpgrades(game, 'rocket');
+  game.secondary.ammo.rocket = capacity / 2;
+  game.upgrades.rocketImpactDamage = 8;
+  game.upgrades.rocketBlastDamage = 8;
+  const expected = Math.ceil(12 * SHOP_COSTS.ammoRefillFraction * Math.sqrt(1 + 16 / 8) * 0.5);
+  assert.equal(ammoRefillCost(game, 'rocket'), expected);
+});
+
+test('sandbox loadout can set upgrades, restore the vehicle, and refill ammo', () => {
+  const game = createGame();
+  const wheel = game.vehicle.cells.find((candidate) => candidate.id === 'wheel-left');
+  wheel.attached = false;
+  game.secondary.ammo.rocket = 0;
+  const result = configureSandboxLoadout(game, {
+    upgradeLevels: { rocketImpactDamage: 12 },
+    repair: true,
+    refillAmmo: true,
+  });
+  assert.equal(game.upgrades.rocketImpactDamage, 12);
+  assert.equal(wheel.attached, true);
+  assert.equal(game.secondary.ammo.rocket, ammoCapacityWithUpgrades(game, 'rocket'));
+  assert.deepEqual(result.applied, ['rocketImpactDamage']);
 });
 
 test('ammo module cost is four times a standard ammo load', () => {

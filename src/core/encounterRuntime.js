@@ -4,6 +4,7 @@ import {
   normalizeEncounterDefinition,
   validateEncounterDefinition,
 } from './encounterDefinition.js';
+import { evaluateEncounterCondition, executeEncounterEffect } from './encounterVerbRegistry.js';
 
 export const ENCOUNTER_POLICY_FLAGS = Object.freeze({
   none: Object.freeze({
@@ -61,6 +62,7 @@ export function createEncounterRuntimeState(definitions = []) {
     chronicle: [],
     worldFlags: {},
     deferredRepercussions: [],
+    diagnostics: [],
   };
   for (const definition of definitions) registerEncounterDefinition(state, definition);
   return state;
@@ -213,6 +215,7 @@ export function serializeEncounterRuntime(runtime) {
     chronicle: structuredClone(runtime.chronicle ?? []),
     worldFlags: structuredClone(runtime.worldFlags ?? {}),
     deferredRepercussions: structuredClone(runtime.deferredRepercussions ?? []),
+    diagnostics: structuredClone(runtime.diagnostics ?? []),
   };
 }
 
@@ -226,6 +229,7 @@ export function hydrateEncounterRuntime(payload) {
     chronicle: structuredClone(payload.chronicle ?? []),
     worldFlags: structuredClone(payload.worldFlags ?? {}),
     deferredRepercussions: structuredClone(payload.deferredRepercussions ?? []),
+    diagnostics: structuredClone(payload.diagnostics ?? []),
   };
 }
 
@@ -251,50 +255,8 @@ function applyEncounterEffects(game, instance, effects = [], source = 'effect') 
 
 function applyEncounterEffect(game, instance, effect) {
   game.encounters ??= createEncounterRuntimeState();
-  if (effect.type === 'setWorldFlag') {
-    game.encounters.worldFlags[effect.flag] = effect.value ?? true;
-  } else if (effect.type === 'setEncounterVariable') {
-    instance.variables[effect.key] = effect.value;
-  } else if (effect.type === 'giveResource') {
-    applyResourceDelta(game, effect.resource, Math.max(0, Number(effect.amount) || 0));
-  } else if (effect.type === 'consumeResource') {
-    applyResourceDelta(game, effect.resource, -Math.max(0, Number(effect.amount) || 0));
-  } else if (effect.type === 'advanceTime') {
-    game.time += Math.max(0, Number(effect.duration ?? effect.seconds) || 0);
-  } else if (effect.type === 'changeMusicState') {
-    game.music ??= {};
-    game.music.semanticState = effect.state ?? game.music.semanticState;
-  } else if (effect.type === 'setRouteModifier') {
-    if (game.road) game.road.routeModifier = effect.modifier ?? effect.value ?? null;
-  } else if (effect.type === 'selectRouteBranch') {
-    if (game.road) game.road.selectedRouteBranchId = effect.branchId ?? effect.routeBranchId ?? null;
-  } else if (effect.type === 'setTerrainHold') {
-    game.encounterTerrainHold = effect.enabled !== false;
-  } else if (effect.type === 'showText') {
-    instance.message = effect.text ?? instance.message ?? '';
-  } else if (effect.type === 'revealObjectState') {
-    instance.variables[effect.objectId ?? 'object'] = effect.state ?? true;
-  } else if (effect.type === 'addChronicleEntry') {
-    game.encounters.chronicle.push({ id: effect.entryId ?? effect.id ?? `chronicle-${game.encounters.chronicle.length + 1}`, text: effect.text ?? '', sourceEncounterId: instance.definitionId });
-  } else if (effect.type === 'addDirectorInfluence') {
-    game.encounters.observations.push({ type: 'directorInfluence', tag: effect.tag ?? effect.id, weight: effect.weight ?? 1, sourceEncounterId: instance.definitionId });
-  } else if (effect.type === 'spawnEncounter') {
-    beginEncounter(game, effect.encounterId, { allowDuplicate: effect.allowDuplicate === true });
-  } else if (effect.type === 'scheduleEncounter') {
-    game.encounters.deferredRepercussions.push({
-      id: effect.id || `${instance.instanceId}:schedule:${game.encounters.deferredRepercussions.length + 1}`,
-      type: 'scheduledEncounter',
-      encounterId: effect.encounterId,
-      trigger: effect.trigger ?? { type: 'after_event', eventId: effect.eventId ?? instance.definitionId },
-      sourceEncounterId: instance.definitionId,
-      fired: false,
-    });
-  }
-}
-
-function applyResourceDelta(game, resource, delta) {
-  if (resource !== 'scrap') return;
-  game.scrap = Math.max(0, Math.floor((game.scrap ?? 0) + delta));
+  const executed = executeEncounterEffect(game, instance, effect, { beginEncounter });
+  if (!executed) addEncounterDiagnostic(game, `Unsupported encounter effect "${effect.type ?? 'missing'}" was ignored.`, effect);
 }
 
 function scheduleEncounterRepercussions(game, instance, repercussions = []) {
@@ -334,18 +296,17 @@ function conditionsPass(game, instance, conditions = []) {
 }
 
 function conditionPasses(game, instance, condition) {
-  if (condition.type === 'flagEquals') return game.encounters?.worldFlags?.[condition.flag] === condition.value;
-  if (condition.type === 'resourceAbove') return resourceValue(game, condition.resource) >= (Number(condition.amount) || 0);
-  if (condition.type === 'resourceBelow') return resourceValue(game, condition.resource) <= (Number(condition.amount) || 0);
-  if (condition.type === 'choiceWas') return instance.selectedChoices.includes(condition.choiceId);
-  if (condition.type === 'interactionCount') return (instance.variables[`${condition.interactionId}:count`] ?? 0) >= (Number(condition.count) || 0);
-  if (condition.type === 'routeBranchSelected') return game.road?.selectedRouteBranchId === condition.branchId;
-  return true;
+  const result = evaluateEncounterCondition(game, instance, condition);
+  if (!result.supported) addEncounterDiagnostic(game, `Unsupported encounter condition "${condition.type ?? 'missing'}" evaluated false.`, condition);
+  return result.passed;
 }
 
-function resourceValue(game, resource) {
-  if (resource === 'scrap') return game.scrap ?? 0;
-  return 0;
+function addEncounterDiagnostic(game, message, source = null) {
+  game.encounters ??= createEncounterRuntimeState();
+  game.encounters.diagnostics ??= [];
+  const key = `${message}:${JSON.stringify(source ?? {})}`;
+  if (game.encounters.diagnostics.some((entry) => entry.key === key)) return;
+  game.encounters.diagnostics.push({ key, message, source: structuredClone(source), time: game.time ?? 0 });
 }
 
 function resolveEncounter(game, instance) {
