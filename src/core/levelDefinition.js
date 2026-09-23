@@ -1,5 +1,6 @@
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { LIGHTING_PRESETS } from './renderMaterial.js';
+import { validateObstacleDefinition } from './obstacleDefinition.js';
 
 export const LEVEL_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const LEVEL_BACKGROUND_MODES = ['procedural', 'prebaked', 'mixed'];
@@ -220,6 +221,7 @@ function validateObstacles(obstacles, errors, warnings) {
     if (!LEVEL_OBSTACLE_KINDS.includes(obstacle.kind)) errors.push(`${label}.kind must be one of: ${LEVEL_OBSTACLE_KINDS.join(', ')}.`);
     validateFiniteNumber(obstacle.atDistance, `${label}.atDistance`, errors, { min: 0 });
     validateFiniteNumber(obstacle.laneOffset ?? 0, `${label}.laneOffset`, errors);
+    errors.push(...validateObstacleDefinition(obstacle, label).errors);
     if (obstacle.kind !== 'procedural_field' && !isNonEmptyString(obstacle.assetRef)) warnings.push(`${label} should reference a resource or construct asset.`);
   }
 }

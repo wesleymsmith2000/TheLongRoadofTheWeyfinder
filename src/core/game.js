@@ -14,7 +14,7 @@ import {
   stepRoadFrame,
   worldToRoadOffset,
 } from './camera.js';
-import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, VOXEL_SIZE } from './voxelMask.js';
+import { CELL_LAYER_HEIGHT, CELL_SIZE, Roles, VOXELS, VOXEL_SIZE } from './voxelMask.js';
 import { recalculateCell as recalculateEnemyCell } from './cell.js';
 import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
@@ -72,6 +72,7 @@ import { createProceduralRoadRoute } from './roadRoute.js';
 import { createWalkerStridePoseRig } from './poseAnimation.js';
 import { beginEncounter, createEncounterRuntimeState, encounterPausePolicy, stepEncounters } from './encounterRuntime.js';
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
+import { normalizeObstacleDefinition } from './obstacleDefinition.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
@@ -513,7 +514,7 @@ export function createGame(seed = 1147, options = {}) {
     targetingAi: createTargetingAiState(options.targetingAi),
     playerDamageShake: { timer: 0, lostCells: 0 },
     encounters: createEncounterRuntimeState(options.encounters ?? []),
-    sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options.enemyArchetypes) : null,
+    sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options) : null,
   };
   if (sandboxDefinition) {
     for (const enemy of initialSpawns) triggerEnemyEntranceBark(game, enemy, 'warning');
@@ -544,6 +545,9 @@ export function stepGame(game, input, dt) {
       levelMusic: game.levelMusic,
       sandbox: game.sandbox?.definition,
       enemyArchetypes: game.sandbox?.enemyArchetypes,
+      constructDefinitions: game.sandbox?.constructDefinitions,
+      patternDefinitions: game.sandbox?.patternDefinitions,
+      voxelModels: game.sandbox?.voxelModels,
       encounters: Object.values(game.encounters?.definitions ?? {}),
     });
   }
@@ -573,7 +577,8 @@ export function stepGame(game, input, dt) {
   applyRoadTurnDizziness(game, roadDelta.turnAngle);
   stepEnemySpawner(game, dt);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
-  stepVehicle(game.vehicle, input, dt, game.road.heading, game.upgrades, game.terrainSample);
+  const obstacleInput = applyObstacleContacts(game, input, dt);
+  stepVehicle(game.vehicle, obstacleInput, dt, game.road.heading, game.upgrades, game.terrainSample);
   configureBoostFromUpgrades(game);
   stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
   const turretInput = aimInputForTurret(game, input, dt);
@@ -620,7 +625,7 @@ export function stepGame(game, input, dt) {
   game.gameOver = !game.vehicle.alive;
   const traversalClear = traversalTargetReached(game);
   if (traversalClear) game.enemySpawnQueue = [];
-  const arenaClear = traversalClear || (shouldCompleteRun(game) && activeEnemies(game).length === 0 && game.enemySpawnQueue.length === 0);
+  const arenaClear = traversalClear || (shouldCompleteRun(game) && activeCompletionEnemies(game).length === 0 && game.enemySpawnQueue.length === 0);
   stepVictoryBanner(game, arenaClear, dt);
   if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
   stepProceduralMusic(game, dt);
@@ -684,6 +689,113 @@ function stepRoadEdgePressure(game, input, dt) {
 function edgePressure(value, halfSize) {
   const start = halfSize * 0.86;
   return clamp((Math.abs(value) - start) / Math.max(1, halfSize - start), 0, 1);
+}
+
+function applyObstacleContacts(game, input, dt) {
+  const effects = {
+    accelerationScale: 1,
+    brakingScale: 1,
+    primaryFireRateScale: 1,
+    secondaryFireRateScale: 1,
+  };
+  for (const obstacle of game.enemies.filter((enemy) => enemy.staticObstacle && !enemy.destroyed)) {
+    const definition = obstacle.obstacle ?? normalizeObstacleDefinition({ kind: 'construct' });
+    obstacle.obstacle = definition;
+    const contact = obstacleContact(game.vehicle, obstacle, definition.collision);
+    const entered = contact && !obstacle.playerContactActive;
+    obstacle.playerContactActive = Boolean(contact);
+    if (!contact) continue;
+    if (definition.collision.mode === 'solid') resolveSolidObstacleContact(game, obstacle, definition, contact, entered);
+    if (definition.collision.mode !== 'none') applyObstacleContactEffects(game, obstacle, definition.effects, effects, contact, entered, dt);
+  }
+  game.obstacleEffects = effects;
+  game.terrainSample = {
+    ...game.terrainSample,
+    accelerationScale: (game.terrainSample?.accelerationScale ?? 1) * effects.accelerationScale,
+    brakingScale: (game.terrainSample?.brakingScale ?? 1) * effects.brakingScale,
+  };
+
+  game.vehicle.obstacleSpinoutTimer = Math.max(0, (game.vehicle.obstacleSpinoutTimer ?? 0) - dt);
+  if (game.vehicle.obstacleSpinoutTimer <= 0) return input;
+  game.vehicle.angularVelocity += (game.vehicle.obstacleSpinDirection ?? 1) * 3.2 * dt;
+  return { ...input, x: 0, y: 0, turn: 0, brake: false };
+}
+
+function obstacleContact(vehicle, obstacle, collision) {
+  if (collision.mode === 'none') return null;
+  const vehicleRadius = CELL_SIZE * 3.8;
+  const dx = vehicle.x - obstacle.x;
+  const dy = vehicle.y - obstacle.y;
+  if (collision.shape === 'aabb') {
+    const rotation = -(obstacle.collisionRotation ?? obstacle.visualHeading ?? 0);
+    const cos = Math.cos(rotation);
+    const sin = Math.sin(rotation);
+    const localX = dx * cos - dy * sin;
+    const localY = dx * sin + dy * cos;
+    const halfWidth = (collision.halfWidth ?? obstacle.radius ?? CELL_SIZE) + vehicleRadius;
+    const halfHeight = (collision.halfHeight ?? obstacle.radius ?? CELL_SIZE) + vehicleRadius;
+    if (Math.abs(localX) > halfWidth || Math.abs(localY) > halfHeight) return null;
+    const xDepth = halfWidth - Math.abs(localX);
+    const yDepth = halfHeight - Math.abs(localY);
+    const localNormal = xDepth < yDepth ? { x: Math.sign(localX) || 1, y: 0 } : { x: 0, y: Math.sign(localY) || 1 };
+    const worldRotation = -rotation;
+    return {
+      nx: localNormal.x * Math.cos(worldRotation) - localNormal.y * Math.sin(worldRotation),
+      ny: localNormal.x * Math.sin(worldRotation) + localNormal.y * Math.cos(worldRotation),
+      penetration: Math.min(xDepth, yDepth),
+    };
+  }
+  const radius = collision.radius ?? obstacle.radius ?? CELL_SIZE;
+  const combined = radius + vehicleRadius;
+  const distance = Math.hypot(dx, dy);
+  if (distance >= combined) return null;
+  return { nx: distance > 0.001 ? dx / distance : 0, ny: distance > 0.001 ? dy / distance : 1, penetration: combined - distance };
+}
+
+function resolveSolidObstacleContact(game, obstacle, definition, contact, entered) {
+  const vehicle = game.vehicle;
+  vehicle.x += contact.nx * contact.penetration;
+  vehicle.y += contact.ny * contact.penetration;
+  const normalSpeed = vehicle.vx * contact.nx + vehicle.vy * contact.ny;
+  if (normalSpeed < 0) {
+    vehicle.vx -= contact.nx * normalSpeed * (1 + definition.collision.restitution);
+    vehicle.vy -= contact.ny * normalSpeed * (1 + definition.collision.restitution);
+    const tangentX = -contact.ny;
+    const tangentY = contact.nx;
+    const tangentSpeed = vehicle.vx * tangentX + vehicle.vy * tangentY;
+    vehicle.vx -= tangentX * tangentSpeed * definition.collision.friction;
+    vehicle.vy -= tangentY * tangentSpeed * definition.collision.friction;
+    if (entered && definition.collision.impactDamageScale > 0) {
+      applyVehicleDamage(vehicle, { x: vehicle.x, y: vehicle.y }, CELL_SIZE, Math.abs(normalSpeed) * definition.collision.impactDamageScale, 0);
+    }
+  }
+}
+
+function applyObstacleContactEffects(game, obstacle, definition, aggregate, contact, entered, dt) {
+  aggregate.accelerationScale = Math.min(aggregate.accelerationScale, definition.accelerationScale);
+  aggregate.brakingScale = Math.min(aggregate.brakingScale, definition.brakingScale);
+  aggregate.primaryFireRateScale = Math.min(aggregate.primaryFireRateScale, definition.primaryFireRateScale);
+  aggregate.secondaryFireRateScale = Math.min(aggregate.secondaryFireRateScale, definition.secondaryFireRateScale);
+
+  const force = roadDirectionToWorld(definition.force.lateral, definition.force.forward, game.road);
+  game.vehicle.vx += force.x * dt;
+  game.vehicle.vy += force.y * dt;
+  if (entered) {
+    const impulse = roadDirectionToWorld(definition.impulse.lateral, definition.impulse.forward, game.road);
+    game.vehicle.vx += impulse.x;
+    game.vehicle.vy += impulse.y;
+    game.vehicle.angularVelocity += definition.angularImpulse;
+    if (definition.spinoutSeconds > 0) {
+      game.vehicle.obstacleSpinoutTimer = Math.max(game.vehicle.obstacleSpinoutTimer ?? 0, definition.spinoutSeconds);
+      game.vehicle.obstacleSpinDirection = game.rng.chance(0.5) ? -1 : 1;
+    }
+  }
+  obstacle.damageTick = Math.max(0, (obstacle.damageTick ?? 0) - dt);
+  if (definition.damagePerSecond > 0 && obstacle.damageTick <= 0) {
+    const tick = 0.2;
+    applyVehicleDamage(game.vehicle, { x: game.vehicle.x, y: game.vehicle.y }, CELL_SIZE, definition.damagePerSecond * tick, 0, { x: contact.nx, y: contact.ny });
+    obstacle.damageTick = tick;
+  }
 }
 
 function traversalTargetForTrack(trackName, road) {
@@ -772,7 +884,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   const report = validateSandboxDefinition(definition);
   if (!report.valid) throw new Error(`Invalid sandbox definition: ${report.errors.join(' ')}`);
   const sandboxDefinition = report.definition;
-  game.sandbox = createSandboxRuntimeState(sandboxDefinition, report.warnings, options.enemyArchetypes);
+  game.sandbox = createSandboxRuntimeState(sandboxDefinition, report.warnings, options);
   game.level = sandboxDefinition.level;
   game.currentMusic = options.music ?? 'Sandbox';
   game.music = createProceduralMusicState({ baseTrack: game.currentMusic });
@@ -819,12 +931,15 @@ export function createSandboxEnemySchedule(road, definition, rng = new Rng(1147)
   }).sort((a, b) => a.at - b.at);
 }
 
-function createSandboxRuntimeState(definition, warnings = [], enemyArchetypes = []) {
+function createSandboxRuntimeState(definition, warnings = [], options = {}) {
   return {
     enabled: true,
     definition: structuredClone(definition),
     events: definition.events.map((event) => ({ ...structuredClone(event), fired: false })),
-    enemyArchetypes: structuredClone(enemyArchetypes ?? []),
+    enemyArchetypes: structuredClone(options.enemyArchetypes ?? []),
+    constructDefinitions: structuredClone(options.constructDefinitions ?? []),
+    patternDefinitions: structuredClone(options.patternDefinitions ?? []),
+    voxelModels: structuredClone(options.voxelModels ?? []),
     warnings: [...warnings],
     lastMessage: '',
   };
@@ -845,6 +960,9 @@ function applySandboxEvent(game, event, elapsed) {
     const entries = createSandboxSpawnEntries(game.road, event.spawns, game.rng, {
       level: game.sandbox?.definition.level ?? game.level,
       enemyArchetypes: game.sandbox?.enemyArchetypes,
+      constructDefinitions: game.sandbox?.constructDefinitions,
+      patternDefinitions: game.sandbox?.patternDefinitions,
+      voxelModels: game.sandbox?.voxelModels,
       timeOffset: elapsed,
     });
     game.enemySpawnQueue.push(...entries);
@@ -903,11 +1021,33 @@ function createSandboxEnemies(spawn, x, y, road, options = {}) {
   const sideStrafeEntry = archetypeUsesRaceStrafe(archetype);
   const raceStrafeSide = sideStrafeEntry ? sandboxRaceStrafeSpawnSide(spawn, options.spawnIndex ?? 0) : 0;
   const spawnPoint = sideStrafeEntry ? sandboxRaceStrafeSpawnPoint(x, y, road, raceStrafeSide, options.spawnIndex ?? 0) : { x, y };
-  const enemy = archetype ? createEnemyForArchetype(archetype, spawnPoint.x, spawnPoint.y, kind) : createEnemy(spawnPoint.x, spawnPoint.y);
+  const constructId = spawn.construct ?? archetype?.construct;
+  const customConstruct = findAssetDefinition(options.constructDefinitions, constructId);
+  const voxelModelId = spawn.voxelModel ?? (spawn.obstacle?.kind !== 'construct' ? spawn.obstacle?.assetRef : null);
+  const customVoxelModel = findAssetDefinition(options.voxelModels, voxelModelId);
+  const patternIds = spawn.patterns?.length ? spawn.patterns : archetype?.patterns ?? [];
+  const customPatterns = patternIds.map((id) => findAssetDefinition(options.patternDefinitions, id)).filter(Boolean);
+  if (spawn.construct && !archetype && !customConstruct) throw new Error(`Sandbox construct "${spawn.construct}" is not loaded.`);
+  if (spawn.voxelModel && !customVoxelModel) throw new Error(`Sandbox voxel model "${spawn.voxelModel}" is not loaded.`);
+  const enemy = customConstruct
+    ? createEnemy(spawnPoint.x, spawnPoint.y, resolveConstructVoxelModels(customConstruct, options.voxelModels), customPatterns, { moduleScale: 1 })
+    : customVoxelModel
+      ? createEnemy(spawnPoint.x, spawnPoint.y, obstacleConstructFromVoxelModel(customVoxelModel), [], { moduleScale: 1 })
+    : archetype
+      ? createEnemyForArchetype(archetype, spawnPoint.x, spawnPoint.y, kind)
+      : createEnemy(spawnPoint.x, spawnPoint.y);
   if (archetype) applyArchetypeRuntimeMetadata(enemy, archetype);
   enemy.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
   applyDefaultEnemyCueHooks(enemy);
-  if (sideStrafeEntry) {
+  if (kind === 'obstacle' || spawn.entry === 'placed') {
+    enemy.kind = 'obstacle';
+    enemy.staticObstacle = true;
+    enemy.terrainAnchored = true;
+    enemy.countsForCompletion = false;
+    enemy.obstacle = normalizeObstacleDefinition(spawn.obstacle ?? { kind: 'construct' });
+    enemy.vx = 0;
+    enemy.vy = 0;
+  } else if (sideStrafeEntry) {
     configureRaceStrafeEntry(enemy, archetype, road, raceStrafeSide, spawn.speed, 0.45);
   } else {
     const velocitySign = spawn.entry === 'behind' ? -1 : 1;
@@ -926,6 +1066,49 @@ function createSandboxEnemies(spawn, x, y, road, options = {}) {
     spawned.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
   }
   return enemies;
+}
+
+function findAssetDefinition(definitions, assetId) {
+  if (!assetId) return null;
+  return (definitions ?? []).find((definition) => definition?.assetId === assetId || definition?.id === assetId) ?? null;
+}
+
+function obstacleConstructFromVoxelModel(model) {
+  const mask = normalizeEmbeddedVoxelMask(model.mask ?? model.voxels);
+  if (!mask) throw new Error(`Voxel model "${model.assetId ?? model.id ?? 'unknown'}" must contain a ${VOXELS}x${VOXELS} mask.`);
+  return {
+    schemaVersion: '0.1',
+    assetId: `${model.assetId ?? model.id}.obstacle`,
+    cells: [{ id: 'obstacle-core', type: 'core', gridX: 0, gridY: 0, mask }],
+    connections: [],
+  };
+}
+
+function resolveConstructVoxelModels(definition, voxelModels = []) {
+  const cells = (definition.cells ?? []).map((cell) => {
+    const modelId = cell.voxelModel ?? cell.voxelModelId ?? cell.voxelModelRef;
+    const model = findAssetDefinition(voxelModels, typeof modelId === 'string' ? modelId : null);
+    const sourceMask = model?.mask ?? model?.voxels;
+    const mask = normalizeEmbeddedVoxelMask(sourceMask);
+    return mask ? { ...cell, mask } : cell;
+  });
+  return { ...definition, cells };
+}
+
+function normalizeEmbeddedVoxelMask(source) {
+  if (!Array.isArray(source) || source.length !== VOXELS) return null;
+  const mask = [];
+  for (const row of source) {
+    if (!Array.isArray(row) || row.length !== VOXELS) return null;
+    mask.push(row.map((voxel) => {
+      if (voxel && typeof voxel === 'object' && typeof voxel.role === 'string') return structuredClone(voxel);
+      if (typeof voxel !== 'string') return null;
+      const role = Object.values(Roles).includes(voxel) ? voxel : Roles.EMPTY;
+      const hp = role === Roles.EMPTY ? 0 : 1;
+      return { role, hp, maxHp: hp };
+    }));
+  }
+  return mask.some((row) => row.includes(null)) ? null : mask;
 }
 
 function sandboxRaceStrafeSpawnSide(spawn, index = 0) {
@@ -1480,6 +1663,10 @@ function activeEnemies(game) {
   return game.enemies.filter((enemy) => !enemy.destroyed);
 }
 
+function activeCompletionEnemies(game) {
+  return activeEnemies(game).filter((enemy) => enemy.countsForCompletion !== false);
+}
+
 function stepEnemySpawner(game, dt) {
   const elapsed = game.time - game.levelStartTime;
   for (const entry of game.enemySpawnQueue) {
@@ -1501,7 +1688,7 @@ function stepEnemySpawner(game, dt) {
 }
 
 function accelerateNextSpawnWhenArenaEmpty(game) {
-  if (activeEnemies(game).length > 0 || game.enemySpawnQueue.length === 0) return;
+  if (activeCompletionEnemies(game).length > 0 || game.enemySpawnQueue.length === 0) return;
   const elapsed = game.time - game.levelStartTime;
   game.enemySpawnQueue[0].at = Math.min(game.enemySpawnQueue[0].at, elapsed + 3);
 }
@@ -1585,7 +1772,7 @@ function decayNonBlockingEffects(projectiles, dt) {
 function carryRoadObjects(game, delta) {
   const objects = [
     game.vehicle,
-    ...game.enemies,
+    ...game.enemies.filter((enemy) => !enemy.terrainAnchored),
     ...game.enemies.map(activeEnemyHarpoonPowerup).filter(Boolean),
     ...game.enemySpawnQueue.map((entry) => entry.enemy),
     ...game.scrapPickups,
@@ -1729,7 +1916,7 @@ function updatePlayerDamageFeedback(game, liveCellsBeforeDamage, liveVoxelHealth
 }
 
 function shouldSweepRemainingScrap(game) {
-  return !activeEnemies(game).some((enemy) => enemyHasLiveCore(enemy));
+  return !activeCompletionEnemies(game).some((enemy) => enemyHasLiveCore(enemy));
 }
 
 function enemyHasLiveCore(enemy) {
@@ -2158,9 +2345,10 @@ function stepPlayerGun(game, dt) {
   game.primaryHeat.heat = Math.max(0, game.primaryHeat.heat - primaryHeatSinkRate(game) * dt);
   stepPrimaryWeaponCooldowns(game, dt);
   stepRepulsorRecharge(game, dt);
-  game.playerFireTimer = Math.max(0, (game.playerFireTimer ?? 0) - dt);
+  const fireRateScale = Math.max(0, game.obstacleEffects?.primaryFireRateScale ?? 1);
+  game.playerFireTimer = Math.max(0, (game.playerFireTimer ?? 0) - dt * fireRateScale);
   game.playerDefensiveFireTimer = Math.max(0, (game.playerDefensiveFireTimer ?? 0) - dt);
-  if ((!game.autofire && !game.inputFireHeld) || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
+  if (fireRateScale <= 0 || (!game.autofire && !game.inputFireHeld) || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
   const mounts = primaryFiringMounts(game);
   if (mounts.length === 0) return;
   stepDefensivePrimaryWeapons(game, mounts);
@@ -2642,6 +2830,10 @@ function stepEnemy(game, enemy, dt) {
     }
     return;
   }
+  if (enemy.staticObstacle) {
+    stepObstacleMotion(game, enemy, dt);
+    return;
+  }
   if (enemy.zeppelinWalkerRout) {
     stepZeppelinWalkerRout(game, enemy, dt);
     return;
@@ -2657,7 +2849,7 @@ function stepEnemy(game, enemy, dt) {
     return;
   }
   enemy.walkerAngerTimer = Math.max(0, (enemy.walkerAngerTimer ?? 0) - dt);
-  if (enemy.kind !== 'zeppelinBoss' && enemy.kind !== 'roadBossCar' && enemy.kind !== 'escapePodBoat') steerEnemyBackToLaneCenter(enemy, game.road, dt);
+  if (!enemy.staticObstacle && enemy.kind !== 'zeppelinBoss' && enemy.kind !== 'roadBossCar' && enemy.kind !== 'escapePodBoat') steerEnemyBackToLaneCenter(enemy, game.road, dt);
   stepArchetypeEnemy(game, enemy, dt);
   if (enemy.kind === 'enhanced') stepEnhancedEnemy(game, enemy, dt);
   if (enemy.kind === 'boss') stepBossEnemy(game, enemy, dt);
@@ -2674,6 +2866,42 @@ function stepEnemy(game, enemy, dt) {
   enemy.y += enemy.vy * dt;
   enemy.vx *= Math.pow(0.78, dt);
   enemy.vy *= Math.pow(0.78, dt);
+}
+
+function stepObstacleMotion(game, obstacle, dt) {
+  const definition = obstacle.obstacle ?? normalizeObstacleDefinition({ kind: 'construct' });
+  obstacle.obstacle = definition;
+  const motion = definition.motion;
+  if (motion.mode === 'terrain') return;
+  obstacle.obstacleMotion ??= {
+    lateralVelocity: motion.lateralVelocity,
+    forwardVelocity: motion.forwardVelocity,
+  };
+  const state = obstacle.obstacleMotion;
+  if (motion.mode === 'terrainVelocity') {
+    state.lateralVelocity += motion.lateralAcceleration * dt;
+    state.forwardVelocity += motion.forwardAcceleration * dt;
+  } else if (motion.mode === 'chase') {
+    const obstacleOffset = worldToRoadOffset(obstacle, game.road);
+    const vehicleOffset = worldToRoadOffset(game.vehicle, game.road);
+    const desiredForwardOffset = vehicleOffset.y + motion.targetGap;
+    const forwardError = desiredForwardOffset - obstacleOffset.y;
+    const speedDeficit = Math.max(0, motion.triggerSpeed - (game.road.speed ?? 0));
+    const catchUp = motion.triggerSpeed > 0 ? (speedDeficit / motion.triggerSpeed) * motion.catchUpAcceleration : 0;
+    state.forwardVelocity = forwardError * motion.positionGain - catchUp;
+    state.lateralVelocity = (vehicleOffset.x - obstacleOffset.x) * motion.lateralTracking;
+  }
+  const speed = Math.hypot(state.lateralVelocity, state.forwardVelocity);
+  if (speed > motion.maxSpeed && speed > 0) {
+    state.lateralVelocity = (state.lateralVelocity / speed) * motion.maxSpeed;
+    state.forwardVelocity = (state.forwardVelocity / speed) * motion.maxSpeed;
+  }
+  const velocity = roadDirectionToWorld(state.lateralVelocity, state.forwardVelocity, game.road);
+  obstacle.vx = velocity.x;
+  obstacle.vy = velocity.y;
+  obstacle.x += velocity.x * dt;
+  obstacle.y += velocity.y * dt;
+  if (speed > 0.1) obstacle.visualHeading = Math.atan2(velocity.y, velocity.x);
 }
 
 function stepArchetypeEnemy(game, enemy, dt) {

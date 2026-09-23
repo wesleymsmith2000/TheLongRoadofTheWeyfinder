@@ -304,6 +304,22 @@ test('construct validation rejects malformed imported face metadata', () => {
   assert.equal(report.errors.some((error) => error.includes('unknown face key')), true);
 });
 
+test('construct instantiation recalculates authored voxel masks', () => {
+  const definition = structuredClone(startingVehicleDefinition);
+  const mask = definition.cells[0].mask = Array.from({ length: 4 }, (_, y) =>
+    Array.from({ length: 4 }, (_, x) => {
+      const live = x === 1 && y === 1;
+      return { role: live ? 'device' : 'empty', hp: live ? 3 : 0, maxHp: live ? 3 : 0 };
+    }),
+  );
+
+  const construct = instantiateConstruct(definition);
+
+  assert.equal(validateConstructDefinition(definition).valid, true);
+  assert.notEqual(construct.cells[0].state.mass, mask.length * mask.length);
+  assert.equal(construct.cells[0].state.deviceIntegrity, 1);
+});
+
 test('construct validation rejects pose rigs that reference unknown groups or cells', () => {
   const report = validateConstructDefinition({
     ...startingVehicleDefinition,

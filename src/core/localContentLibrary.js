@@ -162,6 +162,7 @@ export function inferContentKind(definition) {
   if (definition.biome && definition.sockets && definition.semantic) return 'terrainTile';
   if (definition.background && definition.route) return 'level';
   if (Array.isArray(definition.cells) && Array.isArray(definition.connections)) return 'construct';
+  if (definition.kind === 'voxelModel' && (Array.isArray(definition.mask) || Array.isArray(definition.voxels))) return 'voxelModel';
   if (definition.path || definition.uri) return definition.kind ?? null;
   return null;
 }

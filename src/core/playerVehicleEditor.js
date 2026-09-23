@@ -96,6 +96,34 @@ export function connectEditableVehicleCells(definition, aId, bId) {
   return { changed: true, definition: next };
 }
 
+export function disconnectEditableVehicleCells(definition, aId, bId) {
+  if (aId === bId) return { changed: false, reason: 'Choose two different cells.' };
+  const connection = (definition.connections ?? []).find((edge) => sameConnection(edge, aId, bId));
+  if (!connection) return { changed: false, reason: 'Those cells are not connected.' };
+  const next = cloneDefinition(definition);
+  next.connections = (next.connections ?? []).filter((edge) => !sameConnection(edge, aId, bId));
+  return { changed: true, definition: next, reason: 'Connection removed.' };
+}
+
+export function autoConnectEditableVehicleCells(definition) {
+  const next = cloneDefinition(definition);
+  next.connections ??= [];
+  let added = 0;
+  for (let aIndex = 0; aIndex < next.cells.length; aIndex += 1) {
+    for (let bIndex = aIndex + 1; bIndex < next.cells.length; bIndex += 1) {
+      const a = next.cells[aIndex];
+      const b = next.cells[bIndex];
+      const aSide = adjacentSide(a, b);
+      if (!aSide || next.connections.some((edge) => sameConnection(edge, a.id, b.id))) continue;
+      next.connections.push(createConnection(a.id, b.id, aSide, OPPOSITE[aSide]));
+      added += 1;
+    }
+  }
+  return added > 0
+    ? { changed: true, definition: next, reason: `Added ${added} adjacent connection${added === 1 ? '' : 's'}.` }
+    : { changed: false, reason: 'All adjacent cells are already connected.' };
+}
+
 export function editableVehicleReport(definition, account) {
   const report = validateConstructDefinition(definition);
   const usage = Object.fromEntries(

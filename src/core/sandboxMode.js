@@ -1,5 +1,7 @@
 import { CONTENT_SCHEMA_VERSION, isPlainObject } from './contentSchema.js';
 import { validateEncounterDefinition } from './encounterDefinition.js';
+import { validateLevelDefinition } from './levelDefinition.js';
+import { normalizeObstacleDefinition } from './obstacleDefinition.js';
 
 export const SANDBOX_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const SANDBOX_EVENT_TYPES = ['spawn', 'clearEnemies', 'setScrap', 'addScrap', 'setTargetingMode', 'message', 'encounter', 'complete'];
@@ -78,13 +80,68 @@ export function normalizeSandboxDefinition(definition = DEFAULT_SANDBOX_DEFINITI
     duration: positiveNumber(source.duration, DEFAULT_SANDBOX_DEFINITION.duration),
     level: positiveInteger(source.level, 1),
     completeOnEmpty: source.completeOnEmpty === true,
+    sourceLevelId: nonEmptyString(source.sourceLevelId, null),
+    route: isPlainObject(source.route) ? structuredClone(source.route) : null,
+    lighting: isPlainObject(source.lighting) ? structuredClone(source.lighting) : null,
     spawns: normalizeSpawns(source.spawns),
     events: normalizeEvents(source.events),
   };
-  if (normalized.spawns.length === 0 && normalized.events.every((event) => event.type !== 'spawn')) {
+  if (!normalized.sourceLevelId && normalized.spawns.length === 0 && normalized.events.every((event) => event.type !== 'spawn')) {
     normalized.spawns = structuredClone(DEFAULT_SANDBOX_DEFINITION.spawns);
   }
   return normalized;
+}
+
+export function sandboxDefinitionFromLevel(level, options = {}) {
+  const report = validateLevelDefinition(level);
+  if (!report.valid) throw new Error(`Invalid custom level "${level?.assetId ?? 'unknown'}": ${report.errors.join(' ')}`);
+  const roadSpeed = Math.max(1, positiveNumber(options.roadSpeed, 30));
+  const routeLength = (level.route?.segments ?? []).reduce((sum, segment) => sum + Math.max(0, segment.length ?? 0), 0);
+  const spawns = [];
+  for (const wave of level.waves ?? []) {
+    for (const [index, spawn] of (wave.spawn ?? []).entries()) {
+      spawns.push({
+        id: `${wave.id}-spawn-${index + 1}`,
+        construct: spawn.construct,
+        patterns: spawn.patterns,
+        behavior: spawn.behavior,
+        at: Math.max(0, wave.atDistance / roadSpeed - 2),
+        count: spawn.count,
+        interval: (spawn.spacing ?? 0) / roadSpeed,
+        laneOffset: spawn.laneOffset ?? 0,
+        spread: spawn.spread ?? 0,
+        entry: 'ahead',
+      });
+    }
+  }
+  for (const obstacle of level.obstacles ?? []) {
+    if (obstacle.kind === 'procedural_field' && !obstacle.assetRef) continue;
+    spawns.push({
+      id: obstacle.id,
+      construct: obstacle.kind === 'construct' ? obstacle.assetRef : null,
+      voxelModel: obstacle.kind !== 'construct' ? obstacle.assetRef : null,
+      kind: 'obstacle',
+      entry: 'placed',
+      at: Math.max(0, obstacle.atDistance / roadSpeed - 2),
+      count: 1,
+      laneOffset: obstacle.laneOffset ?? 0,
+      roadY: options.obstacleRoadY ?? -220,
+      speed: 0,
+      obstacle: normalizeObstacleDefinition(obstacle),
+    });
+  }
+  return normalizeSandboxDefinition({
+    schemaVersion: SANDBOX_SCHEMA_VERSION,
+    title: level.displayName ?? level.title ?? level.assetId,
+    sourceLevelId: level.assetId,
+    duration: Math.max(30, routeLength / roadSpeed + 10),
+    level: positiveInteger(options.level, 1),
+    completeOnEmpty: true,
+    route: level.route,
+    lighting: level.lighting,
+    spawns,
+    events: [{ id: 'starting-scrap', type: 'setScrap', at: 0, value: positiveNumber(options.startingScrap, 120) }],
+  });
 }
 
 export function validateSandboxDefinition(definition) {
@@ -116,6 +173,7 @@ function normalizeSpawn(spawn, index = 0) {
     id: nonEmptyString(spawn.id, `spawn-${index + 1}`),
     archetype: nonEmptyString(spawn.archetype ?? spawn.enemy, null),
     construct: nonEmptyString(spawn.construct, null),
+    voxelModel: nonEmptyString(spawn.voxelModel, null),
     kind: nonEmptyString(spawn.kind, 'standard'),
     entry: nonEmptyString(spawn.entry, 'ahead'),
     side: nonEmptyString(spawn.side, null),
@@ -128,6 +186,9 @@ function normalizeSpawn(spawn, index = 0) {
     roadY: finiteNumber(spawn.roadY, null),
     speed: positiveNumber(spawn.speed, null),
     level: positiveInteger(spawn.level, null),
+    patterns: Array.isArray(spawn.patterns) ? spawn.patterns.filter((id) => typeof id === 'string' && id) : [],
+    behavior: nonEmptyString(spawn.behavior, null),
+    obstacle: isPlainObject(spawn.obstacle) ? normalizeObstacleDefinition(spawn.obstacle) : null,
   };
 }
 
@@ -156,7 +217,7 @@ function normalizeEvents(events) {
 }
 
 function validateSpawn(spawn, label, errors) {
-  if (!spawn.archetype && !spawn.construct) errors.push(`${label} must include archetype, enemy, or construct.`);
+  if (!spawn.archetype && !spawn.construct && !spawn.voxelModel && !spawn.obstacle) errors.push(`${label} must include archetype, enemy, construct, voxelModel, or obstacle.`);
   if (spawn.count < 1) errors.push(`${label}.count must be at least 1.`);
   if (spawn.interval < 0) errors.push(`${label}.interval must be zero or greater.`);
 }

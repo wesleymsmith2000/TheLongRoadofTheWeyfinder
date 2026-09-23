@@ -125,6 +125,11 @@ export class CanvasRenderer {
     this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
 
+  setContentRegistry(contentRegistry) {
+    this.renderAssets = createRegistryRenderAssetResolver(contentRegistry);
+    this.cellSpriteCache.clear();
+  }
+
   draw(game, debug) {
     const ratio = this.diagnostics.effectiveDpr(window.devicePixelRatio || 1);
     if (Math.abs(ratio - this.pixelRatio) > 0.001) this.resize();

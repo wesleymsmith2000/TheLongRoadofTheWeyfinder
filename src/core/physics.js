@@ -19,8 +19,8 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   const pull = turnBalance * 0.35;
   const massPenalty = Math.sqrt(vehicle.totalMass / 120);
 
-  const worldAx = (inputX * 135 * propulsion * engineAcceleration * terrain.traction) / massPenalty;
-  const worldAy = (inputY * 135 * propulsion * engineAcceleration * terrain.traction) / massPenalty;
+  const worldAx = (inputX * 135 * propulsion * engineAcceleration * terrain.traction * terrain.accelerationScale) / massPenalty;
+  const worldAy = (inputY * 135 * propulsion * engineAcceleration * terrain.traction * terrain.accelerationScale) / massPenalty;
   const accel = { x: worldAx, y: worldAy };
   vehicle.vx += accel.x * dt;
   vehicle.vy += accel.y * dt;
@@ -31,9 +31,10 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
 
   if (input.brake) {
     const brakeGrip = clamp(terrain.traction, 0.18, 1);
-    vehicle.vx *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt);
-    vehicle.vy *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt);
-    vehicle.angularVelocity *= Math.pow(1 - (1 - 0.02) * brakeGrip, dt);
+    const brakeScale = Math.max(0, terrain.brakingScale);
+    vehicle.vx *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt * brakeScale);
+    vehicle.vy *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt * brakeScale);
+    vehicle.angularVelocity *= Math.pow(1 - (1 - 0.02) * brakeGrip, dt * brakeScale);
   }
 
   const baseDrag = inputMagnitude(inputX, inputY) > 0.05 ? 0.32 : 0.08 / (Math.max(1, Math.sqrt(Math.max(1, wheelPower))) * wheelInertiaCompensation);
@@ -74,6 +75,8 @@ function normalizeTerrainContact(terrainContact) {
   return {
     traction: clamp(terrainContact?.traction ?? SAFE_TERRAIN_SAMPLE.traction, 0.05, 2),
     rollingResistance: clamp(terrainContact?.rollingResistance ?? SAFE_TERRAIN_SAMPLE.rollingResistance, 0, 1),
+    accelerationScale: clamp(terrainContact?.accelerationScale ?? 1, 0, 4),
+    brakingScale: clamp(terrainContact?.brakingScale ?? 1, 0, 4),
   };
 }
 

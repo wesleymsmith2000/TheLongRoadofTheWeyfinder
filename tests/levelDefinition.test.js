@@ -79,3 +79,23 @@ test('level validation requires encounter trigger asset references', () => {
   assert.equal(report.valid, false);
   assert.equal(report.errors.some((error) => error.includes('assetRef is required for encounter triggers')), true);
 });
+
+test('level validation accepts obstacle motion and contact effects but rejects unknown motion verbs', () => {
+  const level = structuredClone(prototypeLevelDefinition);
+  level.obstacles = [{
+    id: 'ash-front',
+    kind: 'hazard',
+    assetRef: 'voxel.ash_front',
+    atDistance: 40,
+    laneOffset: 0,
+    motion: { mode: 'chase', targetGap: 120, triggerSpeed: 30, catchUpAcceleration: 55 },
+    collision: { mode: 'trigger', shape: 'circle', radius: 80 },
+    effects: { damagePerSecond: 5, accelerationScale: 0.6, primaryFireRateScale: 0, spinoutSeconds: 1 },
+  }];
+
+  assert.equal(validateLevelDefinition(level).valid, true);
+  level.obstacles[0].motion.mode = 'teleportBehindPlayer';
+  const invalid = validateLevelDefinition(level);
+  assert.equal(invalid.valid, false);
+  assert.equal(invalid.errors.some((error) => error.includes('motion.mode')), true);
+});

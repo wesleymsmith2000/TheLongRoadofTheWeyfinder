@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, createSandboxEnemySchedule, stepGame } from '../src/core/game.js';
 import { Rng } from '../src/core/rng.js';
-import { sandboxDefinitionFromEnemy, validateSandboxDefinition } from '../src/core/sandboxMode.js';
+import { sandboxDefinitionFromEnemy, sandboxDefinitionFromLevel, validateSandboxDefinition } from '../src/core/sandboxMode.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 
 const ROAD = { x: 0, y: 0, heading: -Math.PI / 2, halfWidth: 300, halfHeight: 300 };
@@ -153,4 +153,96 @@ test('sandbox runtime fires scripted events and avoids normal level completion',
   assert.equal(game.enemies.length, 1);
   assert.equal(game.enemySpawnQueue.length, 1);
   assert.equal(game.levelComplete, false);
+});
+
+test('custom levels translate waves and construct obstacles into playable sandbox spawns', () => {
+  const level = {
+    schemaVersion: '0.1',
+    assetId: 'community.obstacle_trial',
+    displayName: 'Obstacle Trial',
+    background: { mode: 'procedural', layers: [{ id: 'road', source: 'procedural', generator: 'roadGrid', parallax: 1 }] },
+    route: { startHeading: 0, segments: [{ id: 'curve', length: 300, turnRadians: 0.2 }] },
+    waves: [{ id: 'wave', atDistance: 0, spawn: [{ construct: 'community.masked_enemy', count: 1, laneOffset: -20, spacing: 0, patterns: [] }] }],
+    obstacles: [{ id: 'barrier', kind: 'construct', assetRef: 'community.masked_enemy', atDistance: 0, laneOffset: 30 }],
+    triggers: [],
+  };
+  const definition = sandboxDefinitionFromLevel(level);
+  const construct = {
+    schemaVersion: '0.1',
+    assetId: 'community.masked_enemy',
+    cells: [
+      { id: 'core', type: 'core', gridX: 0, gridY: 0, voxelModel: 'community.core_mask' },
+    ],
+    connections: [],
+  };
+  const voxelModels = [{
+    schemaVersion: '0.1',
+    assetId: 'community.core_mask',
+    kind: 'voxelModel',
+    voxels: [
+      ['empty', 'anchor', 'anchor', 'empty'],
+      ['anchor', 'device', 'device', 'anchor'],
+      ['anchor', 'device', 'device', 'anchor'],
+      ['empty', 'anchor', 'anchor', 'empty'],
+    ],
+  }];
+  const game = createGame(33, { sandbox: definition, constructDefinitions: [construct], voxelModels });
+
+  assert.equal(definition.sourceLevelId, level.assetId);
+  assert.equal(game.enemies.length, 2);
+  assert.equal(game.enemies.some((enemy) => enemy.staticObstacle), true);
+  assert.equal(game.enemies.every((enemy) => enemy.assetId === construct.assetId), true);
+  assert.equal(game.enemies[0].cells[0].mask[0][0].role, 'empty');
+  assert.equal(game.enemies[0].cells[0].state.mass > 0, true);
+});
+
+test('custom hazard obstacles apply data-driven effects and remain terrain anchored', () => {
+  const level = {
+    schemaVersion: '0.1',
+    assetId: 'community.hazard_trial',
+    displayName: 'Hazard Trial',
+    background: { mode: 'procedural', layers: [{ id: 'road', source: 'procedural', generator: 'roadGrid', parallax: 1 }] },
+    route: { startHeading: 0, segments: [{ id: 'straight', length: 300, turnRadians: 0 }] },
+    waves: [],
+    obstacles: [{
+      id: 'ash-front',
+      kind: 'hazard',
+      assetRef: 'community.ash_mask',
+      atDistance: 0,
+      laneOffset: 0,
+      motion: { mode: 'terrain' },
+      collision: { mode: 'trigger', shape: 'circle', radius: 200 },
+      effects: {
+        damagePerSecond: 5,
+        accelerationScale: 0.25,
+        brakingScale: 0.5,
+        primaryFireRateScale: 0,
+        secondaryFireRateScale: 0,
+        impulse: { lateral: 20, forward: 0 },
+        spinoutSeconds: 1,
+      },
+    }],
+    triggers: [],
+  };
+  const voxelModels = [{
+    schemaVersion: '0.1',
+    assetId: 'community.ash_mask',
+    kind: 'voxelModel',
+    voxels: Array.from({ length: 4 }, () => Array(4).fill('anchor')),
+  }];
+  const definition = sandboxDefinitionFromLevel(level, { obstacleRoadY: 0 });
+  const game = createGame(77, { sandbox: definition, voxelModels });
+  const obstacle = game.enemies.find((enemy) => enemy.staticObstacle);
+  const start = { x: obstacle.x, y: obstacle.y };
+
+  stepGame(game, { x: 1, brake: true, fireHeld: true, secondaryFirePressed: true }, 0.1);
+
+  assert.equal(game.obstacleEffects.accelerationScale, 0.25);
+  assert.equal(game.obstacleEffects.brakingScale, 0.5);
+  assert.equal(game.obstacleEffects.primaryFireRateScale, 0);
+  assert.equal(game.obstacleEffects.secondaryFireRateScale, 0);
+  assert.equal(game.vehicle.obstacleSpinoutTimer > 0, true);
+  assert.equal(game.playerProjectiles.length, 0);
+  assert.equal(obstacle.x, start.x);
+  assert.equal(obstacle.y, start.y);
 });

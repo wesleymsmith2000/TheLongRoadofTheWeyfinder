@@ -3,7 +3,9 @@ import { PLAYER_EQUIPMENT_TYPES } from '../core/playerAccount.js';
 import {
   VEHICLE_EDITOR_GRID_RADIUS,
   addEditableVehicleCell,
+  autoConnectEditableVehicleCells,
   connectEditableVehicleCells,
+  disconnectEditableVehicleCells,
   editableVehicleReport,
   normalizeGunLoadouts,
   removeEditableVehicleCell,
@@ -39,6 +41,8 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
   bindTool(elements.placeButton, 'place');
   bindTool(elements.eraseButton, 'erase');
   bindTool(elements.connectButton, 'connect');
+  bindTool(elements.disconnectButton, 'disconnect');
+  elements.autoConnectButton.addEventListener('click', () => applyResult(autoConnectEditableVehicleCells(state.definition)));
   populateLoadoutSelects();
   for (const select of elements.loadoutSelects ?? []) {
     select.addEventListener('change', () => {
@@ -123,6 +127,22 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
       }
       applyResult(connectEditableVehicleCells(state.definition, state.selectedCellId, cell.id));
       state.selectedCellId = cell.id;
+      return;
+    }
+    if (state.tool === 'disconnect') {
+      if (!cell) {
+        state.message = 'Choose an occupied cell.';
+        render();
+        return;
+      }
+      if (!state.selectedCellId || state.selectedCellId === cell.id) {
+        state.selectedCellId = cell.id;
+        state.message = `Selected ${cell.id}.`;
+        render();
+        return;
+      }
+      applyResult(disconnectEditableVehicleCells(state.definition, state.selectedCellId, cell.id));
+      state.selectedCellId = cell.id;
     }
   }
 
@@ -154,6 +174,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     elements.placeButton.setAttribute('aria-pressed', String(state.tool === 'place'));
     elements.eraseButton.setAttribute('aria-pressed', String(state.tool === 'erase'));
     elements.connectButton.setAttribute('aria-pressed', String(state.tool === 'connect'));
+    elements.disconnectButton.setAttribute('aria-pressed', String(state.tool === 'disconnect'));
   }
 
   function draw() {

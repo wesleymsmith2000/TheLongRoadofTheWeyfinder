@@ -583,6 +583,10 @@
         grid-column: span 2;
       }
 
+      .sandbox-grid .sandbox-wide {
+        grid-column: 1 / -1;
+      }
+
       .sandbox-grid select,
       .sandbox-grid input,
       .sandbox-script-label textarea {
@@ -2005,6 +2009,8 @@
               <button id="vehiclePlaceButton" type="button" aria-pressed="true">Place</button>
               <button id="vehicleEraseButton" type="button" aria-pressed="false">Erase</button>
               <button id="vehicleConnectButton" type="button" aria-pressed="false">Connect</button>
+              <button id="vehicleDisconnectButton" type="button" aria-pressed="false">Remove Connection</button>
+              <button id="vehicleAutoConnectButton" type="button">Auto-connect</button>
               <button id="vehicleResetButton" type="button">Reset</button>
             </div>
             <div class="weapon-loadout-panel" aria-label="Selected gun loadout">
@@ -2069,6 +2075,14 @@
           Level
           <input id="sandboxLevelInput" type="number" min="1" max="99" step="1" value="1" />
         </label>
+        <label class="sandbox-wide" for="sandboxContentInput">
+          Import Content JSON
+          <input id="sandboxContentInput" type="file" accept=".json,application/json" multiple />
+        </label>
+        <label class="sandbox-wide" for="sandboxLevelSelect">
+          Custom Level
+          <select id="sandboxLevelSelect"></select>
+        </label>
       </div>
       <label class="sandbox-script-label" for="sandboxScriptInput">
         Event Script
@@ -2077,6 +2091,7 @@
       <div class="sandbox-actions">
         <button id="sandboxQuickRun" type="button">Run Quick</button>
         <button id="sandboxScriptRun" type="button">Run Script</button>
+        <button id="sandboxPlayLevel" type="button">Play Custom Level</button>
         <button id="sandboxStop" type="button">Stop</button>
         <button id="sandboxRefresh" type="button">Refresh Content</button>
       </div>

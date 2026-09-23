@@ -55,7 +55,7 @@ import {
   upgradeStatus,
 } from './core/economy.js';
 import { countDetachedVehicleCells, hasRepairableVehicleDamage, repairTargetOptions } from './core/vehicle.js';
-import { DEFAULT_SANDBOX_DEFINITION, sandboxDefinitionFromEnemy, validateSandboxDefinition } from './core/sandboxMode.js';
+import { DEFAULT_SANDBOX_DEFINITION, sandboxDefinitionFromEnemy, sandboxDefinitionFromLevel, validateSandboxDefinition } from './core/sandboxMode.js';
 import { beginEncounter, activeEncounterView, chooseEncounterChoice } from './core/encounterRuntime.js';
 import { normalizeEncounterDefinition, validateEncounterDefinition } from './core/encounterDefinition.js';
 import levelCompleteBannerArt from '../assets/images/level_complete_banner.png';
@@ -264,6 +264,8 @@ const vehiclePartSelect = document.querySelector('#vehiclePartSelect');
 const vehiclePlaceButton = document.querySelector('#vehiclePlaceButton');
 const vehicleEraseButton = document.querySelector('#vehicleEraseButton');
 const vehicleConnectButton = document.querySelector('#vehicleConnectButton');
+const vehicleDisconnectButton = document.querySelector('#vehicleDisconnectButton');
+const vehicleAutoConnectButton = document.querySelector('#vehicleAutoConnectButton');
 const vehicleResetButton = document.querySelector('#vehicleResetButton');
 const gunLoadoutSelects = [...document.querySelectorAll('.gun-loadout-select')];
 const vehicleEditorStatus = document.querySelector('#vehicleEditorStatus');
@@ -305,6 +307,9 @@ const sandboxScriptRun = document.querySelector('#sandboxScriptRun');
 const sandboxStop = document.querySelector('#sandboxStop');
 const sandboxRefresh = document.querySelector('#sandboxRefresh');
 const sandboxStatus = document.querySelector('#sandboxStatus');
+const sandboxContentInput = document.querySelector('#sandboxContentInput');
+const sandboxLevelSelect = document.querySelector('#sandboxLevelSelect');
+const sandboxPlayLevel = document.querySelector('#sandboxPlayLevel');
 const encounterVignette = document.querySelector('#encounterVignette');
 const encounterSpeaker = document.querySelector('#encounterSpeaker');
 const encounterTitle = document.querySelector('#encounterTitle');
@@ -529,7 +534,7 @@ exposeProceduralMusicApi();
 exposeHapticApi();
 annotateWeaponOptionIcons();
 populateUpgradeSelect();
-populateSandboxEnemySelect();
+refreshSandboxContentOptions();
 syncSandboxScript(loadSandboxDefinition());
 refreshRepairTargets();
 renderAchievements();
@@ -542,6 +547,8 @@ const vehicleEditor = createPlayerVehicleLaunchEditor(
     placeButton: vehiclePlaceButton,
     eraseButton: vehicleEraseButton,
     connectButton: vehicleConnectButton,
+    disconnectButton: vehicleDisconnectButton,
+    autoConnectButton: vehicleAutoConnectButton,
     resetButton: vehicleResetButton,
     loadoutSelects: gunLoadoutSelects,
     status: vehicleEditorStatus,
@@ -774,9 +781,11 @@ sandboxQuickRun.addEventListener('click', runQuickSandbox);
 sandboxScriptRun.addEventListener('click', runScriptSandbox);
 sandboxStop.addEventListener('click', stopSandbox);
 sandboxRefresh.addEventListener('click', () => {
-  populateSandboxEnemySelect();
+  refreshSandboxContentOptions();
   sandboxStatus.textContent = 'Sandbox content refreshed.';
 });
+sandboxContentInput.addEventListener('change', importSandboxContentFiles);
+sandboxPlayLevel.addEventListener('click', playSelectedSandboxLevel);
 sandboxEnemySelect.addEventListener('change', updateSandboxScriptFromQuick);
 sandboxCountInput.addEventListener('input', updateSandboxScriptFromQuick);
 sandboxFrequencyInput.addEventListener('input', updateSandboxScriptFromQuick);
@@ -938,20 +947,23 @@ function runScriptSandbox() {
   }
 }
 
-function startSandbox(definition) {
-  const enemyArchetypes = localEnemyArchetypes();
+function startSandbox(definition, suppliedRuntime = null) {
+  const runtime = suppliedRuntime ?? localSandboxRuntimeOptions();
   try {
     titleActive = false;
     closeControlConfig();
-    if (game.sandbox?.enabled) {
-      applySandboxDefinitionToGame(game, definition, { enemyArchetypes });
+    if (game.sandbox?.enabled && !definition.sourceLevelId) {
+      applySandboxDefinitionToGame(game, definition, runtime);
     } else {
       game = createGame(1147, {
         vehicleDefinition: playerVehicleDefinition ?? undefined,
         sandbox: definition,
-        enemyArchetypes,
+        terrainRoute: definition.route ?? undefined,
+        environmentLighting: definition.lighting ?? undefined,
+        ...runtime,
       });
     }
+    renderer.setContentRegistry(runtime.registry);
     blurActiveControl();
     awaitingLaunch = false;
     game.paused = false;
@@ -967,6 +979,72 @@ function startSandbox(definition) {
   } catch (error) {
     sandboxStatus.textContent = `Sandbox failed: ${error.message}`;
   }
+}
+
+async function importSandboxContentFiles() {
+  const files = sandboxContentInput.files;
+  if (!files?.length) return;
+  sandboxStatus.textContent = `Importing ${files.length} content file${files.length === 1 ? '' : 's'}...`;
+  try {
+    const result = await installLocalContentFiles(files, { displayName: 'Sandbox Import' });
+    if (!result.ok) {
+      sandboxStatus.textContent = `Import rejected: ${result.errors.join(' ')}`;
+      return;
+    }
+    refreshSandboxContentOptions();
+    const warning = result.warnings.length ? ` ${result.warnings.join(' ')}` : '';
+    sandboxStatus.textContent = `Imported ${result.installedPacks.length} local pack${result.installedPacks.length === 1 ? '' : 's'}.${warning}`;
+  } catch (error) {
+    sandboxStatus.textContent = `Import failed: ${error.message}`;
+  } finally {
+    sandboxContentInput.value = '';
+  }
+}
+
+function playSelectedSandboxLevel() {
+  const levelId = sandboxLevelSelect.value;
+  if (!levelId) {
+    sandboxStatus.textContent = 'Import and select a custom level first.';
+    return;
+  }
+  try {
+    const runtime = localSandboxRuntimeOptions();
+    const runPackage = instantiateLocalLevel(levelId, { storage: localStorage, registry: runtime.registry, seed: 1147 });
+    const definition = sandboxDefinitionFromLevel(runPackage.definition);
+    syncSandboxScript(definition);
+    startSandbox(definition, runtime);
+  } catch (error) {
+    sandboxStatus.textContent = `Custom level failed: ${error.message}`;
+  }
+}
+
+function refreshSandboxContentOptions() {
+  populateSandboxEnemySelect();
+  populateSandboxLevelSelect();
+}
+
+function populateSandboxLevelSelect() {
+  const selected = sandboxLevelSelect.value;
+  const runtime = localSandboxRuntimeOptions();
+  const levels = [...(runtime.registry.assets.get('level')?.values() ?? [])]
+    .sort((a, b) => (a.displayName ?? a.assetId).localeCompare(b.displayName ?? b.assetId));
+  sandboxLevelSelect.replaceChildren(
+    new Option(levels.length ? 'Select custom level' : 'No custom levels installed', ''),
+    ...levels.map((level) => new Option(level.displayName ?? level.title ?? level.assetId, level.assetId)),
+  );
+  if (levels.some((level) => level.assetId === selected)) sandboxLevelSelect.value = selected;
+}
+
+function localSandboxRuntimeOptions() {
+  const { registry } = createRegistryWithLocalContent(localStorage);
+  return {
+    registry,
+    enemyArchetypes: [...(registry.assets.get('enemyArchetype')?.values() ?? [])].flatMap((pack) => pack.archetypes ?? []),
+    constructDefinitions: [...(registry.assets.get('construct')?.values() ?? [])],
+    patternDefinitions: [...(registry.assets.get('pattern')?.values() ?? [])],
+    voxelModels: [...(registry.assets.get('voxelModel')?.values() ?? [])],
+    encounters: [...(registry.assets.get('encounter')?.values() ?? [])],
+  };
 }
 
 function stopSandbox() {
@@ -1815,6 +1893,22 @@ function exposeSandboxApi() {
     enemies() {
       return sandboxEnemyOptions().map((enemy) => ({ id: enemy.id, displayName: enemy.displayName ?? enemy.id }));
     },
+    levels() {
+      const runtime = localSandboxRuntimeOptions();
+      return [...(runtime.registry.assets.get('level')?.values() ?? [])].map((level) => ({
+        id: level.assetId,
+        displayName: level.displayName ?? level.title ?? level.assetId,
+      }));
+    },
+    contentReport() {
+      const report = createRegistryWithLocalContent(localStorage);
+      return {
+        ok: report.ok,
+        errors: structuredClone(report.errors),
+        warnings: structuredClone(report.warnings),
+        packs: listLocalContentPacks(localStorage),
+      };
+    },
     validate: validateSandboxDefinition,
     run(definition) {
       const report = validateSandboxDefinition(definition);
@@ -1828,6 +1922,22 @@ function exposeSandboxApi() {
       syncSandboxScript(definition);
       startSandbox(definition);
       return definition;
+    },
+    runLevel(levelId, options = {}) {
+      const runtime = localSandboxRuntimeOptions();
+      const runPackage = instantiateLocalLevel(levelId, {
+        storage: localStorage,
+        registry: runtime.registry,
+        seed: options.seed ?? 1147,
+      });
+      const definition = sandboxDefinitionFromLevel(runPackage.definition, options);
+      syncSandboxScript(definition);
+      startSandbox(definition, runtime);
+      return {
+        ok: true,
+        definition: structuredClone(definition),
+        dependencies: structuredClone(runPackage.dependencies ?? []),
+      };
     },
     stop: stopSandbox,
     current() {

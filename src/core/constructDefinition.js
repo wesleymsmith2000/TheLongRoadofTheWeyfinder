@@ -1,8 +1,9 @@
-import { createCell } from './cell.js';
+import { createCell, recalculateCell } from './cell.js';
 import { coreDistanceMap, createConnection, OPPOSITE } from './connections.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { normalizePoseRig, validatePoseRig } from './poseAnimation.js';
 import { normalizeRenderSurfaces, validateRenderMaterialFields } from './renderMaterial.js';
+import { Roles, VOXELS } from './voxelMask.js';
 
 export const CONSTRUCT_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export { CANON_STATUSES };
@@ -53,6 +54,7 @@ export function validateConstructDefinition(definition) {
     if (!Number.isInteger(cell.gridX)) errors.push(`${label}.gridX must be an integer.`);
     if (!Number.isInteger(cell.gridY)) errors.push(`${label}.gridY must be an integer.`);
     if (cell.gridZ != null && !Number.isInteger(cell.gridZ)) errors.push(`${label}.gridZ must be an integer when provided.`);
+    validateCellMask(cell.mask, `${label}.mask`, errors);
     errors.push(...validateRenderMaterialFields(cell.render, `${label}.render`));
     if (Number.isInteger(cell.gridX) && Number.isInteger(cell.gridY) && (cell.gridZ == null || Number.isInteger(cell.gridZ))) {
       const key = `${cell.gridX},${cell.gridY},${cell.gridZ ?? 0}`;
@@ -103,6 +105,7 @@ export function instantiateConstruct(definition) {
     if (runtimeCell.render?.surfaces) {
       runtimeCell.render.surfaces = normalizeRenderSurfaces(runtimeCell.render.surfaces);
     }
+    recalculateCell(runtimeCell);
     runtimeCell.sourceId = cell.id;
     return runtimeCell;
   });
@@ -120,6 +123,27 @@ export function instantiateConstruct(definition) {
     connections,
   };
   return annotateConstructRuntimeMetadata(construct, definition);
+}
+
+function validateCellMask(mask, label, errors) {
+  if (mask == null) return;
+  if (!Array.isArray(mask) || mask.length !== VOXELS || mask.some((row) => !Array.isArray(row) || row.length !== VOXELS)) {
+    errors.push(`${label} must be a ${VOXELS}x${VOXELS} voxel array.`);
+    return;
+  }
+  const roles = new Set(Object.values(Roles));
+  for (const [y, row] of mask.entries()) {
+    for (const [x, voxel] of row.entries()) {
+      const voxelLabel = `${label}[${y}][${x}]`;
+      if (!isPlainObject(voxel) || !roles.has(voxel.role)) {
+        errors.push(`${voxelLabel}.role must be a recognized voxel role.`);
+        continue;
+      }
+      if (!Number.isFinite(voxel.hp) || !Number.isFinite(voxel.maxHp) || voxel.hp < 0 || voxel.maxHp < 0 || voxel.hp > voxel.maxHp) {
+        errors.push(`${voxelLabel} must have finite hp and maxHp with 0 <= hp <= maxHp.`);
+      }
+    }
+  }
 }
 
 export function annotateConstructRuntimeMetadata(construct, definition = null) {

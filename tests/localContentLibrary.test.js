@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { createLocalContentBundleFromFiles, createRegistryWithLocalContent, installLocalContentBundle, instantiateLocalLevel, listLocalContentPacks, removeLocalContentPack } from '../src/core/localContentLibrary.js';
+import { createLocalContentBundleFromFiles, createRegistryWithLocalContent, inferContentKind, installLocalContentBundle, instantiateLocalLevel, listLocalContentPacks, removeLocalContentPack } from '../src/core/localContentLibrary.js';
 
 const construct = {
   schemaVersion: '0.1',
@@ -217,6 +217,26 @@ test('loose local lighting preset assets are grouped into packs', () => {
 
   assert.equal(bundle.assets[0].kind, 'lightingPreset');
   assert.deepEqual(bundle.manifests[0].assets.lightingPresets, ['moonlight.json']);
+});
+
+test('embedded voxel models import as local content resources', () => {
+  const voxelModel = {
+    schemaVersion: '0.1',
+    assetId: 'community.voxel.cross',
+    kind: 'voxelModel',
+    voxels: [
+      ['empty', 'anchor', 'anchor', 'empty'],
+      ['anchor', 'device', 'device', 'anchor'],
+      ['anchor', 'device', 'device', 'anchor'],
+      ['empty', 'anchor', 'anchor', 'empty'],
+    ],
+  };
+  const bundle = createLocalContentBundleFromFiles([file('cross.json', voxelModel)], { packId: 'local.voxels' });
+  const installed = installLocalContentBundle(bundle, { storage: memoryStorage() });
+
+  assert.equal(inferContentKind(voxelModel), 'voxelModel');
+  assert.equal(bundle.assets[0].kind, 'voxelModel');
+  assert.equal(installed.ok, true);
 });
 
 test('example prototype module set imports as a local content pack', () => {

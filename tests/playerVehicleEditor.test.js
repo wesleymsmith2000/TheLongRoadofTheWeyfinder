@@ -4,9 +4,11 @@ import startingVehicleDefinition from '../content/constructs/starting_vehicle.js
 import { createPrototypePlayerAccountData, equipmentLimit, normalizePrototypePlayerAccountData, validatePlayerAccountData } from '../src/core/playerAccount.js';
 import {
   addEditableVehicleCell,
+  autoConnectEditableVehicleCells,
   connectEditableVehicleCells,
   createVehicleFromConstructDefinition,
   editableVehicleReport,
+  disconnectEditableVehicleCells,
   normalizeGunLoadouts,
   removeEditableVehicleCell,
   setGunLoadoutSlot,
@@ -143,6 +145,28 @@ test('player vehicle editor can stack cells and connect vertical layers', () => 
   assert.equal(connectResult.changed, true);
   assert.equal(connectResult.definition.connections.some((edge) => edge.aSide === 'above' && edge.bSide === 'below'), true);
   assert.equal(vehicle.cells.find((cell) => cell.id === stacked.id).gridZ, 1);
+});
+
+test('player vehicle editor can auto-connect all adjacent cells and remove individual edges', () => {
+  const disconnected = {
+    ...structuredClone(startingVehicleDefinition),
+    connections: [],
+    cells: [
+      { id: 'core', type: 'core', gridX: 0, gridY: 0 },
+      { id: 'right', type: 'armor', gridX: 1, gridY: 0 },
+      { id: 'above', type: 'armor', gridX: 0, gridY: 0, gridZ: 1 },
+      { id: 'far', type: 'armor', gridX: 3, gridY: 0 },
+    ],
+  };
+  const connected = autoConnectEditableVehicleCells(disconnected);
+  assert.equal(connected.changed, true);
+  assert.equal(connected.definition.connections.length, 2);
+  assert.equal(connected.definition.connections.some((edge) => edge.aSide === 'above' || edge.bSide === 'above'), true);
+
+  const removed = disconnectEditableVehicleCells(connected.definition, 'core', 'right');
+  assert.equal(removed.changed, true);
+  assert.equal(removed.definition.connections.length, 1);
+  assert.equal(disconnectEditableVehicleCells(removed.definition, 'core', 'right').changed, false);
 });
 
 test('edited player vehicle definitions instantiate into runtime vehicles', () => {

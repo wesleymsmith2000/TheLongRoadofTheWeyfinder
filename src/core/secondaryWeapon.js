@@ -78,9 +78,11 @@ export function stepSecondaryWeapon(game, input, dt) {
   if (input.secondarySelect && SECONDARY_WEAPONS.includes(input.secondarySelect)) secondary.selected = input.secondarySelect;
   if (input.secondaryCycle) cycleSecondary(secondary, input.secondaryCycle);
   secondary.autofire = Boolean(input.secondaryAutofire);
-  secondary.cooldown = Math.max(0, secondary.cooldown - dt);
+  const fireRateScale = Math.max(0, game.obstacleEffects?.secondaryFireRateScale ?? 1);
+  secondary.cooldown = Math.max(0, secondary.cooldown - dt * fireRateScale);
   secondary.heat = Math.max(0, secondary.heat - heatSinkRate(game) * dt);
   if (secondary.selected === 'none') return false;
+  if (fireRateScale <= 0) return false;
   if (!input.secondaryFirePressed && !(secondary.autofire && game.enemies.some((enemy) => !enemy.destroyed))) return false;
   return fireSecondary(game);
 }
