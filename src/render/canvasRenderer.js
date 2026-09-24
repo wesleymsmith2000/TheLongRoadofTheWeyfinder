@@ -156,7 +156,8 @@ export class CanvasRenderer {
       drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
     }
     drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets, this.cellSpriteCache, game.environmentLighting, this.renderAssets);
-    drawAimReticle(ctx, game.aimReticle);
+    for (const reticle of Object.values(game.independentAimReticles ?? {})) drawAimReticle(ctx, reticle);
+    if (game.showSharedAimReticle !== false) drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
     if (!diagnostics.disableDynamicLighting) drawDynamicLightingComposite(ctx, game, w, h, this.lightBuffer, diagnostics);
@@ -289,8 +290,10 @@ function drawAimReticle(ctx, reticle) {
   if (!reticle?.active) return;
   ctx.save();
   ctx.translate(reticle.x, reticle.y);
-  ctx.strokeStyle = reticle.source === 'ai' ? '#6fe08c' : '#83f7ff';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = reticle.source === 'independent-ai'
+    ? reticle.slotKind === 'secondary' ? '#ffc857' : independentReticleColor(reticle.key)
+    : reticle.source === 'ai' ? '#6fe08c' : '#83f7ff';
+  ctx.lineWidth = reticle.source === 'independent-ai' ? 1.5 : 2;
   ctx.beginPath();
   ctx.arc(0, 0, 10, 0, Math.PI * 2);
   ctx.moveTo(-16, 0);
@@ -303,6 +306,13 @@ function drawAimReticle(ctx, reticle) {
   ctx.lineTo(0, 16);
   ctx.stroke();
   ctx.restore();
+}
+
+function independentReticleColor(key = '') {
+  const palette = ['#ff8fab', '#b8f2e6', '#ffd166', '#cdb4db', '#90dbf4', '#f7a072'];
+  let hash = 0;
+  for (let index = 0; index < key.length; index += 1) hash = (Math.imul(hash, 31) + key.charCodeAt(index)) >>> 0;
+  return palette[hash % palette.length];
 }
 
 function drawScrapPickups(ctx, pickups) {

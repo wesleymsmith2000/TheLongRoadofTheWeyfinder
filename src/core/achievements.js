@@ -1,4 +1,5 @@
 import { SPECIAL_DEFEAT_HOOKS } from './combatEvents.js';
+import { TARGETING_COMPUTER_DEFINITIONS } from './targetingComputers.js';
 
 export const ACHIEVEMENT_DEFINITIONS = [
   {
@@ -173,6 +174,13 @@ export const ACHIEVEMENT_DEFINITIONS = [
     earned: (stats) =>
       (stats.enemyDefeats?.['ghost_phaser.ghost_forrest'] ?? 0) + (stats.enemyDefeats?.['example.ghost_phase_mob.ghost_forrest'] ?? 0) >= 3,
   },
+  ...TARGETING_COMPUTER_DEFINITIONS.map((entry) => ({
+    id: `guided-${entry.weaponId.replaceAll('.', '-').replaceAll('_', '-')}`,
+    title: `${labelForWeapon(entry.weaponId)} Targeting Computer`,
+    description: `Defeat ${entry.defeatThreshold} enemies with guided ${labelForWeapon(entry.weaponId)} fire.`,
+    reward: { moduleUnlocks: [entry.moduleId] },
+    earned: (stats) => (stats.guidedWeaponDefeats?.[entry.weaponId] ?? 0) >= entry.defeatThreshold,
+  })),
 ];
 
 export function achievementStatsFromGame(game) {
@@ -183,6 +191,7 @@ export function achievementStatsFromGame(game) {
     damageDone: game.score?.damageDone ?? 0,
     enemyDefeats: game.score?.enemyDefeats ?? {},
     specialDefeats: game.score?.specialDefeats ?? {},
+    guidedWeaponDefeats: game.score?.guidedWeaponDefeats ?? {},
   };
 }
 

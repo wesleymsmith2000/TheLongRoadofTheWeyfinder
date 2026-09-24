@@ -123,5 +123,6 @@ test('achievement stats are derived from run state', () => {
     damageDone: 444,
     enemyDefeats: { 'heavy_mortar_boat.pirates_road': 2 },
     specialDefeats: { buzzardLandedForScrap: 1 },
+    guidedWeaponDefeats: {},
   });
 });

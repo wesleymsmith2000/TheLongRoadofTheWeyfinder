@@ -28,6 +28,7 @@ import { createPerformanceDiagnostics, installPerformanceDiagnosticsGlobal } fro
 import { createPerformanceMonitor } from './debug/performanceMonitor.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
 import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
+import { TARGETING_COMPUTER_DEFINITIONS, syncTargetingComputerUnlocks, targetingComputerUnlocks } from './core/targetingComputers.js';
 import { applySaveStateToGame, createSaveState, validateSaveState } from './core/saveState.js';
 import {
   createLocalContentBundleFromFiles,
@@ -476,7 +477,10 @@ const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
 
 let playerAccount = loadPlayerAccount();
 let playerVehicleDefinition = playerAccount.savedVehicle;
-let game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
+let game = createGame(1147, {
+  vehicleDefinition: playerVehicleDefinition ?? undefined,
+  targetingComputerUnlocks: targetingComputerUnlocks(playerAccount),
+});
 let aiShotLeading = loadAiShotLeading();
 let previous = performance.now();
 let awaitingLaunch = true;
@@ -567,6 +571,7 @@ exposeSandboxApi();
 exposeEncounterApi();
 exposeNavigationApi();
 exposeAnimationApi();
+exposeTargetingComputerApi();
 exposeProceduralMusicApi();
 exposeHapticApi();
 annotateWeaponOptionIcons();
@@ -1910,6 +1915,7 @@ function resetControlBindings() {
 
 function refreshAchievementAwards() {
   const nextAccount = awardAchievements(playerAccount, achievementStatsFromGame(game));
+  syncTargetingComputerUnlocks(game, nextAccount);
   if (nextAccount === playerAccount) return;
   playerAccount = nextAccount;
   vehicleEditor.setAccount(playerAccount);
@@ -2154,6 +2160,23 @@ function exposeAnimationApi() {
       const selected = game.animationEvents.filter((event) => event.entityId === entityId);
       game.animationEvents = game.animationEvents.filter((event) => event.entityId !== entityId);
       return structuredClone(selected);
+    },
+  });
+}
+
+function exposeTargetingComputerApi() {
+  window.WeyfinderTargetingComputers = Object.freeze({
+    definitions() {
+      return structuredClone(TARGETING_COMPUTER_DEFINITIONS);
+    },
+    unlocks() {
+      return [...(game.targetingComputerUnlocks ?? [])];
+    },
+    progress() {
+      return structuredClone(game.score?.guidedWeaponDefeats ?? {});
+    },
+    reticles() {
+      return structuredClone(game.independentAimReticles ?? {});
     },
   });
 }

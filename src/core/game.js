@@ -16,7 +16,7 @@ import {
 } from './camera.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE, Roles, VOXELS, VOXEL_SIZE } from './voxelMask.js';
 import { recalculateCell as recalculateEnemyCell } from './cell.js';
-import { PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
+import { compensatedAimHeading, PRIMARY_PROJECTILE_SPEED, stepTurretAim } from './turret.js';
 import { createBoostState, stepBoost } from './boost.js';
 import {
   applyEnemyBlastDamage,
@@ -42,7 +42,7 @@ import {
   traceEnemyVoxelRay,
 } from './enemy.js';
 import { firePattern } from './patternDefinition.js';
-import { createSecondaryState, stepSecondaryWeapon } from './secondaryWeapon.js';
+import { createSecondaryState, secondaryAimProfile, stepSecondaryWeapon } from './secondaryWeapon.js';
 import {
   SHOP_COSTS,
   buyUpgradeWithScrap,
@@ -76,6 +76,13 @@ import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projecti
 import { normalizeObstacleDefinition } from './obstacleDefinition.js';
 import { createNavigationRuntime, stepNavigationRuntime } from './navigationGraph.js';
 import { consumeAnimationMarkers, stepAnimationGraph } from './animationGraph.js';
+import {
+  hasTargetingComputer,
+  primaryTargetingReticleKey,
+  secondaryTargetingReticleKey,
+  targetingReticleForKey,
+  targetingReticleForPrimary,
+} from './targetingComputers.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
@@ -528,6 +535,9 @@ export function createGame(seed = 1147, options = {}) {
     bossLevelsCompleted: 0,
     score: { damageDone: 0, scrapCollected: 0, ...createCombatEventStats() },
     aiAimReticle: null,
+    independentAimReticles: {},
+    targetingComputerUnlocks: [...new Set(options.targetingComputerUnlocks ?? [])],
+    showSharedAimReticle: true,
     aimReticle: null,
     time: 0,
     fps: 60,
@@ -579,6 +589,7 @@ export function stepGame(game, input, dt) {
       constructDefinitions: game.contentRuntime?.constructDefinitions ?? game.sandbox?.constructDefinitions,
       patternDefinitions: game.contentRuntime?.patternDefinitions ?? game.sandbox?.patternDefinitions,
       voxelModels: game.contentRuntime?.voxelModels ?? game.sandbox?.voxelModels,
+      targetingComputerUnlocks: game.targetingComputerUnlocks,
     });
   }
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
@@ -2013,6 +2024,8 @@ function stepShop(game, input) {
 function aimInputForTurret(game, input, dt) {
   const mode = input.targetingMode ?? game.targetingMode ?? 'mixed';
   if (mode === 'manual') {
+    game.independentAimReticles = {};
+    game.showSharedAimReticle = true;
     if (!input.aimWorld) {
       game.aimReticle = null;
       return { ...input, gunnerEnabled: false };
@@ -2022,6 +2035,8 @@ function aimInputForTurret(game, input, dt) {
     return { ...input, gunnerEnabled: false };
   }
   if (mode === 'guided') return guidedAimInput(game, input, dt);
+  game.independentAimReticles = {};
+  game.showSharedAimReticle = true;
   if (input.aimWorld) {
     game.aimReticle = { ...input.aimWorld, active: true, source: input.aimSource ?? 'manual' };
     if ((input.secondarySelect ?? game.secondary.selected) === 'beam') return { ...input, compensatedAim: true, aimProjectileSpeed: 1_000_000 };
@@ -2055,6 +2070,8 @@ function guidedAimInput(game, input, dt) {
   const target = guidedAimTarget(game, input.aiShotLeading !== false);
   if (!target) {
     game.aimReticle = null;
+    game.independentAimReticles = {};
+    game.showSharedAimReticle = true;
     return { ...input, aimWorld: null, manualAimActive: false };
   }
   if (!game.aiAimReticle || game.aiAimMode !== 'guided' || game.aiAimTargetId !== target.targetId) resetAiAimReticle(game);
@@ -2064,6 +2081,7 @@ function guidedAimInput(game, input, dt) {
   const aimPoint = applyTargetingAiWobble(game, target, stats, dt);
   game.aiAimReticle = moveToward(game.aiAimReticle, aimPoint, stats.reticleSpeed * dt);
   game.aimReticle = { ...game.aiAimReticle, active: true, source: 'ai' };
+  stepIndependentAimReticles(game, target.enemy, input.aiShotLeading !== false, stats, dt);
   stepTargetingAiExperience(game, target.enemy, dt);
   return {
     ...input,
@@ -2086,9 +2104,8 @@ function gunnerAimTarget(game, shotLeading = true) {
   return aiAimTargetForEnemy(game, target, shotLeading);
 }
 
-function aiAimTargetForEnemy(game, enemy, shotLeading = true) {
-  const profile = nextPrimaryAimProfile(game);
-  const aimBase = guidedEnemyAimBase(game, enemy);
+function aiAimTargetForEnemy(game, enemy, shotLeading = true, profile = nextPrimaryAimProfile(game), anchor = null) {
+  const aimBase = guidedEnemyAimBase(game, enemy, anchor);
   const leadTime = shotLeading ? targetLeadTime(game, enemy, profile, aimBase) : 0;
   return {
     x: aimBase.x + (enemy.vx ?? 0) * leadTime,
@@ -2110,10 +2127,91 @@ function targetLeadTime(game, enemy, profile, aimBase = enemy) {
   return Math.min(profile.maxLeadTime, distance / Math.max(1, profile.projectileSpeed));
 }
 
-function guidedEnemyAimBase(game, enemy) {
+function guidedEnemyAimBase(game, enemy, anchor = null) {
   const cellType = normalizedGuidedTargetCellType(game.guidedTargetCellType);
   if (cellType === 'auto') return { x: enemy.x, y: enemy.y };
-  return nearestGuidedTargetCellPoint(game, enemy, cellType) ?? { x: enemy.x, y: enemy.y };
+  return nearestGuidedTargetCellPoint(game, enemy, cellType, anchor) ?? { x: enemy.x, y: enemy.y };
+}
+
+function stepIndependentAimReticles(game, enemy, shotLeading, stats, dt) {
+  const desired = independentTargetingProfiles(game);
+  const next = {};
+  for (const entry of desired) {
+    const previous = game.independentAimReticles?.[entry.key];
+    const state = previous ?? {
+      x: game.vehicle.x,
+      y: game.vehicle.y,
+      error: null,
+    };
+    const target = aiAimTargetForEnemy(game, enemy, shotLeading && entry.profile.shotLeading, entry.profile, state);
+    const aimPoint = independentAimPoint(game, state, target, stats, dt, entry.key);
+    const moved = moveToward(state, aimPoint, stats.reticleSpeed * dt);
+    next[entry.key] = {
+      ...state,
+      ...moved,
+      active: true,
+      source: 'independent-ai',
+      key: entry.key,
+      weaponId: entry.profile.weaponId,
+      slotKind: entry.slotKind,
+      targetId: target.targetId,
+    };
+  }
+  game.independentAimReticles = next;
+  game.showSharedAimReticle = hasSharedTargetingConsumers(game);
+}
+
+function hasSharedTargetingConsumers(game) {
+  for (const mount of primaryFiringMounts(game)) {
+    for (const weapon of primaryMountWeaponEntries(mount, 'offensive')) {
+      if (!hasTargetingComputer(game, weapon.weaponId ?? 'main.basic')) return true;
+    }
+  }
+  const secondaryId = game.secondary?.selected;
+  return Boolean(secondaryId && secondaryId !== 'none' && !hasTargetingComputer(game, secondaryId));
+}
+
+function independentTargetingProfiles(game) {
+  const profiles = [];
+  for (const mount of primaryFiringMounts(game)) {
+    for (const weapon of primaryMountWeaponEntries(mount, 'offensive')) {
+      const weaponId = weapon.weaponId ?? 'main.basic';
+      if (!hasTargetingComputer(game, weaponId)) continue;
+      profiles.push({
+        key: primaryTargetingReticleKey(mount.muzzle.cellId, weapon.slotIndex, weaponId),
+        slotKind: 'primary',
+        profile: primaryAimProfile(game, weaponId),
+      });
+    }
+  }
+  const secondaryId = game.secondary?.selected;
+  const secondaryProfile = secondaryAimProfile(game, secondaryId);
+  if (secondaryProfile && hasTargetingComputer(game, secondaryId)) {
+    profiles.push({
+      key: secondaryTargetingReticleKey(secondaryId),
+      slotKind: 'secondary',
+      profile: secondaryProfile,
+    });
+  }
+  return profiles;
+}
+
+function independentAimPoint(game, state, target, stats, dt, key) {
+  const errorKey = `${target.targetId}:${target.cellType}:${target.cellId ?? 'center'}`;
+  if (!state.error || state.error.key !== errorKey || state.error.refreshTimer <= 0) {
+    state.error = {
+      key: errorKey,
+      offset: sampleGaussianOffset(game, stats.gaussianErrorRadius ?? 0),
+      refreshTimer: game.rng.range(TARGETING_AI_ERROR_REFRESH_SECONDS[0], TARGETING_AI_ERROR_REFRESH_SECONDS[1]),
+    };
+  }
+  state.error.refreshTimer = Math.max(0, state.error.refreshTimer - dt);
+  const phase = hashStringUnit(`${target.targetId}:${key}`) * Math.PI * 2;
+  const wobbleTime = game.time * (1.15 + stats.rank * 0.04) + phase;
+  return {
+    x: target.x + state.error.offset.x + Math.cos(wobbleTime) * stats.wobbleRadius,
+    y: target.y + state.error.offset.y + Math.sin(wobbleTime * 0.73 + phase) * stats.wobbleRadius * 0.72,
+  };
 }
 
 function nextPrimaryAimProfile(game) {
@@ -2250,10 +2348,10 @@ function enemyTargetId(enemy) {
   return enemy.targetId;
 }
 
-function nearestGuidedTargetCellPoint(game, enemy, cellType) {
+function nearestGuidedTargetCellPoint(game, enemy, cellType, preferredAnchor = null) {
   const cells = liveGuidedTargetCells(enemy, cellType);
   if (cells.length === 0) return null;
-  const anchor = game.aimReticle ?? game.aiAimReticle ?? game.vehicle ?? enemy;
+  const anchor = preferredAnchor ?? game.aimReticle ?? game.aiAimReticle ?? game.vehicle ?? enemy;
   return cells.reduce((nearest, cell) => {
     const point = enemyGuidedCellWorldPoint(enemy, cell);
     if (!nearest || distanceSquared(anchor, point) < distanceSquared(anchor, nearest)) return point;
@@ -2503,7 +2601,13 @@ function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSl
     const usesHeat = options.defensive !== true;
     if (usesHeat && game.primaryHeat.heat + def.heat > game.primaryHeat.maxHeat) return 'heat-blocked';
     if (weaponId === 'repulsor_beam' && !repulsorReadyForThreat(game, muzzle)) return 'no-target';
-    firePrimaryWeapon(game, muzzle, def);
+    const aimReticle = game.targetingMode === 'guided'
+      ? targetingReticleForPrimary(game, muzzle.cellId, slotIndex, weaponId)
+      : game.aimReticle;
+    const targetingReticleKey = game.targetingMode === 'guided' && hasTargetingComputer(game, weaponId)
+      ? primaryTargetingReticleKey(muzzle.cellId, slotIndex, weaponId)
+      : null;
+    firePrimaryWeapon(game, muzzle, def, aimReticle, targetingReticleKey);
     if (weaponId === 'repulsor_beam') consumeRepulsorCharge(game);
     if (usesHeat) game.primaryHeat.heat += def.heat;
     setPrimaryWeaponCooldown(
@@ -2515,17 +2619,27 @@ function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSl
     );
     return 'fired';
   }
-  firePrimaryBullet(game, muzzle, damage, speed, spread, primaryProjectileVisualScale(game, 'main.basic'));
+  const aimReticle = game.targetingMode === 'guided'
+    ? targetingReticleForPrimary(game, muzzle.cellId, slotIndex, weaponId)
+    : game.aimReticle;
+  const targetingReticleKey = game.targetingMode === 'guided' && hasTargetingComputer(game, weaponId)
+    ? primaryTargetingReticleKey(muzzle.cellId, slotIndex, weaponId)
+    : null;
+  firePrimaryBullet(game, muzzle, damage, speed, spread, primaryProjectileVisualScale(game, 'main.basic'), aimReticle, targetingReticleKey);
   setPrimaryWeaponCooldown(game, muzzle.cellId, slotIndex, weaponId, playerGunFireInterval(game, activeWeaponSlots));
   return 'fired';
 }
 
-function firePrimaryBullet(game, muzzle, damage, speed, spread, visualScale = 1) {
-  const angle = game.vehicle.turretHeading + game.rng.range(-spread, spread);
+function firePrimaryBullet(game, muzzle, damage, speed, spread, visualScale = 1, aimReticle = null, targetingReticleKey = null) {
+  const baseAngle = aimReticle ? compensatedAimHeading(game.vehicle, aimReticle, speed) : game.vehicle.turretHeading;
+  const angle = baseAngle + game.rng.range(-spread, spread);
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
       team: 'player',
       weapon: 'bullet',
+      sourceWeaponId: 'main.basic',
+      guidedTargeting: game.targetingMode === 'guided',
+      targetingReticleKey,
       radius: 2.25 * visualScale,
       damage,
       impulse: 30,
@@ -2589,18 +2703,21 @@ function primaryWeaponCooldownKey(cellId, slotIndex, weaponId) {
   return `${cellId}:${slotIndex}:${weaponId}`;
 }
 
-function firePrimaryWeapon(game, muzzle, def) {
+function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targetingReticleKey = null) {
   if (def.behavior === 'beam') {
-    firePrimaryBeam(game, muzzle, def);
+    firePrimaryBeam(game, muzzle, def, aimReticle, targetingReticleKey);
     return;
   }
-  const targetHint = def.targetHint === 'aimReticle' && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
+  const targetHint = def.targetHint === 'aimReticle' && aimReticle ? { x: aimReticle.x, y: aimReticle.y } : null;
   const angle = targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   const launch = primaryProjectileLaunch(game, muzzle, def, targetHint, angle);
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, launch.vx, launch.vy, {
       team: 'player',
       weapon: def.id,
+      sourceWeaponId: def.id,
+      guidedTargeting: game.targetingMode === 'guided',
+      targetingReticleKey,
       behavior: def.behavior,
       angle: launch.angle,
       sourceCellId: muzzle.cellId,
@@ -2691,14 +2808,17 @@ function arcFlightTime(def) {
   return (2 * verticalVelocity) / gravity;
 }
 
-function firePrimaryBeam(game, muzzle, def) {
+function firePrimaryBeam(game, muzzle, def, aimReticle = game.aimReticle, targetingReticleKey = null) {
   const threat = def.id === 'repulsor_beam' ? nearestRepulsorThreat(game, muzzle) : null;
-  const targetHint = def.targetHint === 'aimReticle' && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
+  const targetHint = def.targetHint === 'aimReticle' && aimReticle ? { x: aimReticle.x, y: aimReticle.y } : null;
   const angle = threat ? Math.atan2(threat.y - muzzle.y, threat.x - muzzle.x) : targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, 0, 0, {
       team: 'player',
       weapon: def.id,
+      sourceWeaponId: def.id,
+      guidedTargeting: game.targetingMode === 'guided',
+      targetingReticleKey,
       behavior: 'beam',
       angle,
       sourceCellId: muzzle.cellId,
@@ -4774,7 +4894,7 @@ function stepZeppelinWalkerRout(game, walker, dt) {
   walker.destroyed = true;
   walker.escaped = true;
   walker.explosionStart = null;
-  recordEnemyDefeat(game.score, walker);
+  recordEnemyDefeatWithTargeting(game, walker);
 }
 
 function zeppelinWalkerRoutDirection(game, walker) {
@@ -5574,7 +5694,7 @@ function stepOctopusRetreat(game, boss, dt) {
   boss.renderAlpha = 0;
   boss.internalDestructionComplete = true;
   emitSoundEvent(game, SOUND_EVENTS.KRAKEN_DEFEATED);
-  recordEnemyDefeat(game.score, boss);
+  recordEnemyDefeatWithTargeting(game, boss);
 }
 
 function updateBossArmUnfurl(game, boss, dt) {
@@ -5949,7 +6069,7 @@ function stepBossInternalDestruction(game, boss, dt) {
     boss.renderAlpha = 0;
     boss.escaped = true;
     emitSoundEvent(game, SOUND_EVENTS.KRAKEN_DEFEATED);
-    recordEnemyDefeat(game.score, boss);
+    recordEnemyDefeatWithTargeting(game, boss);
     game.scrapPickups.push(...enemyDeathPickups(game, boss));
     spawnBlackSmokeCloud(game, boss, 70);
   } else {
@@ -6509,10 +6629,12 @@ function handleCollisions(game) {
       }
       const hit = applyEnemyDamage(enemy, projectile);
       if (hit.hit) {
+        markGuidedWeaponHit(enemy, projectile);
         if (projectile.weapon === 'bullet' && game.rng.chance(0.25)) emitSoundEvent(game, SOUND_EVENTS.BULLET_RICOCHET);
         game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
         const pierce = applyEnemyProjectilePierceDamage(playerProjectileTargets, projectile);
         if (pierce.hit) {
+          for (const piercedEnemy of pierce.hitEnemies ?? []) markGuidedWeaponHit(piercedEnemy, projectile);
           game.score.damageDone += Math.round(projectile.damage * 0.35 + pierce.removed * 3);
           for (const piercedEnemy of pierce.destroyedEnemies) explodeEnemy(game, piercedEnemy);
         }
@@ -6563,6 +6685,7 @@ function hitEnemiesWithDamageBudgetProjectile(game, projectile, targets = active
   game.score.damageDone += Math.round((pierce.damage ?? projectile.damage) + pierce.removed * 3);
   const previousDamage = projectile.damage;
   for (const hitEnemy of pierce.hitEnemies ?? []) {
+    markGuidedWeaponHit(hitEnemy, projectile);
     hitEnemy.vx += Math.cos(travelAngle) * (projectile.impulse ?? 0) * 0.004;
     hitEnemy.vy += Math.sin(travelAngle) * (projectile.impulse ?? 0) * 0.004;
   }
@@ -6699,6 +6822,9 @@ function fractureBladeOnFirstRicochet(game, projectile, targetPoint) {
       createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
         weapon: projectile.weapon,
+        sourceWeaponId: projectile.sourceWeaponId ?? projectile.weapon,
+        guidedTargeting: projectile.guidedTargeting,
+        targetingReticleKey: projectile.targetingReticleKey,
         behavior: 'homing',
         radius: projectile.radius,
         damage: sharedDamage,
@@ -6747,6 +6873,9 @@ function burstSpentBladeIntoFlechettes(game, projectile) {
       createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
         weapon: 'blade_flechette',
+        sourceWeaponId: projectile.sourceWeaponId ?? projectile.weapon,
+        guidedTargeting: projectile.guidedTargeting,
+        targetingReticleKey: projectile.targetingReticleKey,
         behavior: 'ballistic',
         radius: Math.max(1, (projectile.radius ?? 2) * 0.42),
         damage,
@@ -6793,6 +6922,9 @@ function spawnPlayerDetonationBurst(game, projectile) {
         createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
           team: 'player',
           weapon: group.weapon ?? 'detonation-burst',
+          sourceWeaponId: projectile.sourceWeaponId ?? projectile.weapon,
+          guidedTargeting: projectile.guidedTargeting,
+          targetingReticleKey: projectile.targetingReticleKey,
           radius: group.radius ?? 1,
           damage: group.damage ?? projectile.damage,
           color: group.color,
@@ -6842,6 +6974,7 @@ function spawnGenericPlayerBlast(game, projectile) {
       damage: projectile.blastDamage || projectile.damage,
     });
     if (hit.hit) {
+      markGuidedWeaponHit(blastTarget, projectile);
       game.score.damageDone += Math.round((projectile.blastDamage || projectile.damage) * 0.22 + hit.removed * 3);
       if (hit.destroyedNow) explodeEnemy(game, blastTarget);
     }
@@ -6878,6 +7011,9 @@ function createEmittedPlayerProjectile(game, source, emitter) {
   return createProjectile(source.x, source.y, vx, vy, {
     team: 'player',
     weapon: emitter.weapon ?? 'emitted-projectile',
+    sourceWeaponId: source.sourceWeaponId ?? source.weapon,
+    guidedTargeting: source.guidedTargeting,
+    targetingReticleKey: source.targetingReticleKey,
     radius: emitter.radius ?? 1,
     damage: emitter.damage ?? source.damage,
     color: emitter.color,
@@ -6899,17 +7035,20 @@ function createEmittedPlayerProjectile(game, source, emitter) {
 }
 
 function trackReticleProjectiles(game) {
-  if (!game.aimReticle) return;
   for (const projectile of game.playerProjectiles) {
     if (projectile.lifetime <= 0) continue;
+    const reticle = projectile.targetingReticleKey
+      ? targetingReticleForKey(game, projectile.targetingReticleKey)
+      : game.aimReticle;
+    if (!reticle) continue;
     if (projectile.tracksReticleInArc && projectile.behavior === 'arc' && !projectile.arcLanded) {
-      projectile.targetHint = { x: game.aimReticle.x, y: game.aimReticle.y };
+      projectile.targetHint = { x: reticle.x, y: reticle.y };
       const flightTime = remainingArcFlightTime(projectile);
       projectile.vx = (projectile.targetHint.x - projectile.x) / flightTime;
       projectile.vy = (projectile.targetHint.y - projectile.y) / flightTime;
       projectile.angle = Math.atan2(projectile.vy, projectile.vx);
     } else if (projectile.tracksReticleInHoming && projectile.behavior === 'homing') {
-      projectile.targetHint = { x: game.aimReticle.x, y: game.aimReticle.y };
+      projectile.targetHint = { x: reticle.x, y: reticle.y };
     }
   }
 }
@@ -7413,6 +7552,7 @@ function hitEnemiesWithBeam(game, projectile) {
     if (enemyShieldBlocks(voxelHit.enemy, voxelHit)) continue;
     const hit = applyEnemyVoxelDamage(voxelHit.enemy, voxelHit, projectile.damage * scale);
     if (hit.hit) {
+      markGuidedWeaponHit(voxelHit.enemy, projectile);
       game.score.damageDone += Math.round(projectile.damage * scale + hit.removed * 3);
       const forceDirection = projectile.forceMode === 'pull' ? -1 : 1;
       const forceScale = projectile.forceMode ? 0.035 : 0.0015;
@@ -7533,6 +7673,7 @@ function spawnCannonImpact(game, projectile, enemy) {
       damage: projectile.blastDamage || projectile.damage * 0.5,
     });
     if (hit.hit) {
+      markGuidedWeaponHit(blastTarget, projectile);
       game.score.damageDone += Math.round((projectile.blastDamage || projectile.damage * 0.5) * 0.22 + hit.removed * 3);
       if (hit.destroyedNow) explodeEnemy(game, blastTarget);
     }
@@ -7549,6 +7690,9 @@ function spawnCannonImpact(game, projectile, enemy) {
       createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
         weapon: 'cannon-shrapnel',
+        sourceWeaponId: projectile.sourceWeaponId ?? 'cannon',
+        guidedTargeting: projectile.guidedTargeting,
+        targetingReticleKey: projectile.targetingReticleKey,
         radius: game.rng.range(0.7, 1.1),
         damage: projectile.damage * (projectile.shrapnelDamageScale ?? 1) * game.rng.range(0.1, 0.18),
         impulse: projectile.impulse * 0.08,
@@ -7588,6 +7732,7 @@ function spawnRocketImpact(game, projectile, enemy) {
       damage: projectile.blastDamage,
     });
     if (hit.hit) {
+      markGuidedWeaponHit(blastTarget, projectile);
       game.score.damageDone += Math.round(projectile.blastDamage * 0.22 + hit.removed * 3);
       if (hit.destroyedNow) explodeEnemy(game, blastTarget);
     }
@@ -7999,13 +8144,29 @@ function samplePoisson(rng, mean) {
   return count - 1;
 }
 
+function markGuidedWeaponHit(enemy, projectile) {
+  if (!enemy) return;
+  enemy.guidedDefeatWeaponId = projectile?.guidedTargeting && projectile.sourceWeaponId
+    ? projectile.sourceWeaponId
+    : null;
+}
+
+function recordEnemyDefeatWithTargeting(game, enemy) {
+  recordEnemyDefeat(game.score, enemy);
+  const weaponId = enemy?.guidedDefeatWeaponId;
+  if (!weaponId || enemy.guidedDefeatRecorded) return;
+  enemy.guidedDefeatRecorded = true;
+  game.score.guidedWeaponDefeats ??= {};
+  game.score.guidedWeaponDefeats[weaponId] = (game.score.guidedWeaponDefeats[weaponId] ?? 0) + 1;
+}
+
 function explodeEnemy(game, enemy) {
   if (bossUsesInternalDestruction(enemy) && !enemy.internalDestructionComplete) {
     startBossInternalDestruction(game, enemy);
     return;
   }
   enemy.explosionStart = game.time;
-  recordEnemyDefeat(game.score, enemy);
+  recordEnemyDefeatWithTargeting(game, enemy);
   game.scrapPickups.push(...enemyDeathPickups(game, enemy));
   if (enemy.inchworm?.role === 'segment' || enemy.inchworm?.suppressDeathBlast) {
     emitEnemyDestroyedSound(game, enemy);

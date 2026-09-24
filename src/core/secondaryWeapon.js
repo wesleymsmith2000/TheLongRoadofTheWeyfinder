@@ -7,6 +7,7 @@ import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
 import { normalizeGunLoadouts } from './weaponLoadout.js';
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
+import { hasTargetingComputer, secondaryTargetingReticleKey, targetingReticleForSecondary } from './targetingComputers.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
@@ -94,7 +95,10 @@ export function fireSecondary(game) {
   if ((secondary.ammo[secondary.selected] ?? 0) <= 0) return false;
   const muzzle = gunMuzzleWorld(game.vehicle);
   if (!muzzle) return false;
-  const targetHint = (def.targetHint === 'aimReticle' || def.behavior === 'beam') && game.aimReticle ? { x: game.aimReticle.x, y: game.aimReticle.y } : null;
+  const independentTargeting = game.targetingMode === 'guided' && hasTargetingComputer(game, secondary.selected);
+  const targetingReticleKey = independentTargeting ? secondaryTargetingReticleKey(secondary.selected) : null;
+  const aimReticle = independentTargeting ? targetingReticleForSecondary(game, secondary.selected) : game.aimReticle;
+  const targetHint = (def.targetHint === 'aimReticle' || def.behavior === 'beam') && aimReticle ? { x: aimReticle.x, y: aimReticle.y } : null;
   const angle =
     targetHint && def.detonateAtTarget
       ? compensatedAimHeading(game.vehicle, targetHint, def.projectileSpeed)
@@ -108,6 +112,9 @@ export function fireSecondary(game) {
     createProjectile(muzzle.x, muzzle.y, launch.vx, launch.vy, {
       team: 'player',
       weapon: secondary.selected,
+      sourceWeaponId: secondary.selected,
+      guidedTargeting: game.targetingMode === 'guided',
+      targetingReticleKey,
       behavior: def.behavior,
       angle: launch.angle,
       startX: muzzle.x,
@@ -184,6 +191,19 @@ export function secondaryAmmoCopyMultiplier(vehicleDefinition, weapon) {
     0,
   );
   return Math.sqrt(copies + 1);
+}
+
+export function secondaryAimProfile(game, weapon = game?.secondary?.selected) {
+  const def = upgradedSecondaryDefinition(game, weapon);
+  if (!def) return null;
+  const directReticleWeapon = ['beam', 'tractor_beam', 'sta_missile', 'orb_of_blades'].includes(weapon);
+  return {
+    weaponId: weapon,
+    projectileSpeed: def.behavior === 'beam' ? 1_000_000 : Math.max(1, def.maxSpeed ?? def.projectileSpeed ?? 1),
+    maxLeadTime: directReticleWeapon ? 0 : def.behavior === 'homing' ? 0.95 : 0.75,
+    shotLeading: !directReticleWeapon,
+    compensatedAim: true,
+  };
 }
 
 function cycleSecondary(secondary, direction) {

@@ -26,6 +26,7 @@ export function createCombatEventStats() {
   return {
     enemyDefeats: {},
     specialDefeats: {},
+    guidedWeaponDefeats: {},
   };
 }
 
