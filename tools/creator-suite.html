@@ -28,6 +28,17 @@
         font: inherit;
       }
 
+      input,
+      select {
+        width: 100%;
+        min-height: 36px;
+        padding: 0 9px;
+        border: 1px solid rgb(244 238 228 / 0.2);
+        border-radius: 6px;
+        background: #0d1111;
+        color: #f4eee4;
+      }
+
       button {
         min-height: 36px;
         padding: 0 12px;
@@ -94,7 +105,7 @@
 
       .workspace {
         display: grid;
-        grid-template-columns: minmax(250px, 330px) minmax(0, 1fr);
+        grid-template-columns: minmax(330px, 410px) minmax(0, 1fr);
         gap: 12px;
         min-height: 0;
         padding: 12px;
@@ -119,7 +130,7 @@
 
       .module-panel {
         display: grid;
-        grid-template-rows: auto auto 1fr;
+        grid-template-rows: auto auto auto auto minmax(140px, 1fr) auto auto;
       }
 
       .module-actions {
@@ -136,17 +147,97 @@
         font-size: 12px;
       }
 
-      .module-row {
-        display: grid;
-        gap: 5px;
-        padding: 8px;
-        border: 1px solid rgb(244 238 228 / 0.12);
-        border-radius: 8px;
-        background: rgb(8 11 11 / 0.36);
+      .bench-filters,
+      .selected-asset,
+      .report-grid,
+      .bench-actions {
+        padding: 10px 12px;
+        border-top: 1px solid rgb(244 238 228 / 0.1);
       }
 
-      .module-row strong {
+      .bench-filters {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .bench-filters label:first-child {
+        grid-column: 1 / -1;
+      }
+
+      .bench-filters label {
+        display: grid;
+        gap: 5px;
+        color: #d7ceb8;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .asset-row {
+        display: grid;
+        gap: 5px;
+        width: 100%;
+        min-height: 0;
+        padding: 8px;
+        border: 1px solid rgb(244 238 228 / 0.12);
+        border-radius: 6px;
+        background: rgb(8 11 11 / 0.36);
+        text-align: left;
+        font-weight: 500;
+      }
+
+      .asset-row[aria-pressed="true"] {
+        border-color: #6fe0bf;
+        background: rgb(111 224 191 / 0.08);
+      }
+
+      .asset-row strong {
         color: #f4eee4;
+      }
+
+      .asset-kind,
+      .status-tag {
+        color: #6fe0bf;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .selected-asset,
+      .report,
+      .report-grid {
+        display: grid;
+        gap: 5px;
+        color: #d7ceb8;
+        font-size: 11px;
+      }
+
+      .report-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .report {
+        align-content: start;
+        max-height: 110px;
+        overflow: auto;
+        padding-right: 5px;
+      }
+
+      .report h3 {
+        margin: 0 0 3px;
+        color: #f4eee4;
+        font-size: 11px;
+      }
+
+      .bench-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
       }
 
       .status {
@@ -211,7 +302,7 @@
       </header>
       <section class="workspace">
         <aside class="panel module-panel">
-          <h2>Local Modules</h2>
+          <h2>Mod Test Bench</h2>
           <div class="module-actions">
             <button id="installExampleButton" type="button">Install Example</button>
             <button id="installZoneEnemyExampleButton" type="button">Install Zone Enemies</button>
@@ -220,7 +311,38 @@
             <button id="clearStatusButton" type="button">Clear Status</button>
           </div>
           <div id="moduleStatus" class="status"></div>
+          <div class="bench-filters">
+            <label>
+              Installed Pack
+              <select id="packSelect"></select>
+            </label>
+            <label>
+              Asset Type
+              <select id="assetKindSelect"></select>
+            </label>
+            <label>
+              Find Asset
+              <input id="assetSearchInput" type="search" placeholder="Name or ID" />
+            </label>
+          </div>
           <div id="moduleList" class="module-list"></div>
+          <div id="selectedAssetPanel" class="selected-asset"></div>
+          <div class="report-grid">
+            <section class="report">
+              <h3>Validation</h3>
+              <div id="validationReport" class="report"></div>
+            </section>
+            <section class="report">
+              <h3>Dependencies</h3>
+              <div id="dependencyReport" class="report"></div>
+            </section>
+          </div>
+          <div class="bench-actions">
+            <button id="openAssetButton" type="button">Open in Editor</button>
+            <button id="testAssetButton" type="button">Test in Sandbox</button>
+            <button id="exportPackButton" type="button">Export Pack</button>
+            <button id="removePackButton" type="button">Remove Pack</button>
+          </div>
         </aside>
         <section class="panel editor-panel">
           <div class="editor-tabs">

@@ -81,3 +81,46 @@ test('mesh voxelizer emits valid layered construct JSON', () => {
   assert.equal(construct.connections.some((edge) => edge.aSide === 'above' && edge.bSide === 'below'), true);
   assert.equal(construct.voxelizer.sourceTriangles, 12);
 });
+
+test('mesh voxelizer can fill a closed mesh from nearest surface types', () => {
+  const surface = voxelizeMeshToConstruct(parseObj(CUBE_OBJ), { span: 7, sampleDensity: 3 });
+  const solid = voxelizeMeshToConstruct(parseObj(CUBE_OBJ), {
+    span: 7,
+    sampleDensity: 3,
+    fillMode: 'nearestSurface',
+    defaultCellType: 'utility',
+  });
+
+  assert.equal(solid.cells.length > surface.cells.length, true);
+  assert.equal(solid.voxelizer.surfaceCells, surface.cells.length);
+  assert.equal(solid.voxelizer.interiorCells, solid.cells.length - surface.cells.length);
+  assert.equal(solid.cells.some((cell) => cell.role === 'meshInterior'), true);
+  assert.equal(validateConstructDefinition(solid).valid, true);
+});
+
+test('default fill mode gives enclosed cells the selected type', () => {
+  const construct = voxelizeMeshToConstruct(parseObj(CUBE_OBJ), {
+    span: 7,
+    sampleDensity: 3,
+    fillMode: 'defaultType',
+    defaultCellType: 'utility',
+  });
+  const interior = construct.cells.filter((cell) => cell.role === 'meshInterior');
+
+  assert.equal(interior.length > 0, true);
+  assert.equal(interior.every((cell) => cell.type === 'utility'), true);
+  assert.equal(construct.voxelizer.defaultCellType, 'utility');
+});
+
+test('nearest surface fill uses the default type when propagated source types tie', () => {
+  const mesh = parseObj(CUBE_OBJ);
+  mesh.triangleCellTypes = mesh.triangles.map((_, index) => index < 6 ? 'armor' : 'engine');
+  const construct = voxelizeMeshToConstruct(mesh, {
+    span: 7,
+    sampleDensity: 3,
+    fillMode: 'nearestSurface',
+    defaultCellType: 'utility',
+  });
+
+  assert.equal(construct.cells.some((cell) => cell.role === 'meshInterior' && cell.type === 'utility'), true);
+});

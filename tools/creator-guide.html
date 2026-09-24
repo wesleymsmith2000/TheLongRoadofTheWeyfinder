@@ -213,6 +213,18 @@
           </div>
         </section>
         <section class="section">
+          <h2>Mod Test Bench</h2>
+          <div class="body">
+            <ul>
+              <li>Select an installed pack to browse its assets. Enemy archetype sets expand into directly selectable enemies.</li>
+              <li>The validation report checks definitions; the dependency report distinguishes browser-local dependencies from content expected from the game or another pack.</li>
+              <li><code>Open in Editor</code> loads the selected definition into its matching editor instead of merely opening a blank tool.</li>
+              <li><code>Test Enemy</code>, <code>Test Level</code>, and <code>Test Encounter</code> prepare the Sandbox script and open the game. Click <code>Run Script</code> to begin the prepared test.</li>
+              <li><code>Export Pack</code> downloads one reimportable JSON manifest with its definitions embedded, making browser-only iteration practical on GitHub Pages.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
           <h2>Construct Workshop</h2>
           <div class="body">
             <ul>
@@ -220,6 +232,7 @@
               <li><code>Paint</code> places or changes cells using the selected cell type. A construct should usually have one clear <code>core</code>.</li>
               <li><code>Erase</code> removes a cell and any connections attached to it.</li>
               <li><code>Connect</code> links two adjacent cells. Runtime connectivity follows explicit graph edges, so disconnected cells will not behave like attached structure.</li>
+              <li><code>Auto-connect</code> adds every missing orthogonal connection across X, Y, and Z. <code>Remove Connection</code> removes the edge between two successively selected adjacent cells.</li>
               <li><code>Layer</code> edits stacked <code>gridZ</code> cells. Lower layers can be ghosted while upper layers stay hidden.</li>
               <li><code>Connect Above</code> and <code>Connect Below</code> link the selected cell to the matching X/Y cell on the next vertical layer.</li>
               <li>Gun loadout controls apply to the selected <code>gun</code> cell and let one construct carry multiple weapon choices.</li>
@@ -230,7 +243,9 @@
           <h2>Mesh Voxelizer</h2>
           <div class="body">
             <ul>
-              <li>Import <code>.obj</code> or ASCII <code>.stl</code> mesh files and convert sampled mesh surfaces into ordinary construct JSON.</li>
+              <li>Import <code>.obj</code> or ASCII/binary <code>.stl</code> mesh files and convert sampled mesh surfaces into ordinary construct JSON.</li>
+              <li><code>Surface Only</code> preserves the sampled shell. The solid fill modes populate only enclosed regions, using either the nearest surface cell type or the selected default type.</li>
+              <li>The default cell type also resolves ties when multiple source face types reach the same cell.</li>
               <li>The first pass chooses one core near the mesh centroid, makes other occupied cells armor, and creates explicit adjacency connections.</li>
               <li>Open the generated JSON in the Construct Workshop to assign cell types, gun loadouts, special roles, and cleaner hand-authored connections.</li>
             </ul>
@@ -259,6 +274,32 @@
               <li><code>Patterns</code> are firing behaviors. Use the Weapon + Pattern Lab to tune projectile shape, timing, spread, arcs, and status effects.</li>
               <li><code>Movement</code>, <code>Aggregate</code>, and <code>Cell Animation</code> are editor descriptors for richer enemies such as walkers, phased enemies, carriers, and bosses.</li>
               <li>Selectors such as <code>type:armor</code>, <code>role:supportLeg</code>, or <code>all</code> choose which cells an animation affects.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Animation State Graphs</h2>
+          <div class="body">
+            <ul>
+              <li><code>animationGraph</code> sits beside <code>poseRig</code>: the rig defines shapes and clips, while the graph defines semantic states, choices, and interruption routes.</li>
+              <li>States select a pose, optional material and texture states, a dwell range, tags, and weighted autonomous next states.</li>
+              <li>Transitions coordinate rig, material, and texture clips. Duration ranges and weighted variants use the graph's deterministic seed offset.</li>
+              <li><code>AT_NEXT_ANCHOR</code> waits for the next authored safe point; <code>REQUIRE_TAG</code> requires a matching semantic anchor such as <code>balanced</code> or <code>grounded</code>.</li>
+              <li>The transition slider previews passed anchors and emitted markers. It is an authoring aid and does not run gameplay simulation.</li>
+              <li>Use raw graph JSON for material/texture state libraries and additive motion until dedicated sub-editors are added.</li>
+            </ul>
+          </div>
+        </section>
+        <section class="section">
+          <h2>Branching Levels</h2>
+          <div class="body">
+            <ul>
+              <li>The Level Editor stores a branch network in the level's optional <code>navigationGraph</code> field.</li>
+              <li>Nodes can reference levels, encounters, relays, hazards, puzzles, bosses, or repair stops. Graph X/Y controls only the editor layout.</li>
+              <li>Edges may be visible, fogged, conditional, unstable, or false echoes, with required and blocked run flags.</li>
+              <li>Alignment, threat, clarity, fate pressure, road coherence, destination signal, and ambush risk remain independent authoring axes.</li>
+              <li>The score panel previews adaptive-music contributions. Use <code>Branch Graph</code> to inspect topology and <code>Road Timeline</code> to return to the selected level's route events.</li>
+              <li><code>Load Relay Example</code> supplies a loop, a false shortcut, a conditional recovery route, and referenced content as a working template.</li>
             </ul>
           </div>
         </section>

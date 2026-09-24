@@ -9,6 +9,7 @@ import {
   validateEncounterDefinition,
 } from '../core/encounterDefinition.js';
 import { bindBuildVersion } from './versionBadge.js';
+import { consumeEditorAssetHandoff } from './editorAssetHandoff.js';
 import sampleEncounter from '../../content/encounters/moonlit_beacon_choice_vignette.json' with { type: 'json' };
 
 const jsonOutput = document.querySelector('#jsonOutput');
@@ -64,6 +65,8 @@ copyJsonButton.addEventListener('click', async () => navigator.clipboard.writeTe
 downloadButton.addEventListener('click', downloadJson);
 
 loadEncounter(encounter);
+const creatorHandoff = consumeEditorAssetHandoff(['encounter']);
+if (creatorHandoff) loadEncounter(creatorHandoff.definition);
 
 function loadEncounter(nextEncounter) {
   encounter = normalizeEncounterDefinition(clone(nextEncounter));

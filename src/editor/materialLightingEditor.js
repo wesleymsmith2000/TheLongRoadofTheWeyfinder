@@ -15,6 +15,7 @@ import {
   validateMaterialDefinition,
 } from '../core/renderMaterial.js';
 import { bindBuildVersion } from './versionBadge.js';
+import { consumeEditorAssetHandoff } from './editorAssetHandoff.js';
 import moonlitBeaconMaterial from '../../content/materials/moonlit_beacon_material.json' with { type: 'json' };
 import fateGoldGlitter from '../../content/materials/fate_gold_glitter.json' with { type: 'json' };
 import fluorescentHiddenMessageInk from '../../content/materials/fluorescent_hidden_message_ink.json' with { type: 'json' };
@@ -116,6 +117,13 @@ for (const field of Object.values(fields)) {
 }
 
 loadMaterial(material);
+const creatorHandoff = consumeEditorAssetHandoff(['material', 'lightingPreset']);
+if (creatorHandoff?.kind === 'material') loadMaterial(creatorHandoff.definition);
+if (creatorHandoff?.kind === 'lightingPreset') {
+  lighting = normalizeLightingPresetDefinition(creatorHandoff.definition);
+  syncLightingJson();
+  render();
+}
 
 function loadMaterial(nextMaterial) {
   material = normalizeMaterialDefinition(nextMaterial);

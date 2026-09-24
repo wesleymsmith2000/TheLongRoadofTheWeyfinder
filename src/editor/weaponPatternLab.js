@@ -18,6 +18,7 @@ import aimedPatternDefinition from '../../content/patterns/enemy_aimed_shot.json
 import radialPatternDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
 import { CELL_SIZE } from '../core/voxelMask.js';
 import { bindBuildVersion } from './versionBadge.js';
+import { consumeEditorAssetHandoff } from './editorAssetHandoff.js';
 
 const canonAssets = {
   weapon: [
@@ -175,6 +176,15 @@ applyJsonButton.addEventListener('click', applyJson);
 for (const field of Object.values(fields)) field.addEventListener('input', renderFromFields);
 
 setMode('weapon');
+const creatorHandoff = consumeEditorAssetHandoff(['weapon', 'pattern', 'statusEffect']);
+if (creatorHandoff) loadCreatorAsset(creatorHandoff);
+
+function loadCreatorAsset(handoff) {
+  setMode(handoff.kind);
+  asset = clone(handoff.definition);
+  syncAssetToFields();
+  render();
+}
 
 function setMode(nextMode) {
   mode = nextMode;

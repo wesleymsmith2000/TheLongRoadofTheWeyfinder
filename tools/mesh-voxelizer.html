@@ -24,12 +24,14 @@
 
       button,
       input,
+      select,
       textarea {
         font: inherit;
       }
 
       button,
       input,
+      select,
       textarea {
         border: 1px solid rgb(244 238 228 / 0.22);
         border-radius: 8px;
@@ -57,7 +59,8 @@
         font-weight: 700;
       }
 
-      input {
+      input,
+      select {
         min-height: 36px;
         padding: 0 9px;
       }
@@ -251,6 +254,26 @@
               <label>
                 Sampling
                 <input id="sampleDensityInput" type="number" min="1" max="12" step="1" value="4" />
+              </label>
+            </div>
+            <div class="split">
+              <label>
+                Fill Mode
+                <select id="fillModeInput">
+                  <option value="surfaceOnly">Surface Only</option>
+                  <option value="nearestSurface">Nearest Surface Type</option>
+                  <option value="defaultType">Default Type</option>
+                </select>
+              </label>
+              <label>
+                Default Cell Type
+                <select id="defaultCellTypeInput">
+                  <option value="armor">Armor</option>
+                  <option value="engine">Engine</option>
+                  <option value="gun">Gun</option>
+                  <option value="utility">Utility</option>
+                  <option value="wheel">Wheel</option>
+                </select>
               </label>
             </div>
             <label>

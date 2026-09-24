@@ -14,6 +14,8 @@ const assetIdInput = document.querySelector('#assetIdInput');
 const displayNameInput = document.querySelector('#displayNameInput');
 const spanInput = document.querySelector('#spanInput');
 const sampleDensityInput = document.querySelector('#sampleDensityInput');
+const fillModeInput = document.querySelector('#fillModeInput');
+const defaultCellTypeInput = document.querySelector('#defaultCellTypeInput');
 const previewLayerInput = document.querySelector('#previewLayerInput');
 const jsonOutput = document.querySelector('#jsonOutput');
 const statusPanel = document.querySelector('#statusPanel');
@@ -29,7 +31,9 @@ voxelizeButton.addEventListener('click', voxelizeCurrentMesh);
 downloadButton.addEventListener('click', downloadJson);
 copyJsonButton.addEventListener('click', async () => navigator.clipboard.writeText(jsonOutput.value));
 applyJsonButton.addEventListener('click', applyJson);
-for (const input of [assetIdInput, displayNameInput, spanInput, sampleDensityInput]) input.addEventListener('input', () => mesh && voxelizeCurrentMesh());
+for (const input of [assetIdInput, displayNameInput, spanInput, sampleDensityInput, fillModeInput, defaultCellTypeInput]) {
+  input.addEventListener('input', () => mesh && voxelizeCurrentMesh());
+}
 previewLayerInput.addEventListener('input', () => render());
 
 loadSampleMesh();
@@ -62,6 +66,8 @@ function voxelizeCurrentMesh() {
       displayName: displayNameInput.value,
       span: Number(spanInput.value),
       sampleDensity: Number(sampleDensityInput.value),
+      fillMode: fillModeInput.value,
+      defaultCellType: defaultCellTypeInput.value,
     });
     jsonOutput.value = `${JSON.stringify(construct, null, 2)}\n`;
     previewLayerInput.max = String(maxLayer(construct));
@@ -77,6 +83,8 @@ function applyJson() {
     construct = JSON.parse(jsonOutput.value);
     assetIdInput.value = construct.assetId ?? '';
     displayNameInput.value = construct.displayName ?? '';
+    fillModeInput.value = construct.voxelizer?.fillMode ?? 'surfaceOnly';
+    defaultCellTypeInput.value = construct.voxelizer?.defaultCellType ?? 'armor';
     previewLayerInput.max = String(maxLayer(construct));
     render();
   } catch (error) {
@@ -126,7 +134,7 @@ function drawCell(cell, layer) {
   const current = (cell.gridZ ?? 0) === layer;
   context.save();
   context.globalAlpha = current ? 1 : 0.18;
-  context.fillStyle = cell.type === 'core' ? '#f7c06a' : '#818a8b';
+  context.fillStyle = cell.type === 'core' ? '#f7c06a' : cell.role === 'meshInterior' ? '#596162' : '#818a8b';
   context.strokeStyle = cell.type === 'core' ? '#ffe7a1' : 'rgb(255 255 255 / 0.28)';
   context.lineWidth = cell.type === 'core' ? 3 : 1;
   context.fillRect(x - 10, y - 10, 20, 20);
@@ -146,6 +154,7 @@ function renderStatus() {
     `<span><strong>${report.valid ? 'Valid construct asset' : 'Construct needs changes'}</strong></span>`,
     `<span>${escapeHtml(meshSummary.sourceFormat.toUpperCase())}: ${meshSummary.vertices} vertices, ${meshSummary.triangles} triangles</span>`,
     `<span>${construct.cells.length} cells across ${maxLayer(construct) + 1} layers; preview layer ${layer}</span>`,
+    `<span>${construct.voxelizer?.surfaceCells ?? construct.cells.length} surface, ${construct.voxelizer?.interiorCells ?? 0} filled interior; ${escapeHtml(construct.voxelizer?.fillMode ?? 'surfaceOnly')}</span>`,
     `<span>${construct.connections.length} explicit adjacency connections</span>`,
     ...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`),
     ...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`),

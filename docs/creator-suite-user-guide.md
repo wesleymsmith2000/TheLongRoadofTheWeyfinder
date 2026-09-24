@@ -1,6 +1,6 @@
 # Creator Suite User Guide
 
-Date: 2026-09-02
+Date: 2026-09-23
 
 The Creator Suite is available from:
 
@@ -27,6 +27,17 @@ tools/creator-guide.html
 9. Use `Materials / Lighting` to author render materials, spectral puzzle responses, and reusable lighting presets.
 10. Download JSON assets or import/export module folders through the suite.
 
+## Mod Test Bench
+
+The left side of the Creator Suite is the browser-local Mod Test Bench.
+
+1. Import or reimport a folder. A matching `packId` replaces the prior installed copy after the new copy validates.
+2. Choose the installed pack, then filter or search its assets. Enemy archetype packs are expanded so each enemy can be selected directly.
+3. Review the validation and dependency reports. `INSTALLED LOCAL` dependencies are present in browser storage; `BUNDLED / EXTERNAL` dependencies must be supplied by the game or another pack.
+4. Use `Open in Editor` to load supported constructs, enemies, weapons, patterns, status effects, levels, encounters, materials, or lighting presets into the matching editor.
+5. Use `Test Enemy`, `Test Level`, or `Test Encounter` to prepare the existing Sandbox script and open the game. Click `Run Script` in Sandbox to start the prepared test.
+6. Use `Export Pack` to download a reimportable single-file pack whose assets are embedded in its manifest.
+
 ## Construct Loading
 
 The Construct Workshop now has a `Load Construct` dropdown.
@@ -39,13 +50,15 @@ It lists:
 
 Use `Refresh Local` after importing a new pack if the Construct Workshop is already open. Loading a construct copies it into the editor, so changing the asset id before downloading is the safest way to make a variant.
 
+`Auto-connect` adds one structural edge between every pair of orthogonally adjacent cells, including cells directly above and below one another. Existing custom edges are preserved and duplicate edges are removed. `Remove Connection` is a two-cell tool: click one cell, then an adjacent cell to remove their edge. Individual edges can still be removed from the Connections list.
+
 ## Layered Cells
 
 Construct cells can now carry `gridZ`. The workshop edits one layer at a time, while lower layers can remain visible as ghosted reference cells. Use `Connect Above` and `Connect Below` to create structural links between stacked cells at the same X/Y position.
 
 ## Mesh Voxelizer
 
-The Mesh Voxelizer accepts text OBJ files plus ASCII and binary STL files. It samples mesh surfaces into layered construct cells, chooses one centroid-adjacent core, and creates explicit adjacency connections. The first pass is best for low-poly silhouettes; open the generated JSON in the Construct Workshop to assign more meaningful cell types and loadouts.
+The Mesh Voxelizer accepts text OBJ files plus ASCII and binary STL files. It samples mesh surfaces into layered construct cells, chooses one centroid-adjacent core, and creates explicit adjacency connections. `Surface Only` keeps the sampled shell. `Nearest Surface Type` fills enclosed regions by propagating surface cell types inward, while `Default Type` fills every enclosed cell with the selected default. The default also resolves equal-distance source-type ties. Open meshes do not fill because their interiors remain reachable from the exterior flood. The first pass is best for low-poly silhouettes; open the generated JSON in the Construct Workshop to assign more meaningful cell types and loadouts.
 
 ## Pose Rigs
 
@@ -62,7 +75,13 @@ The Construct Workshop can now author construct `poseRig` metadata.
 
 Downloaded constructs emit the preferred nested `poseRig` shape. Imported alias fields (`cellGroups`, `joints`, `poses`, `poseAnimations`, `cellBindings`, `poseDynamics`, `poseRigImports`) are normalized into that shape when loaded.
 
-## Current Limits
+## Animation State Graphs
+
+The Construct Workshop can add an optional `animationGraph` beside the pose rig. States choose stable poses and optional material/texture states. Transitions connect those states with rig, material, and texture clips, a randomized duration, and an interruption policy. `AT_NEXT_ANCHOR` and `REQUIRE_TAG` use normalized interrupt anchors to move an interrupted construct through an authored balanced pose. Use the graph canvas to inspect connectivity and the transition slider to see which anchors and markers have passed. The raw graph JSON remains available for additive motion and complex material or texture clips.
+
+## Branching Levels
+
+The Level Editor can embed a `navigationGraph` in a level asset. Use nodes for playable levels, encounters, relays, hazards, repairs, and obscured destinations. Edges can be visible, fogged, conditional, unstable, or false echoes, and may require or block run flags. Alignment and threat are independent axes; the score preview shows the authored road, fate, destination, danger, and ambush music contributions. Switch the center preview from `Road Timeline` to `Branch Graph` to inspect the topology before downloading the level JSON.
 
 ## Encounter Editor
 

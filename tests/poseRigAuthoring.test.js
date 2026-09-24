@@ -31,7 +31,7 @@ test('pose rig authoring normalizes construct aliases into nested runtime shape'
   assert.deepEqual(rig.cellBindings.barrel, [{ joint: 'turret-hinge', weight: 1 }]);
   assert.equal(rig.dynamics.iterations, 2);
   assert.equal(rig.imports[0].source, 'blockbench');
-  assert.equal(poseRigSummary(rig), '1 groups, 1 joints, 1 poses, 1 animations, 1 weighted cells');
+  assert.equal(poseRigSummary(rig), '1 groups, 1 joints, 1 poses, 0 clips, 1 animations, 1 weighted cells');
 });
 
 test('pose rig authoring creates compact descriptors from form-friendly values', () => {

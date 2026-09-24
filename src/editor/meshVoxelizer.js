@@ -1,6 +1,16 @@
 import { CONTENT_SCHEMA_VERSION } from '../core/contentSchema.js';
 
 const AXES = ['x', 'y', 'z'];
+export const MESH_FILL_MODES = ['surfaceOnly', 'nearestSurface', 'defaultType'];
+export const MESH_FILL_CELL_TYPES = ['armor', 'engine', 'gun', 'utility', 'wheel'];
+const GRID_NEIGHBORS = [
+  [1, 0, 0],
+  [-1, 0, 0],
+  [0, 1, 0],
+  [0, -1, 0],
+  [0, 0, 1],
+  [0, 0, -1],
+];
 
 export function parseMeshText(text, filename = 'mesh.obj') {
   const lower = filename.toLowerCase();
@@ -72,14 +82,31 @@ export function parseBinaryStl(buffer) {
 export function voxelizeMeshToConstruct(mesh, options = {}) {
   const span = clampInteger(options.span ?? 9, 3, 31);
   const sampleDensity = clampInteger(options.sampleDensity ?? 4, 1, 12);
+  const fillMode = normalizeFillMode(options.fillMode);
+  const defaultCellType = normalizeFillCellType(options.defaultCellType, 'armor');
   const assetId = safeAssetId(options.assetId ?? 'creator.voxelized_mesh');
   const normalized = normalizeMesh(mesh, span);
-  const occupied = sampleMeshOccupancy(normalized, sampleDensity);
-  if (occupied.size === 0) throw new Error('Mesh did not produce any occupied cells.');
+  const surfaceClaims = sampleMeshOccupancy(normalized, sampleDensity, options.triangleCellTypes ?? mesh.triangleCellTypes);
+  if (surfaceClaims.size === 0) throw new Error('Mesh did not produce any occupied cells.');
 
+  const cellTypes = resolveSurfaceCellTypes(surfaceClaims, defaultCellType);
+  const surfaceKeys = new Set(cellTypes.keys());
+  const interiorKeys = fillMode === 'surfaceOnly' ? new Set() : findEnclosedCells(surfaceKeys);
+  if (fillMode === 'nearestSurface') {
+    const inheritedTypes = propagateNearestSurfaceTypes(cellTypes, interiorKeys, defaultCellType);
+    for (const [key, type] of inheritedTypes) cellTypes.set(key, type);
+  } else if (fillMode === 'defaultType') {
+    for (const key of interiorKeys) cellTypes.set(key, defaultCellType);
+  }
+
+  const occupied = new Set(cellTypes.keys());
   const coreKey = nearestOccupiedKey(occupied, normalized.centroid);
   const cells = [...occupied]
-    .map((key) => cellFromKey(key, key === coreKey ? 'core' : 'armor'))
+    .map((key) => cellFromKey(
+      key,
+      key === coreKey ? 'core' : cellTypes.get(key),
+      interiorKeys.has(key) ? 'meshInterior' : 'meshSurface',
+    ))
     .sort((a, b) => a.gridZ - b.gridZ || a.gridY - b.gridY || a.gridX - b.gridX || a.id.localeCompare(b.id));
 
   return {
@@ -87,7 +114,7 @@ export function voxelizeMeshToConstruct(mesh, options = {}) {
     assetId,
     displayName: options.displayName ?? titleFromAssetId(assetId),
     author: options.author ?? 'Local creator',
-    provenance: `Voxelized from ${mesh.sourceFormat ?? 'mesh'} surface samples.`,
+    provenance: `Voxelized from ${mesh.sourceFormat ?? 'mesh'} surface samples${fillMode === 'surfaceOnly' ? '' : ` with ${fillMode} interior fill`}.`,
     canonStatus: options.canonStatus ?? 'COMMUNITY',
     tags: ['mesh', 'voxelized', 'construct'],
     cells,
@@ -99,6 +126,10 @@ export function voxelizeMeshToConstruct(mesh, options = {}) {
       sourceTriangles: mesh.triangles.length,
       span,
       sampleDensity,
+      fillMode,
+      defaultCellType,
+      surfaceCells: surfaceKeys.size,
+      interiorCells: interiorKeys.size,
     },
   };
 }
@@ -165,12 +196,13 @@ function normalizeMesh(mesh, span) {
   return { ...mesh, vertices, centroid };
 }
 
-function sampleMeshOccupancy(mesh, sampleDensity) {
-  const occupied = new Set();
-  for (const triangle of mesh.triangles) {
+function sampleMeshOccupancy(mesh, sampleDensity, triangleCellTypes = []) {
+  const occupied = new Map();
+  for (const [triangleIndex, triangle] of mesh.triangles.entries()) {
     const a = mesh.vertices[triangle[0]];
     const b = mesh.vertices[triangle[1]];
     const c = mesh.vertices[triangle[2]];
+    const cellType = normalizeFillCellType(triangleCellTypes?.[triangleIndex], 'armor');
     const steps = Math.max(1, Math.ceil(longestTriangleEdge(a, b, c) * sampleDensity));
     for (let i = 0; i <= steps; i += 1) {
       for (let j = 0; j <= steps - i; j += 1) {
@@ -181,24 +213,96 @@ function sampleMeshOccupancy(mesh, sampleDensity) {
           x: a.x * u + b.x * v + c.x * w,
           y: a.y * u + b.y * v + c.y * w,
           z: a.z * u + b.z * v + c.z * w,
-        });
+        }, cellType);
       }
     }
   }
   return occupied;
 }
 
-function addOccupied(occupied, sample) {
-  occupied.add(keyFor(Math.round(sample.x), Math.round(sample.y), Math.max(0, Math.round(sample.z))));
+function addOccupied(occupied, sample, cellType) {
+  const key = keyFor(Math.round(sample.x), Math.round(sample.y), Math.max(0, Math.round(sample.z)));
+  const claims = occupied.get(key) ?? new Set();
+  claims.add(cellType);
+  occupied.set(key, claims);
+}
+
+function resolveSurfaceCellTypes(surfaceClaims, defaultCellType) {
+  return new Map([...surfaceClaims].map(([key, claims]) => [key, claims.size === 1 ? [...claims][0] : defaultCellType]));
+}
+
+function findEnclosedCells(surfaceKeys) {
+  const points = [...surfaceKeys].map(pointFromKey);
+  const bounds = gridBounds(points);
+  const padded = {
+    min: point(bounds.min.x - 1, bounds.min.y - 1, bounds.min.z - 1),
+    max: point(bounds.max.x + 1, bounds.max.y + 1, bounds.max.z + 1),
+  };
+  const exterior = new Set();
+  const queue = [padded.min];
+  exterior.add(keyFor(padded.min.x, padded.min.y, padded.min.z));
+
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const current = queue[cursor];
+    for (const neighbor of gridNeighbors(current)) {
+      if (!pointWithinBounds(neighbor, padded)) continue;
+      const key = keyFor(neighbor.x, neighbor.y, neighbor.z);
+      if (surfaceKeys.has(key) || exterior.has(key)) continue;
+      exterior.add(key);
+      queue.push(neighbor);
+    }
+  }
+
+  const enclosed = new Set();
+  for (let z = bounds.min.z; z <= bounds.max.z; z += 1) {
+    for (let y = bounds.min.y; y <= bounds.max.y; y += 1) {
+      for (let x = bounds.min.x; x <= bounds.max.x; x += 1) {
+        const key = keyFor(x, y, z);
+        if (!surfaceKeys.has(key) && !exterior.has(key)) enclosed.add(key);
+      }
+    }
+  }
+  return enclosed;
+}
+
+function propagateNearestSurfaceTypes(surfaceTypes, interiorKeys, defaultCellType) {
+  const claims = new Map();
+  const queue = [];
+  for (const [key, type] of [...surfaceTypes].sort(([a], [b]) => a.localeCompare(b))) {
+    claims.set(key, { distance: 0, types: new Set([type]) });
+    queue.push({ key, type, distance: 0 });
+  }
+
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const current = queue[cursor];
+    for (const neighbor of gridNeighbors(pointFromKey(current.key))) {
+      const key = keyFor(neighbor.x, neighbor.y, neighbor.z);
+      if (!interiorKeys.has(key)) continue;
+      const distance = current.distance + 1;
+      const existing = claims.get(key);
+      if (!existing) {
+        claims.set(key, { distance, types: new Set([current.type]) });
+        queue.push({ key, type: current.type, distance });
+      } else if (existing.distance === distance && !existing.types.has(current.type)) {
+        existing.types.add(current.type);
+        queue.push({ key, type: current.type, distance });
+      }
+    }
+  }
+
+  return new Map([...interiorKeys].map((key) => {
+    const types = claims.get(key)?.types ?? new Set();
+    return [key, types.size === 1 ? [...types][0] : defaultCellType];
+  }));
 }
 
 function nearestOccupiedKey(occupied, target) {
   return [...occupied].sort((a, b) => distanceSquared(pointFromKey(a), target) - distanceSquared(pointFromKey(b), target))[0];
 }
 
-function cellFromKey(key, type) {
+function cellFromKey(key, type, sourceRole = 'meshSurface') {
   const { x, y, z } = pointFromKey(key);
-  const role = type === 'core' ? 'core' : 'meshSurface';
+  const role = type === 'core' ? 'core' : sourceRole;
   return {
     id: `${role}_x${coordinateId(x)}_y${coordinateId(y)}_z${coordinateId(z)}`,
     type,
@@ -207,6 +311,26 @@ function cellFromKey(key, type) {
     gridZ: z,
     role,
   };
+}
+
+function gridNeighbors(value) {
+  return GRID_NEIGHBORS.map(([dx, dy, dz]) => point(value.x + dx, value.y + dy, value.z + dz));
+}
+
+function gridBounds(points) {
+  const min = { x: Infinity, y: Infinity, z: Infinity };
+  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
+  for (const value of points) {
+    for (const axis of AXES) {
+      min[axis] = Math.min(min[axis], value[axis]);
+      max[axis] = Math.max(max[axis], value[axis]);
+    }
+  }
+  return { min, max };
+}
+
+function pointWithinBounds(value, bounds) {
+  return AXES.every((axis) => value[axis] >= bounds.min[axis] && value[axis] <= bounds.max[axis]);
 }
 
 function adjacencyConnections(cells) {
@@ -288,4 +412,12 @@ function titleFromAssetId(assetId) {
 
 function clampInteger(value, min, max) {
   return Math.max(min, Math.min(max, Math.round(Number(value) || min)));
+}
+
+function normalizeFillMode(value) {
+  return MESH_FILL_MODES.includes(value) ? value : 'surfaceOnly';
+}
+
+function normalizeFillCellType(value, fallback) {
+  return MESH_FILL_CELL_TYPES.includes(value) ? value : fallback;
 }

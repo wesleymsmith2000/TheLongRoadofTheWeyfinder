@@ -31,6 +31,10 @@
         font: inherit;
       }
 
+      textarea.compact {
+        min-height: 96px;
+      }
+
       button,
       input,
       select,
@@ -50,6 +54,11 @@
 
       button:hover {
         border-color: rgb(247 192 106 / 0.58);
+      }
+
+      button[aria-pressed="true"] {
+        border-color: #6fe0bf;
+        background: rgb(111 224 191 / 0.09);
       }
 
       label {
@@ -168,6 +177,12 @@
       .wide-split {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .axis-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
       }
 
@@ -298,9 +313,75 @@
               <button id="copyJsonButton" type="button">Copy</button>
             </div>
           </div>
+          <h2>Branching Navigation</h2>
+          <div class="form">
+            <div class="split">
+              <label>Graph Asset ID <input id="navigationAssetIdInput" autocomplete="off" /></label>
+              <label>Seed Offset <input id="navigationSeedOffsetInput" type="number" step="1" /></label>
+            </div>
+            <div class="split">
+              <label>Initial Node <select id="navigationInitialNodeSelect"></select></label>
+              <label>Visible Horizon <input id="navigationHorizonInput" type="number" min="1" max="4" step="1" /></label>
+            </div>
+            <div class="tool-row">
+              <button id="loadNavigationExampleButton" type="button">Load Relay Example</button>
+              <button id="applyNavigationJsonButton" type="button">Apply Graph JSON</button>
+            </div>
+
+            <label>Load Node <select id="navigationNodeSelect"></select></label>
+            <div class="split">
+              <label>Node ID <input id="navigationNodeIdInput" autocomplete="off" /></label>
+              <label>Kind <select id="navigationNodeKindSelect"></select></label>
+            </div>
+            <label>Display Name <input id="navigationNodeNameInput" autocomplete="off" /></label>
+            <label>Content Asset <input id="navigationNodeAssetInput" autocomplete="off" placeholder="level.example or encounter.example" /></label>
+            <div class="split">
+              <label>Graph X <input id="navigationNodeXInput" type="number" step="0.25" /></label>
+              <label>Graph Y <input id="navigationNodeYInput" type="number" step="0.25" /></label>
+            </div>
+            <div class="axis-grid">
+              <label>Alignment <input id="navigationAlignmentInput" type="number" min="-1" max="1" step="0.05" /></label>
+              <label>Threat <input id="navigationThreatInput" type="number" min="0" max="1" step="0.05" /></label>
+              <label>Clarity <input id="navigationClarityInput" type="number" min="0" max="1" step="0.05" /></label>
+              <label>Fate Pressure <input id="navigationFateInput" type="number" min="0" max="1" step="0.05" /></label>
+              <label>Road Coherence <input id="navigationRoadInput" type="number" min="0" max="1" step="0.05" /></label>
+              <label>Destination Signal <input id="navigationSignalInput" type="number" min="0" max="1" step="0.05" /></label>
+              <label>Ambush Risk <input id="navigationAmbushInput" type="number" min="0" max="1" step="0.05" /></label>
+              <label>Tags <input id="navigationNodeTagsInput" autocomplete="off" /></label>
+            </div>
+            <div id="navigationScorePreview" class="dependency-list"></div>
+            <div class="tool-row">
+              <button id="saveNavigationNodeButton" type="button">Save Node</button>
+              <button id="removeNavigationNodeButton" type="button">Remove Node</button>
+            </div>
+
+            <label>Load Edge <select id="navigationEdgeSelect"></select></label>
+            <div class="split">
+              <label>Edge ID <input id="navigationEdgeIdInput" autocomplete="off" /></label>
+              <label>Visibility <select id="navigationEdgeVisibilitySelect"></select></label>
+            </div>
+            <div class="split">
+              <label>From <select id="navigationEdgeFromSelect"></select></label>
+              <label>To <select id="navigationEdgeToSelect"></select></label>
+            </div>
+            <label>Label <input id="navigationEdgeLabelInput" autocomplete="off" /></label>
+            <label>Weight <input id="navigationEdgeWeightInput" type="number" min="0.01" step="0.1" /></label>
+            <label>Signal Overrides JSON <textarea id="navigationEdgeDeltaInput" class="compact" spellcheck="false"></textarea></label>
+            <label>Required Flags <input id="navigationRequiredFlagsInput" autocomplete="off" /></label>
+            <label>Blocked Flags <input id="navigationBlockedFlagsInput" autocomplete="off" /></label>
+            <div class="tool-row">
+              <button id="saveNavigationEdgeButton" type="button">Save Edge</button>
+              <button id="removeNavigationEdgeButton" type="button">Remove Edge</button>
+            </div>
+            <label>Raw Navigation Graph JSON <textarea id="navigationJsonOutput" class="compact" spellcheck="false"></textarea></label>
+          </div>
         </aside>
         <section class="panel preview-panel">
-          <h2>Route And Events</h2>
+          <h2>Route And Branch Graph</h2>
+          <div class="tool-row form">
+            <button id="routePreviewButton" type="button" aria-pressed="true">Road Timeline</button>
+            <button id="graphPreviewButton" type="button" aria-pressed="false">Branch Graph</button>
+          </div>
           <div class="canvas-wrap">
             <canvas id="levelCanvas" width="840" height="700" aria-label="Level route and event preview"></canvas>
           </div>

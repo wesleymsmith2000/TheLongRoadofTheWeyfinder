@@ -25,6 +25,7 @@ import {
   listLocalContentPacks,
 } from '../core/localContentLibrary.js';
 import { BUILTIN_CONSTRUCT_BY_ID, BUILTIN_CONSTRUCT_DEFINITIONS } from './constructCatalog.js';
+import { consumeEditorAssetHandoff } from './editorAssetHandoff.js';
 import { bindBuildVersion } from './versionBadge.js';
 
 const canvas = document.querySelector('#enemyCanvas');
@@ -150,6 +151,8 @@ applyJsonButton.addEventListener('click', applyJson);
 copyJsonButton.addEventListener('click', async () => navigator.clipboard.writeText(jsonOutput.value));
 
 loadArchetype(archetype);
+const creatorHandoff = consumeEditorAssetHandoff(['enemy']);
+if (creatorHandoff) loadArchetype(creatorHandoff.definition, creatorHandoff.containerDefinition ?? pack);
 renderModuleStatus();
 requestAnimationFrame(animate);
 

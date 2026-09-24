@@ -16,6 +16,8 @@ import {
 import { secondaryAmmoCapacity } from '../core/secondaryWeapon.js';
 import { loadLocalContentLibrary } from '../core/localContentLibrary.js';
 import { BUILTIN_CONSTRUCT_DEFINITIONS } from './constructCatalog.js';
+import { connectAllAdjacentCells, removeConnectionBetween } from './constructConnectionAuthoring.js';
+import { consumeEditorAssetHandoff } from './editorAssetHandoff.js';
 import {
   POSE_RIG_DRIVERS,
   POSE_RIG_JOINT_KINDS,
@@ -36,6 +38,17 @@ import {
   poseRigFromConstructDefinition,
   poseRigSummary,
 } from './poseRigAuthoring.js';
+import {
+  ANIMATION_INTERRUPT_POLICIES,
+  ANIMATION_TEXTURE_TRANSITIONS,
+  animationGraphSummary,
+  createAnimationGraphExample,
+  createAnimationState,
+  createAnimationTransition,
+  emptyAnimationGraph,
+  normalizeAnimationGraph,
+  validateAnimationGraph,
+} from './animationGraphAuthoring.js';
 import { bindBuildVersion } from './versionBadge.js';
 
 const canvas = document.querySelector('#constructCanvas');
@@ -54,6 +67,8 @@ const layerViewSelect = document.querySelector('#layerViewSelect');
 const paintButton = document.querySelector('#paintButton');
 const eraseButton = document.querySelector('#eraseButton');
 const connectButton = document.querySelector('#connectButton');
+const removeConnectionButton = document.querySelector('#removeConnectionButton');
+const autoConnectButton = document.querySelector('#autoConnectButton');
 const weightPaintButton = document.querySelector('#weightPaintButton');
 const weightEraseButton = document.querySelector('#weightEraseButton');
 const connectAboveButton = document.querySelector('#connectAboveButton');
@@ -145,6 +160,23 @@ const savePoseAnimationButton = document.querySelector('#savePoseAnimationButton
 const removePoseAnimationButton = document.querySelector('#removePoseAnimationButton');
 const poseRigJsonOutput = document.querySelector('#poseRigJsonOutput');
 const applyPoseRigJsonButton = document.querySelector('#applyPoseRigJsonButton');
+const animationControls = Object.fromEntries(
+  [
+    'animationGraphStatus', 'loadAnimationGraphExampleButton', 'clearAnimationGraphButton', 'animationGraphInitialStateSelect', 'animationGraphSeedOffsetInput',
+    'animationGraphStateSelect', 'animationStateIdInput', 'animationStatePoseSelect', 'animationStateTagsInput',
+    'animationStateMaterialInput', 'animationStateTextureInput', 'animationStateDwellMinInput', 'animationStateDwellMaxInput',
+    'animationStateXInput', 'animationStateYInput', 'animationStateNextInput', 'saveAnimationStateButton',
+    'removeAnimationStateButton', 'animationGraphTransitionSelect', 'animationTransitionIdInput',
+    'animationTransitionPolicySelect', 'animationTransitionFromSelect', 'animationTransitionToSelect',
+    'animationTransitionDurationMinInput', 'animationTransitionDurationMaxInput', 'animationTransitionRequiredTagsInput',
+    'animationTransitionRigClipInput', 'animationTransitionMaterialClipInput', 'animationTransitionTextureClipInput',
+    'animationTransitionTextureModeSelect', 'animationTransitionAnchorsInput', 'animationTransitionMarkersInput',
+    'animationTransitionVariantsInput', 'saveAnimationTransitionButton', 'removeAnimationTransitionButton',
+    'animationGraphCanvas', 'animationTransitionScrubInput', 'animationTimelineStatus', 'animationGraphJsonOutput',
+    'applyAnimationGraphJsonButton',
+  ].map((id) => [id, document.querySelector(`#${id}`)]),
+);
+const animationGraphContext = animationControls.animationGraphCanvas.getContext('2d');
 
 bindBuildVersion();
 
@@ -164,6 +196,7 @@ const cellSize = gridSize / gridCount;
 const maxEditorLayer = 31;
 
 let tool = 'paint';
+let connectionActionMessage = '';
 let selectedCellId = null;
 let selectedPoseGroupId = null;
 let selectedPoseJointId = null;
@@ -171,6 +204,9 @@ let selectedPoseId = null;
 let selectedPoseAnimationId = null;
 let selectedWeightJointId = null;
 let selectedBlendJointId = null;
+let selectedAnimationStateId = null;
+let selectedAnimationTransitionId = null;
+let animationGraphEnabled = false;
 let constructCatalog = [];
 let currentLayer = 0;
 let definition = cloneDefinition(BUILTIN_CONSTRUCT_DEFINITIONS[0]);
@@ -192,6 +228,12 @@ for (const property of POSE_RIG_TRANSFORM_PROPERTIES) {
 }
 for (const driver of POSE_RIG_DRIVERS) {
   poseAnimationDriverSelect.append(new Option(driver, driver));
+}
+for (const policy of ANIMATION_INTERRUPT_POLICIES) {
+  animationControls.animationTransitionPolicySelect.append(new Option(policy, policy));
+}
+for (const mode of ANIMATION_TEXTURE_TRANSITIONS) {
+  animationControls.animationTransitionTextureModeSelect.append(new Option(mode, mode));
 }
 populateLoadoutSelects();
 refreshConstructCatalog();
@@ -217,6 +259,8 @@ layerViewSelect.addEventListener('change', render);
 paintButton.addEventListener('click', () => setTool('paint'));
 eraseButton.addEventListener('click', () => setTool('erase'));
 connectButton.addEventListener('click', () => setTool('connect'));
+removeConnectionButton.addEventListener('click', () => setTool('removeConnection'));
+autoConnectButton.addEventListener('click', autoConnectCells);
 weightPaintButton.addEventListener('click', () => setTool('weightPaint'));
 weightEraseButton.addEventListener('click', () => setTool('weightErase'));
 connectAboveButton.addEventListener('click', () => connectVertical(1));
@@ -276,8 +320,44 @@ removePoseButton.addEventListener('click', removePose);
 savePoseAnimationButton.addEventListener('click', savePoseAnimation);
 removePoseAnimationButton.addEventListener('click', removePoseAnimation);
 applyPoseRigJsonButton.addEventListener('click', applyPoseRigJson);
+animationControls.loadAnimationGraphExampleButton.addEventListener('click', installAnimationGraphExample);
+animationControls.clearAnimationGraphButton.addEventListener('click', () => {
+  definition.animationGraph = emptyAnimationGraph();
+  animationGraphEnabled = false;
+  clearAnimationGraphSelections();
+  render();
+});
+animationControls.animationGraphInitialStateSelect.addEventListener('change', () => {
+  definition.animationGraph.initialState = animationControls.animationGraphInitialStateSelect.value;
+  animationGraphEnabled = true;
+  render();
+});
+animationControls.animationGraphSeedOffsetInput.addEventListener('input', () => {
+  definition.animationGraph.seedOffset = Math.trunc(Number(animationControls.animationGraphSeedOffsetInput.value) || 0);
+  animationGraphEnabled = true;
+  render();
+});
+animationControls.animationGraphStateSelect.addEventListener('change', () => {
+  selectedAnimationStateId = animationControls.animationGraphStateSelect.value;
+  syncAnimationStateFields();
+  drawAnimationGraph();
+});
+animationControls.animationGraphTransitionSelect.addEventListener('change', () => {
+  selectedAnimationTransitionId = animationControls.animationGraphTransitionSelect.value;
+  syncAnimationTransitionFields();
+  drawAnimationGraph();
+  renderAnimationTimeline();
+});
+animationControls.saveAnimationStateButton.addEventListener('click', saveAnimationState);
+animationControls.removeAnimationStateButton.addEventListener('click', removeAnimationState);
+animationControls.saveAnimationTransitionButton.addEventListener('click', saveAnimationTransition);
+animationControls.removeAnimationTransitionButton.addEventListener('click', removeAnimationTransition);
+animationControls.applyAnimationGraphJsonButton.addEventListener('click', applyAnimationGraphJson);
+animationControls.animationTransitionScrubInput.addEventListener('input', renderAnimationTimeline);
 
 loadDefinition(definition);
+const creatorHandoff = consumeEditorAssetHandoff(['construct']);
+if (creatorHandoff) loadDefinition(creatorHandoff.definition);
 
 function refreshConstructCatalog() {
   constructCatalog = [
@@ -341,6 +421,8 @@ function loadDefinition(nextDefinition) {
   definition.cells = definition.cells.map((cell) => ({ ...cell, gridZ: normalizedLayer(cell) }));
   definition.gunLoadouts = normalizeGunLoadouts(definition);
   definition.poseRig = poseRigFromConstructDefinition(definition);
+  animationGraphEnabled = Boolean(definition.animationGraph);
+  definition.animationGraph = normalizeAnimationGraph(definition.animationGraph ?? emptyAnimationGraph());
   delete definition.cellGroups;
   delete definition.poseAnimations;
   delete definition.cellBindings;
@@ -348,6 +430,9 @@ function loadDefinition(nextDefinition) {
   delete definition.poseRigImports;
   selectedCellId = null;
   clearPoseSelections();
+  clearAnimationGraphSelections();
+  selectedAnimationStateId = definition.animationGraph.initialState || definition.animationGraph.states[0]?.id || null;
+  selectedAnimationTransitionId = definition.animationGraph.transitions[0]?.id ?? null;
   currentLayer = clampLayer(layerForInitialView(definition));
   syncDefinitionToFields();
   populateConstructSelect();
@@ -394,8 +479,8 @@ function handleCanvasClick(event) {
     render();
     return;
   }
-  if (tool === 'connect') {
-    if (existing) selectOrConnect(existing);
+  if (tool === 'connect' || tool === 'removeConnection') {
+    if (existing) selectOrModifyConnection(existing, tool === 'removeConnection');
     render();
     return;
   }
@@ -410,7 +495,7 @@ function handleCanvasClick(event) {
   render();
 }
 
-function selectOrConnect(cell) {
+function selectOrModifyConnection(cell, remove) {
   if (!selectedCellId || selectedCellId === cell.id) {
     selectedCellId = cell.id;
     return;
@@ -426,10 +511,24 @@ function selectOrConnect(cell) {
     return;
   }
   const exists = definition.connections.some((edge) => sameConnection(edge, from.id, cell.id));
-  if (!exists) {
+  if (remove && exists) {
+    definition.connections = removeConnectionBetween(definition.connections, from.id, cell.id);
+    connectionActionMessage = `Removed connection between ${from.id} and ${cell.id}.`;
+  } else if (!remove && !exists) {
     definition.connections.push({ a: from.id, b: cell.id, aSide: side, bSide: oppositeSide(side), type: 'structural' });
+    connectionActionMessage = `Connected ${from.id} to ${cell.id}.`;
   }
   selectedCellId = cell.id;
+}
+
+function autoConnectCells() {
+  const previousCount = definition.connections.length;
+  definition.connections = connectAllAdjacentCells(definition.cells, definition.connections);
+  const added = definition.connections.length - previousCount;
+  connectionActionMessage = added > 0
+    ? `Auto-connect added ${added} adjacent structural connection${added === 1 ? '' : 's'}.`
+    : 'Auto-connect found no missing adjacent connections.';
+  render();
 }
 
 function connectVertical(direction) {
@@ -461,6 +560,7 @@ function render() {
   renderLists();
   syncLoadoutControls();
   renderPoseRigControls();
+  renderAnimationGraphControls();
   renderJson();
   renderStatus();
   renderLookupPanel();
@@ -628,17 +728,22 @@ function renderJson() {
 }
 
 function renderStatus() {
-  const report = validateConstructDefinition(normalizedDefinition());
+  const normalized = normalizedDefinition();
+  const report = validateConstructDefinition(normalized);
+  const graphReport = animationGraphEnabled ? validateAnimationGraph(definition.animationGraph, definition.poseRig) : { valid: true, errors: [], warnings: [] };
+  const valid = report.valid && graphReport.valid;
   const moduleSummary = constructModuleSummary(definition);
   const selectedEntry = constructCatalog.find((entry) => entry.key === constructSelect.value);
   const lines = [
-    `<span><strong>${report.valid ? 'Valid construct asset' : 'Construct needs changes'}</strong></span>`,
+    `<span><strong>${valid ? 'Valid construct asset' : 'Construct needs changes'}</strong></span>`,
     selectedEntry ? `<span>Loaded from ${escapeHtml(selectedEntry.group)}: ${escapeHtml(selectedEntry.label)}</span>` : null,
     `<span>Layer ${currentLayer}: ${cellsOnLayer(currentLayer).length} visible cells; ${definition.cells.length} total cells, ${(definition.connections ?? []).length} explicit connections</span>`,
+    connectionActionMessage ? `<span>${escapeHtml(connectionActionMessage)}</span>` : null,
     `<span>${moduleSummary.guns} firing points, main-gun rate x${moduleSummary.gunRateMultiplier}</span>`,
     `<span>${moduleSummary.engines} engines, acceleration/top speed x${moduleSummary.engineMultiplier}</span>`,
     `<span>${moduleSummary.wheels} wheels, braking/control x${moduleSummary.wheelMultiplier}${moduleSummary.wheelAsymmetry ? ', asymmetric pull likely' : ''}</span>`,
     `<span>Pose rig: ${escapeHtml(poseRigSummary(definition.poseRig))}</span>`,
+    animationGraphEnabled ? `<span>Animation graph: ${escapeHtml(animationGraphSummary(definition.animationGraph))}</span>` : null,
   ].filter(Boolean);
   const selectedLoadout = normalizeGunLoadouts(definition).find((loadout) => loadout.cellId === selectedCellId);
   if (selectedLoadout) lines.push(`<span>Selected gun loadout: ${escapeHtml(loadoutLabel(selectedLoadout))}</span>`);
@@ -652,7 +757,9 @@ function renderStatus() {
     );
   }
   lines.push(...report.errors.map((error) => `<span class="error">Error: ${escapeHtml(error)}</span>`));
+  lines.push(...graphReport.errors.map((error) => `<span class="error">Animation graph: ${escapeHtml(error)}</span>`));
   lines.push(...report.warnings.map((warning) => `<span class="warning">Warning: ${escapeHtml(warning)}</span>`));
+  lines.push(...graphReport.warnings.map((warning) => `<span class="warning">Animation graph: ${escapeHtml(warning)}</span>`));
   statusPanel.innerHTML = lines.join('');
 }
 
@@ -945,6 +1052,307 @@ function applyPoseRigJson() {
   }
 }
 
+function renderAnimationGraphControls() {
+  definition.animationGraph = normalizeAnimationGraph(definition.animationGraph ?? emptyAnimationGraph());
+  const graph = definition.animationGraph;
+  if (!graph.states.some((state) => state.id === selectedAnimationStateId)) selectedAnimationStateId = graph.states[0]?.id ?? null;
+  if (!graph.transitions.some((transition) => transition.id === selectedAnimationTransitionId)) selectedAnimationTransitionId = graph.transitions[0]?.id ?? null;
+
+  populateGraphSelect(animationControls.animationGraphInitialStateSelect, graph.states, 'Select initial state', graph.initialState);
+  animationControls.animationGraphSeedOffsetInput.value = String(graph.seedOffset ?? 0);
+  populateGraphSelect(animationControls.animationGraphStateSelect, graph.states, 'New state', selectedAnimationStateId);
+  populateGraphSelect(animationControls.animationGraphTransitionSelect, graph.transitions, 'New transition', selectedAnimationTransitionId);
+  populateGraphSelect(animationControls.animationTransitionFromSelect, graph.states, 'From state', animationControls.animationTransitionFromSelect.value);
+  populateGraphSelect(animationControls.animationTransitionToSelect, graph.states, 'To state', animationControls.animationTransitionToSelect.value);
+  populateGraphSelect(animationControls.animationStatePoseSelect, definition.poseRig?.poses ?? [], 'No pose', animationControls.animationStatePoseSelect.value);
+  syncAnimationStateFields();
+  syncAnimationTransitionFields();
+
+  const report = validateAnimationGraph(graph, definition.poseRig);
+  animationControls.animationGraphStatus.innerHTML = [
+    `<span><strong>${animationGraphEnabled ? (report.valid ? 'Animation graph ready' : 'Animation graph needs changes') : 'Animation graph not included'}</strong></span>`,
+    `<span>${escapeHtml(animationGraphSummary(graph))}</span>`,
+    ...report.errors.map((error) => `<span class="error">${escapeHtml(error)}</span>`),
+    ...report.warnings.map((warning) => `<span class="warning">${escapeHtml(warning)}</span>`),
+  ].join('');
+  animationControls.animationGraphJsonOutput.value = `${JSON.stringify(graph, null, 2)}\n`;
+  drawAnimationGraph();
+  renderAnimationTimeline();
+}
+
+function installAnimationGraphExample() {
+  const graph = createAnimationGraphExample();
+  definition.poseRig = normalizePoseRigDraft(definition.poseRig);
+  const poseIds = new Set(definition.poseRig.poses.map((pose) => pose.id));
+  for (const state of graph.states) {
+    const poseId = state.rig?.pose;
+    if (poseId && !poseIds.has(poseId)) {
+      definition.poseRig.poses.push({ id: poseId, transforms: [] });
+      poseIds.add(poseId);
+    }
+  }
+  const clipIds = new Set(definition.poseRig.clips.map((clip) => clip.id));
+  const referencedClips = graph.transitions.flatMap((transition) => [
+    transition.channels?.rig?.clip,
+    ...transition.variants.map((variant) => variant.channels?.rig?.clip),
+  ]).filter(Boolean);
+  for (const clipId of referencedClips) {
+    if (clipIds.has(clipId)) continue;
+    definition.poseRig.clips.push({ id: clipId, duration: 1, loop: false, tracks: [] });
+    clipIds.add(clipId);
+  }
+  definition.animationGraph = graph;
+  animationGraphEnabled = true;
+  selectedAnimationStateId = graph.initialState;
+  selectedAnimationTransitionId = graph.transitions[0]?.id ?? null;
+  render();
+}
+
+function populateGraphSelect(select, items, blankLabel, selectedId) {
+  select.replaceChildren(new Option(blankLabel, ''));
+  for (const item of items) select.append(new Option(item.id, item.id));
+  if (items.some((item) => item.id === selectedId)) select.value = selectedId;
+}
+
+function syncAnimationStateFields() {
+  const state = definition.animationGraph.states.find((entry) => entry.id === selectedAnimationStateId);
+  animationControls.animationGraphStateSelect.value = state?.id ?? '';
+  animationControls.animationStateIdInput.value = state?.id ?? '';
+  animationControls.animationStatePoseSelect.value = state?.rig?.pose ?? '';
+  animationControls.animationStateTagsInput.value = (state?.tags ?? []).join(', ');
+  animationControls.animationStateMaterialInput.value = state?.material?.state ?? '';
+  animationControls.animationStateTextureInput.value = state?.texture?.state ?? '';
+  animationControls.animationStateDwellMinInput.value = String(state?.dwell?.min ?? 0.8);
+  animationControls.animationStateDwellMaxInput.value = String(state?.dwell?.max ?? 2.4);
+  animationControls.animationStateXInput.value = String(state?.editorPosition?.[0] ?? 0);
+  animationControls.animationStateYInput.value = String(state?.editorPosition?.[1] ?? 0);
+  animationControls.animationStateNextInput.value = JSON.stringify(state?.next ?? [], null, 2);
+}
+
+function syncAnimationTransitionFields() {
+  const transition = definition.animationGraph.transitions.find((entry) => entry.id === selectedAnimationTransitionId);
+  animationControls.animationGraphTransitionSelect.value = transition?.id ?? '';
+  animationControls.animationTransitionIdInput.value = transition?.id ?? '';
+  animationControls.animationTransitionPolicySelect.value = transition?.interruptPolicy ?? 'IMMEDIATE';
+  animationControls.animationTransitionFromSelect.value = transition?.from ?? selectedAnimationStateId ?? '';
+  animationControls.animationTransitionToSelect.value = transition?.to ?? definition.animationGraph.states.find((state) => state.id !== selectedAnimationStateId)?.id ?? '';
+  animationControls.animationTransitionDurationMinInput.value = String(transition?.duration?.min ?? 0.4);
+  animationControls.animationTransitionDurationMaxInput.value = String(transition?.duration?.max ?? 0.4);
+  animationControls.animationTransitionRequiredTagsInput.value = (transition?.requiredAnchorTags ?? []).join(', ');
+  animationControls.animationTransitionRigClipInput.value = transition?.channels?.rig?.clip ?? '';
+  animationControls.animationTransitionMaterialClipInput.value = transition?.channels?.material?.clip ?? '';
+  animationControls.animationTransitionTextureClipInput.value = transition?.channels?.texture?.clip ?? '';
+  animationControls.animationTransitionTextureModeSelect.value = transition?.channels?.texture?.mode ?? 'STEP';
+  animationControls.animationTransitionAnchorsInput.value = JSON.stringify(transition?.interruptAnchors ?? [], null, 2);
+  animationControls.animationTransitionMarkersInput.value = JSON.stringify(transition?.markers ?? [], null, 2);
+  animationControls.animationTransitionVariantsInput.value = JSON.stringify(transition?.variants ?? [], null, 2);
+}
+
+function saveAnimationState() {
+  try {
+    const previousId = selectedAnimationStateId;
+    const state = createAnimationState({
+      id: animationControls.animationStateIdInput.value,
+      pose: animationControls.animationStatePoseSelect.value,
+      tags: animationControls.animationStateTagsInput.value,
+      materialState: animationControls.animationStateMaterialInput.value,
+      textureState: animationControls.animationStateTextureInput.value,
+      dwellMin: animationControls.animationStateDwellMinInput.value,
+      dwellMax: animationControls.animationStateDwellMaxInput.value,
+      x: animationControls.animationStateXInput.value,
+      y: animationControls.animationStateYInput.value,
+      next: JSON.parse(animationControls.animationStateNextInput.value || '[]'),
+    });
+    definition.animationGraph.states = upsertByPreviousId(definition.animationGraph.states, previousId, state);
+    if (previousId && previousId !== state.id) renameAnimationStateReferences(previousId, state.id);
+    if (!definition.animationGraph.initialState || definition.animationGraph.initialState === previousId) definition.animationGraph.initialState = state.id;
+    selectedAnimationStateId = state.id;
+    animationGraphEnabled = true;
+    render();
+  } catch (error) {
+    showAnimationGraphError(`State JSON error: ${error.message}`);
+  }
+}
+
+function removeAnimationState() {
+  if (!selectedAnimationStateId) return;
+  const removedId = selectedAnimationStateId;
+  definition.animationGraph.states = definition.animationGraph.states.filter((state) => state.id !== removedId);
+  definition.animationGraph.transitions = definition.animationGraph.transitions.filter((transition) => transition.from !== removedId && transition.to !== removedId);
+  for (const state of definition.animationGraph.states) state.next = state.next.filter((choice) => choice.state !== removedId);
+  selectedAnimationStateId = definition.animationGraph.states[0]?.id ?? null;
+  definition.animationGraph.initialState = definition.animationGraph.states.some((state) => state.id === definition.animationGraph.initialState)
+    ? definition.animationGraph.initialState
+    : selectedAnimationStateId ?? '';
+  selectedAnimationTransitionId = definition.animationGraph.transitions[0]?.id ?? null;
+  animationGraphEnabled = true;
+  render();
+}
+
+function saveAnimationTransition() {
+  try {
+    const transition = createAnimationTransition({
+      id: animationControls.animationTransitionIdInput.value,
+      from: animationControls.animationTransitionFromSelect.value,
+      to: animationControls.animationTransitionToSelect.value,
+      durationMin: animationControls.animationTransitionDurationMinInput.value,
+      durationMax: animationControls.animationTransitionDurationMaxInput.value,
+      interruptPolicy: animationControls.animationTransitionPolicySelect.value,
+      requiredAnchorTags: animationControls.animationTransitionRequiredTagsInput.value,
+      rigClip: animationControls.animationTransitionRigClipInput.value,
+      materialClip: animationControls.animationTransitionMaterialClipInput.value,
+      textureClip: animationControls.animationTransitionTextureClipInput.value,
+      textureMode: animationControls.animationTransitionTextureModeSelect.value,
+      interruptAnchors: JSON.parse(animationControls.animationTransitionAnchorsInput.value || '[]'),
+      markers: JSON.parse(animationControls.animationTransitionMarkersInput.value || '[]'),
+      variants: JSON.parse(animationControls.animationTransitionVariantsInput.value || '[]'),
+    });
+    definition.animationGraph.transitions = upsertByPreviousId(definition.animationGraph.transitions, selectedAnimationTransitionId, transition);
+    selectedAnimationTransitionId = transition.id;
+    animationGraphEnabled = true;
+    render();
+  } catch (error) {
+    showAnimationGraphError(`Transition JSON error: ${error.message}`);
+  }
+}
+
+function removeAnimationTransition() {
+  definition.animationGraph.transitions = definition.animationGraph.transitions.filter((transition) => transition.id !== selectedAnimationTransitionId);
+  selectedAnimationTransitionId = definition.animationGraph.transitions[0]?.id ?? null;
+  animationGraphEnabled = true;
+  render();
+}
+
+function applyAnimationGraphJson() {
+  try {
+    definition.animationGraph = normalizeAnimationGraph(JSON.parse(animationControls.animationGraphJsonOutput.value));
+    animationGraphEnabled = true;
+    clearAnimationGraphSelections();
+    selectedAnimationStateId = definition.animationGraph.initialState || definition.animationGraph.states[0]?.id || null;
+    selectedAnimationTransitionId = definition.animationGraph.transitions[0]?.id ?? null;
+    render();
+  } catch (error) {
+    showAnimationGraphError(`Animation graph JSON error: ${error.message}`);
+  }
+}
+
+function renameAnimationStateReferences(previousId, nextId) {
+  if (definition.animationGraph.initialState === previousId) definition.animationGraph.initialState = nextId;
+  for (const transition of definition.animationGraph.transitions) {
+    if (transition.from === previousId) transition.from = nextId;
+    if (transition.to === previousId) transition.to = nextId;
+  }
+  for (const state of definition.animationGraph.states) {
+    for (const choice of state.next) if (choice.state === previousId) choice.state = nextId;
+  }
+}
+
+function upsertByPreviousId(items, previousId, item) {
+  const index = items.findIndex((entry) => entry.id === previousId);
+  if (index < 0) return [...items.filter((entry) => entry.id !== item.id), item];
+  const next = [...items];
+  next[index] = item;
+  return next.filter((entry, entryIndex) => entry.id !== item.id || entryIndex === index);
+}
+
+function clearAnimationGraphSelections() {
+  selectedAnimationStateId = null;
+  selectedAnimationTransitionId = null;
+}
+
+function showAnimationGraphError(message) {
+  animationControls.animationGraphStatus.innerHTML = `<span class="error">${escapeHtml(message)}</span>`;
+}
+
+function drawAnimationGraph() {
+  const canvas = animationControls.animationGraphCanvas;
+  const graph = definition.animationGraph;
+  const positions = animationStatePositions(graph.states, canvas);
+  animationGraphContext.clearRect(0, 0, canvas.width, canvas.height);
+  animationGraphContext.fillStyle = '#0d1010';
+  animationGraphContext.fillRect(0, 0, canvas.width, canvas.height);
+  animationGraphContext.font = '700 11px Inter, sans-serif';
+  animationGraphContext.textAlign = 'center';
+
+  for (const transition of graph.transitions) {
+    const from = positions.get(transition.from);
+    const to = positions.get(transition.to);
+    if (!from || !to) continue;
+    animationGraphContext.strokeStyle = transition.id === selectedAnimationTransitionId ? '#f7c06a' : '#6fe0bf';
+    animationGraphContext.lineWidth = transition.id === selectedAnimationTransitionId ? 4 : 2;
+    animationGraphContext.beginPath();
+    animationGraphContext.moveTo(from.x, from.y);
+    animationGraphContext.lineTo(to.x, to.y);
+    animationGraphContext.stroke();
+    drawGraphArrow(animationGraphContext, from, to);
+  }
+
+  for (const state of graph.states) {
+    const point = positions.get(state.id);
+    const selected = state.id === selectedAnimationStateId;
+    animationGraphContext.fillStyle = selected ? '#f7c06a' : state.id === graph.initialState ? '#6fe0bf' : '#273332';
+    animationGraphContext.strokeStyle = '#f4eee4';
+    animationGraphContext.lineWidth = selected ? 4 : 2;
+    animationGraphContext.beginPath();
+    animationGraphContext.arc(point.x, point.y, selected ? 20 : 17, 0, Math.PI * 2);
+    animationGraphContext.fill();
+    animationGraphContext.stroke();
+    animationGraphContext.fillStyle = '#f4eee4';
+    animationGraphContext.fillText(state.id, point.x, point.y + 35);
+  }
+  animationGraphContext.textAlign = 'left';
+}
+
+function animationStatePositions(states, canvas) {
+  const positions = new Map();
+  const xs = states.map((state) => Number(state.editorPosition?.[0]) || 0);
+  const ys = states.map((state) => Number(state.editorPosition?.[1]) || 0);
+  const minX = Math.min(...xs, 0);
+  const maxX = Math.max(...xs, 1);
+  const minY = Math.min(...ys, 0);
+  const maxY = Math.max(...ys, 1);
+  states.forEach((state, index) => {
+    const hasAuthoredPosition = Array.isArray(state.editorPosition);
+    positions.set(state.id, {
+      x: hasAuthoredPosition ? 48 + (((Number(state.editorPosition[0]) || 0) - minX) / Math.max(1, maxX - minX)) * (canvas.width - 96) : 48 + (index % 4) * 100,
+      y: hasAuthoredPosition ? 48 + (((Number(state.editorPosition[1]) || 0) - minY) / Math.max(1, maxY - minY)) * (canvas.height - 96) : 48 + Math.floor(index / 4) * 80,
+    });
+  });
+  return positions;
+}
+
+function drawGraphArrow(context, from, to) {
+  const angle = Math.atan2(to.y - from.y, to.x - from.x);
+  const x = to.x - Math.cos(angle) * 21;
+  const y = to.y - Math.sin(angle) * 21;
+  context.fillStyle = context.strokeStyle;
+  context.beginPath();
+  context.moveTo(x, y);
+  context.lineTo(x - Math.cos(angle - 0.55) * 9, y - Math.sin(angle - 0.55) * 9);
+  context.lineTo(x - Math.cos(angle + 0.55) * 9, y - Math.sin(angle + 0.55) * 9);
+  context.closePath();
+  context.fill();
+}
+
+function renderAnimationTimeline() {
+  const transition = definition.animationGraph.transitions.find((entry) => entry.id === selectedAnimationTransitionId);
+  const progress = Number(animationControls.animationTransitionScrubInput.value) || 0;
+  if (!transition) {
+    animationControls.animationTimelineStatus.innerHTML = '<span>Select a transition to inspect its interruption timeline.</span>';
+    return;
+  }
+  const passedAnchors = transition.interruptAnchors.filter((entry) => entry.at <= progress);
+  const nextAnchor = transition.interruptAnchors.find((entry) => entry.at > progress);
+  const passedMarkers = transition.markers.filter((entry) => entry.at <= progress);
+  animationControls.animationTimelineStatus.innerHTML = [
+    `<span><strong>${escapeHtml(transition.from)} -> ${escapeHtml(transition.to)}</strong> at ${Math.round(progress * 100)}%</span>`,
+    `<span>Policy: ${escapeHtml(transition.interruptPolicy)}; duration ${transition.duration.min}-${transition.duration.max}s</span>`,
+    `<span>Passed anchors: ${passedAnchors.length ? passedAnchors.map((entry) => escapeHtml(entry.id)).join(', ') : 'none'}</span>`,
+    `<span>Next anchor: ${nextAnchor ? `${escapeHtml(nextAnchor.id)} at ${Math.round(nextAnchor.at * 100)}%` : 'none'}</span>`,
+    `<span>Markers emitted: ${passedMarkers.length ? passedMarkers.map((entry) => escapeHtml(entry.id)).join(', ') : 'none'}</span>`,
+  ].join('');
+}
+
 function applyWalkerStridePreset() {
   const rig = createWalkerStrideRigForConstruct(definition);
   if (!hasPoseRigContent(rig)) {
@@ -1029,6 +1437,7 @@ function normalizedDefinition() {
     gunLoadouts: normalizeGunLoadouts(definition),
   };
   if (hasPoseRigContent(poseRig)) normalized.poseRig = poseRig;
+  if (animationGraphEnabled) normalized.animationGraph = normalizeAnimationGraph(definition.animationGraph);
   return normalized;
 }
 
@@ -1127,6 +1536,7 @@ function setTool(nextTool) {
   paintButton.setAttribute('aria-pressed', String(tool === 'paint'));
   eraseButton.setAttribute('aria-pressed', String(tool === 'erase'));
   connectButton.setAttribute('aria-pressed', String(tool === 'connect'));
+  removeConnectionButton.setAttribute('aria-pressed', String(tool === 'removeConnection'));
   weightPaintButton.setAttribute('aria-pressed', String(tool === 'weightPaint'));
   weightEraseButton.setAttribute('aria-pressed', String(tool === 'weightErase'));
 }

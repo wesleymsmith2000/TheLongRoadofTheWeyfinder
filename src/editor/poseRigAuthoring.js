@@ -42,6 +42,7 @@ export function hasPoseRigContent(rig) {
     normalized.groups.length ||
       normalized.joints.length ||
       normalized.poses.length ||
+      normalized.clips.length ||
       normalized.animations.length ||
       Object.keys(normalized.cellBindings ?? {}).length ||
       normalized.dynamics ||
@@ -51,7 +52,7 @@ export function hasPoseRigContent(rig) {
 
 export function poseRigSummary(rig) {
   const normalized = normalizePoseRigDraft(rig);
-  return `${normalized.groups.length} groups, ${normalized.joints.length} joints, ${normalized.poses.length} poses, ${normalized.animations.length} animations, ${Object.keys(normalized.cellBindings ?? {}).length} weighted cells`;
+  return `${normalized.groups.length} groups, ${normalized.joints.length} joints, ${normalized.poses.length} poses, ${normalized.clips.length} clips, ${normalized.animations.length} animations, ${Object.keys(normalized.cellBindings ?? {}).length} weighted cells`;
 }
 
 export function createCellBindingDescriptor({ cellId, influences } = {}) {
