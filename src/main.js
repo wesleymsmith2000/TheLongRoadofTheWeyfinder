@@ -68,6 +68,15 @@ import { DEFAULT_SANDBOX_DEFINITION, sandboxDefinitionFromEnemy, sandboxDefiniti
 import { beginEncounter, activeEncounterView, chooseEncounterChoice } from './core/encounterRuntime.js';
 import { normalizeEncounterDefinition, validateEncounterDefinition } from './core/encounterDefinition.js';
 import { ENCOUNTER_CONDITION_TYPES, ENCOUNTER_EFFECT_TYPES } from './core/encounterVerbRegistry.js';
+import {
+  createNavigationRuntime,
+  navigationView,
+  recordNavigationOutcome,
+  selectNavigationEdge,
+  selectNavigationNode,
+  updateNavigationSignals,
+  validateNavigationGraph,
+} from './core/navigationGraph.js';
 import levelCompleteBannerArt from '../assets/images/level_complete_banner.png';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import bossDefeatedBannerArt from '../assets/images/boss_defeated_banner.png';
@@ -549,6 +558,7 @@ if (titleVersionTag) titleVersionTag.textContent = BUILD_VERSION;
 exposeLocalContentModuleApi();
 exposeSandboxApi();
 exposeEncounterApi();
+exposeNavigationApi();
 exposeProceduralMusicApi();
 exposeHapticApi();
 annotateWeaponOptionIcons();
@@ -2075,6 +2085,33 @@ function exposeProceduralMusicApi() {
     },
     layerAssets() {
       return structuredClone(MUSIC_LAYER_URLS);
+    },
+  });
+}
+
+function exposeNavigationApi() {
+  window.WeyfinderNavigation = Object.freeze({
+    validate: validateNavigationGraph,
+    start(definition, options = {}) {
+      const report = validateNavigationGraph(definition);
+      if (!report.valid) return report;
+      game.navigation = createNavigationRuntime(report.definition, { seed: options.seed ?? 1147 });
+      return { ...report, view: navigationView(game.navigation) };
+    },
+    view(options = {}) {
+      return navigationView(game.navigation, options);
+    },
+    chooseEdge(edgeId, options = {}) {
+      return selectNavigationEdge(game.navigation, edgeId, options);
+    },
+    chooseNode(nodeId, options = {}) {
+      return selectNavigationNode(game.navigation, nodeId, options);
+    },
+    updateSignals(patch = {}) {
+      return updateNavigationSignals(game.navigation, patch);
+    },
+    recordOutcome(outcome = {}) {
+      return recordNavigationOutcome(game.navigation, outcome);
     },
   });
 }

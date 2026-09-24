@@ -74,6 +74,7 @@ import { createWalkerStridePoseRig } from './poseAnimation.js';
 import { beginEncounter, createEncounterRuntimeState, encounterPausePolicy, stepEncounters } from './encounterRuntime.js';
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import { normalizeObstacleDefinition } from './obstacleDefinition.js';
+import { createNavigationRuntime, stepNavigationRuntime } from './navigationGraph.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
@@ -434,6 +435,7 @@ export function createGame(seed = 1147, options = {}) {
   const vehicleDefinition = options.vehicleDefinition ?? startingVehicleDefinition;
   const vehicle = createStartingVehicle(vehicleDefinition);
   const levelDefinition = options.levelDefinition ?? null;
+  const navigationDefinition = options.navigationGraph ?? levelDefinition?.navigationGraph ?? null;
   const terrainRoute =
     options.terrainRoute ??
     levelDefinition?.route ??
@@ -534,6 +536,7 @@ export function createGame(seed = 1147, options = {}) {
     targetingAi: createTargetingAiState(options.targetingAi),
     playerDamageShake: { timer: 0, lostCells: 0 },
     encounters: createEncounterRuntimeState(options.encounters ?? []),
+    navigation: navigationDefinition ? createNavigationRuntime(navigationDefinition, { seed }) : null,
     sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options) : null,
   };
   if (sandboxDefinition) {
@@ -558,6 +561,7 @@ export function stepGame(game, input, dt) {
     return game;
   }
   game.time += dt;
+  stepNavigationRuntime(game.navigation, dt);
   stepEncounters(game, input, dt);
   if (input.resetPressed) {
     return createGame(1147, {
@@ -566,6 +570,7 @@ export function stepGame(game, input, dt) {
       sandbox: game.sandbox?.definition,
       enemyArchetypes: game.sandbox?.enemyArchetypes,
       encounters: Object.values(game.encounters?.definitions ?? {}),
+      navigationGraph: game.navigation?.definition ?? undefined,
       levelDefinition: game.levelDefinition ?? undefined,
       constructDefinitions: game.contentRuntime?.constructDefinitions ?? game.sandbox?.constructDefinitions,
       patternDefinitions: game.contentRuntime?.patternDefinitions ?? game.sandbox?.patternDefinitions,

@@ -99,3 +99,21 @@ test('level validation accepts obstacle motion and contact effects but rejects u
   assert.equal(invalid.valid, false);
   assert.equal(invalid.errors.some((error) => error.includes('motion.mode')), true);
 });
+
+test('level definitions validate relay navigation graphs and collect linked levels', () => {
+  const level = structuredClone(prototypeLevelDefinition);
+  level.navigationGraph = {
+    schemaVersion: '0.1',
+    assetId: 'navigation.prototype',
+    initialNode: 'here',
+    nodes: [
+      { id: 'here', kind: 'level', levelId: level.assetId },
+      { id: 'next', kind: 'level', levelId: 'community.next_level', destination: true },
+    ],
+    edges: [{ id: 'continue', from: 'here', to: 'next' }],
+  };
+  const report = validateLevelDefinition(level);
+  const dependencies = collectLevelDependencies(level);
+  assert.equal(report.valid, true);
+  assert.equal(dependencies.some((dependency) => dependency.kind === 'level' && dependency.assetId === 'community.next_level'), true);
+});

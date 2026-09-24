@@ -1,4 +1,5 @@
 import { isNonEmptyString } from './contentSchema.js';
+import { selectNavigationEdge } from './navigationGraph.js';
 
 export const ENCOUNTER_MUSIC_STATES = ['TRAVEL', 'ATTENTION', 'SUSPICION', 'MANIFESTATION', 'AFTERIMAGE', 'ROAD_ATTENTION', 'FATE_ATTENTION'];
 
@@ -13,7 +14,9 @@ export const ENCOUNTER_CONDITION_REGISTRY = Object.freeze({
 
 export const ENCOUNTER_EFFECT_REGISTRY = Object.freeze({
   selectRouteBranch: effect('selectRouteBranch', ({ game, effect: value }) => {
-    if (game.road) game.road.selectedRouteBranchId = value.branchId ?? value.routeBranchId ?? null;
+    const branchId = value.branchId ?? value.routeBranchId ?? null;
+    if (game.navigation) selectNavigationEdge(game.navigation, branchId, { source: 'encounter' });
+    if (game.road) game.road.selectedRouteBranchId = branchId;
   }, requiredString('branchId')),
   spawnEncounter: effect('spawnEncounter', ({ game, effect: value, api }) => {
     api.beginEncounter(game, value.encounterId, { allowDuplicate: value.allowDuplicate === true });

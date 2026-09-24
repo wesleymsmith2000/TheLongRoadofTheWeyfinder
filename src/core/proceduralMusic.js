@@ -14,6 +14,12 @@ export const MUSIC_LAYERS = Object.freeze({
   suspicion: 'suspicion',
   manifestation: 'manifestation',
   afterimage: 'afterimage',
+  baseFog: 'baseFog',
+  roadBearing: 'roadBearing',
+  fatePressure: 'fatePressure',
+  destinationEcho: 'destinationEcho',
+  dangerLayer: 'dangerLayer',
+  ambushLayer: 'ambushLayer',
 });
 
 const UPDATE_INTERVAL_SECONDS = 0.2;
@@ -100,6 +106,7 @@ export function musicSituationSnapshot(game) {
     levelComplete: Boolean(game.levelComplete),
     gameOver: Boolean(game.gameOver),
     victoryBanner: Boolean(game.victoryBanner),
+    navigationMix: game.navigation?.musicMix ? { ...game.navigation.musicMix } : null,
   };
 }
 
@@ -113,14 +120,27 @@ export function desiredMusicState(snapshot) {
 }
 
 export function layerTargetsForState(state, snapshot = {}) {
-  if (state === 'AFTERIMAGE') return normalizeLayerMap({}, { travel: 0.25, afterimage: 1 });
+  const navigation = navigationLayerTargets(snapshot.navigationMix);
+  if (state === 'AFTERIMAGE') return normalizeLayerMap({}, { travel: 0.25, afterimage: 1, ...navigation });
   if (state === 'MANIFESTATION') {
     const pressure = clamp((snapshot.enemyProjectiles ?? 0) / 80, 0, 1);
-    return normalizeLayerMap({}, { travel: 0.35, attention: 0.4, suspicion: 0.35 + pressure * 0.25, manifestation: 1 });
+    return normalizeLayerMap({}, { travel: 0.35, attention: 0.4, suspicion: 0.35 + pressure * 0.25, manifestation: 1, ...navigation });
   }
-  if (state === 'SUSPICION') return normalizeLayerMap({}, { travel: 0.45, attention: 0.45, suspicion: 1 });
-  if (state === 'ATTENTION') return normalizeLayerMap({}, { travel: 0.72, attention: 0.82, suspicion: 0.12 });
-  return normalizeLayerMap({}, { travel: 1 });
+  if (state === 'SUSPICION') return normalizeLayerMap({}, { travel: 0.45, attention: 0.45, suspicion: 1, ...navigation });
+  if (state === 'ATTENTION') return normalizeLayerMap({}, { travel: 0.72, attention: 0.82, suspicion: 0.12, ...navigation });
+  return normalizeLayerMap({}, { travel: 1, ...navigation });
+}
+
+function navigationLayerTargets(mix) {
+  if (!mix) return {};
+  return {
+    baseFog: clamp(mix.baseFog ?? 0, 0, 1),
+    roadBearing: clamp(mix.roadBearing ?? 0, 0, 1),
+    fatePressure: clamp(mix.fatePressure ?? 0, 0, 1),
+    destinationEcho: clamp(mix.destinationEcho ?? 0, 0, 1),
+    dangerLayer: clamp(mix.dangerLayer ?? 0, 0, 1),
+    ambushLayer: clamp(mix.ambushLayer ?? 0, 0, 1),
+  };
 }
 
 function ensureProceduralMusicState(music, options = {}) {
@@ -181,6 +201,7 @@ function musicSignature(snapshot, state) {
     snapshot.warningCount > 0 ? 1 : 0,
     Math.min(3, Math.floor((snapshot.enemyProjectiles ?? 0) / 24)),
     Math.min(3, Math.floor((snapshot.playerDamageRatio ?? 0) * 4)),
+    ...Object.values(navigationLayerTargets(snapshot.navigationMix)).map((value) => Math.round(value * 4)),
   ].join(':');
 }
 

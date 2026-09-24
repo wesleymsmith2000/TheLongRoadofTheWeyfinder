@@ -1,6 +1,7 @@
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { LIGHTING_PRESETS } from './renderMaterial.js';
 import { validateObstacleDefinition } from './obstacleDefinition.js';
+import { validateNavigationGraph } from './navigationGraph.js';
 
 export const LEVEL_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const LEVEL_BACKGROUND_MODES = ['procedural', 'prebaked', 'mixed'];
@@ -41,6 +42,11 @@ export function validateLevelDefinition(definition) {
   validateObstacles(definition.obstacles ?? [], errors, warnings);
   validateWaves(definition.waves ?? [], errors, warnings);
   validateTriggers(definition.triggers ?? [], errors, warnings);
+  if (definition.navigationGraph != null) {
+    const navigationReport = validateNavigationGraph(definition.navigationGraph);
+    errors.push(...navigationReport.errors);
+    warnings.push(...navigationReport.warnings);
+  }
 
   if ((definition.waves ?? []).length === 0) warnings.push('Level has no enemy waves.');
   if ((definition.route?.segments ?? []).length === 0) warnings.push('Level has no route segments.');
@@ -70,6 +76,10 @@ export function collectLevelDependencies(definition) {
     if (!trigger.assetRef) continue;
     if (trigger.kind === 'encounter') dependencies.push({ kind: 'encounter', assetId: trigger.assetRef, required: trigger.required !== false });
     else dependencies.push({ kind: trigger.kind === 'music' ? 'music' : 'sound', assetId: trigger.assetRef, required: trigger.required === true });
+  }
+  for (const node of definition.navigationGraph?.nodes ?? []) {
+    if (node.levelId) dependencies.push({ kind: 'level', assetId: node.levelId, required: node.required !== false });
+    if (node.encounterId) dependencies.push({ kind: 'encounter', assetId: node.encounterId, required: node.required !== false });
   }
   return uniqueDependencies(dependencies);
 }
