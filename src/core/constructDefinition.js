@@ -2,6 +2,7 @@ import { createCell, recalculateCell } from './cell.js';
 import { coreDistanceMap, createConnection, OPPOSITE } from './connections.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { normalizePoseRig, validatePoseRig } from './poseAnimation.js';
+import { normalizeAnimationGraph, validateAnimationGraph } from './animationGraph.js';
 import { normalizeRenderSurfaces, validateRenderMaterialFields } from './renderMaterial.js';
 import { Roles, VOXELS } from './voxelMask.js';
 
@@ -86,7 +87,12 @@ export function validateConstructDefinition(definition) {
   validateDamageGroupReferences(definition.damageGroups, cellIds, errors, warnings);
   validateTopologyMetadata(definition.topology, cellIds, warnings);
   if (cells.length > 0 && connections.length === 0) warnings.push('Construct has no explicit connections; only the core will be structurally connected.');
-  validatePoseRig(constructPoseRigDefinition(definition), 'poseRig', cellIds, errors, warnings);
+  const poseRigDefinition = constructPoseRigDefinition(definition);
+  validatePoseRig(poseRigDefinition, 'poseRig', cellIds, errors, warnings);
+  const animationReport = validateAnimationGraph(definition.animationGraph, { poseRig: normalizePoseRig(poseRigDefinition) });
+  errors.push(...animationReport.errors);
+  warnings.push(...animationReport.warnings);
+  validateAnimationStateMap(definition.animationStateMap, animationReport.definition, errors);
 
   return { valid: errors.length === 0, errors, warnings };
 }
@@ -111,6 +117,7 @@ export function instantiateConstruct(definition) {
   });
   const connections = (definition.connections ?? []).map((edge) => createConnection(edge.a, edge.b, edge.aSide, edge.bSide ?? OPPOSITE[edge.aSide], edge.type ?? 'structural'));
   const poseRig = normalizePoseRig(constructPoseRigDefinition(definition));
+  const animationGraph = definition.animationGraph ? normalizeAnimationGraph(definition.animationGraph) : null;
   const construct = {
     assetId: definition.assetId,
     schemaVersion: definition.schemaVersion,
@@ -119,10 +126,25 @@ export function instantiateConstruct(definition) {
     presentation: definition.presentation ? structuredClone(definition.presentation) : null,
     modules: structuredClone(definition.modules ?? []),
     poseRig,
+    animationGraph,
+    animationStateMap: isPlainObject(definition.animationStateMap) ? structuredClone(definition.animationStateMap) : {},
     cells,
     connections,
   };
   return annotateConstructRuntimeMetadata(construct, definition);
+}
+
+function validateAnimationStateMap(stateMap, animationGraph, errors) {
+  if (stateMap == null) return;
+  if (!isPlainObject(stateMap)) {
+    errors.push('animationStateMap must be an object when provided.');
+    return;
+  }
+  const stateIds = new Set(animationGraph?.states?.map((state) => state.id) ?? []);
+  for (const [semantic, stateId] of Object.entries(stateMap)) {
+    if (!isNonEmptyString(semantic) || !isNonEmptyString(stateId)) errors.push('animationStateMap keys and values must be non-empty strings.');
+    else if (!stateIds.has(stateId)) errors.push(`animationStateMap.${semantic} references unknown animation state "${stateId}".`);
+  }
 }
 
 function validateCellMask(mask, label, errors) {

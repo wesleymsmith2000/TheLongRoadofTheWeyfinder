@@ -1,11 +1,12 @@
 import { CELL_LAYER_HEIGHT, CELL_SIZE } from './voxelMask.js';
 import { normalizeCellWeights, POSE_RIG_SCHEMA_VERSION, validateCellBindings } from './poseWeights.js';
+import { animationGraphRigOutput, captureAnimationPose } from './animationGraph.js';
 
 const TAU = Math.PI * 2;
 
 export const POSE_RIG_ANIMATION_KINDS = ['oscillate', 'poseCycle', 'aimAtTarget', 'clip'];
 export const POSE_CLIP_PATHS = ['translation', 'rotation', 'scale'];
-export const POSE_CLIP_INTERPOLATIONS = ['STEP', 'LINEAR'];
+export const POSE_CLIP_INTERPOLATIONS = ['STEP', 'LINEAR', 'SMOOTHSTEP', 'CUBIC'];
 export const POSE_CLIP_COORDINATE_MODES = ['XY_Z_UP'];
 export const POSE_RIG_TARGET_PREFIXES = ['group:', 'joint:', 'cell:', 'role:', 'type:', 'slot:', 'tag:'];
 
@@ -130,8 +131,56 @@ export function evaluatePoseRig(entity, context = {}) {
       for (const entry of animationClipTransforms(animation, clipMap.get(animation.clip), context, jointMap)) addToTarget(entry.target, entry.transform);
     }
   }
+  applyAnimationGraphRigChannel(entity, context, rig, groupMap, jointMap, poseMap, clipMap, addToTarget);
   applyWeightedCellBindings(entity, rig, jointMap, resolveJointHierarchyTransforms(rig, jointTransforms), transforms);
+  applyAnimationGraphInertialBlend(entity, transforms);
+  captureAnimationPose(entity, transforms, context.time ?? 0);
   return transforms;
+}
+
+function applyAnimationGraphRigChannel(entity, context, rig, groupMap, jointMap, poseMap, clipMap, addToTarget) {
+  const output = animationGraphRigOutput(entity);
+  if (!output) return;
+  if (output.clip && clipMap.has(output.clip)) {
+    const clip = clipMap.get(output.clip);
+    for (const entry of animationClipTransforms(
+      { clip: output.clip, driver: 'animationGraphTime', loop: false },
+      clip,
+      { ...context, animationGraphTime: output.progress * clip.duration },
+      jointMap,
+    )) addToTarget(entry.target, entry.transform);
+    return;
+  }
+  const fromTransforms = poseTransformsByTarget(poseMap.get(output.fromPose), groupMap);
+  const toTransforms = poseTransformsByTarget(poseMap.get(output.toPose), groupMap);
+  for (const target of new Set([...fromTransforms.keys(), ...toTransforms.keys()])) {
+    addToTarget(target, lerpTransform(fromTransforms.get(target), toTransforms.get(target), output.progress));
+  }
+}
+
+function applyAnimationGraphInertialBlend(entity, transforms) {
+  const output = animationGraphRigOutput(entity);
+  const blend = output?.inertialBlend;
+  if (!blend || !output.snapshot || !(blend.duration > 0)) return;
+  const t = Math.max(0, Math.min(1, blend.elapsed / blend.duration));
+  const targetWeight = t * t * (3 - 2 * t);
+  const velocityWeight = t * (1 - t) * (1 - t);
+  const ids = new Set([...transforms.keys(), ...Object.keys(output.snapshot)]);
+  for (const id of ids) {
+    const start = output.snapshot[id] ?? baseTransform();
+    const target = transforms.get(id) ?? baseTransform();
+    const velocity = output.snapshotVelocity?.[id] ?? {};
+    const duration = blend.duration;
+    const transform = {
+      x: lerp(start.x ?? 0, target.x ?? 0, targetWeight) + (velocity.x ?? 0) * duration * velocityWeight,
+      y: lerp(start.y ?? 0, target.y ?? 0, targetWeight) + (velocity.y ?? 0) * duration * velocityWeight,
+      z: lerp(start.z ?? 0, target.z ?? 0, targetWeight) + (velocity.z ?? 0) * duration * velocityWeight,
+      rotation: lerpAngle(start.rotation ?? 0, target.rotation ?? 0, targetWeight) + (velocity.rotation ?? 0) * duration * velocityWeight,
+      scale: [0, 1, 2].map((index) => lerp(start.scale?.[index] ?? 1, target.scale?.[index] ?? 1, targetWeight)),
+      pivot: target.pivot ?? start.pivot ?? null,
+    };
+    transforms.set(id, transform);
+  }
 }
 
 function cachedNormalizedPoseRig(entity) {
@@ -685,8 +734,13 @@ function sampleClipTrack(track, time) {
   if (track.interpolation === 'STEP') return [...values[lower]];
   const span = times[upper] - times[lower];
   const t = span <= 0 ? 0 : (time - times[lower]) / span;
-  if (track.path === 'rotation') return normalizeQuaternion(values[lower].map((value, index) => lerp(value, values[upper][index], t)));
-  return values[lower].map((value, index) => lerp(value, values[upper][index], t));
+  const eased = track.interpolation === 'SMOOTHSTEP'
+    ? t * t * (3 - 2 * t)
+    : track.interpolation === 'CUBIC'
+      ? t * t * t * (t * (t * 6 - 15) + 10)
+      : t;
+  if (track.path === 'rotation') return slerpQuaternion(values[lower], values[upper], eased);
+  return values[lower].map((value, index) => lerp(value, values[upper][index], eased));
 }
 
 function resolveJointHierarchyTransforms(rig, transforms) {
@@ -830,6 +884,22 @@ function normalizeQuaternion(value) {
   const length = Math.hypot(...value);
   if (length <= 0.000001) return [0, 0, 0, 1];
   return value.map((entry) => entry / length);
+}
+
+function slerpQuaternion(from, to, t) {
+  const a = normalizeQuaternion(from);
+  let b = normalizeQuaternion(to);
+  let dot = a.reduce((sum, value, index) => sum + value * b[index], 0);
+  if (dot < 0) {
+    b = b.map((value) => -value);
+    dot = -dot;
+  }
+  if (dot > 0.9995) return normalizeQuaternion(a.map((value, index) => lerp(value, b[index], t)));
+  const theta = Math.acos(Math.max(-1, Math.min(1, dot)));
+  const sinTheta = Math.sin(theta);
+  const startWeight = Math.sin((1 - t) * theta) / sinTheta;
+  const endWeight = Math.sin(t * theta) / sinTheta;
+  return a.map((value, index) => value * startWeight + b[index] * endWeight);
 }
 
 function quaternionZAngle(value) {

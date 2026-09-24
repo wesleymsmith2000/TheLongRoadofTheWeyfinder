@@ -28,6 +28,8 @@ export function createEnemy(x, y, definition = basicTurretDefinition, patternDef
     vy: 0,
     presentation: construct.presentation,
     poseRig: construct.poseRig,
+    animationGraph: construct.animationGraph,
+    animationStateMap: construct.animationStateMap,
     radius: constructRadius(construct.cells),
     patterns: patternDefinitions.map((pattern) => createPatternState(pattern)),
     cells: construct.cells,

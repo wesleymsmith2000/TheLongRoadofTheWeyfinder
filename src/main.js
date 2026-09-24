@@ -77,6 +77,13 @@ import {
   updateNavigationSignals,
   validateNavigationGraph,
 } from './core/navigationGraph.js';
+import {
+  animationControllerView,
+  ensureAnimationController,
+  normalizeAnimationGraph,
+  requestAnimationState,
+  validateAnimationGraph,
+} from './core/animationGraph.js';
 import levelCompleteBannerArt from '../assets/images/level_complete_banner.png';
 import levelCompleteArt from '../assets/images/level_complete_screen.png';
 import bossDefeatedBannerArt from '../assets/images/boss_defeated_banner.png';
@@ -559,6 +566,7 @@ exposeLocalContentModuleApi();
 exposeSandboxApi();
 exposeEncounterApi();
 exposeNavigationApi();
+exposeAnimationApi();
 exposeProceduralMusicApi();
 exposeHapticApi();
 annotateWeaponOptionIcons();
@@ -2114,6 +2122,46 @@ function exposeNavigationApi() {
       return recordNavigationOutcome(game.navigation, outcome);
     },
   });
+}
+
+function exposeAnimationApi() {
+  window.WeyfinderAnimation = Object.freeze({
+    validate(definition, poseRig = null) {
+      return validateAnimationGraph(definition, { poseRig });
+    },
+    attach(target, definition, stateMap = {}) {
+      const entity = resolveAnimationEntity(target);
+      if (!entity) return { ok: false, reason: 'entity-not-found' };
+      const report = validateAnimationGraph(definition, { poseRig: entity.poseRig });
+      if (!report.valid) return report;
+      entity.animationGraph = normalizeAnimationGraph(report.definition);
+      entity.animationStateMap = structuredClone(stateMap);
+      entity.animationController = null;
+      ensureAnimationController(entity, { seed: game.seed, entityId: entity.id ?? entity.assetId ?? 'player' });
+      return { ...report, controller: animationControllerView(entity) };
+    },
+    request(target, semanticOrStateId, options = {}) {
+      const entity = resolveAnimationEntity(target);
+      return entity ? requestAnimationState(entity, semanticOrStateId, { seed: game.seed, ...options }) : { ok: false, reason: 'entity-not-found' };
+    },
+    inspect(target = 'player') {
+      return animationControllerView(resolveAnimationEntity(target));
+    },
+    consumeMarkers(target = 'player') {
+      const entity = resolveAnimationEntity(target);
+      const entityId = entity === game.vehicle ? 'player' : entity?.id ?? entity?.archetypeId ?? entity?.assetId;
+      if (!entityId) return [];
+      const selected = game.animationEvents.filter((event) => event.entityId === entityId);
+      game.animationEvents = game.animationEvents.filter((event) => event.entityId !== entityId);
+      return structuredClone(selected);
+    },
+  });
+}
+
+function resolveAnimationEntity(target) {
+  if (target && typeof target === 'object') return target;
+  if (target == null || target === 'player') return game.vehicle;
+  return game.enemies.find((enemy) => enemy.id === target || enemy.assetId === target || enemy.archetypeId === target) ?? null;
 }
 
 function exposeHapticApi() {

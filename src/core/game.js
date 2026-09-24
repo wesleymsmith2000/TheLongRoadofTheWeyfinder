@@ -75,6 +75,7 @@ import { beginEncounter, createEncounterRuntimeState, encounterPausePolicy, step
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import { normalizeObstacleDefinition } from './obstacleDefinition.js';
 import { createNavigationRuntime, stepNavigationRuntime } from './navigationGraph.js';
+import { consumeAnimationMarkers, stepAnimationGraph } from './animationGraph.js';
 import trackingFlechetteDefinition from '../../content/weapons/tracking_flechette.json' with { type: 'json' };
 import mortarDefinition from '../../content/weapons/mortar.json' with { type: 'json' };
 import bladeLauncherDefinition from '../../content/weapons/blade_launcher.json' with { type: 'json' };
@@ -472,6 +473,7 @@ export function createGame(seed = 1147, options = {}) {
       ? authoredLevelTraversal(levelDefinition, road)
       : traversalTargetForTrack(currentMusic, road);
   const game = {
+    seed,
     rng,
     levelMusic,
     currentMusic,
@@ -504,6 +506,7 @@ export function createGame(seed = 1147, options = {}) {
     smokeParticles: [],
     soundEvents: [],
     hapticEvents: [],
+    animationEvents: [],
     autofire: true,
     primaryHeat: { heat: 0, maxHeat: 100 },
     repulsor: { charges: 5, maxCharges: 5, rechargeTimer: 0, cooldown: 4.5 },
@@ -562,6 +565,7 @@ export function stepGame(game, input, dt) {
   }
   game.time += dt;
   stepNavigationRuntime(game.navigation, dt);
+  stepEntityAnimationGraphs(game, dt);
   stepEncounters(game, input, dt);
   if (input.resetPressed) {
     return createGame(1147, {
@@ -677,6 +681,20 @@ function stepPausedGame(game, input, dt) {
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
   game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
   stepSmokeParticles(game, dt);
+}
+
+function stepEntityAnimationGraphs(game, dt) {
+  stepAnimationGraph(game.vehicle, dt, { seed: game.seed, entityId: 'player' });
+  publishAnimationMarkers(game, game.vehicle, 'player');
+  for (const enemy of game.enemies ?? []) {
+    stepAnimationGraph(enemy, dt, { seed: game.seed, entityId: enemy.id ?? enemy.archetypeId ?? enemy.assetId });
+    publishAnimationMarkers(game, enemy, enemy.id ?? enemy.archetypeId ?? enemy.assetId);
+  }
+}
+
+function publishAnimationMarkers(game, entity, entityId) {
+  for (const marker of consumeAnimationMarkers(entity)) game.animationEvents.push({ ...marker, entityId, gameTime: game.time });
+  if (game.animationEvents.length > 256) game.animationEvents.splice(0, game.animationEvents.length - 256);
 }
 
 function stepRoadEdgePressure(game, input, dt) {
@@ -913,6 +931,7 @@ export function startNextLevel(game) {
   game.smokeParticles = [];
   game.soundEvents = [];
   game.hapticEvents = [];
+  game.animationEvents = [];
   game.scrapPickups = [];
   startTargetingAiLevel(game);
   return game;
@@ -941,6 +960,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.scrapPickups = [];
   game.soundEvents = [];
   game.hapticEvents = [];
+  game.animationEvents = [];
   game.guidedTargetId = null;
   resetAiAimReticle(game);
   startTargetingAiLevel(game);
@@ -1590,6 +1610,8 @@ function applyArchetypeRuntimeMetadata(enemy, archetype) {
     enemy.roadBossCar.variant = archetype.carBehavior.variant;
   }
   if (archetype.poseRig) enemy.poseRig = structuredClone(archetype.poseRig);
+  if (archetype.animationGraph) enemy.animationGraph = structuredClone(archetype.animationGraph);
+  if (archetype.animationStateMap) enemy.animationStateMap = structuredClone(archetype.animationStateMap);
   if (archetype.entranceBarks) enemy.entranceBarks = structuredClone(archetype.entranceBarks);
   if (archetype.reactionCues) enemy.reactionCues = structuredClone(archetype.reactionCues);
   if ((archetype.movementProfiles ?? []).some((profile) => profile.kind === 'walkerLegs')) {

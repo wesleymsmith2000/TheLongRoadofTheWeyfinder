@@ -1,6 +1,7 @@
 import { CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isPlainObject } from './contentSchema.js';
 import { hydrateEncounterRuntime, serializeEncounterRuntime } from './encounterRuntime.js';
 import { hydrateNavigationRuntime, serializeNavigationRuntime } from './navigationGraph.js';
+import { hydrateAnimationController, serializeAnimationController } from './animationGraph.js';
 
 export const SAVE_STATE_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const SAVE_STATE_KIND = 'weyfinder.prototype0.save';
@@ -26,6 +27,7 @@ export function createSaveState(game, playerAccount, options = {}) {
     music: structuredClone(game.music ?? {}),
     encounters: serializeEncounterRuntime(game.encounters),
     navigation: serializeNavigationRuntime(game.navigation),
+    vehicleAnimation: serializeAnimationController(game.vehicle?.animationController),
   };
   return signSavePayload(payload);
 }
@@ -78,6 +80,13 @@ export function applySaveStateToGame(game, saveState) {
   if (isPlainObject(payload.music)) game.music = structuredClone(payload.music);
   if (isPlainObject(payload.encounters)) game.encounters = hydrateEncounterRuntime(payload.encounters);
   if (isPlainObject(payload.navigation)) game.navigation = hydrateNavigationRuntime(payload.navigation);
+  if (game.vehicle?.animationGraph && isPlainObject(payload.vehicleAnimation)) {
+    game.vehicle.animationController = hydrateAnimationController(game.vehicle.animationGraph, payload.vehicleAnimation, {
+      seed: payload.seed ?? game.seed ?? 1,
+      entityId: 'player',
+      poseRig: game.vehicle.poseRig,
+    });
+  }
   game.levelComplete = false;
   game.gameOver = false;
   game.paused = true;
