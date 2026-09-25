@@ -1,5 +1,5 @@
 import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
-import { stepVehicle, typedModulePower } from './physics.js';
+import { stepVehicle, typedModulePower, vehicleMaxSpeed } from './physics.js';
 import { applyRocketHullDamage, createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
 import { clamp, distanceSquared } from './math.js';
@@ -619,8 +619,9 @@ export function stepGame(game, input, dt) {
   stepEnemySpawner(game, dt);
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   const obstacleInput = applyObstacleContacts(game, input, dt);
-  stepVehicle(game.vehicle, obstacleInput, dt, game.road.heading, game.upgrades, game.terrainSample);
   configureBoostFromUpgrades(game);
+  game.vehicle.maxVelocityScale = game.boost.driveTime > 0 ? game.boost.maxVelocityFactor : 1;
+  stepVehicle(game.vehicle, obstacleInput, dt, game.road.heading, game.upgrades, game.terrainSample);
   stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
   const turretInput = aimInputForTurret(game, input, dt);
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
@@ -2505,14 +2506,16 @@ function hashStringUnit(text) {
 function configureBoostFromUpgrades(game) {
   const engineScale = Math.sqrt(Math.max(1, typedModulePower(game.vehicle, 'engine')));
   const gunScale = Math.sqrt(Math.max(1, typedModulePower(game.vehicle, 'gun')));
+  const accelerationScale = upgradeMultiplier(game, 'boostAcceleration');
   game.boost.maxFuel = 100 * upgradeMultiplier(game, 'boostCapacity') * engineScale;
   game.boost.cost = 51 * upgradeReduction(game, 'boostEfficiency');
   game.boost.rechargeRate = 16 * upgradeMultiplier(game, 'boostRecharge') * engineScale;
-  game.boost.acceleration = 35 * upgradeMultiplier(game, 'boostAcceleration') * engineScale;
-  game.boost.sustainAcceleration = 350 * upgradeMultiplier(game, 'boostAcceleration') * engineScale;
-  game.boost.maxSpeed = 240 * upgradeMultiplier(game, 'boostAcceleration') * engineScale;
+  game.boost.acceleration = 70 * accelerationScale * engineScale;
+  game.boost.sustainAcceleration = 700 * accelerationScale * engineScale;
+  game.boost.maxVelocityFactor = 2 * accelerationScale;
+  game.boost.maxSpeed = vehicleMaxSpeed(game.vehicle, game.upgrades) * game.boost.maxVelocityFactor;
   game.boost.maxDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration') * engineScale;
-  game.boost.shieldDuration = (5 / 60) * upgradeMultiplier(game, 'boostDuration') * gunScale;
+  game.boost.shieldDuration = game.boost.maxDuration;
   game.boost.shieldScale = gunScale;
   game.boost.cooldownDuration = (20 / 60) * upgradeReduction(game, 'boostCooldown');
 }
@@ -2711,6 +2714,7 @@ function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targ
   const targetHint = def.targetHint === 'aimReticle' && aimReticle ? { x: aimReticle.x, y: aimReticle.y } : null;
   const angle = targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   const launch = primaryProjectileLaunch(game, muzzle, def, targetHint, angle);
+  const shotHeight = playerProjectileHeightOptions(game, def);
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, launch.vx, launch.vy, {
       team: 'player',
@@ -2723,6 +2727,7 @@ function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targ
       sourceCellId: muzzle.cellId,
       startX: muzzle.x,
       startY: muzzle.y,
+      ...shotHeight,
       targetHint,
       detonateDistance: launch.detonateDistance,
       detonateAtTarget: def.detonateAtTarget,
@@ -2755,14 +2760,14 @@ function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targ
       ricochetOnEnemyExit: def.ricochetOnEnemyExit,
       absorbsEnemyProjectiles: def.absorbsEnemyProjectiles,
       projectileDeflectionProbability: def.projectileDeflectionProbability,
-      ...playerBladeHeightOptions(def.id),
+      ...playerBladeHeightOptions(def.id, shotHeight.z ?? 0),
       emitsProjectiles: def.emitsProjectiles,
       detonationBurst: def.detonationBurst,
       forceMode: def.forceMode,
       affects: def.affects,
       sprite: def.sprite,
       landingMarkerSprite: def.landingMarkerSprite,
-      zCollision: def.zCollision || isBladeWeaponName(def.id),
+      zCollision: def.zCollision || shotHeight.zCollision || isBladeWeaponName(def.id),
     }),
   );
   if (def.id === 'mortar') {
@@ -2811,6 +2816,7 @@ function arcFlightTime(def) {
 function firePrimaryBeam(game, muzzle, def, aimReticle = game.aimReticle, targetingReticleKey = null) {
   const threat = def.id === 'repulsor_beam' ? nearestRepulsorThreat(game, muzzle) : null;
   const targetHint = def.targetHint === 'aimReticle' && aimReticle ? { x: aimReticle.x, y: aimReticle.y } : null;
+  const sourceZ = Math.max(0, game.vehicle.elevation?.z ?? 0);
   const angle = threat ? Math.atan2(threat.y - muzzle.y, threat.x - muzzle.x) : targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, 0, 0, {
@@ -2822,6 +2828,11 @@ function firePrimaryBeam(game, muzzle, def, aimReticle = game.aimReticle, target
       behavior: 'beam',
       angle,
       sourceCellId: muzzle.cellId,
+      z: sourceZ,
+      sourceZ,
+      endZ: sourceZ,
+      zCollision: true,
+      zDamageRange: CELL_LAYER_HEIGHT * 0.75,
       targetHint,
       length: def.length,
       radius: def.radius,
@@ -3061,10 +3072,25 @@ function stepEnemy(game, enemy, dt) {
   if (enemyCanFire(enemy) && (enemy.patterns?.length ?? 0) > 0 && !walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
   updateEnemyCollisionRotation(enemy, game.time);
+  stepEnemyTetherElevation(enemy, dt);
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
   enemy.vx *= Math.pow(0.78, dt);
   enemy.vy *= Math.pow(0.78, dt);
+}
+
+function stepEnemyTetherElevation(enemy, dt) {
+  if (!enemy.elevation || !Number.isFinite(enemy.elevation.vz)) return;
+  enemy.elevation.tractorRestZ ??= enemy.elevation.z ?? 0;
+  const displacement = enemy.elevation.tractorRestZ - (enemy.elevation.z ?? 0);
+  enemy.elevation.vz += displacement * 5 * dt;
+  enemy.elevation.z = Math.max(0, (enemy.elevation.z ?? 0) + enemy.elevation.vz * dt);
+  enemy.elevation.vz *= Math.pow(0.18, dt);
+  if (Math.abs(enemy.elevation.vz) < 0.02 && Math.abs(displacement) < 0.02) {
+    enemy.elevation.z = enemy.elevation.tractorRestZ;
+    delete enemy.elevation.vz;
+    delete enemy.elevation.tractorRestZ;
+  }
 }
 
 function stepObstacleMotion(game, obstacle, dt) {
@@ -6632,7 +6658,11 @@ function handleCollisions(game) {
         markGuidedWeaponHit(enemy, projectile);
         if (projectile.weapon === 'bullet' && game.rng.chance(0.25)) emitSoundEvent(game, SOUND_EVENTS.BULLET_RICOCHET);
         game.score.damageDone += Math.round(projectile.damage + hit.removed * 3);
-        const pierce = applyEnemyProjectilePierceDamage(playerProjectileTargets, projectile);
+        const pierce = applyEnemyProjectilePierceDamage(playerProjectileTargets, projectile, projectile.zCollision ? {
+          z: projectile.z,
+          zRange: projectile.zDamageRange ?? CELL_LAYER_HEIGHT * 0.75,
+          groundOnly: false,
+        } : {});
         if (pierce.hit) {
           for (const piercedEnemy of pierce.hitEnemies ?? []) markGuidedWeaponHit(piercedEnemy, projectile);
           game.score.damageDone += Math.round(projectile.damage * 0.35 + pierce.removed * 3);
@@ -6652,7 +6682,16 @@ function handleCollisions(game) {
 
 function enemyCanBeHitByProjectile(enemy, projectile) {
   if (enemy.phasedOut && projectile.behavior !== 'arc') return false;
-  if (enemy.kind === 'zeppelinBoss' && !enemy.harpoonField && projectile.behavior !== 'arc') return false;
+  const altitudeMatched = projectile.zCollision
+    && Number.isFinite(projectile.z)
+    && Math.abs((enemy.elevation?.z ?? 0) - projectile.z) <= Math.max(projectile.zDamageRange ?? 0, CELL_LAYER_HEIGHT * 0.75);
+  if (enemy.kind === 'zeppelinBoss' && !enemy.harpoonField && projectile.behavior !== 'arc' && !altitudeMatched) return false;
+  if (projectile.zCollision && Number.isFinite(projectile.z)) {
+    const targetZ = enemy.elevation?.z ?? 0;
+    const verticalReach = Math.max(projectile.zDamageRange ?? 0, CELL_LAYER_HEIGHT * 0.75);
+    if (!enemyUsesLayeredCellExposure(enemy) && Math.abs(targetZ - projectile.z) > verticalReach) return false;
+    return true;
+  }
   if (enemyUsesLayeredCellExposure(enemy)) return true;
   if (enemy.elevation?.canBeHitByGroundFire === false && projectile.behavior !== 'arc') return false;
   return true;
@@ -7162,10 +7201,22 @@ function isBladeWeaponName(weapon) {
   return weapon === 'orb_flechette' || weapon === 'blade_launcher' || weapon === 'blade_flechette';
 }
 
-function playerBladeHeightOptions(weapon) {
+function playerProjectileHeightOptions(game, def) {
+  if (def.behavior === 'arc' || def.id === 'sta_missile') return {};
+  const z = Math.max(0, game.vehicle.elevation?.z ?? 0);
+  return {
+    z,
+    sourceZ: z,
+    endZ: z,
+    zCollision: true,
+    zDamageRange: CELL_LAYER_HEIGHT * 0.75,
+  };
+}
+
+function playerBladeHeightOptions(weapon, baseZ = 0) {
   if (!isBladeWeaponName(weapon)) return {};
   return {
-    z: CELL_LAYER_HEIGHT,
+    z: baseZ + CELL_LAYER_HEIGHT,
     zCollision: true,
     zDamageRange: CELL_LAYER_HEIGHT,
     zTrackRate: CELL_LAYER_HEIGHT * 5,
@@ -7526,6 +7577,10 @@ function repelPlayerProjectilesWithEnemyBeam(game, projectile, dx = Math.cos(pro
 
 function hitEnemiesWithBeam(game, projectile) {
   const halfWidth = beamHalfWidth(projectile);
+  if (projectile.weapon === 'tractor_beam' && projectile.forceMode === 'pull') {
+    hitEnemyWithTractorTether(game, projectile);
+    return;
+  }
   if (projectile.forceMode === 'push') repelEnemyProjectilesWithBeam(game, projectile, halfWidth);
   const shieldTrace = traceAbsorbingEnemyProjectileRay(game.enemyProjectiles, projectile, projectile.angle, projectile.length, halfWidth);
   if (shieldTrace) {
@@ -7542,7 +7597,9 @@ function hitEnemiesWithBeam(game, projectile) {
     projectile.length,
     halfWidth,
     projectile.pierce ?? 0,
-    { groundOnly: projectile.behavior !== 'arc' },
+    projectile.zCollision
+      ? { groundOnly: false, z: projectile.z, zRange: projectile.zDamageRange ?? CELL_LAYER_HEIGHT * 0.75 }
+      : { groundOnly: projectile.behavior !== 'arc' },
   );
   projectile.renderEndX = trace.x;
   projectile.renderEndY = trace.y;
@@ -7561,6 +7618,74 @@ function hitEnemiesWithBeam(game, projectile) {
       if (hit.destroyedNow) explodeEnemy(game, voxelHit.enemy);
     }
   }
+}
+
+function hitEnemyWithTractorTether(game, projectile) {
+  const target = nearestTractorTarget(game, projectile);
+  projectile.sourceZ = Math.max(0, game.vehicle.elevation?.z ?? 0);
+  if (!target) {
+    projectile.endZ = projectile.sourceZ;
+    return;
+  }
+
+  const point = enemyCoreWorldPoint(target);
+  const dx = point.x - game.vehicle.x;
+  const dy = point.y - game.vehicle.y;
+  const dz = (point.z ?? target.elevation?.z ?? 0) - projectile.sourceZ;
+  const distance = Math.max(0.001, Math.hypot(dx, dy, dz));
+  const force = projectile.impulse * 0.25 * beamDamageScale(projectile);
+  const fx = (dx / distance) * force;
+  const fy = (dy / distance) * force;
+  const fz = (dz / distance) * force;
+
+  game.vehicle.vx += fx;
+  game.vehicle.vy += fy;
+  game.vehicle.elevation ??= { z: 0, vz: 0 };
+  game.vehicle.elevation.vz = (game.vehicle.elevation.vz ?? 0) + fz;
+
+  const immobile = Boolean(target.terrainAnchored || target.staticObstacle || target.immobile);
+  if (!immobile) {
+    target.vx -= fx;
+    target.vy -= fy;
+    target.elevation ??= { z: 0, vz: 0 };
+    target.elevation.tractorRestZ ??= target.elevation.z ?? 0;
+    target.elevation.vz = (target.elevation.vz ?? 0) - fz;
+  }
+
+  projectile.renderEndX = point.x;
+  projectile.renderEndY = point.y;
+  projectile.endZ = point.z ?? target.elevation?.z ?? 0;
+  const hit = applyEnemyDamage(target, {
+    ...projectile,
+    x: point.x,
+    y: point.y,
+    z: projectile.endZ,
+    zCollision: true,
+    zDamageRange: CELL_LAYER_HEIGHT,
+  });
+  if (hit.hit) {
+    game.score.damageDone += Math.round(projectile.damage * beamDamageScale(projectile) + hit.removed * 3);
+    if (hit.destroyedNow) explodeEnemy(game, target);
+  }
+}
+
+function nearestTractorTarget(game, projectile) {
+  const aim = projectile.targetHint ?? {
+    x: projectile.x + Math.cos(projectile.angle) * projectile.length,
+    y: projectile.y + Math.sin(projectile.angle) * projectile.length,
+  };
+  let nearest = null;
+  let nearestAimDistance = Infinity;
+  for (const enemy of activeEnemies(game)) {
+    if (enemy.phasedOut) continue;
+    const sourceDistance = Math.hypot(enemy.x - projectile.x, enemy.y - projectile.y);
+    if (sourceDistance > projectile.length + enemy.radius) continue;
+    const aimDistance = distanceSquared(enemy, aim);
+    if (aimDistance >= nearestAimDistance) continue;
+    nearest = enemy;
+    nearestAimDistance = aimDistance;
+  }
+  return nearest;
 }
 
 function repelEnemyProjectilesWithBeam(game, projectile, halfWidth) {
@@ -7613,6 +7738,7 @@ function syncBeamProjectiles(game) {
     }
     projectile.x = muzzle.x;
     projectile.y = muzzle.y;
+    projectile.sourceZ = Math.max(0, game.vehicle.elevation?.z ?? 0);
     const threat = projectile.weapon === 'repulsor_beam' ? nearestRepulsorThreat(game, muzzle) : null;
     projectile.angle = threat
       ? Math.atan2(threat.y - muzzle.y, threat.x - muzzle.x)
@@ -7696,7 +7822,7 @@ function spawnCannonImpact(game, projectile, enemy) {
         radius: game.rng.range(0.7, 1.1),
         damage: projectile.damage * (projectile.shrapnelDamageScale ?? 1) * game.rng.range(0.1, 0.18),
         impulse: projectile.impulse * 0.08,
-        pierce: projectile.pierce,
+        pierce: projectile.shrapnelPierce ?? 0,
         pierceDamageScale: projectile.pierceDamageScale,
         pierceDamageFalloff: projectile.pierceDamageFalloff,
         lifetime: game.rng.range(0.22, 0.42),

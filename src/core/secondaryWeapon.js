@@ -1,7 +1,7 @@
 import { createProjectile } from './projectile.js';
 import { compensatedAimHeading } from './turret.js';
 import { gunMuzzleWorld } from './vehicle.js';
-import { CELL_SIZE } from './voxelMask.js';
+import { CELL_LAYER_HEIGHT, CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
@@ -31,6 +31,7 @@ const SECONDARY_PROJECTILE_VISUAL_UPGRADES = {
   cannon: [
     'cannonAmmo',
     'cannonImpactDamage',
+    'cannonImpactPierce',
     'cannonBlastDamage',
     'cannonBlastRadius',
     'cannonShrapnelCount',
@@ -43,6 +44,7 @@ const SECONDARY_PROJECTILE_VISUAL_UPGRADES = {
   rocket: [
     'rocketAmmo',
     'rocketImpactDamage',
+    'rocketImpactPierce',
     'rocketBlastDamage',
     'rocketBlastRadius',
     'rocketMaxVelocity',
@@ -108,6 +110,7 @@ export function fireSecondary(game) {
   const useVehicleVelocityOnly = Boolean(def.usesVehicleVelocityOnly);
   const launch = projectileLaunch(game, muzzle, def, targetHint, angle, useVehicleVelocityOnly);
   const detonateDistance = def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null;
+  const height = playerProjectileHeight(game, def);
   game.playerProjectiles.push(
     createProjectile(muzzle.x, muzzle.y, launch.vx, launch.vy, {
       team: 'player',
@@ -119,6 +122,10 @@ export function fireSecondary(game) {
       angle: launch.angle,
       startX: muzzle.x,
       startY: muzzle.y,
+      z: height.z,
+      sourceZ: height.z,
+      endZ: height.z,
+      zDamageRange: height.zDamageRange,
       length: def.length ?? 0,
       turnRate: def.behavior === 'homing' ? def.turnRate : 0,
       acceleration: def.behavior === 'homing' ? def.acceleration : 0,
@@ -138,6 +145,7 @@ export function fireSecondary(game) {
       blastKnockback: def.blastKnockback ?? 0,
       shrapnelCount: def.shrapnelCount ?? 0,
       shrapnelDamageScale: def.shrapnelDamageScale ?? 1,
+      shrapnelPierce: def.shrapnelPierce ?? def.pierce ?? 0,
       pierce: def.pierce ?? 0,
       pierceDamageScale: def.pierceDamageScale,
       pierceDamageFalloff: def.pierceDamageFalloff,
@@ -146,6 +154,7 @@ export function fireSecondary(game) {
       ricochetFactor: def.ricochetFactor,
       ricochetOnEnemyExit: def.ricochetOnEnemyExit,
       detonateAtTarget: def.detonateAtTarget,
+      explodeOnExpire: def.explodeOnExpire,
       tracksReticleInArc: def.tracksReticleInArc,
       tracksReticleInHoming: def.tracksReticleInHoming,
       absorbsEnemyProjectiles: def.absorbsEnemyProjectiles,
@@ -160,7 +169,7 @@ export function fireSecondary(game) {
       affects: def.affects,
       sprite: def.sprite,
       landingMarkerSprite: def.landingMarkerSprite,
-      zCollision: def.zCollision,
+      zCollision: def.zCollision || height.zCollision,
       lifetime: def.behavior === 'beam' ? def.frames / 60 : def.lifetime,
     }),
   );
@@ -176,6 +185,15 @@ export function fireSecondary(game) {
   }
   emitSoundEvent(game, secondary.selected === 'beam' ? SOUND_EVENTS.PLAYER_BEAM : SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH);
   return true;
+}
+
+function playerProjectileHeight(game, def) {
+  if (def.behavior === 'arc' || def.id === 'sta_missile') return { z: 0, zDamageRange: 0, zCollision: false };
+  return {
+    z: Math.max(0, game.vehicle.elevation?.z ?? 0),
+    zDamageRange: CELL_LAYER_HEIGHT * 0.75,
+    zCollision: true,
+  };
 }
 
 export function secondaryAmmoCapacity(weapon, vehicleDefinition = null, ammoBonus = 0) {
@@ -229,11 +247,13 @@ function upgradedSecondaryDefinition(game, weapon) {
       blastKnockback: 55 * multiplier(game, 'cannonKnockback'),
       shrapnelCount: 28 + level(game, 'cannonShrapnelCount'),
       shrapnelDamageScale: multiplier(game, 'cannonShrapnelDamage'),
-      pierce: level(game, 'cannonFlechettePierce'),
+      pierce: base.pierce + level(game, 'cannonImpactPierce'),
+      shrapnelPierce: (base.shrapnelPierce ?? 0) + level(game, 'cannonFlechettePierce'),
       pierceDamageScale: 0.85,
       pierceDamageFalloff: 0.72,
       targetHint: 'aimReticle',
       detonateAtTarget: true,
+      explodeOnExpire: true,
     }, visualScale);
   }
   if (weapon === 'rocket') {
@@ -241,13 +261,15 @@ function upgradedSecondaryDefinition(game, weapon) {
       ...base,
       cooldown: base.cooldown / multiplier(game, 'rocketFireRate'),
       damage: base.damage * multiplier(game, 'rocketImpactDamage'),
+      pierce: base.pierce + level(game, 'rocketImpactPierce'),
       impulse: base.impulse * multiplier(game, 'rocketKnockback'),
       blastDamage: 18 * multiplier(game, 'rocketBlastDamage'),
       blastRadius: CELL_SIZE * 2.55 * multiplier(game, 'rocketBlastRadius'),
       blastKnockback: 27.5 * multiplier(game, 'rocketKnockback'),
-      maxSpeed: base.projectileSpeed * multiplier(game, 'rocketMaxVelocity'),
+      maxSpeed: base.maxSpeed * multiplier(game, 'rocketMaxVelocity'),
       turnRate: 2.5 * multiplier(game, 'rocketTurning'),
       acceleration: 45,
+      explodeOnExpire: true,
     }, visualScale);
   }
   if (weapon === 'beam') {

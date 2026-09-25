@@ -270,7 +270,7 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   assert.equal(flechette.lifetime > 3.8, true);
   assert.equal(flechette.maxSpeed, 322.5);
   assert.equal(flechette.acceleration, 105);
-  assert.equal(flechette.pierce, 2);
+  assert.equal(flechette.pierce, 4);
   assert.deepEqual(flechette.sprite.displaySize, [16.5, 6]);
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);
@@ -307,7 +307,7 @@ test('tracking flechette upgrades scale primary weapon stats', () => {
   assert.equal(flechette.damage.toFixed(2), (45 * 1.05).toFixed(2));
   assert.equal(flechette.radius.toFixed(4), (2.475 * 1.035).toFixed(4));
   assert.deepEqual(flechette.sprite.displaySize.map((value) => value.toFixed(4)), [(16.5 * 1.035).toFixed(4), (6 * 1.035).toFixed(4)]);
-  assert.equal(flechette.pierce, 4);
+  assert.equal(flechette.pierce, 6);
   assert.equal(flechette.acceleration.toFixed(2), (105 * 1.05).toFixed(2));
   assert.equal(flechette.turnRate.toFixed(2), (7.5 * 1.05).toFixed(2));
   assert.equal(game.playerFireTimer < 0.38 / Math.sqrt(2), true);

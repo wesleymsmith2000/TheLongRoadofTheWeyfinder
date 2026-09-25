@@ -57,6 +57,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     blastKnockback: options.blastKnockback ?? 0,
     shrapnelCount: options.shrapnelCount ?? 0,
     shrapnelDamageScale: options.shrapnelDamageScale ?? 1,
+    shrapnelPierce: options.shrapnelPierce ?? options.pierce ?? 0,
     pierce: options.pierce ?? 0,
     pierceDamageScale: options.pierceDamageScale ?? 0.7,
     pierceDamageFalloff: options.pierceDamageFalloff ?? 0.68,

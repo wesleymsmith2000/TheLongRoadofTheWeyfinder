@@ -13,7 +13,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles.length, 1);
-  assert.equal(game.playerProjectiles[0].damage, 243);
+  assert.equal(game.playerProjectiles[0].damage, 364.5);
   assert.equal(game.secondary.ammo.rocket, 16);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH), true);
 });
@@ -43,10 +43,28 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles[0].behavior, 'homing');
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
-  assert.equal(game.playerProjectiles[0].maxSpeed, 146.25);
+  assert.equal(game.playerProjectiles[0].maxSpeed, 219.375);
+  assert.equal(game.playerProjectiles[0].pierce, 6);
+  assert.equal(game.playerProjectiles[0].explodeOnExpire, true);
   assert.equal(game.playerProjectiles[0].radius, 3);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
+});
+
+test('ordinary player shots inherit vehicle height while STA arcs keep their own flight model', () => {
+  const game = createGame();
+  game.vehicle.elevation.z = 36;
+  game.secondary.selected = 'rocket';
+  fireSecondary(game);
+  assert.equal(game.playerProjectiles[0].z, 36);
+  assert.equal(game.playerProjectiles[0].zCollision, true);
+
+  const staGame = createGame();
+  staGame.vehicle.elevation.z = 36;
+  staGame.secondary.selected = 'sta_missile';
+  fireSecondary(staGame);
+  assert.equal(staGame.playerProjectiles[0].z, 0);
+  assert.equal(staGame.playerProjectiles[0].behavior, 'arc');
 });
 
 test('enemy bullets can destroy a rocket and trigger its blast', () => {
@@ -210,11 +228,13 @@ test('cannon impact blast shoves nearby enemies without requiring a direct hit',
   assert.equal(game.enemies[1].vx < 140, true);
 });
 
-test('cannon uses boosted base damage', () => {
+test('cannon uses boosted base damage and impact pierce', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage, 162);
+  assert.equal(game.playerProjectiles[0].damage, 243);
+  assert.equal(game.playerProjectiles[0].pierce, 6);
+  assert.equal(game.playerProjectiles[0].explodeOnExpire, true);
   assert.equal(game.playerProjectiles[0].radius, 4);
   assert.equal(game.playerProjectiles[0].blastPierceCells, 1.5);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
@@ -227,12 +247,14 @@ test('secondary upgrades alter projectile stats', () => {
   game.upgrades.cannonVelocity = 2;
   game.upgrades.cannonShrapnelCount = 2;
   game.upgrades.cannonFlechettePierce = 3;
+  game.upgrades.cannonImpactPierce = 2;
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '170.1');
+  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '255.2');
   assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy) > 135, true);
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
-  assert.equal(game.playerProjectiles[0].pierce, 3);
-  assert.equal(game.playerProjectiles[0].shape.halfWidth.toFixed(2), (4 * 1.04).toFixed(2));
+  assert.equal(game.playerProjectiles[0].pierce, 8);
+  assert.equal(game.playerProjectiles[0].shrapnelPierce, 3);
+  assert.equal(game.playerProjectiles[0].shape.halfWidth.toFixed(2), (4 * 1.05).toFixed(2));
 });
 
 test('cannon detonates when it reaches the selected aim reticle', () => {
@@ -510,7 +532,54 @@ test('tractor beam is a secondary utility beam with unlimited reserve', () => {
   assert.equal(beam.weapon, 'tractor_beam');
   assert.equal(beam.behavior, 'beam');
   assert.equal(beam.forceMode, 'pull');
+  assert.equal(beam.length, 180);
   assert.equal(game.secondary.ammo.tractor_beam, Infinity);
+});
+
+test('tractor tether pulls the player upward toward elevated enemies and pulls movable targets back', () => {
+  const game = createGame();
+  const enemy = createEnemy(game.vehicle.x + 80, game.vehicle.y);
+  enemy.elevation = { z: 54, canBeHitByGroundFire: false };
+  game.enemies = [enemy];
+  game.enemySpawnQueue = [];
+  game.secondary.selected = 'tractor_beam';
+  game.aimReticle = { x: enemy.x, y: enemy.y, active: true, source: 'pointer' };
+  fireSecondary(game);
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.vehicle.elevation.vz > 0, true);
+  assert.equal(enemy.vx < 0, true);
+  assert.equal(game.playerProjectiles[0].endZ > 0, true);
+});
+
+test('terrain-locked tractor targets pull only the player', () => {
+  const game = createGame();
+  const anchor = createEnemy(game.vehicle.x + 80, game.vehicle.y);
+  anchor.staticObstacle = true;
+  anchor.terrainAnchored = true;
+  anchor.elevation = { z: 42, canBeHitByGroundFire: false };
+  game.enemies = [anchor];
+  game.enemySpawnQueue = [];
+  game.secondary.selected = 'tractor_beam';
+  game.aimReticle = { x: anchor.x, y: anchor.y, active: true, source: 'pointer' };
+  fireSecondary(game);
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+  assert.equal(game.vehicle.elevation.vz > 0, true);
+  assert.equal(anchor.vx, 0);
+  assert.equal(anchor.vy, 0);
+});
+
+test('rocket and cannon detonate instead of vanishing when flight time expires', () => {
+  for (const weapon of ['rocket', 'cannon']) {
+    const game = createGame();
+    game.autofire = false;
+    game.enemies = [];
+    game.enemySpawnQueue = [{ at: 10, enemy: createEnemy(900, 900), markerShown: false, type: 'standard' }];
+    game.secondary.selected = weapon;
+    fireSecondary(game);
+    game.playerProjectiles[0].lifetime = 0.001;
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+    assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === `${weapon}-blast`), true);
+  }
 });
 
 test('repulsor primary only fires when close threats are present and aims at them', () => {

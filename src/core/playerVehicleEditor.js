@@ -12,6 +12,7 @@ export function createVehicleFromConstructDefinition(definition) {
     y: 0,
     vx: 0,
     vy: 0,
+    elevation: { z: 0, vz: 0 },
     heading: 0,
     angularVelocity: 0,
     turretHeading: -Math.PI / 2,

@@ -37,7 +37,7 @@
       "anchor": [0.5, 0.5],
       "alignToVelocity": true
     },
-    "pierce": 2,
+    "pierce": 4,
     "pierceDamageScale": 0.85,
     "pierceDamageFalloff": 0.7,
     "delayBeforeAcceleration": 0.35,

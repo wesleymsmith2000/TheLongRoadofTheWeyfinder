@@ -15,7 +15,7 @@ test('standard gamepad ignores common idle stick drift', () => {
 });
 
 test('standard gamepad exposes Xbox-style button actions', () => {
-  const input = mapStandardGamepad(createPad({ axes: [0.5, -0.5, 0, 0], pressed: [0, 1, 2, 3, 8, 12, 13] }));
+  const input = mapStandardGamepad(createPad({ axes: [0.5, -0.5, 0, 0], pressed: [0, 1, 2, 3, 8, 10, 12, 13] }));
   const paused = mapStandardGamepad(createPad({ pressed: [9] }));
   assert.equal(input.cursorClickPressed, true);
   assert.equal(input.fireTogglePressed, true);
@@ -30,7 +30,7 @@ test('standard gamepad exposes Xbox-style button actions', () => {
 });
 
 test('standard gamepad button toggles only fire on the press edge', () => {
-  const input = mapStandardGamepad(createPad({ pressed: [1, 2, 3, 8, 12, 13] }), new Set([1, 2, 3, 8, 12, 13]));
+  const input = mapStandardGamepad(createPad({ pressed: [1, 2, 3, 8, 10, 12, 13] }), new Set([1, 2, 3, 8, 10, 12, 13]));
   assert.equal(input.fireTogglePressed, false);
   assert.equal(input.debugTogglePressed, false);
   assert.equal(input.resetPressed, false);

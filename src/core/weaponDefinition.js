@@ -77,6 +77,7 @@ export function runtimeWeaponDefinition(definition) {
     blastKnockback: projectile.blastKnockback ?? 0,
     shrapnelCount: projectile.shrapnelCount ?? 0,
     shrapnelDamageScale: projectile.shrapnelDamageScale ?? 1,
+    shrapnelPierce: projectile.shrapnelPierce ?? projectile.pierce ?? 0,
     pierce: projectile.pierce ?? 0,
     pierceDamageScale: projectile.pierceDamageScale ?? 0.7,
     pierceDamageFalloff: projectile.pierceDamageFalloff ?? 0.68,
@@ -92,6 +93,7 @@ export function runtimeWeaponDefinition(definition) {
     contrail: projectile.contrail ?? null,
     emitsProjectiles: projectile.emitsProjectiles ?? null,
     detonationBurst: projectile.detonationBurst ? structuredClone(projectile.detonationBurst) : null,
+    explodeOnExpire: Boolean(projectile.explodeOnExpire),
     forceMode: projectile.forceMode ?? null,
     affects: projectile.affects ?? null,
     sprite: cloneSpriteDescriptor(projectile.sprite),
@@ -118,6 +120,7 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.lifetime, 'projectile.lifetime', errors, { min: 0 });
   validateNumber(projectile.blastPierceCells ?? 0, 'projectile.blastPierceCells', errors, { min: 0 });
   validateNumber(projectile.pierce ?? 0, 'projectile.pierce', errors, { min: 0 });
+  validateNumber(projectile.shrapnelPierce ?? projectile.pierce ?? 0, 'projectile.shrapnelPierce', errors, { min: 0 });
   validateNumber(projectile.pierceDamageScale ?? 0.7, 'projectile.pierceDamageScale', errors, { min: 0 });
   validateNumber(projectile.pierceDamageFalloff ?? 0.68, 'projectile.pierceDamageFalloff', errors, { min: 0, max: 1 });
   validateNumber(projectile.maxRicochets ?? 0, 'projectile.maxRicochets', errors, { min: 0, integer: true });

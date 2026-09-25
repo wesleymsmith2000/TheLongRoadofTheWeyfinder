@@ -465,6 +465,9 @@ function drawRoadLane(ctx, road) {
 function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = null, environmentLighting = 'DAY', renderAssets = null) {
   ctx.save();
   ctx.translate(vehicle.x, vehicle.y);
+  const elevation = Math.max(0, vehicle.elevation?.z ?? 0);
+  if (elevation > 0.05) drawVehicleElevationShadow(ctx, vehicle, elevation);
+  ctx.translate(0, -projectHeight(elevation));
   ctx.rotate(vehicle.heading);
   drawBoostShield(ctx, boost, time);
   drawConstructPresentation(ctx, vehicle, imageAssets);
@@ -478,6 +481,17 @@ function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = n
   }
   drawTurret(ctx, vehicle);
   drawComMarker(ctx, vehicle.centerOfMass);
+  ctx.restore();
+}
+
+function drawVehicleElevationShadow(ctx, vehicle, elevation) {
+  const radius = Math.max(CELL_SIZE * 2, Math.sqrt(Math.max(1, vehicle.cells?.length ?? 1)) * CELL_SIZE * 0.9);
+  ctx.save();
+  ctx.globalAlpha *= Math.max(0.12, 0.34 - elevation / 600);
+  ctx.fillStyle = '#090b0c';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, radius, radius * 0.48, vehicle.heading, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 

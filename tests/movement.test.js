@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStartingVehicle } from '../src/core/vehicle.js';
-import { stepVehicle } from '../src/core/physics.js';
+import { createStartingVehicle, recalculateVehicle } from '../src/core/vehicle.js';
+import { stepVehicle, vehicleMaxSpeed } from '../src/core/physics.js';
+import { createCell } from '../src/core/cell.js';
+import { createConnection } from '../src/core/connections.js';
 import { createGame, stepGame } from '../src/core/game.js';
 import { roadOffsetToWorld } from '../src/core/camera.js';
 
@@ -40,6 +42,32 @@ test('engine acceleration upgrade increases movement response', () => {
   stepVehicle(base, { x: 0, y: -1 }, 1 / 10, 0);
   stepVehicle(upgraded, { x: 0, y: -1 }, 1 / 10, 0, { engineAcceleration: 2 });
   assert.equal(Math.abs(upgraded.vy) > Math.abs(base.vy), true);
+});
+
+test('engine and wheel counts scale chassis limits by square root', () => {
+  const base = createStartingVehicle();
+  const moreEngines = createStartingVehicle();
+  const moreWheels = createStartingVehicle();
+  addAttachedCell(moreEngines, createCell('engine-extra', 'engine', 0, 2));
+  addAttachedCell(moreWheels, createCell('wheel-extra', 'wheel', 2, 0));
+
+  stepVehicle(base, { x: 0, y: -1 }, 1 / 10);
+  stepVehicle(moreEngines, { x: 0, y: -1 }, 1 / 10);
+  assert.equal(Math.abs(moreEngines.vy) > Math.abs(base.vy), true);
+  assert.equal(vehicleMaxSpeed(moreEngines) > vehicleMaxSpeed(base), true);
+  assert.equal(vehicleMaxSpeed(moreWheels) > vehicleMaxSpeed(base), true);
+  assert.equal(vehicleMaxSpeed(base) > 480, true);
+});
+
+test('additional wheels improve braking deceleration', () => {
+  const base = createStartingVehicle();
+  const moreWheels = createStartingVehicle();
+  addAttachedCell(moreWheels, createCell('wheel-extra', 'wheel', 2, 0));
+  base.vx = 300;
+  moreWheels.vx = 300;
+  stepVehicle(base, { brake: true }, 0.1);
+  stepVehicle(moreWheels, { brake: true }, 0.1);
+  assert.equal(Math.abs(moreWheels.vx) < Math.abs(base.vx), true);
 });
 
 test('wheel inertia compensation improves release deceleration', () => {
@@ -103,3 +131,9 @@ test('pushing against play area edges adjusts road speed and lateral slide', () 
   stepGame(slideGame, { x: 1, y: 0, gunnerEnabled: false }, 1 / 30);
   assert.equal(slideGame.road.lateralOffset > 0, true);
 });
+
+function addAttachedCell(vehicle, cell) {
+  vehicle.cells.push(cell);
+  vehicle.connections.push(createConnection('core', cell.id, 'bottom'));
+  recalculateVehicle(vehicle);
+}

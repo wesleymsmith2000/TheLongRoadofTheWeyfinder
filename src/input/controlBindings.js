@@ -3,7 +3,7 @@ export const CONTROL_ACTIONS = [
   { id: 'moveDown', label: 'Move Down', keyboard: ['KeyS', 'ArrowDown'], gamepad: [] },
   { id: 'moveLeft', label: 'Move Left', keyboard: ['KeyA', 'ArrowLeft'], gamepad: [] },
   { id: 'moveRight', label: 'Move Right', keyboard: ['KeyD', 'ArrowRight'], gamepad: [] },
-  { id: 'brake', label: 'Brake', keyboard: [], gamepad: [10] },
+  { id: 'brake', label: 'Brake', keyboard: [], gamepad: [1] },
   { id: 'pause', label: 'Pause / Gear Menu', keyboard: ['Escape', 'KeyP'], gamepad: [9] },
   { id: 'primaryAutofire', label: 'Toggle Primary Autofire', keyboard: ['KeyF'], gamepad: [12] },
   { id: 'hudToggle', label: 'Toggle HUD', keyboard: ['KeyU'], gamepad: [] },
@@ -17,7 +17,7 @@ export const CONTROL_ACTIONS = [
   { id: 'controlsToggle', label: 'Help / Controls', keyboard: ['KeyH', 'Slash'], gamepad: [8, 9] },
   { id: 'secondaryLeft', label: 'Previous Secondary', keyboard: ['KeyQ', 'KeyZ'], gamepad: [4] },
   { id: 'secondaryRight', label: 'Next Secondary', keyboard: ['KeyE', 'KeyX'], gamepad: [5] },
-  { id: 'secondaryFire', label: 'Fire Secondary', keyboard: ['Space', 'ShiftLeft', 'ShiftRight'], gamepad: [10, 11] },
+  { id: 'secondaryFire', label: 'Fire Secondary', keyboard: ['Space', 'ShiftLeft', 'ShiftRight'], gamepad: [11] },
   { id: 'targetPrevious', label: 'Previous AI Target', keyboard: [], gamepad: [] },
   { id: 'targetNext', label: 'Next AI Target', keyboard: ['Tab'], gamepad: [6] },
   { id: 'targetCellPrevious', label: 'Previous AI Target Part', keyboard: [], gamepad: [] },
@@ -26,7 +26,7 @@ export const CONTROL_ACTIONS = [
   { id: 'encounterCancel', label: 'Cancel Encounter Choice', keyboard: ['Backspace'], gamepad: [1] },
   { id: 'encounterChoiceLeft', label: 'Previous Encounter Choice', keyboard: ['BracketLeft'], gamepad: [14] },
   { id: 'encounterChoiceRight', label: 'Next Encounter Choice', keyboard: ['BracketRight'], gamepad: [15] },
-  { id: 'dodge', label: 'Dodge / Boost', keyboard: [], gamepad: [1] },
+  { id: 'dodge', label: 'Dodge / Boost', keyboard: [], gamepad: [10] },
   { id: 'cursorClick', label: 'Virtual Cursor Click', keyboard: [], gamepad: [0, 1] },
 ];
 
@@ -36,10 +36,26 @@ export const DEFAULT_CONTROL_BINDINGS = Object.freeze({
 });
 
 export function normalizeControlBindings(bindings = {}) {
+  const migrated = migrateLegacyStickBindings(bindings);
   return {
-    keyboard: normalizeDeviceBindings(bindings.keyboard, 'keyboard'),
-    gamepad: normalizeDeviceBindings(bindings.gamepad, 'gamepad'),
+    keyboard: normalizeDeviceBindings(migrated.keyboard, 'keyboard'),
+    gamepad: normalizeDeviceBindings(migrated.gamepad, 'gamepad'),
   };
+}
+
+function migrateLegacyStickBindings(bindings) {
+  const gamepad = bindings?.gamepad;
+  if (!gamepad) return bindings;
+  const legacy = sameButtons(gamepad.brake, [10]) && sameButtons(gamepad.dodge, [1]) && sameButtons(gamepad.secondaryFire, [10, 11]);
+  if (!legacy) return bindings;
+  return {
+    ...bindings,
+    gamepad: { ...gamepad, brake: [1], dodge: [10], secondaryFire: [11] },
+  };
+}
+
+function sameButtons(actual, expected) {
+  return Array.isArray(actual) && actual.length === expected.length && actual.every((value, index) => value === expected[index]);
 }
 
 export function setKeyboardBinding(bindings, actionId, code) {

@@ -742,12 +742,14 @@ function constructRadius(cells) {
 
 function enemyIncomingDamageScale(enemy, projectile) {
   if (enemy.kind !== 'zeppelinBoss' || enemy.harpoonField) return 1;
+  if (projectileMatchesEnemyElevation(enemy, projectile)) return 1;
   if (projectile?.behavior === 'arc' || projectile?.behavior === 'blast') return 0.08;
   return 0;
 }
 
 export function applyEnemyDamage(enemy, projectile) {
-  if (enemy.kind === 'zeppelinBoss' && !enemy.harpoonField && projectile?.behavior !== 'arc') {
+  const elevatedDirectShot = projectileMatchesEnemyElevation(enemy, projectile);
+  if (enemy.kind === 'zeppelinBoss' && !enemy.harpoonField && projectile?.behavior !== 'arc' && !elevatedDirectShot) {
     return { hit: false, removed: 0, destroyedNow: false };
   }
   const scale = enemyVisualScale(enemy);
@@ -760,10 +762,13 @@ export function applyEnemyDamage(enemy, projectile) {
     damage: projectile.damage * enemyIncomingDamageScale(enemy, projectile),
   };
   const harpoonLiftedShot = enemy.kind === 'zeppelinBoss' && enemy.harpoonField && projectile?.behavior !== 'arc';
-  const zeppelinGlancingHit = enemy.kind === 'zeppelinBoss' && !enemy.harpoonField;
+  const zeppelinGlancingHit = enemy.kind === 'zeppelinBoss' && !enemy.harpoonField && !elevatedDirectShot;
+  const zAwareShot = Boolean(projectile?.zCollision) && Number.isFinite(projectile?.z);
   const candidateCells = cachedEnemyCellsForDirectDamage(enemy, {
-    groundOnly: projectile?.behavior !== 'arc' && !harpoonLiftedShot,
+    groundOnly: projectile?.behavior !== 'arc' && !harpoonLiftedShot && !zAwareShot,
     topFirst: projectile?.behavior === 'arc' || harpoonLiftedShot,
+    z: zAwareShot ? projectile.z : undefined,
+    zRange: zAwareShot ? projectile.zDamageRange ?? CELL_LAYER_HEIGHT * 0.75 : undefined,
   });
   let cell = null;
   for (const candidate of candidateCells) {
@@ -804,6 +809,12 @@ export function applyEnemyDamage(enemy, projectile) {
   enemy.damageTaken += collapse.removed * 3;
   updateEnemyDestroyed(enemy);
   return { hit: true, cell, removed: result.removed + collapse.removed, destroyedNow: !wasDestroyed && enemy.destroyed };
+}
+
+function projectileMatchesEnemyElevation(enemy, projectile) {
+  if (!projectile?.zCollision || !Number.isFinite(projectile.z)) return false;
+  const reach = Math.max(projectile.zDamageRange ?? 0, CELL_LAYER_HEIGHT * 0.75);
+  return Math.abs((enemy.elevation?.z ?? 0) - projectile.z) <= reach;
 }
 
 function damageNearestLiveVoxel(cell, localX, localY, projectile) {

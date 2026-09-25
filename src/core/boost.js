@@ -6,8 +6,8 @@ export function createBoostState() {
     maxFuel: 100,
     cost: 51,
     rechargeRate: 16,
-    acceleration: 35,
-    sustainAcceleration: 350,
+    acceleration: 70,
+    sustainAcceleration: 700,
     maxSpeed: 240,
     cooldown: 0,
     cooldownDuration: 20 / 60,
@@ -16,6 +16,7 @@ export function createBoostState() {
     maxDuration: 5 / 60,
     shieldDuration: 5 / 60,
     shieldScale: 1,
+    maxVelocityFactor: 2,
     driveDirection: null,
   };
 }
@@ -27,7 +28,11 @@ export function stepBoost(vehicle, boost, input, _roadHeading, dt) {
     vehicle.vx += boost.driveDirection.x * boost.sustainAcceleration * dt;
     vehicle.vy += boost.driveDirection.y * boost.sustainAcceleration * dt;
     clampBoostSpeed(vehicle, boost.maxSpeed);
-    if (boost.driveTime <= 0) boost.driveDirection = null;
+    if (boost.driveTime <= 0) {
+      boost.driveDirection = null;
+      vehicle.maxVelocityScale = 1;
+      vehicle.boostOverspeed = true;
+    }
   }
   boost.activeTime = Math.max(0, boost.activeTime - dt);
   boost.fuel = clamp(boost.fuel + boost.rechargeRate * boostRechargeFactor(vehicle) * dt, 0, boost.maxFuel);
@@ -37,6 +42,8 @@ export function stepBoost(vehicle, boost, input, _roadHeading, dt) {
   const world = direction;
   vehicle.vx += world.x * boost.acceleration;
   vehicle.vy += world.y * boost.acceleration;
+  vehicle.maxVelocityScale = Math.max(1, boost.maxVelocityFactor ?? 2);
+  vehicle.boostOverspeed = true;
   clampBoostSpeed(vehicle, boost.maxSpeed);
   vehicle.angularVelocity *= 0.55;
   boost.fuel -= boost.cost;

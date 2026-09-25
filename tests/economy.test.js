@@ -163,7 +163,7 @@ test('ammo refill cost scales with missing fraction and mean weapon upgrade leve
   game.secondary.ammo.rocket = capacity / 2;
   game.upgrades.rocketImpactDamage = 8;
   game.upgrades.rocketBlastDamage = 8;
-  const expected = Math.ceil(12 * SHOP_COSTS.ammoRefillFraction * Math.sqrt(1 + 16 / 8) * 0.5);
+  const expected = Math.ceil(12 * SHOP_COSTS.ammoRefillFraction * Math.sqrt(1 + 16 / 9) * 0.5);
   assert.equal(ammoRefillCost(game, 'rocket'), expected);
 });
 

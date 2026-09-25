@@ -142,6 +142,17 @@ Editors should warn about:
 - unknown schema versions
 - use of verbs not available in the current runtime
 
+## Projectile Pierce And Lifetime
+
+Weapon projectile definitions may use these optional runtime fields:
+
+- `pierce`: direct projectile penetration measured in voxels. Four voxels equal one cell.
+- `shrapnelPierce`: penetration assigned to spawned cannon shrapnel independently of the parent shell.
+- `pierceDamageScale` and `pierceDamageFalloff`: damage retained when the direct pierce trace continues.
+- `explodeOnExpire`: detonates the projectile at its final position when `lifetime` reaches zero.
+
+Ordinary player projectiles inherit the firing vehicle's runtime elevation. Arc weapons such as mortars and STA missiles retain their authored vertical flight model. The player vehicle exposes `elevation.z` and `elevation.vz`; terrain hazards can use that state for grounded, airborne, and vault-over collision rules.
+
 ## Runtime Best Practices
 
 Runtime loaders should:

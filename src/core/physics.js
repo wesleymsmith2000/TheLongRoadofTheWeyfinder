@@ -12,15 +12,15 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   const engineAcceleration = upgradeMultiplier(upgrades, 'engineAcceleration', 0.08);
   const engineMaxVelocity = upgradeMultiplier(upgrades, 'engineMaxVelocity', 0.08);
   const wheelInertiaCompensation = upgradeMultiplier(upgrades, 'wheelInertiaCompensation', 0.08);
-  const propulsion = Math.max(0.25, 1.275 * Math.sqrt(Math.max(0.05, enginePower)) + 0.525 * Math.sqrt(Math.max(0.05, wheelPower)));
+  const propulsion = Math.max(0.25, Math.sqrt(Math.max(0.05, enginePower)));
   const turnBalance = vehicle.cells
     .filter((cell) => cell.attached && cell.type === 'wheel')
     .reduce((sum, cell) => sum + cell.gridX * cell.state.deviceIntegrity, 0);
   const pull = turnBalance * 0.35;
   const massPenalty = Math.sqrt(vehicle.totalMass / 120);
 
-  const worldAx = (inputX * 135 * propulsion * engineAcceleration * terrain.traction * terrain.accelerationScale) / massPenalty;
-  const worldAy = (inputY * 135 * propulsion * engineAcceleration * terrain.traction * terrain.accelerationScale) / massPenalty;
+  const worldAx = (inputX * 340.5 * propulsion * engineAcceleration * terrain.traction * terrain.accelerationScale) / massPenalty;
+  const worldAy = (inputY * 340.5 * propulsion * engineAcceleration * terrain.traction * terrain.accelerationScale) / massPenalty;
   const accel = { x: worldAx, y: worldAy };
   vehicle.vx += accel.x * dt;
   vehicle.vy += accel.y * dt;
@@ -31,7 +31,7 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
 
   if (input.brake) {
     const brakeGrip = clamp(terrain.traction, 0.18, 1);
-    const brakeScale = Math.max(0, terrain.brakingScale);
+    const brakeScale = Math.max(0, terrain.brakingScale) * 1.5 * Math.sqrt(Math.max(0.05, wheelPower));
     vehicle.vx *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt * brakeScale);
     vehicle.vy *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt * brakeScale);
     vehicle.angularVelocity *= Math.pow(1 - (1 - 0.02) * brakeGrip, dt * brakeScale);
@@ -43,11 +43,12 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   const drag = Math.pow(resistanceDrag, dt);
   vehicle.vx *= drag;
   vehicle.vy *= drag;
-  clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty, engineMaxVelocity);
+  clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty, engineMaxVelocity, terrain, dt);
   vehicle.angularVelocity *= Math.pow(0.24, dt);
   vehicle.x += vehicle.vx * dt;
   vehicle.y += vehicle.vy * dt;
   vehicle.heading += vehicle.angularVelocity * dt;
+  stepVehicleElevation(vehicle, dt);
 
   for (const piece of vehicle.detachedPieces) {
     piece.vx *= Math.pow(0.72, dt);
@@ -99,12 +100,48 @@ function travelDirectionAlignment(vehicle, traction) {
   return angleDelta(vehicle.heading, travelHeading) * 1.65 * speedScale * clamp(traction, 0.18, 1.2);
 }
 
-function clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty, engineMaxVelocity) {
+export function vehicleMaxSpeed(vehicle, upgrades = {}) {
+  const enginePower = typedModulePower(vehicle, 'engine');
+  const wheelPower = typedModulePower(vehicle, 'wheel');
+  const massPenalty = Math.sqrt(vehicle.totalMass / 120);
+  const engineMaxVelocity = upgradeMultiplier(upgrades, 'engineMaxVelocity', 0.08);
+  return (380 * Math.sqrt(Math.max(0.05, enginePower)) * Math.sqrt(Math.max(0.05, wheelPower)) * engineMaxVelocity) / Math.max(0.8, massPenalty);
+}
+
+function clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty, engineMaxVelocity, terrain, dt) {
   const speed = Math.hypot(vehicle.vx, vehicle.vy);
-  const maxSpeed = ((195 + 48 * Math.sqrt(Math.max(0, enginePower))) * engineMaxVelocity + 18 * Math.sqrt(Math.max(0, wheelPower))) / Math.max(0.8, massPenalty);
+  const baseMaxSpeed = (380 * Math.sqrt(Math.max(0.05, enginePower)) * Math.sqrt(Math.max(0.05, wheelPower)) * engineMaxVelocity) / Math.max(0.8, massPenalty);
+  const maxSpeed = baseMaxSpeed * Math.max(1, vehicle.maxVelocityScale ?? 1);
   if (speed <= maxSpeed) return;
+  if ((vehicle.maxVelocityScale ?? 1) <= 1 && vehicle.boostOverspeed) {
+    const brakeScale = 1.5 * Math.sqrt(Math.max(0.05, wheelPower)) * Math.max(0, terrain.brakingScale);
+    const retention = Math.pow(0.04, dt * brakeScale);
+    const nextSpeed = Math.max(baseMaxSpeed, speed * retention);
+    vehicle.vx = (vehicle.vx / speed) * nextSpeed;
+    vehicle.vy = (vehicle.vy / speed) * nextSpeed;
+    if (nextSpeed <= baseMaxSpeed * 1.001) vehicle.boostOverspeed = false;
+    return;
+  }
   vehicle.vx = (vehicle.vx / speed) * maxSpeed;
   vehicle.vy = (vehicle.vy / speed) * maxSpeed;
+}
+
+export function stepVehicleElevation(vehicle, dt, gravity = 120) {
+  vehicle.elevation ??= { z: 0, vz: 0 };
+  const elevation = vehicle.elevation;
+  elevation.z = Math.max(0, elevation.z ?? 0);
+  elevation.vz = elevation.vz ?? 0;
+  if (elevation.z <= 0 && elevation.vz <= 0) {
+    elevation.z = 0;
+    elevation.vz = 0;
+    return;
+  }
+  elevation.z += elevation.vz * dt - 0.5 * gravity * dt * dt;
+  elevation.vz -= gravity * dt;
+  if (elevation.z <= 0) {
+    elevation.z = 0;
+    elevation.vz = 0;
+  }
 }
 
 function upgradeMultiplier(upgrades, id, amount) {

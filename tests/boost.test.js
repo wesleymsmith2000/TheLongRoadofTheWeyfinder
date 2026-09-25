@@ -116,7 +116,7 @@ test('active boost shield deflects nearby enemy projectiles', () => {
   assert.equal(game.vehicle.alive, true);
 });
 
-test('additional guns scale boost shield duration and absorption', () => {
+test('boost shield lasts for the drive and additional guns scale absorption', () => {
   const lightGame = createGame();
   const gunGame = createGame();
   addAttachedCell(gunGame.vehicle, createCell('gun-extra', 'gun', 0, -2), 'gun');
@@ -124,7 +124,8 @@ test('additional guns scale boost shield duration and absorption', () => {
   stepGame(lightGame, { gunnerEnabled: false }, 1 / 60);
   stepGame(gunGame, { gunnerEnabled: false }, 1 / 60);
 
-  assert.equal(gunGame.boost.shieldDuration > lightGame.boost.shieldDuration, true);
+  assert.equal(gunGame.boost.shieldDuration, gunGame.boost.maxDuration);
+  assert.equal(lightGame.boost.shieldDuration, lightGame.boost.maxDuration);
   assert.equal(gunGame.boost.shieldScale > lightGame.boost.shieldScale, true);
 });
 

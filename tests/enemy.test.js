@@ -1956,6 +1956,7 @@ test('buzzard harpoons target the nearest active buzzard', () => {
   buzzard.x = game.vehicle.x + CELL_SIZE * 4;
   buzzard.y = game.vehicle.y;
   buzzard.buzzard = { mode: 'air', harpoonSpawnTimer: 99 };
+  buzzard.patterns = [];
   buzzard.harpoonPowerup = {
     kind: 'buzzardHarpoon',
     x: game.vehicle.x,

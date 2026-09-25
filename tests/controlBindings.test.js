@@ -24,6 +24,13 @@ test('control binding helpers replace keyboard and gamepad actions', () => {
   assert.deepEqual(gamepad.gamepad.secondaryFire, [2]);
 });
 
+test('legacy stick bindings migrate to left-stick boost and right-stick secondary fire', () => {
+  const bindings = normalizeControlBindings({ gamepad: { brake: [10], dodge: [1], secondaryFire: [10, 11] } });
+  assert.deepEqual(bindings.gamepad.brake, [1]);
+  assert.deepEqual(bindings.gamepad.dodge, [10]);
+  assert.deepEqual(bindings.gamepad.secondaryFire, [11]);
+});
+
 test('control binding labels are player readable', () => {
   assert.equal(keyLabel('KeyW'), 'W');
   assert.equal(keyLabel('ArrowLeft'), 'Left');
@@ -56,4 +63,7 @@ test('pause and guided targeting defaults are bindable', () => {
   assert.deepEqual(bindings.gamepad.targetNext, [6]);
   assert.deepEqual(bindings.gamepad.targetCellNext, [7]);
   assert.deepEqual(bindings.gamepad.encounterConfirm, [0]);
+  assert.deepEqual(bindings.gamepad.dodge, [10]);
+  assert.deepEqual(bindings.gamepad.secondaryFire, [11]);
+  assert.deepEqual(bindings.gamepad.brake, [1]);
 });
