@@ -1750,7 +1750,7 @@ function drawOrbFlechette(ctx, projectile) {
   const teeth = 10;
   const outer = projectile.radius;
   const inner = outer * 0.58;
-  const spin = (projectile.maxLifetime - projectile.lifetime) * 26 + projectile.angle;
+  const spin = (projectile.maxLifetime - projectile.lifetime) * (projectile.spinRate || 15) + projectile.angle;
   ctx.save();
   ctx.translate(projectile.x, projectile.y);
   ctx.rotate(spin);
@@ -1861,7 +1861,8 @@ function drawProjectileSprite(ctx, projectile, imageAssets, options = {}) {
   const sprite = options.sprite ?? projectile.sprite;
   const x = options.x ?? projectile.x;
   const y = options.y ?? projectile.y;
-  const angle = sprite?.alignToVelocity ? projectile.angle : 0;
+  const age = Math.max(0, (projectile.maxLifetime ?? 0) - (projectile.lifetime ?? 0));
+  const angle = (sprite?.alignToVelocity ? projectile.angle : 0) + age * (projectile.spinRate ?? 0);
   return drawSpriteDescriptor(ctx, imageAssets, sprite, x, y, angle, options.scale ?? 1);
 }
 

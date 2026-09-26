@@ -87,6 +87,7 @@ export function runtimeWeaponDefinition(definition) {
     ricochetOnEnemyExit: Boolean(projectile.ricochetOnEnemyExit),
     absorbsEnemyProjectiles: Boolean(projectile.absorbsEnemyProjectiles),
     projectileDeflectionProbability: projectile.projectileDeflectionProbability ?? projectile.deflectionProbability ?? 0,
+    spinRate: projectile.spinRate ?? 0,
     frames: projectile.frames ?? 0,
     destructible: Boolean(projectile.destructible),
     shape: projectile.shape ?? null,
@@ -126,6 +127,7 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.maxRicochets ?? 0, 'projectile.maxRicochets', errors, { min: 0, integer: true });
   validateNumber(projectile.ricochetFactor ?? 0.5, 'projectile.ricochetFactor', errors, { min: 0, max: 1 });
   validateNumber(projectile.projectileDeflectionProbability ?? projectile.deflectionProbability ?? 0, 'projectile.projectileDeflectionProbability', errors, { min: 0, max: 1 });
+  validateNumber(projectile.spinRate ?? 0, 'projectile.spinRate', errors);
   if (projectile.damagePiercesUntilSpent != null && typeof projectile.damagePiercesUntilSpent !== 'boolean') {
     errors.push('projectile.damagePiercesUntilSpent must be a boolean when provided.');
   }
@@ -300,6 +302,7 @@ function validateBladePayload(payload, label, errors) {
   validateNumber(payload.maxRicochets ?? 0, `${label}.maxRicochets`, errors, { min: 0, integer: true });
   validateNumber(payload.ricochetFactor ?? 0.5, `${label}.ricochetFactor`, errors, { min: 0, max: 1 });
   validateNumber(payload.projectileDeflectionProbability ?? payload.deflectionProbability ?? 0, `${label}.projectileDeflectionProbability`, errors, { min: 0, max: 1 });
+  validateNumber(payload.spinRate ?? 0, `${label}.spinRate`, errors);
   if (payload.ricochetOnEnemyExit != null && typeof payload.ricochetOnEnemyExit !== 'boolean') {
     errors.push(`${label}.ricochetOnEnemyExit must be a boolean when provided.`);
   }

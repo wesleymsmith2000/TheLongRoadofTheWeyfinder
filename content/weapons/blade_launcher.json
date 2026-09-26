@@ -8,7 +8,7 @@
   "tags": ["primary", "blade", "ricochet", "deflection", "prototype"],
   "ammo": 0,
   "heat": 6,
-  "cooldown": 0.88,
+  "cooldown": 1.76,
   "projectile": {
     "team": "player",
     "weapon": "blade_launcher",
@@ -35,6 +35,7 @@
     "ricochetFactor": 0.5,
     "ricochetOnEnemyExit": true,
     "absorbsEnemyProjectiles": true,
-    "projectileDeflectionProbability": 0.25
+    "projectileDeflectionProbability": 0.25,
+    "spinRate": 15
   }
 }

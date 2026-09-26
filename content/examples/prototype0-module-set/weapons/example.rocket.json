@@ -19,11 +19,11 @@
     "weapon": "rocket",
     "behavior": "homing",
     "projectileSpeed": 219.375,
-    "radius": 3,
-    "damage": 364.5,
+    "radius": 4.5,
+    "damage": 546.75,
     "impulse": 105,
     "lifetime": 5.8,
-    "blastDamage": 18,
+    "blastDamage": 27,
     "blastRadiusCells": 2.55,
     "turnRate": 2.5,
     "acceleration": 45,
@@ -38,9 +38,9 @@
     "shape": {
       "kind": "cylinderCone",
       "armorVoxelHp": 10,
-      "bodyLength": 12,
-      "coneLength": 5,
-      "halfWidth": 3,
+      "bodyLength": 18,
+      "coneLength": 7.5,
+      "halfWidth": 4.5,
       "bodyVoxels": {
         "columns": 6,
         "rows": 3

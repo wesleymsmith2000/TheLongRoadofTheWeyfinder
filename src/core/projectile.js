@@ -7,6 +7,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     previousX: x,
     previousY: y,
     angle: options.angle ?? Math.atan2(vy, vx),
+    spinRate: options.spinRate ?? 0,
     length: options.length ?? 0,
     radius: options.radius ?? 4,
     maxRadius: options.maxRadius ?? options.radius ?? 4,

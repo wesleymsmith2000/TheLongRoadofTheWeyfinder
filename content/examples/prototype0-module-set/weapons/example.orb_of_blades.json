@@ -54,6 +54,7 @@
       "ricochetOnEnemyExit": true,
       "absorbsEnemyProjectiles": true,
       "projectileDeflectionProbability": 0.25,
+      "spinRate": 15,
       "sprite": {
         "assetId": "sprite.weapon.orb_blade_shard",
         "path": "assets/images/weapons/orb_blade_shard.png",
@@ -80,6 +81,7 @@
           "ricochetOnEnemyExit": true,
           "absorbsEnemyProjectiles": true,
           "projectileDeflectionProbability": 0.25,
+          "spinRate": 15,
           "lifetime": 0.9,
           "sprite": {
             "assetId": "sprite.weapon.orb_blade_shard",

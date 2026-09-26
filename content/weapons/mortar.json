@@ -8,7 +8,7 @@
   "tags": ["primary", "arc", "blast", "anti-air", "prototype"],
   "ammo": 0,
   "heat": 20,
-  "cooldown": 1.8666666667,
+  "cooldown": 3.7333333334,
   "projectile": {
     "team": "player",
     "weapon": "mortar",

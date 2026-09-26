@@ -4,6 +4,7 @@ import { createGame, stepGame } from '../src/core/game.js';
 import { createBossEnemy, createEnemy } from '../src/core/enemy.js';
 import { gunMuzzleWorld } from '../src/core/vehicle.js';
 import { fireSecondary, stepSecondaryWeapon } from '../src/core/secondaryWeapon.js';
+import { stepProjectiles } from '../src/core/projectile.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
@@ -13,7 +14,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles.length, 1);
-  assert.equal(game.playerProjectiles[0].damage, 364.5);
+  assert.equal(game.playerProjectiles[0].damage, 546.75);
   assert.equal(game.secondary.ammo.rocket, 16);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH), true);
 });
@@ -46,9 +47,26 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(game.playerProjectiles[0].maxSpeed, 219.375);
   assert.equal(game.playerProjectiles[0].pierce, 6);
   assert.equal(game.playerProjectiles[0].explodeOnExpire, true);
-  assert.equal(game.playerProjectiles[0].radius, 3);
+  assert.equal(game.playerProjectiles[0].radius, 4.5);
+  assert.equal(game.playerProjectiles[0].blastDamage, 27);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
+});
+
+test('rocket reaches top speed within the first quarter of its flight', () => {
+  for (const velocityUpgrade of [0, 3]) {
+    const game = createGame();
+    game.vehicle.vx = 0;
+    game.vehicle.vy = 0;
+    game.upgrades.rocketMaxVelocity = velocityUpgrade;
+    fireSecondary(game);
+    const rocket = game.playerProjectiles[0];
+    assert.equal(Math.hypot(rocket.vx, rocket.vy), 0);
+
+    stepProjectiles([rocket], rocket.maxLifetime * 0.25, []);
+
+    assert.equal(Math.abs(Math.hypot(rocket.vx, rocket.vy) - rocket.maxSpeed) < 0.001, true);
+  }
 });
 
 test('ordinary player shots inherit vehicle height while STA arcs keep their own flight model', () => {
@@ -79,7 +97,7 @@ test('enemy bullets can destroy a rocket and trigger its blast', () => {
   rocket.vy = 0;
   rocket.angle = 0;
   rocket.blastRadius = 20;
-  game.enemyProjectiles = [{ x: 6.5, y: 0, vx: 0, vy: 0, radius: 3, damage: 200, lifetime: 1, team: 'enemy', weapon: 'bullet' }];
+  game.enemyProjectiles = [{ x: 6.5, y: 0, vx: 0, vy: 0, radius: 6, damage: 200, lifetime: 1, team: 'enemy', weapon: 'bullet' }];
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.equal(rocket.lifetime <= 0, true);
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'rocket-blast'), true);
@@ -199,7 +217,7 @@ test('cannon impact creates blast shrapnel', () => {
   assert.equal(game.score.damageDone > 18, true);
 });
 
-test('cannon flechettes inherit pierce and doubled fragment velocity', () => {
+test('cannon flechettes inherit pierce and the faster longer harder shrapnel profile', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   game.vehicle.turretHeading = 0;
@@ -210,7 +228,9 @@ test('cannon flechettes inherit pierce and doubled fragment velocity', () => {
   stepGame(game, { secondarySelect: 'cannon' }, 0.08);
   const shrapnel = game.playerProjectiles.filter((projectile) => projectile.weapon === 'cannon-shrapnel');
   assert.equal(shrapnel.every((projectile) => projectile.pierce === 2), true);
-  assert.equal(shrapnel.some((projectile) => Math.hypot(projectile.vx, projectile.vy) > 80), true);
+  assert.equal(shrapnel.every((projectile) => Math.hypot(projectile.vx, projectile.vy) >= 127.5), true);
+  assert.equal(shrapnel.every((projectile) => projectile.maxLifetime >= 0.33), true);
+  assert.equal(shrapnel.every((projectile) => projectile.damage >= 364.5 * 0.2), true);
 });
 
 test('cannon impact blast shoves nearby enemies without requiring a direct hit', () => {
@@ -232,10 +252,11 @@ test('cannon uses boosted base damage and impact pierce', () => {
   const game = createGame();
   game.secondary.selected = 'cannon';
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage, 243);
+  assert.equal(game.playerProjectiles[0].damage, 364.5);
   assert.equal(game.playerProjectiles[0].pierce, 6);
   assert.equal(game.playerProjectiles[0].explodeOnExpire, true);
-  assert.equal(game.playerProjectiles[0].radius, 4);
+  assert.equal(game.playerProjectiles[0].radius, 6);
+  assert.equal(game.playerProjectiles[0].blastDamage, 54);
   assert.equal(game.playerProjectiles[0].blastPierceCells, 1.5);
   assert.equal(game.playerProjectiles[0].hull.sections.length, 2);
 });
@@ -249,12 +270,12 @@ test('secondary upgrades alter projectile stats', () => {
   game.upgrades.cannonFlechettePierce = 3;
   game.upgrades.cannonImpactPierce = 2;
   fireSecondary(game);
-  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '255.2');
+  assert.equal(game.playerProjectiles[0].damage.toFixed(1), '382.7');
   assert.equal(Math.hypot(game.playerProjectiles[0].vx, game.playerProjectiles[0].vy) > 135, true);
   assert.equal(game.playerProjectiles[0].shrapnelCount, 30);
   assert.equal(game.playerProjectiles[0].pierce, 8);
   assert.equal(game.playerProjectiles[0].shrapnelPierce, 3);
-  assert.equal(game.playerProjectiles[0].shape.halfWidth.toFixed(2), (4 * 1.05).toFixed(2));
+  assert.equal(game.playerProjectiles[0].shape.halfWidth.toFixed(2), (6 * 1.05).toFixed(2));
 });
 
 test('cannon detonates when it reaches the selected aim reticle', () => {
@@ -407,6 +428,27 @@ test('new secondary weapons are live runtime choices', () => {
   assert.equal(blade.radius, 5.8);
   assert.equal(blade.damagePiercesUntilSpent, true);
   assert.equal(blade.absorbsEnemyProjectiles, true);
+  assert.equal(blade.spinRate, 15);
+});
+
+test('orb of blades releases its radial barrage on enemy contact', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.secondary.selected = 'orb_of_blades';
+  game.aimReticle = { x: game.vehicle.x + 500, y: game.vehicle.y, active: true, source: 'pointer' };
+  fireSecondary(game);
+  const orb = game.playerProjectiles[0];
+  orb.x = game.enemies[0].x;
+  orb.y = game.enemies[0].y;
+  orb.previousX = orb.x;
+  orb.previousY = orb.y;
+  orb.vx = 0;
+  orb.vy = 0;
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  assert.equal(game.playerProjectiles.filter((projectile) => projectile.weapon === 'orb_bullet').length >= 12, true);
+  assert.equal(game.playerProjectiles.filter((projectile) => projectile.weapon === 'orb_flechette').length >= 12, true);
 });
 
 test('STA missile arcs track the live aim reticle while flying', () => {

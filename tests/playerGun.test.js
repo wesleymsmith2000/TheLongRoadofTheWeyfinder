@@ -107,14 +107,14 @@ test('mini beam uses its own shorter slower firing profile and gunfire sound', (
   assert.equal(beam.frames, 5);
   assert.equal(beam.radius, 0.8);
   assert.equal(game.primaryHeat.heat.toFixed(1), '10.0');
-  assert.equal(game.playerFireTimer.toFixed(2), (0.22 / Math.sqrt(2)).toFixed(2));
-  assert.equal(game.primaryWeaponCooldowns['gun:0:mini_beam'].toFixed(2), ((2.48 / Math.sqrt(2)) / 0.9).toFixed(2));
+  assert.equal(game.playerFireTimer.toFixed(2), (0.44 / Math.sqrt(2)).toFixed(2));
+  assert.equal(game.primaryWeaponCooldowns['gun:0:mini_beam'].toFixed(2), ((4.96 / Math.sqrt(2)) / 0.9).toFixed(2));
   const events = consumeSoundEvents(game).map((event) => event.id);
   assert.equal(events.includes(SOUND_EVENTS.PLAYER_MAIN_GUN), true);
   assert.equal(events.includes(SOUND_EVENTS.PLAYER_BEAM), false);
 });
 
-test('primary gun cell queues skip cooling weapons and fire ready slots', () => {
+test('primary gun cell queues fire every ready slot in one visit', () => {
   let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mini_beam').definition;
   vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'main.basic').definition;
   const game = createGame(1147, { vehicleDefinition });
@@ -122,12 +122,8 @@ test('primary gun cell queues skip cooling weapons and fire ready slots', () => 
 
   stepGame(game, {}, 1 / 60);
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mini_beam'), true);
-  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), false);
-
-  for (let index = 0; index < 10; index += 1) stepGame(game, {}, 1 / 60);
-
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
-  assert.equal(game.primaryWeaponCooldowns['gun:0:mini_beam'] > 1.3, true);
+  assert.equal(game.primaryWeaponCooldowns['gun:0:mini_beam'] > 2.6, true);
 });
 
 test('cooling primary weapons stay at the top of their gun queue after bypass', () => {
@@ -151,7 +147,7 @@ test('cooling primary weapons stay at the top of their gun queue after bypass', 
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mini_beam'), true);
 });
 
-test('fired primary weapons rotate behind other ready weapons in the gun queue', () => {
+test('firing every ready primary weapon preserves their relative queue order', () => {
   let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'main.basic').definition;
   vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'tracking_flechette').definition;
   const game = createGame(1147, { vehicleDefinition });
@@ -161,7 +157,8 @@ test('fired primary weapons rotate behind other ready weapons in the gun queue',
   stepGame(game, {}, 1 / 60);
 
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'bullet'), true);
-  assert.deepEqual(game.primaryGunQueues.gun.order, [1, 0]);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'tracking_flechette'), true);
+  assert.deepEqual(game.primaryGunQueues.gun.order, [0, 1]);
 });
 
 test('fired primary weapons move behind every other queued weapon after cooldown bypasses', () => {
@@ -178,7 +175,8 @@ test('fired primary weapons move behind every other queued weapon after cooldown
   stepGame(game, {}, 1 / 60);
 
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'blade_launcher'), true);
-  assert.deepEqual(game.primaryGunQueues.gun.order, [0, 1, 3, 2]);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'tracking_flechette'), true);
+  assert.deepEqual(game.primaryGunQueues.gun.order, [0, 1, 2, 3]);
 });
 
 test('heat-blocked ready primary weapons pause the mount instead of being starved by lighter weapons', () => {
@@ -209,12 +207,13 @@ test('repulsors use a defensive queue without taking offensive turns from shared
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mortar'), true);
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'repulsor_beam'), false);
   assert.equal(game.primaryGunQueues.gun.queueLength, 2);
-  assert.deepEqual(game.primaryGunQueues.gun.order, [1, 0]);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'blade_launcher'), true);
+  assert.deepEqual(game.primaryGunQueues.gun.order, [0, 1]);
   assert.equal(game.primaryDefensiveGunQueues.gun.queueLength, 1);
   assert.deepEqual(game.primaryDefensiveGunQueues.gun.order, [0]);
 });
 
-test('defensive repulsors can fire while the offensive gun cadence is waiting', () => {
+test('defensive repulsors fire independently from the legacy offensive visit timer', () => {
   let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'mortar').definition;
   vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'repulsor_beam').definition;
   const game = createGame(1147, { vehicleDefinition });
@@ -226,7 +225,7 @@ test('defensive repulsors can fire while the offensive gun cadence is waiting', 
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
   assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'repulsor_beam'), true);
-  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mortar'), false);
+  assert.equal(game.playerProjectiles.some((projectile) => projectile.weapon === 'mortar'), true);
   assert.deepEqual(game.primaryDefensiveGunQueues.gun.order, [0]);
 });
 
@@ -246,7 +245,7 @@ test('mini beam upgrades affect active beam combat attributes', () => {
   assert.equal(beam.length.toFixed(2), (64 * 1.12).toFixed(2));
   assert.equal(beam.pierce, 3);
   assert.equal(game.primaryHeat.heat.toFixed(1), '9.5');
-  assert.equal(game.playerFireTimer < (2.48 / Math.sqrt(2)) / 0.9, true);
+  assert.equal(game.playerFireTimer < (4.96 / Math.sqrt(2)) / 0.9, true);
 });
 
 test('advanced primary weapon loadouts fire from runtime weapon definitions', () => {
@@ -265,13 +264,13 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   stepGame(flechetteGame, {}, 1 / 60);
   const flechette = flechetteGame.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
   assert.equal(flechette.behavior, 'homing');
-  assert.equal(flechette.radius, 2.475);
+  assert.equal(flechette.radius, 1.85625);
   assert.equal(Math.hypot(flechette.vx, flechette.vy).toFixed(2), '161.25');
   assert.equal(flechette.lifetime > 3.8, true);
   assert.equal(flechette.maxSpeed, 322.5);
   assert.equal(flechette.acceleration, 105);
   assert.equal(flechette.pierce, 4);
-  assert.deepEqual(flechette.sprite.displaySize, [16.5, 6]);
+  assert.deepEqual(flechette.sprite.displaySize, [12.375, 4.5]);
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);
   assert.equal(flechette.tracksReticleInHoming, true);
@@ -289,8 +288,9 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   assert.equal(blade.ricochetOnEnemyExit, true);
   assert.equal(blade.absorbsEnemyProjectiles, true);
   assert.equal(blade.projectileDeflectionProbability, 0.25);
-  assert.equal(bladeGame.playerFireTimer.toFixed(3), (0.22 / Math.sqrt(2)).toFixed(3));
-  assert.equal(bladeGame.primaryWeaponCooldowns['gun:0:blade_launcher'] > 0.22 / Math.sqrt(2) * 4, true);
+  assert.equal(blade.spinRate, 15);
+  assert.equal(bladeGame.playerFireTimer.toFixed(3), (0.44 / Math.sqrt(2)).toFixed(3));
+  assert.equal(bladeGame.primaryWeaponCooldowns['gun:0:blade_launcher'] > 0.44 / Math.sqrt(2) * 4, true);
 });
 
 test('tracking flechette upgrades scale primary weapon stats', () => {
@@ -305,12 +305,12 @@ test('tracking flechette upgrades scale primary weapon stats', () => {
   stepGame(game, {}, 1 / 60);
   const flechette = game.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
   assert.equal(flechette.damage.toFixed(2), (45 * 1.05).toFixed(2));
-  assert.equal(flechette.radius.toFixed(4), (2.475 * 1.035).toFixed(4));
-  assert.deepEqual(flechette.sprite.displaySize.map((value) => value.toFixed(4)), [(16.5 * 1.035).toFixed(4), (6 * 1.035).toFixed(4)]);
+  assert.equal(flechette.radius.toFixed(4), (1.85625 * 1.035).toFixed(4));
+  assert.deepEqual(flechette.sprite.displaySize.map((value) => value.toFixed(4)), [(12.375 * 1.035).toFixed(4), (4.5 * 1.035).toFixed(4)]);
   assert.equal(flechette.pierce, 6);
   assert.equal(flechette.acceleration.toFixed(2), (105 * 1.05).toFixed(2));
   assert.equal(flechette.turnRate.toFixed(2), (7.5 * 1.05).toFixed(2));
-  assert.equal(game.playerFireTimer < 0.38 / Math.sqrt(2), true);
+  assert.equal(game.playerFireTimer < 0.76 / Math.sqrt(2), true);
 });
 
 test('tracking flechette follows the live aim reticle while accelerating', () => {
@@ -374,8 +374,8 @@ test('mortar upgrades scale impact and blast stats', () => {
   assert.equal(mortar.damage.toFixed(2), (24 * 1.05).toFixed(2));
   assert.equal(mortar.blastDamage.toFixed(2), (90 * 1.05 ** 2).toFixed(2));
   assert.equal(mortar.blastRadius.toFixed(3), (7.5 * CELL_SIZE * Math.sqrt(1.05)).toFixed(3));
-  assert.equal(game.playerFireTimer.toFixed(3), (0.22 / Math.sqrt(2)).toFixed(3));
-  assert.equal(game.primaryWeaponCooldowns['gun:0:mortar'].toFixed(3), (((1.8666666667 / 1.05 ** 2) / Math.sqrt(2)) * 1.25).toFixed(3));
+  assert.equal(game.playerFireTimer.toFixed(3), (0.44 / Math.sqrt(2)).toFixed(3));
+  assert.equal(game.primaryWeaponCooldowns['gun:0:mortar'].toFixed(3), (((3.7333333334 / 1.05 ** 2) / Math.sqrt(2)) * 1.25).toFixed(3));
 });
 
 test('blade launcher upgrades scale primary blade stats', () => {
@@ -395,5 +395,42 @@ test('blade launcher upgrades scale primary blade stats', () => {
   assert.equal(blade.maxRicochets, 3);
   assert.equal(blade.ricochetFactor.toFixed(4), (0.5 * 1.05 ** 2).toFixed(4));
   assert.equal(blade.projectileDeflectionProbability.toFixed(4), (1 - 0.75 * 0.95 ** 2).toFixed(4));
-  assert.equal(game.playerFireTimer < (0.88 / Math.sqrt(2)) * 1.064, true);
+  assert.equal(game.playerFireTimer < (1.76 / Math.sqrt(2)) * 1.064, true);
+});
+
+test('mixed primary weapons each sustain their calculated independent fire rate', () => {
+  let vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'main.basic').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 1, 'tracking_flechette').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 2, 'blade_launcher').definition;
+  vehicleDefinition = setGunLoadoutSlot(vehicleDefinition, 'gun', 'primary', 3, 'mortar').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.autofire = true;
+  game.primaryHeat.maxHeat = Number.POSITIVE_INFINITY;
+  game.road.halfWidth = 200_000;
+  game.road.halfHeight = 200_000;
+  game.enemies = [createEnemy(game.vehicle.x + 100_000, game.vehicle.y)];
+  game.enemySpawnQueue = [];
+  const seen = new WeakSet();
+  const counts = { bullet: 0, tracking_flechette: 0, blade_launcher: 0, mortar: 0 };
+  const seconds = 12;
+
+  for (let frame = 0; frame < seconds * 60; frame += 1) {
+    stepGame(game, { gunnerEnabled: false }, 1 / 60);
+    for (const projectile of game.playerProjectiles) {
+      if (seen.has(projectile)) continue;
+      seen.add(projectile);
+      if (Object.hasOwn(counts, projectile.weapon)) counts[projectile.weapon] += 1;
+    }
+  }
+
+  const slotScale = Math.sqrt(5);
+  const expected = {
+    bullet: seconds / (0.44 / slotScale),
+    tracking_flechette: seconds / (0.76 / slotScale),
+    blade_launcher: seconds / (1.76 / slotScale),
+    mortar: seconds / (3.7333333334 / slotScale),
+  };
+  for (const weapon of Object.keys(counts)) {
+    assert.equal(Math.abs(counts[weapon] - expected[weapon]) <= 1, true, `${weapon}: expected ${expected[weapon]}, saw ${counts[weapon]}`);
+  }
 });

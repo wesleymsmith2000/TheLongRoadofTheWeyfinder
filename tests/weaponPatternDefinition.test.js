@@ -54,8 +54,8 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
   assert.equal(flechette.acceleration, 105);
   assert.equal(flechette.lifetime, 3.9);
   assert.equal(flechette.damage, 45);
-  assert.equal(flechette.radius, 2.475);
-  assert.deepEqual(flechette.sprite.displaySize, [16.5, 6]);
+  assert.equal(flechette.radius, 1.85625);
+  assert.deepEqual(flechette.sprite.displaySize, [12.375, 4.5]);
   assert.equal(flechette.delayBeforeAcceleration, 0.35);
   assert.equal(flechette.stopBeforeAcceleration, true);
   assert.equal(flechette.launchWhenFacingTarget, true);
@@ -71,10 +71,13 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
   assert.equal(orb.emitsProjectiles.projectileDeflectionProbability, 0.25);
   assert.equal(orb.projectileDeflectionProbability, 0.5);
   assert.equal(orb.detonationBurst.groups[0].absorbsEnemyProjectiles, true);
+  assert.equal(orb.emitsProjectiles.spinRate, 15);
+  assert.equal(orb.detonationBurst.groups[0].spinRate, 15);
   const blade = runtimeWeaponDefinition(bladeLauncherDefinition);
   assert.equal(blade.maxRicochets, 1);
   assert.equal(blade.ricochetFactor, 0.5);
   assert.equal(blade.projectileDeflectionProbability, 0.25);
+  assert.equal(blade.spinRate, 15);
 });
 
 test('weapon validation rejects unavailable projectile behavior', () => {

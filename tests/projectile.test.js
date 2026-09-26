@@ -105,11 +105,11 @@ test('destructible rocket hull takes section voxel damage', () => {
     weapon: 'rocket',
     behavior: 'homing',
     angle: 0,
-    radius: 3,
+    radius: 4.5,
     destructible: true,
     shape: rocketDefinition.projectile.shape,
   });
-  const impact = createProjectile(6.5, 0, 0, 0, { team: 'enemy', radius: 3, damage: 200 });
+  const impact = createProjectile(6.5, 0, 0, 0, { team: 'enemy', radius: 6, damage: 200 });
   const hit = applyRocketHullDamage(rocket, impact);
   assert.equal(hit.hit, true);
   assert.equal(hit.destroyed, true);

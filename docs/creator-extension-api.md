@@ -471,6 +471,7 @@ Optional projectile presentation/simulation fields:
 - `contrail`: optional short-lived visual particle settings. This is render-facing metadata carried by the projectile definition, not editor UI state.
 - `emitsProjectiles`: optional moving-emitter payload, currently used by `orb_of_blades`.
 - `detonationBurst`: optional instant radial projectile payload emitted when a player projectile detonates at its target or on impact. It may be a single payload or `{ "groups": [...] }` for concurrent mixed bursts.
+- `spinRate`: optional projectile sprite rotation speed in radians per second. It is also supported by `emitsProjectiles` and `detonationBurst` payloads.
 - `launchAngleMode`: optional player-weapon launch mode. `orthogonal` starts the projectile perpendicular to the aim direction.
 - `launchAngleSpreadRadians`: random launch-angle spread applied to `launchAngleMode`.
 - `launchWhenFacingTarget`: if true on a delayed-acceleration projectile, it turns toward its selected target before locking the acceleration vector.

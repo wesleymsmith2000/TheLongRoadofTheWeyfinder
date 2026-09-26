@@ -2532,25 +2532,21 @@ function stepPlayerGun(game, dt) {
   const mounts = primaryFiringMounts(game);
   if (mounts.length === 0) return;
   stepDefensivePrimaryWeapons(game, mounts);
-  if (!hasActiveOrInboundEnemies(game) || game.playerFireTimer > 0) return;
+  if (!hasActiveOrInboundEnemies(game)) return;
   const activeWeaponSlots = primaryFiringWeaponSlotCount(mounts, 'offensive');
   if (activeWeaponSlots <= 0) return;
   const startIndex = game.playerGunIndex % mounts.length;
+  let fired = false;
+  let heatBlocked = false;
   for (let attempt = 0; attempt < mounts.length; attempt += 1) {
     const mountIndex = (startIndex + attempt) % mounts.length;
     const result = fireReadyPrimaryFromMount(game, mounts[mountIndex], activeWeaponSlots);
-    if (result === 'heat-blocked') {
-      game.playerGunIndex = mountIndex;
-      game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots) * 0.5;
-      return;
-    }
-    if (result !== 'fired') continue;
-    game.playerGunIndex = (mountIndex + 1) % mounts.length;
-    game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots);
-    return;
+    fired ||= result === 'fired';
+    heatBlocked ||= result === 'heat-blocked';
   }
   game.playerGunIndex = (startIndex + 1) % mounts.length;
-  game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots) * 0.5;
+  if (fired) game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots);
+  else if (heatBlocked) game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots) * 0.5;
 }
 
 function stepDefensivePrimaryWeapons(game, mounts) {
@@ -2572,8 +2568,9 @@ function fireReadyPrimaryFromMount(game, mount, activeWeaponSlots, queueKind = '
   const queue = primaryMountWeaponEntries(mount, queueKind);
   if (queue.length === 0) return 'empty';
   const state = primaryGunQueueState(game, mount.muzzle.cellId, queue.length, queueKind);
-  for (let orderIndex = 0; orderIndex < state.order.length; orderIndex += 1) {
-    const queueIndex = state.order[orderIndex];
+  const firedQueueIndexes = [];
+  let heatBlocked = false;
+  for (const queueIndex of state.order) {
     const weapon = queue[queueIndex];
     const slotIndex = weapon?.slotIndex ?? queueIndex;
     const weaponId = weapon?.weaponId;
@@ -2583,15 +2580,20 @@ function fireReadyPrimaryFromMount(game, mount, activeWeaponSlots, queueKind = '
     const result = firePrimarySlotWeapon(game, mount.muzzle, slotIndex, weaponId, activeWeaponSlots, {
       defensive: queueKind === 'defensive',
     });
-    if (result === 'heat-blocked') return result;
+    if (result === 'heat-blocked') {
+      heatBlocked = true;
+      break;
+    }
     if (result !== 'fired') continue;
-    state.order.splice(orderIndex, 1);
-    state.order.push(queueIndex);
-    state.index = state.order[0] ?? 0;
-    return 'fired';
+    firedQueueIndexes.push(queueIndex);
+  }
+  if (firedQueueIndexes.length > 0) {
+    const fired = new Set(firedQueueIndexes);
+    state.order = [...state.order.filter((queueIndex) => !fired.has(queueIndex)), ...firedQueueIndexes];
   }
   state.index = state.order[0] ?? 0;
-  return 'idle';
+  if (firedQueueIndexes.length > 0) return 'fired';
+  return heatBlocked ? 'heat-blocked' : 'idle';
 }
 
 function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSlots, options = {}) {
@@ -2760,6 +2762,7 @@ function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targ
       ricochetOnEnemyExit: def.ricochetOnEnemyExit,
       absorbsEnemyProjectiles: def.absorbsEnemyProjectiles,
       projectileDeflectionProbability: def.projectileDeflectionProbability,
+      spinRate: def.spinRate,
       ...playerBladeHeightOptions(def.id, shotHeight.z ?? 0),
       emitsProjectiles: def.emitsProjectiles,
       detonationBurst: def.detonationBurst,
@@ -2951,7 +2954,7 @@ function hasActiveOrInboundEnemies(game) {
 }
 
 function playerGunFireInterval(game, activeMounts = primaryFiringWeaponSlotCount(primaryFiringMounts(game))) {
-  return 0.22 / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeMounts + 1)));
+  return 0.44 / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeMounts + 1)));
 }
 
 function primaryGunVisitInterval(game, activeWeaponSlots = primaryFiringWeaponSlotCount(primaryFiringMounts(game))) {
@@ -6675,6 +6678,10 @@ function handleCollisions(game) {
         detonatePlayerProjectile(game, projectile, enemy);
         break;
       }
+      if (projectile.detonationBurst) {
+        detonatePlayerProjectile(game, projectile, enemy);
+        break;
+      }
     }
   }
   game.playerProjectiles = game.playerProjectiles.filter((projectile) => !projectile.detonated);
@@ -6881,6 +6888,7 @@ function fractureBladeOnFirstRicochet(game, projectile, targetPoint) {
         ricochetOnEnemyExit: projectile.ricochetOnEnemyExit,
         absorbsEnemyProjectiles: projectile.absorbsEnemyProjectiles,
         projectileDeflectionProbability: projectile.projectileDeflectionProbability,
+        spinRate: projectile.spinRate,
         targetHint: targetPoint,
         tracksHomingTargetHint: true,
         turnRate: Math.max(projectile.turnRate ?? 0, 2.5),
@@ -6925,6 +6933,7 @@ function burstSpentBladeIntoFlechettes(game, projectile) {
         pierceDamageScale: 1,
         pierceDamageFalloff: projectile.pierceDamageFalloff ?? 0.72,
         damagePiercesUntilSpent: true,
+        spinRate: projectile.spinRate ?? 15,
         sprite: projectile.sprite,
         color: projectile.color ?? '#9be5ff',
         ...playerBladeHeightOptions('blade_flechette'),
@@ -6979,6 +6988,7 @@ function spawnPlayerDetonationBurst(game, projectile) {
           ricochetOnEnemyExit: group.ricochetOnEnemyExit,
           absorbsEnemyProjectiles: group.absorbsEnemyProjectiles,
           projectileDeflectionProbability: group.projectileDeflectionProbability,
+          spinRate: group.spinRate,
           sprite: group.sprite,
           ...playerBladeHeightOptions(group.weapon),
         }),
@@ -7068,6 +7078,7 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     ricochetOnEnemyExit: emitter.ricochetOnEnemyExit,
     absorbsEnemyProjectiles: emitter.absorbsEnemyProjectiles,
     projectileDeflectionProbability: emitter.projectileDeflectionProbability,
+    spinRate: emitter.spinRate,
     sprite: emitter.sprite,
     ...playerBladeHeightOptions(emitter.weapon),
   });
@@ -7811,7 +7822,7 @@ function spawnCannonImpact(game, projectile, enemy) {
   for (let index = 0; index < fragmentCount; index += 1) {
     const fan = ((index / (fragmentCount - 1)) - 0.5) * Math.PI * 1.35;
     const angle = baseAngle + fan + game.rng.range(-0.08, 0.08);
-    const speed = game.rng.range(85, 155);
+    const speed = game.rng.range(127.5, 232.5);
     game.playerProjectiles.push(
       createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
@@ -7820,12 +7831,12 @@ function spawnCannonImpact(game, projectile, enemy) {
         guidedTargeting: projectile.guidedTargeting,
         targetingReticleKey: projectile.targetingReticleKey,
         radius: game.rng.range(0.7, 1.1),
-        damage: projectile.damage * (projectile.shrapnelDamageScale ?? 1) * game.rng.range(0.1, 0.18),
+        damage: projectile.damage * (projectile.shrapnelDamageScale ?? 1) * game.rng.range(0.2, 0.36),
         impulse: projectile.impulse * 0.08,
         pierce: projectile.shrapnelPierce ?? 0,
         pierceDamageScale: projectile.pierceDamageScale,
         pierceDamageFalloff: projectile.pierceDamageFalloff,
-        lifetime: game.rng.range(0.22, 0.42),
+        lifetime: game.rng.range(0.33, 0.63),
       }),
     );
   }
