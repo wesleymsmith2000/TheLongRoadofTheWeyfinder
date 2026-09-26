@@ -27,6 +27,7 @@ import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPerformanceDiagnostics, installPerformanceDiagnosticsGlobal } from './debug/performanceConfig.js';
 import { createPerformanceMonitor } from './debug/performanceMonitor.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
+import { reconcileSelectOptions } from './ui/selectOptions.js';
 import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
 import { TARGETING_COMPUTER_DEFINITIONS, syncTargetingComputerUnlocks, targetingComputerUnlocks } from './core/targetingComputers.js';
 import { applySaveStateToGame, createSaveState, validateSaveState } from './core/saveState.js';
@@ -2776,50 +2777,48 @@ function populateUpgradeSelect() {
 function refreshUpgradeSystems() {
   const selected = shopUpgradeSystemSelect.value;
   const systems = [...new Set(availableShopUpgrades().map((upgrade) => upgrade.system))];
-  shopUpgradeSystemSelect.replaceChildren(
-    ...systems.map((system) => {
-      const option = document.createElement('option');
+  reconcileSelectOptions(
+    shopUpgradeSystemSelect,
+    systems.map((system) => {
       const upgrades = availableShopUpgrades().filter((upgrade) => upgrade.system === system);
       const systemLevel = upgrades.reduce((sum, upgrade) => sum + (game.upgrades?.[upgrade.id] ?? 0), 0);
-      option.value = system;
-      option.textContent = `${system} (${systemLevel})`;
-      return option;
+      return { value: system, label: `${system} (${systemLevel})` };
     }),
+    selected,
   );
-  shopUpgradeSystemSelect.value = systems.includes(selected) ? selected : systems[0] || '';
 }
 
 function refreshUpgradeOptions() {
   const selected = shopUpgradeSelect.value;
   const system = shopUpgradeSystemSelect.value;
   const upgrades = availableShopUpgrades().filter((upgrade) => !system || upgrade.system === system);
-  shopUpgradeSelect.replaceChildren(
-    ...upgrades.map((upgrade) => {
-      const option = document.createElement('option');
+  reconcileSelectOptions(
+    shopUpgradeSelect,
+    upgrades.map((upgrade) => {
       const icon = upgradeIconDescriptor(upgrade);
-      option.value = upgrade.id;
-      option.dataset.icon = icon.id;
-      option.dataset.sheet = icon.sheet;
-      option.textContent = `${upgrade.label} Lv ${game.upgrades?.[upgrade.id] ?? 0}`;
-      return option;
+      return {
+        value: upgrade.id,
+        label: `${upgrade.label} Lv ${game.upgrades?.[upgrade.id] ?? 0}`,
+        dataset: { icon: icon.id, sheet: icon.sheet },
+      };
     }),
+    selected,
   );
-  shopUpgradeSelect.value = upgrades.some((upgrade) => upgrade.id === selected) ? selected : upgrades[0]?.id || '';
 }
 
 function refreshRepairTargets() {
   const selected = shopRepairTarget.value;
-  shopRepairTarget.replaceChildren(
-    ...repairTargetOptions(game.vehicle).map((target) => {
-      const option = document.createElement('option');
+  reconcileSelectOptions(
+    shopRepairTarget,
+    repairTargetOptions(game.vehicle).map((target) => {
       const cost = repairCost(game, target.id);
-      option.value = target.id;
-      option.textContent = cost > 0 ? `${target.label} (${cost} scrap)` : `${target.label} (OK)`;
-      return option;
+      return {
+        value: target.id,
+        label: cost > 0 ? `${target.label} (${cost} scrap)` : `${target.label} (OK)`,
+      };
     }),
+    selected,
   );
-  shopRepairTarget.value =
-    Array.from(shopRepairTarget.options).some((option) => option.value === selected) ? selected : shopRepairTarget.options[0]?.value || 'all';
 }
 
 function refreshUpgradeSummary() {
