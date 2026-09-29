@@ -1257,6 +1257,17 @@
         background: rgb(12 13 13 / 0.62);
       }
 
+      .shop-upgrade-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .shop-upgrade-actions button {
+        min-width: 0;
+      }
+
       .shop-upgrade-readout strong,
       .shop-upgrade-readout span {
         display: block;
@@ -2029,6 +2040,7 @@
         <p class="title-copy">Drive the machine. Lose the machine. Keep the Core moving.</p>
         <nav class="title-menu" aria-label="Main menu">
           <button id="titleNormalRun" type="button">Normal Run</button>
+          <button id="titleLiteRun" type="button">Lite Version</button>
           <button id="titleSandboxRun" type="button">Sandbox Run</button>
           <button id="titleVehicleBay" type="button">Vehicle Bay</button>
           <button id="titleControls" type="button">Controls</button>
@@ -2376,7 +2388,12 @@
               </div>
               <span id="shopUpgradeIcon" class="icon-sprite" data-sheet="upgrade-a" data-icon="damage" aria-hidden="true"></span>
             </div>
-            <button id="shopBuyUpgradeButton" type="button">Buy Upgrade</button>
+            <div class="shop-upgrade-actions">
+              <button id="shopBuyUpgradeButton" type="button">Buy Upgrade</button>
+              <button id="shopBuyAllUpgradesButton" type="button">
+                Upgrade All <span class="shop-button-detail">Cost <span id="shopUpgradeAllCost">-</span> scrap</span>
+              </button>
+            </div>
             <div id="upgradeSummary" class="upgrade-summary" aria-label="Upgrade levels"></div>
           </div>
         </div>

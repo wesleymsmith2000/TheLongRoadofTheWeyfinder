@@ -45,6 +45,7 @@ import { firePattern } from './patternDefinition.js';
 import { createSecondaryState, secondaryAimProfile, stepSecondaryWeapon } from './secondaryWeapon.js';
 import {
   SHOP_COSTS,
+  buyAllSystemUpgradesWithScrap,
   buyUpgradeWithScrap,
   ammoCapacityWithUpgrades,
   createUpgradeState,
@@ -481,6 +482,7 @@ export function createGame(seed = 1147, options = {}) {
       : traversalTargetForTrack(currentMusic, road);
   const game = {
     seed,
+    runMode: options.runMode ?? 'normal',
     rng,
     levelMusic,
     currentMusic,
@@ -590,6 +592,7 @@ export function stepGame(game, input, dt) {
       patternDefinitions: game.contentRuntime?.patternDefinitions ?? game.sandbox?.patternDefinitions,
       voxelModels: game.contentRuntime?.voxelModels ?? game.sandbox?.voxelModels,
       targetingComputerUnlocks: game.targetingComputerUnlocks,
+      runMode: game.runMode,
     });
   }
   if (input.nextLevelPressed && game.levelComplete) return startNextLevel(game);
@@ -2021,6 +2024,7 @@ function stepShop(game, input) {
   if (input.shopReplacePressed) replaceDetachedWithScrap(game);
   if (input.shopRefillAmmoPressed) refillAmmoWithScrap(game, input.shopAmmoWeapon ?? game.secondary.selected);
   if (input.shopBuyUpgradePressed) buyUpgradeWithScrap(game, input.shopUpgradeId);
+  if (input.shopBuyAllUpgradesPressed) buyAllSystemUpgradesWithScrap(game, input.shopUpgradeSystem);
 }
 
 function aimInputForTurret(game, input, dt) {

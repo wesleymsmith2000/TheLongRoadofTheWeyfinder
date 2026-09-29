@@ -165,6 +165,28 @@ export function buyUpgradeWithScrap(game, id, account = game.account, vehicleDef
   return true;
 }
 
+export function upgradeSystemCost(game, system, account = game.account, vehicleDefinition = game.vehicleDefinition) {
+  const upgrades = availableUpgradeDefinitions(game, account, vehicleDefinition)
+    .filter((upgrade) => upgrade.system === system);
+  if (upgrades.length === 0) return Infinity;
+  return upgrades.reduce((sum, upgrade) => sum + upgradeCost(game, upgrade.id), 0);
+}
+
+export function buyAllSystemUpgradesWithScrap(game, system, account = game.account, vehicleDefinition = game.vehicleDefinition) {
+  const upgrades = availableUpgradeDefinitions(game, account, vehicleDefinition)
+    .filter((upgrade) => upgrade.system === system);
+  const cost = upgradeSystemCost(game, system, account, vehicleDefinition);
+  if (upgrades.length === 0 || !Number.isFinite(cost) || game.scrap < cost) return false;
+
+  game.scrap -= cost;
+  game.upgrades ??= createUpgradeState();
+  for (const upgrade of upgrades) {
+    game.upgrades[upgrade.id] = upgradeLevel(game, upgrade.id) + 1;
+    applyUpgradeSideEffects(game, upgrade.id);
+  }
+  return true;
+}
+
 function moduleInstalled(game, moduleType) {
   return game.vehicle?.cells?.some((cell) => cell.type === moduleType);
 }

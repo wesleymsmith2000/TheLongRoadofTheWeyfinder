@@ -27,6 +27,7 @@ import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPerformanceDiagnostics, installPerformanceDiagnosticsGlobal } from './debug/performanceConfig.js';
 import { createPerformanceMonitor } from './debug/performanceMonitor.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
+import { PRIMARY_WEAPON_IDS, SECONDARY_WEAPON_IDS } from './core/weaponLoadout.js';
 import { reconcileSelectOptions } from './ui/selectOptions.js';
 import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
 import { TARGETING_COMPUTER_DEFINITIONS, syncTargetingComputerUnlocks, targetingComputerUnlocks } from './core/targetingComputers.js';
@@ -58,8 +59,10 @@ import {
   replacementCost,
   replacementStatus,
   upgradeCost,
+  upgradeSystemCost,
   upgradeStatus,
 } from './core/economy.js';
+import liteStartingVehicleDefinition from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
 import {
   countDetachedVehicleCells,
   hasRepairableVehicleDamage,
@@ -280,6 +283,7 @@ const buildVersionTag = document.querySelector('#buildVersionTag');
 const titleScreen = document.querySelector('#titleScreen');
 const titleVersionTag = document.querySelector('#titleVersionTag');
 const titleNormalRun = document.querySelector('#titleNormalRun');
+const titleLiteRun = document.querySelector('#titleLiteRun');
 const titleSandboxRun = document.querySelector('#titleSandboxRun');
 const titleVehicleBay = document.querySelector('#titleVehicleBay');
 const titleControls = document.querySelector('#titleControls');
@@ -411,7 +415,9 @@ const shopUpgradeIcon = document.querySelector('#shopUpgradeIcon');
 const shopUpgradeReadoutTitle = document.querySelector('#shopUpgradeReadoutTitle');
 const shopUpgradeLevel = document.querySelector('#shopUpgradeLevel');
 const shopBuyUpgradeButton = document.querySelector('#shopBuyUpgradeButton');
+const shopBuyAllUpgradesButton = document.querySelector('#shopBuyAllUpgradesButton');
 const shopUpgradeCost = document.querySelector('#shopUpgradeCost');
+const shopUpgradeAllCost = document.querySelector('#shopUpgradeAllCost');
 const shopUpgradeStatus = document.querySelector('#shopUpgradeStatus');
 const upgradeSummary = document.querySelector('#upgradeSummary');
 const restartButton = document.querySelector('#restartButton');
@@ -478,6 +484,8 @@ const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
 
 let playerAccount = loadPlayerAccount();
 let playerVehicleDefinition = playerAccount.savedVehicle;
+let liteVehicleDefinition = structuredClone(liteStartingVehicleDefinition);
+let activeRunMode = 'normal';
 let game = createGame(1147, {
   vehicleDefinition: playerVehicleDefinition ?? undefined,
   targetingComputerUnlocks: targetingComputerUnlocks(playerAccount),
@@ -600,11 +608,15 @@ const vehicleEditor = createPlayerVehicleLaunchEditor(
     account: playerAccount,
     definition: playerVehicleDefinition,
     onChange(definition) {
-      playerVehicleDefinition = definition;
-      playerAccount = preparePlayerAccountForSave(playerAccount, definition);
-      savePlayerAccount();
+      if (activeRunMode === 'lite') {
+        liteVehicleDefinition = definition;
+      } else {
+        playerVehicleDefinition = definition;
+        playerAccount = preparePlayerAccountForSave(playerAccount, definition);
+        savePlayerAccount();
+      }
       if (awaitingLaunch) {
-        game = createGame(1147, { vehicleDefinition: playerVehicleDefinition });
+        game = createPlayerRunGame(definition, activeRunMode);
         refreshRepairTargets();
       }
     },
@@ -678,8 +690,10 @@ function frame(now) {
     shopReplacePressed: shopReplacePressed.consume(),
     shopRefillAmmoPressed: shopRefillAmmoPressed.consume(),
     shopBuyUpgradePressed: shopBuyUpgradePressed.consume(),
+    shopBuyAllUpgradesPressed: shopBuyAllUpgradesPressed.consume(),
     shopAmmoWeapon: shopAmmoSelect.value || secondarySelect.value,
     shopUpgradeId: shopUpgradeSelect.value,
+    shopUpgradeSystem: shopUpgradeSystemSelect.value,
     dodgePressed: Boolean(dodgeSource),
     dodgeX: dodgeSource?.dodgeX ?? dodgeSource?.x ?? 0,
     dodgeY: dodgeSource?.dodgeY ?? dodgeSource?.y ?? -1,
@@ -709,6 +723,7 @@ function frame(now) {
     input.shopReplacePressed ||
     input.shopRefillAmmoPressed ||
     input.shopBuyUpgradePressed ||
+    input.shopBuyAllUpgradesPressed ||
     input.nextLevelPressed
   ) {
     uiDirty.shop = true;
@@ -730,7 +745,7 @@ function frame(now) {
       if (input.resetPressed) awaitingLaunch = true;
     }
   } else if (input.resetPressed) {
-    game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
+    game = createPlayerRunGame(activeVehicleDefinition(), activeRunMode);
   }
   perfMonitor.mark('simulation');
   game.fps = game.fps * 0.9 + (1 / Math.max(dt, 0.001)) * 0.1;
@@ -801,6 +816,7 @@ bindButtonActivation(controlConfigToggle, toggleControlConfig);
 bindButtonActivation(achievementsToggle, toggleAchievements);
 bindButtonActivation(launchButton, launchVehicle);
 bindButtonActivation(titleNormalRun, startNormalRun);
+bindButtonActivation(titleLiteRun, startLiteRun);
 bindButtonActivation(titleSandboxRun, startTitleSandboxRun);
 bindButtonActivation(titleVehicleBay, openVehicleBay);
 bindButtonActivation(titleControls, openTitleControlConfig);
@@ -853,6 +869,7 @@ const shopRepairAllPressed = createButtonPress(shopRepairAllButton);
 const shopReplacePressed = createButtonPress(shopReplaceButton);
 const shopRefillAmmoPressed = createButtonPress(shopRefillAmmoButton);
 const shopBuyUpgradePressed = createButtonPress(shopBuyUpgradeButton);
+const shopBuyAllUpgradesPressed = createButtonPress(shopBuyAllUpgradesButton);
 exportSaveButton.addEventListener('click', exportCurrentSave);
 importSaveButton.addEventListener('click', () => importSaveInput.click());
 importSaveInput.addEventListener('change', importSelectedSave);
@@ -992,7 +1009,30 @@ function launchVehicle() {
   syncLaunchScreen();
 }
 
+function activeVehicleDefinition() {
+  return activeRunMode === 'lite' ? liteVehicleDefinition : playerVehicleDefinition;
+}
+
+function createPlayerRunGame(vehicleDefinition, runMode = 'normal') {
+  return createGame(1147, {
+    vehicleDefinition: vehicleDefinition ?? undefined,
+    targetingComputerUnlocks: targetingComputerUnlocks(playerAccount),
+    runMode,
+  });
+}
+
+function configureNormalVehicleEditor() {
+  activeRunMode = 'normal';
+  vehicleEditor.setDefinition(playerVehicleDefinition, {
+    message: 'Build and connect a vehicle, then select a gun cell to configure its weapons.',
+  });
+}
+
 function startNormalRun() {
+  if (activeRunMode !== 'normal' && awaitingLaunch) {
+    configureNormalVehicleEditor();
+    game = createPlayerRunGame(playerVehicleDefinition, 'normal');
+  }
   titleActive = false;
   closeControlConfig();
   if (awaitingLaunch) {
@@ -1000,6 +1040,28 @@ function startNormalRun() {
     return;
   }
   syncTitleScreen();
+}
+
+function startLiteRun() {
+  activeRunMode = 'lite';
+  liteVehicleDefinition = structuredClone(liteStartingVehicleDefinition);
+  vehicleEditor.setDefinition(liteVehicleDefinition, {
+    structureLocked: true,
+    editableGunCellIds: ['gun-main'],
+    selectedCellId: 'gun-main',
+    primaryWeaponIds: PRIMARY_WEAPON_IDS.filter((id) => id !== 'repulsor_beam'),
+    secondaryWeaponIds: SECONDARY_WEAPON_IDS.filter((id) => id !== 'tractor_beam'),
+    requireFilledLoadout: true,
+    message: 'Lite vehicle shape is fixed. Choose two primary weapons and three secondary weapons; repulsor and tractor beams are included.',
+  });
+  game = createPlayerRunGame(liteVehicleDefinition, 'lite');
+  awaitingLaunch = true;
+  titleActive = false;
+  closeControlConfig();
+  refreshRepairTargets();
+  previous = performance.now();
+  syncTitleScreen();
+  syncLaunchScreen();
 }
 
 function startTitleSandboxRun() {
@@ -1012,8 +1074,9 @@ function startTitleSandboxRun() {
 function openVehicleBay() {
   titleActive = false;
   closeControlConfig();
+  configureNormalVehicleEditor();
   if (!awaitingLaunch) {
-    game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
+    game = createPlayerRunGame(playerVehicleDefinition, 'normal');
     awaitingLaunch = true;
     refreshRepairTargets();
   }
@@ -1148,7 +1211,8 @@ function localSandboxRuntimeOptions() {
 }
 
 function stopSandbox() {
-  game = createGame(1147, { vehicleDefinition: playerVehicleDefinition ?? undefined });
+  configureNormalVehicleEditor();
+  game = createPlayerRunGame(playerVehicleDefinition, 'normal');
   awaitingLaunch = true;
   titleActive = true;
   previous = performance.now();
@@ -2888,6 +2952,12 @@ function updateShopUi(dt = 0) {
   refreshUpgradeSystems();
   refreshUpgradeOptions();
   const selectedUpgradeCost = upgradeCost(game, shopUpgradeSelect.value);
+  const selectedUpgradeAllCost = upgradeSystemCost(
+    game,
+    shopUpgradeSystemSelect.value,
+    playerAccount,
+    game.vehicleDefinition,
+  );
   const selectedRepairCost = repairCost(game, shopRepairTarget.value);
   const selectedReplacementCost = replacementCost(game);
   const selectedRepairAllReplacement = nextReplaceableDetachedVehicleCell(game.vehicle, shopRepairTarget.value);
@@ -2909,6 +2979,7 @@ function updateShopUi(dt = 0) {
   shopReplaceCost.textContent = selectedReplacementCost;
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';
   shopUpgradeCost.textContent = Number.isFinite(selectedUpgradeCost) ? selectedUpgradeCost : '-';
+  shopUpgradeAllCost.textContent = Number.isFinite(selectedUpgradeAllCost) ? selectedUpgradeAllCost : '-';
   shopScrapAvailable.textContent = game.scrap;
   shopSelectedAmmo.textContent = ammoWeapon;
   shopRepairStatus.textContent = repairStatus(game, shopRepairTarget.value);
@@ -2924,6 +2995,7 @@ function updateShopUi(dt = 0) {
   shopReplaceButton.disabled = game.scrap < selectedReplacementCost || countDetachedVehicleCells(game.vehicle) === 0;
   shopRefillAmmoButton.disabled = !Number.isFinite(ammoCost) || game.scrap < ammoCost || ammo == null || ammo >= ammoCapacity;
   shopBuyUpgradeButton.disabled = !Number.isFinite(selectedUpgradeCost) || game.scrap < selectedUpgradeCost;
+  shopBuyAllUpgradesButton.disabled = !Number.isFinite(selectedUpgradeAllCost) || game.scrap < selectedUpgradeAllCost;
 }
 
 function formatAmmoValue(value) {
@@ -2932,5 +3004,5 @@ function formatAmmoValue(value) {
 }
 
 function availableShopUpgrades() {
-  return availableUpgradeDefinitions(game, playerAccount, playerVehicleDefinition ?? game.vehicleDefinition);
+  return availableUpgradeDefinitions(game, playerAccount, game.vehicleDefinition);
 }

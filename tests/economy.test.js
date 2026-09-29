@@ -8,6 +8,7 @@ import {
   ammoModuleCost,
   ammoRefillCost,
   availableUpgradeDefinitions,
+  buyAllSystemUpgradesWithScrap,
   buyUpgradeWithScrap,
   configureSandboxLoadout,
   refillAmmoWithScrap,
@@ -19,6 +20,7 @@ import {
   replacementStatus,
   replaceDetachedWithScrap,
   upgradeCost,
+  upgradeSystemCost,
   upgradeStatus,
 } from '../src/core/economy.js';
 import { applyVehicleDamage } from '../src/core/vehicle.js';
@@ -217,6 +219,32 @@ test('upgrade shop spends scrap and scales the next cost geometrically', () => {
   assert.equal(game.scrap, 0);
   assert.equal(upgradeCost(game, 'gunDamage'), 25);
   assert.equal(upgradeStatus(game, 'gunDamage'), 'Level 1, need 25');
+});
+
+test('upgrade all raises every available attribute for one system atomically', () => {
+  const game = createGame();
+  const mainGunUpgrades = availableUpgradeDefinitions(game).filter((upgrade) => upgrade.system === 'Main Gun');
+  const cost = upgradeSystemCost(game, 'Main Gun');
+  game.scrap = cost;
+
+  assert.equal(buyAllSystemUpgradesWithScrap(game, 'Main Gun'), true);
+  assert.equal(game.scrap, 0);
+  assert.deepEqual(mainGunUpgrades.map((upgrade) => game.upgrades[upgrade.id]), [1, 1, 1, 1]);
+
+  game.scrap = upgradeSystemCost(game, 'Main Gun') - 1;
+  assert.equal(buyAllSystemUpgradesWithScrap(game, 'Main Gun'), false);
+  assert.deepEqual(mainGunUpgrades.map((upgrade) => game.upgrades[upgrade.id]), [1, 1, 1, 1]);
+});
+
+test('level-complete shop accepts upgrade-all input for the selected system', () => {
+  const game = createGame();
+  game.levelComplete = true;
+  game.scrap = upgradeSystemCost(game, 'Main Gun');
+  stepGame(game, { shopBuyAllUpgradesPressed: true, shopUpgradeSystem: 'Main Gun' }, 1 / 60);
+  assert.equal(game.upgrades.gunAccuracy, 1);
+  assert.equal(game.upgrades.gunFireRate, 1);
+  assert.equal(game.upgrades.gunDamage, 1);
+  assert.equal(game.upgrades.gunVelocity, 1);
 });
 
 test('ammo capacity upgrades expand the matching reserve', () => {

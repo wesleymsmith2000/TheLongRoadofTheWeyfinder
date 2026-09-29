@@ -30,6 +30,11 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     tool: 'place',
     selectedCellId: null,
     message: '',
+    structureLocked: false,
+    editableGunCellIds: null,
+    primaryWeaponIds: null,
+    secondaryWeaponIds: null,
+    requireFilledLoadout: false,
   };
   const gridCount = VEHICLE_EDITOR_GRID_RADIUS * 2 + 1;
   const pad = 22;
@@ -75,6 +80,22 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
       populateLoadoutSelects();
       render();
     },
+    setDefinition(definition, configuration = {}) {
+      state.definition = cloneDefinition(definition ?? startingVehicleDefinition);
+      state.structureLocked = Boolean(configuration.structureLocked);
+      state.editableGunCellIds = Array.isArray(configuration.editableGunCellIds)
+        ? new Set(configuration.editableGunCellIds)
+        : null;
+      state.primaryWeaponIds = Array.isArray(configuration.primaryWeaponIds) ? [...configuration.primaryWeaponIds] : null;
+      state.secondaryWeaponIds = Array.isArray(configuration.secondaryWeaponIds) ? [...configuration.secondaryWeaponIds] : null;
+      state.requireFilledLoadout = Boolean(configuration.requireFilledLoadout);
+      state.selectedCellId = configuration.selectedCellId ?? null;
+      state.message = configuration.message ?? '';
+      state.tool = 'place';
+      shouldCenterScroll = true;
+      populateLoadoutSelects();
+      render();
+    },
     reset() {
       state.definition = cloneDefinition(startingVehicleDefinition);
       state.selectedCellId = null;
@@ -95,6 +116,16 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     const grid = eventToGrid(event);
     if (!grid) return;
     const cell = cellAt(grid.x, grid.y);
+    if (state.structureLocked) {
+      if (cell?.type === 'gun' && canEditGunCell(cell.id)) {
+        state.selectedCellId = cell.id;
+        state.message = `Selected ${cell.id}.`;
+      } else {
+        state.message = 'Lite mode uses a fixed vehicle. Choose weapons from the loadout controls.';
+      }
+      render();
+      return;
+    }
     if (state.tool === 'place') {
       if (cell?.type === 'gun') {
         state.selectedCellId = cell.id;
@@ -171,6 +202,15 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
   }
 
   function syncToolButtons() {
+    elements.partSelect.disabled = state.structureLocked;
+    for (const button of [
+      elements.placeButton,
+      elements.eraseButton,
+      elements.connectButton,
+      elements.disconnectButton,
+      elements.autoConnectButton,
+      elements.resetButton,
+    ]) button.disabled = state.structureLocked;
     elements.placeButton.setAttribute('aria-pressed', String(state.tool === 'place'));
     elements.eraseButton.setAttribute('aria-pressed', String(state.tool === 'erase'));
     elements.connectButton.setAttribute('aria-pressed', String(state.tool === 'connect'));
@@ -285,9 +325,11 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
 
   function populateLoadoutSelects() {
     for (const select of elements.loadoutSelects ?? []) {
-      const allowed = select.dataset.slotKind === 'primary' ? availablePrimaryWeaponIds(state.account) : availableSecondaryWeaponIds(state.account);
+      const allowed = select.dataset.slotKind === 'primary'
+        ? state.primaryWeaponIds ?? availablePrimaryWeaponIds(state.account)
+        : state.secondaryWeaponIds ?? availableSecondaryWeaponIds(state.account);
       const current = select.value;
-      select.replaceChildren(new Option('None', ''));
+      select.replaceChildren(...(state.requireFilledLoadout ? [] : [new Option('None', '')]));
       for (const id of allowed) select.append(new Option(labelForWeapon(id), id));
       if (current && !allowed.includes(current)) select.append(new Option(`${labelForWeapon(current)} (locked)`, current));
       select.value = current;
@@ -298,7 +340,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     const selectedCell = state.definition.cells.find((cell) => cell.id === state.selectedCellId);
     const selectedLoadout = normalizeGunLoadouts(state.definition).find((loadout) => loadout.cellId === state.selectedCellId);
     for (const select of elements.loadoutSelects ?? []) {
-      const enabled = selectedCell?.type === 'gun' && selectedLoadout;
+      const enabled = selectedCell?.type === 'gun' && selectedLoadout && canEditGunCell(selectedCell.id);
       select.disabled = !enabled;
       const value = enabled ? selectedLoadout[select.dataset.slotKind][Number(select.dataset.slotIndex)] ?? '' : '';
       if (value && ![...select.options].some((option) => option.value === value)) {
@@ -306,6 +348,10 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
       }
       select.value = value;
     }
+  }
+
+  function canEditGunCell(cellId) {
+    return !state.editableGunCellIds || state.editableGunCellIds.has(cellId);
   }
 
   function centerScrollIfNeeded() {

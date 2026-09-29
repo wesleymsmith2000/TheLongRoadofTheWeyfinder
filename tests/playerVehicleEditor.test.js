@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
+import liteStartingVehicleDefinition from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
 import { createPrototypePlayerAccountData, equipmentLimit, normalizePrototypePlayerAccountData, validatePlayerAccountData } from '../src/core/playerAccount.js';
 import {
   addEditableVehicleCell,
@@ -66,6 +67,24 @@ test('starting player vehicle content creates the default runtime vehicle', () =
   assert.equal(vehicle.alive, true);
   assert.equal(vehicle.cells.some((cell) => cell.type === 'core'), true);
   assert.equal(vehicle.cells.some((cell) => cell.type === 'utility'), true);
+  assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet']);
+});
+
+test('lite vehicle is connected and reserves defensive weapons outside its configurable loadout', () => {
+  const account = createPrototypePlayerAccountData();
+  const report = editableVehicleReport(liteStartingVehicleDefinition, account);
+  const loadouts = normalizeGunLoadouts(liteStartingVehicleDefinition);
+  const main = loadouts.find((loadout) => loadout.cellId === 'gun-main');
+  const support = loadouts.find((loadout) => loadout.cellId === 'gun-support');
+  const vehicle = createStartingVehicle(liteStartingVehicleDefinition);
+
+  assert.equal(report.valid, true);
+  assert.equal(vehicle.cells.length, 28);
+  assert.equal(vehicle.connections.length, 45);
+  assert.deepEqual(main.primary.slice(0, 2), ['main.basic', 'tracking_flechette']);
+  assert.deepEqual(main.secondary, ['rocket', 'cannon', 'beam']);
+  assert.equal(support.primary.includes('repulsor_beam'), true);
+  assert.equal(support.secondary.includes('tractor_beam'), true);
   assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet']);
 });
 
