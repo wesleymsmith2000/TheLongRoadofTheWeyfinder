@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "vortex_wavelet_beam",
+  "displayName": "Vortex Wavelet Beam",
+  "author": "Weyfinder prototype",
+  "provenance": "Locked convergence wavelet handoff v0.2.",
+  "canonStatus": "EXPERIMENTAL",
+  "tags": ["secondary", "beam", "spatial-field", "sandbox"],
+  "ammo": 4,
+  "heat": 60,
+  "cooldown": 12,
+  "projectile": {
+    "team": "player",
+    "weapon": "vortex_wavelet_beam",
+    "behavior": "beam",
+    "projectileSpeed": 0,
+    "radius": 3,
+    "damage": 45,
+    "impulse": 0,
+    "lifetime": 0.1,
+    "length": 520,
+    "frames": 6,
+    "pierce": 24,
+    "targetHint": "aimReticle"
+  },
+  "effect": {
+    "kind": "locked_convergence_wavelet",
+    "requiresExplicitTrigger": true,
+    "chargePulseHz": 5,
+    "chargeRampPower": 1,
+    "convergenceDamping": 5,
+    "pulseWidthScale": 0.32,
+    "shockwaveLagSeconds": 0.05,
+    "shockwaveMaxRadiusScale": 2.8,
+    "postFireGlobalLockoutSeconds": 0.9,
+    "gameplay": {
+      "chargePullAcceleration": 190,
+      "shockwaveImpulse": 320,
+      "frontPierceVoxels": 24,
+      "shockwaveDamage": 0
+    },
+    "visual": {
+      "lensingStrengthScale": 1,
+      "chromaticEdgeStrength": 0.35,
+      "opticalRingDecay": 1
+    },
+    "tiers": [
+      { "chargeDurationMs": 2200, "beamWidthPixels": 120, "frontSpeedPps": 1100, "rippleSpeedPps": 360, "nOscillations": 3, "maxStrengthPixels": 18, "frequencyMod": 0.12 },
+      { "chargeDurationMs": 2050, "beamWidthPixels": 132, "frontSpeedPps": 1200, "rippleSpeedPps": 390, "nOscillations": 3, "maxStrengthPixels": 20, "frequencyMod": 0.13 },
+      { "chargeDurationMs": 1900, "beamWidthPixels": 146, "frontSpeedPps": 1320, "rippleSpeedPps": 425, "nOscillations": 4, "maxStrengthPixels": 22, "frequencyMod": 0.14 },
+      { "chargeDurationMs": 1750, "beamWidthPixels": 162, "frontSpeedPps": 1450, "rippleSpeedPps": 465, "nOscillations": 4, "maxStrengthPixels": 25, "frequencyMod": 0.15 },
+      { "chargeDurationMs": 1600, "beamWidthPixels": 180, "frontSpeedPps": 1600, "rippleSpeedPps": 510, "nOscillations": 5, "maxStrengthPixels": 28, "frequencyMod": 0.16 }
+    ]
+  }
+}

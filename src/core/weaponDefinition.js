@@ -24,6 +24,7 @@ export function validateWeaponDefinition(definition) {
   if (definition.dependencies != null && !isStringArray(definition.dependencies)) warnings.push('dependencies should be an array of strings.');
 
   validateProjectile(definition.projectile, errors, warnings);
+  validateWeaponEffect(definition.effect, errors);
   if (definition.projectile?.behavior === 'beam' && (definition.projectile.length ?? 0) <= 0) {
     warnings.push('Beam weapon has no positive length.');
   }
@@ -100,7 +101,35 @@ export function runtimeWeaponDefinition(definition) {
     sprite: cloneSpriteDescriptor(projectile.sprite),
     landingMarkerSprite: cloneSpriteDescriptor(projectile.landingMarkerSprite),
     zCollision: Boolean(projectile.zCollision),
+    effect: definition.effect ? structuredClone(definition.effect) : null,
   };
+}
+
+function validateWeaponEffect(effect, errors) {
+  if (effect == null) return;
+  if (!isPlainObject(effect)) {
+    errors.push('effect must be an object when provided.');
+    return;
+  }
+  if (effect.kind !== 'locked_convergence_wavelet') {
+    errors.push('effect.kind must be locked_convergence_wavelet.');
+    return;
+  }
+  if (effect.requiresExplicitTrigger !== true) errors.push('locked convergence wavelet effects must require an explicit trigger.');
+  if (!Array.isArray(effect.tiers) || effect.tiers.length === 0) {
+    errors.push('locked convergence wavelet effects require at least one tier.');
+    return;
+  }
+  effect.tiers.forEach((tier, index) => {
+    if (!isPlainObject(tier)) {
+      errors.push(`effect.tiers[${index}] must be an object.`);
+      return;
+    }
+    validateNumber(tier.chargeDurationMs, `effect.tiers[${index}].chargeDurationMs`, errors, { min: 1 });
+    validateNumber(tier.beamWidthPixels, `effect.tiers[${index}].beamWidthPixels`, errors, { min: 1 });
+    validateNumber(tier.frontSpeedPps, `effect.tiers[${index}].frontSpeedPps`, errors, { min: 1 });
+    validateNumber(tier.rippleSpeedPps, `effect.tiers[${index}].rippleSpeedPps`, errors, { min: 1 });
+  });
 }
 
 function validateProjectile(projectile, errors, warnings) {

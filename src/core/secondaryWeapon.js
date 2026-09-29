@@ -8,14 +8,17 @@ import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
 import { normalizeGunLoadouts, usableSecondaryWeaponIds, utilityModuleCellIds } from './weaponLoadout.js';
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import { hasTargetingComputer, secondaryTargetingReticleKey, targetingReticleForSecondary } from './targetingComputers.js';
+import { activePlayerWaveletField, createSpatialWaveletField } from './spatialWaveletBeam.js';
+import { weaponFireBlocked } from './weaponInterlock.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
 import tractorBeamDefinition from '../../content/weapons/tractor_beam.json' with { type: 'json' };
 import staMissileDefinition from '../../content/weapons/sta_missile.json' with { type: 'json' };
 import orbOfBladesDefinition from '../../content/weapons/orb_of_blades.json' with { type: 'json' };
+import vortexWaveletBeamDefinition from '../../content/weapons/vortex_wavelet_beam.json' with { type: 'json' };
 
-export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam', 'tractor_beam', 'sta_missile', 'orb_of_blades'];
+export const SECONDARY_WEAPONS = ['none', 'rocket', 'cannon', 'beam', 'tractor_beam', 'sta_missile', 'orb_of_blades', 'vortex_wavelet_beam'];
 
 export const SECONDARY_DEFINITIONS = {
   none: { ammo: Infinity, heat: 0, cooldown: 0, projectileSpeed: 0, damage: 0, radius: 0, impulse: 0 },
@@ -25,6 +28,7 @@ export const SECONDARY_DEFINITIONS = {
   tractor_beam: { ...runtimeWeaponDefinition(tractorBeamDefinition), ammo: Infinity },
   sta_missile: runtimeWeaponDefinition(staMissileDefinition),
   orb_of_blades: runtimeWeaponDefinition(orbOfBladesDefinition),
+  vortex_wavelet_beam: runtimeWeaponDefinition(vortexWaveletBeamDefinition),
 };
 
 const SECONDARY_PROJECTILE_VISUAL_UPGRADES = {
@@ -55,6 +59,7 @@ const SECONDARY_PROJECTILE_VISUAL_UPGRADES = {
   beam: ['beamHeatEfficiency', 'beamHeatSink', 'beamAmmo', 'beamDamage', 'beamLength', 'beamPierce', 'beamWidth', 'beamFireTime', 'beamFireRate'],
   sta_missile: ['staMissileAmmo', 'staMissileImpactDamage', 'staMissileBlastDamage', 'staMissileBlastRadius'],
   orb_of_blades: ['orbOfBladesAmmo', 'orbOfBladesEmissionRate', 'orbOfBladesBladeDamage', 'orbOfBladesBladesPerCycle', 'orbOfBladesBladeKnockback'],
+  vortex_wavelet_beam: ['waveletTier'],
 };
 
 export function createSecondaryState(vehicleDefinition = null) {
@@ -68,6 +73,7 @@ export function createSecondaryState(vehicleDefinition = null) {
       tractor_beam: Infinity,
       sta_missile: secondaryAmmoCapacity('sta_missile', vehicleDefinition),
       orb_of_blades: secondaryAmmoCapacity('orb_of_blades', vehicleDefinition),
+      vortex_wavelet_beam: secondaryAmmoCapacity('vortex_wavelet_beam', vehicleDefinition),
     },
     ammoBonus: {},
     heat: 0,
@@ -80,29 +86,36 @@ export function createSecondaryState(vehicleDefinition = null) {
 export function stepSecondaryWeapon(game, input, dt) {
   const secondary = game.secondary;
   const selectableWeapons = ['none', ...usableSecondaryWeaponIds(game.vehicleDefinition)];
-  if (input.secondarySelect && selectableWeapons.includes(input.secondarySelect)) secondary.selected = input.secondarySelect;
-  if (input.secondaryCycle) cycleSecondary(secondary, input.secondaryCycle, selectableWeapons);
+  const committedField = activePlayerWaveletField(game);
+  if (!committedField && input.secondarySelect && selectableWeapons.includes(input.secondarySelect)) secondary.selected = input.secondarySelect;
+  if (!committedField && input.secondaryCycle) cycleSecondary(secondary, input.secondaryCycle, selectableWeapons);
   if (!selectableWeapons.includes(secondary.selected)) secondary.selected = selectableWeapons[1] ?? 'none';
   secondary.autofire = Boolean(input.secondaryAutofire);
   const fireRateScale = Math.max(0, game.obstacleEffects?.secondaryFireRateScale ?? 1);
   secondary.cooldown = Math.max(0, secondary.cooldown - dt * fireRateScale);
   secondary.heat = Math.max(0, secondary.heat - heatSinkRate(game) * dt);
+  if (committedField || weaponFireBlocked(game)) return false;
   if (secondary.selected === 'none') return false;
   if (fireRateScale <= 0) return false;
-  if (!input.secondaryFirePressed && !(secondary.autofire && game.enemies.some((enemy) => !enemy.destroyed))) return false;
+  const definition = upgradedSecondaryDefinition(game, secondary.selected);
+  const automaticTrigger = secondary.autofire && game.enemies.some((enemy) => !enemy.destroyed);
+  if (!input.secondaryFirePressed && !(automaticTrigger && !definition?.effect?.requiresExplicitTrigger)) return false;
   return fireSecondary(game);
 }
 
 export function fireSecondary(game) {
   const secondary = game.secondary;
   const def = upgradedSecondaryDefinition(game, secondary.selected);
-  if (!def || secondary.cooldown > 0 || secondary.heat + def.heat > secondary.maxHeat) return false;
+  if (!def || weaponFireBlocked(game) || activePlayerWaveletField(game) || secondary.cooldown > 0 || secondary.heat + def.heat > secondary.maxHeat) return false;
   if ((secondary.ammo[secondary.selected] ?? 0) <= 0) return false;
   const muzzle = secondaryMuzzleWorld(game, secondary.selected);
   if (!muzzle) return false;
   const independentTargeting = game.targetingMode === 'guided' && hasTargetingComputer(game, secondary.selected);
   const targetingReticleKey = independentTargeting ? secondaryTargetingReticleKey(secondary.selected) : null;
   const aimReticle = independentTargeting ? targetingReticleForSecondary(game, secondary.selected) : game.aimReticle;
+  if (def.effect?.kind === 'locked_convergence_wavelet') {
+    return fireSpatialWavelet(game, muzzle, def, aimReticle);
+  }
   const targetHint = (def.targetHint === 'aimReticle' || def.behavior === 'beam') && aimReticle ? { x: aimReticle.x, y: aimReticle.y } : null;
   const angle =
     targetHint && def.detonateAtTarget
@@ -191,6 +204,32 @@ export function fireSecondary(game) {
   return true;
 }
 
+function fireSpatialWavelet(game, muzzle, def, aimReticle) {
+  const target = aimReticle
+    ? { x: aimReticle.x, y: aimReticle.y }
+    : { x: muzzle.x + Math.cos(game.vehicle.turretHeading) * def.length, y: muzzle.y + Math.sin(game.vehicle.turretHeading) * def.length };
+  const field = createSpatialWaveletField({
+    origin: muzzle,
+    target,
+    length: def.length,
+    effect: def.effect,
+    tier: level(game, 'waveletTier'),
+    cooldown: def.cooldown,
+    frontDamage: def.damage,
+    sourceCellId: muzzle.cellId,
+    sourceWeaponId: def.id,
+    team: 'player',
+  });
+  game.spatialFields ??= [];
+  game.spatialFields.push(field);
+  game.secondary.waveletCommitment = field.id;
+  if (Number.isFinite(game.secondary.ammo[def.id])) game.secondary.ammo[def.id] -= 1;
+  game.secondary.heat += def.heat;
+  emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_WEAPON_FIRE, { weapon: def.id, intensity: 0.3, durationMs: 120 });
+  emitSoundEvent(game, SOUND_EVENTS.PLAYER_BEAM);
+  return true;
+}
+
 function secondaryMuzzleWorld(game, weaponId) {
   if (weaponId === 'tractor_beam') {
     const utilityMuzzle = moduleMuzzlesWorld(
@@ -229,7 +268,7 @@ export function secondaryAmmoCopyMultiplier(vehicleDefinition, weapon) {
 export function secondaryAimProfile(game, weapon = game?.secondary?.selected) {
   const def = upgradedSecondaryDefinition(game, weapon);
   if (!def) return null;
-  const directReticleWeapon = ['beam', 'tractor_beam', 'sta_missile', 'orb_of_blades'].includes(weapon);
+  const directReticleWeapon = ['beam', 'tractor_beam', 'sta_missile', 'orb_of_blades', 'vortex_wavelet_beam'].includes(weapon);
   return {
     weaponId: weapon,
     projectileSpeed: def.behavior === 'beam' ? 1_000_000 : Math.max(1, def.maxSpeed ?? def.projectileSpeed ?? 1),

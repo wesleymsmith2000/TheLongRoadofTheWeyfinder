@@ -78,6 +78,7 @@ export const UPGRADE_DEFINITIONS = [
   { id: 'orbOfBladesBladeDamage', label: 'Orb Of Blades Blade Damage', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
   { id: 'orbOfBladesBladesPerCycle', label: 'Orb Of Blades Blades Per Cycle', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
   { id: 'orbOfBladesBladeKnockback', label: 'Orb Of Blades Blade Knockback', system: 'Orb Of Blades', requires: { module: 'gun', secondary: 'orb_of_blades' } },
+  { id: 'waveletTier', label: 'Wavelet Field Tier', system: 'Vortex Wavelet Beam', requires: { module: 'gun', secondary: 'vortex_wavelet_beam' } },
   { id: 'mortarFireRate', label: 'Mortar Fire Rate', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
   { id: 'mortarImpactDamage', label: 'Mortar Impact Damage', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
   { id: 'mortarBlastDamage', label: 'Mortar Blast Damage', system: 'Mortar', requires: { module: 'gun', primary: 'mortar' } },
@@ -218,6 +219,7 @@ function weaponInstalled(vehicleDefinition, slotKind, weaponId) {
       'tracking_flechette',
       'sta_missile',
       'orb_of_blades',
+      'vortex_wavelet_beam',
     ].includes(weaponId);
   }
   return normalizeGunLoadouts(vehicleDefinition).some((loadout) => loadout[slotKind].includes(weaponId));

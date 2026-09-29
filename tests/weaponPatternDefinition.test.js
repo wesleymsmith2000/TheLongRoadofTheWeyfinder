@@ -11,6 +11,7 @@ import tractorBeamDefinition from '../content/weapons/tractor_beam.json' with { 
 import repulsorBeamDefinition from '../content/weapons/repulsor_beam.json' with { type: 'json' };
 import staMissileDefinition from '../content/weapons/sta_missile.json' with { type: 'json' };
 import orbOfBladesDefinition from '../content/weapons/orb_of_blades.json' with { type: 'json' };
+import vortexWaveletBeamDefinition from '../content/weapons/vortex_wavelet_beam.json' with { type: 'json' };
 import exampleTrackingFlechetteDefinition from '../content/examples/prototype0-module-set/weapons/example.tracking_flechette.json' with { type: 'json' };
 import exampleStaMissileDefinition from '../content/examples/prototype0-module-set/weapons/example.sta_missile.json' with { type: 'json' };
 import exampleOrbOfBladesDefinition from '../content/examples/prototype0-module-set/weapons/example.orb_of_blades.json' with { type: 'json' };
@@ -37,6 +38,7 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
     repulsorBeamDefinition,
     staMissileDefinition,
     orbOfBladesDefinition,
+    vortexWaveletBeamDefinition,
   ]) {
     const report = validateWeaponDefinition(definition);
     assert.equal(report.valid, true);
@@ -78,6 +80,9 @@ test('canon secondary weapon assets validate and normalize for runtime use', () 
   assert.equal(blade.ricochetFactor, 0.5);
   assert.equal(blade.projectileDeflectionProbability, 0.25);
   assert.equal(blade.spinRate, 15);
+  const wavelet = runtimeWeaponDefinition(vortexWaveletBeamDefinition);
+  assert.equal(wavelet.effect.kind, 'locked_convergence_wavelet');
+  assert.equal(wavelet.effect.requiresExplicitTrigger, true);
 });
 
 test('weapon validation rejects unavailable projectile behavior', () => {

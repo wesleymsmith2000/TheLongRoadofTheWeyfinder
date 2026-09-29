@@ -1,5 +1,5 @@
 export const PRIMARY_WEAPON_IDS = ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam'];
-export const SECONDARY_WEAPON_IDS = ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'];
+export const SECONDARY_WEAPON_IDS = ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades', 'vortex_wavelet_beam'];
 export const COMBAT_UTILITY_IDS = ['repulsor_beam', 'tractor_beam'];
 export const MAX_PRIMARY_SLOTS = 4;
 export const MAX_SECONDARY_SLOTS = 3;

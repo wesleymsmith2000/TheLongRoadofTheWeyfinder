@@ -219,7 +219,7 @@ test('installed secondary weapon catalog only exposes weapons present in gun loa
 test('prototype account exposes only unlocked player weapon choices', () => {
   const account = createPrototypePlayerAccountData();
   assert.deepEqual(availablePrimaryWeaponIds(account), ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam']);
-  assert.deepEqual(availableSecondaryWeaponIds(account), ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades']);
+  assert.deepEqual(availableSecondaryWeaponIds(account), ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades', 'vortex_wavelet_beam']);
   account.weaponUnlocks.primary.push('mortar');
   account.weaponUnlocks.secondary.push('sta_missile');
   assert.equal(availablePrimaryWeaponIds(account).includes('mortar'), true);

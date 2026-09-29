@@ -26,7 +26,7 @@ export function createPrototypePlayerAccountData() {
     achievements: { unlocked: [] },
     weaponUnlocks: {
       primary: ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam'],
-      secondary: ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'],
+      secondary: ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades', 'vortex_wavelet_beam'],
     },
     moduleUnlocks: [],
     modules: {},

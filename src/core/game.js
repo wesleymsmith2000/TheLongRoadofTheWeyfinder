@@ -69,6 +69,8 @@ import { createTerrainState, updateTerrainStreaming } from './terrainStreaming.j
 import { createProceduralMusicState, setProceduralMusicBaseTrack, stepProceduralMusic } from './proceduralMusic.js';
 import { normalizeGunLoadouts, utilityModuleCellIds, utilityModuleInstalled } from './weaponLoadout.js';
 import { createWeaponBayState } from './weaponBay.js';
+import { carrySpatialFields, stepSpatialFields } from './spatialWaveletBeam.js';
+import { createWeaponInterlock, stepWeaponInterlock, weaponFireBlocked } from './weaponInterlock.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, sandboxDefinitionFromLevel, validateSandboxDefinition } from './sandboxMode.js';
 import { createProceduralRoadRoute, roadRouteLength } from './roadRoute.js';
@@ -515,6 +517,7 @@ export function createGame(seed = 1147, options = {}) {
     pendingEnemyMortarShells: [],
     harpoonShots: [],
     smokeParticles: [],
+    spatialFields: [],
     soundEvents: [],
     hapticEvents: [],
     animationEvents: [],
@@ -528,6 +531,7 @@ export function createGame(seed = 1147, options = {}) {
     playerDefensiveFireTimer: 0,
     playerGunIndex: 0,
     playerDefensiveGunIndex: 0,
+    weaponInterlock: createWeaponInterlock(),
     levelComplete: false,
     victoryBanner: null,
     traversal,
@@ -632,6 +636,7 @@ export function stepGame(game, input, dt) {
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
   stepEnemies(game, dt);
   stepPendingEnemyMortarShells(game, dt);
+  stepWeaponInterlock(game, dt);
   stepPlayerGun(game, dt);
   handleBoostRams(game);
   handleBoostShieldRepel(game, dt);
@@ -647,6 +652,7 @@ export function stepGame(game, input, dt) {
   lockEnemyStaMissileDescents(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   syncEnemyBeamProjectiles(game);
+  stepSpatialFields(game, dt, { onEnemyDestroyed: (enemy) => explodeEnemy(game, enemy) });
   stepGroundBeamScorchParticles(game, dt);
   const livePlayerCellsBeforeDamage = countLiveAttachedVehicleCells(game.vehicle);
   const livePlayerVoxelHealthBeforeDamage = countLiveAttachedVehicleVoxelHealth(game.vehicle);
@@ -950,6 +956,9 @@ export function startNextLevel(game) {
   game.enemyProjectiles = [];
   game.harpoonShots = [];
   game.smokeParticles = [];
+  game.spatialFields = [];
+  game.secondary.waveletCommitment = null;
+  game.weaponInterlock = createWeaponInterlock();
   game.soundEvents = [];
   game.hapticEvents = [];
   game.animationEvents = [];
@@ -978,6 +987,9 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.enemyProjectiles = [];
   game.harpoonShots = [];
   game.smokeParticles = [];
+  game.spatialFields = [];
+  game.secondary.waveletCommitment = null;
+  game.weaponInterlock = createWeaponInterlock();
   game.scrapPickups = [];
   game.soundEvents = [];
   game.hapticEvents = [];
@@ -1891,6 +1903,7 @@ function carryRoadObjects(game, delta) {
     object.x += delta.dx;
     object.y += delta.dy;
   }
+  carrySpatialFields(game.spatialFields, delta.dx, delta.dy);
 }
 
 function activeEnemyHarpoonPowerup(enemy) {
@@ -2539,6 +2552,7 @@ function stepPlayerGun(game, dt) {
   const fireRateScale = Math.max(0, game.obstacleEffects?.primaryFireRateScale ?? 1);
   game.playerFireTimer = Math.max(0, (game.playerFireTimer ?? 0) - dt * fireRateScale);
   game.playerDefensiveFireTimer = Math.max(0, (game.playerDefensiveFireTimer ?? 0) - dt);
+  if (weaponFireBlocked(game)) return;
   if (fireRateScale <= 0 || (!game.autofire && !game.inputFireHeld) || game.gameOver) return;
   stepUtilityRepulsor(game);
   if (!hasFunctionalGun(game.vehicle)) return;

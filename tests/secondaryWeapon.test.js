@@ -8,6 +8,7 @@ import { stepProjectiles } from '../src/core/projectile.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 import { consumeSoundEvents, SOUND_EVENTS } from '../src/core/soundEvents.js';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
+import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
 
 test('secondary weapon can be fired manually and spends ammo', () => {
   const game = createGame();
@@ -23,6 +24,28 @@ test('secondary weapon can cycle selection', () => {
   const game = createGame();
   stepSecondaryWeapon(game, { secondaryCycle: 1 }, 0.016);
   assert.equal(game.secondary.selected, 'cannon');
+});
+
+test('wavelet secondary requires an explicit trigger and locks its firing path', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'secondary', 0, 'vortex_wavelet_beam').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  const target = { x: game.vehicle.x + 180, y: game.vehicle.y - 35 };
+  game.aimReticle = target;
+  game.enemies = [createEnemy(target.x, target.y)];
+
+  stepSecondaryWeapon(game, { secondaryAutofire: true }, 1 / 60);
+  assert.equal(game.spatialFields.length, 0);
+
+  stepSecondaryWeapon(game, { secondaryFirePressed: true }, 1 / 60);
+  assert.equal(game.spatialFields.length, 1);
+  assert.deepEqual(game.spatialFields[0].lockedTarget, target);
+  assert.equal(game.playerProjectiles.length, 0);
+  assert.equal(game.secondary.ammo.vortex_wavelet_beam, 5);
+
+  game.aimReticle = { x: target.x - 300, y: target.y + 200 };
+  stepSecondaryWeapon(game, { secondaryCycle: 1, secondaryFirePressed: true }, 1 / 60);
+  assert.equal(game.secondary.selected, 'vortex_wavelet_beam');
+  assert.deepEqual(game.spatialFields[0].lockedTarget, target);
 });
 
 test('secondary selection and cycling are limited to weapons installed on the vehicle', () => {

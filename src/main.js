@@ -34,6 +34,7 @@ import {
   SECONDARY_WEAPON_IDS,
   migrateLegacyCombatUtilities,
   normalizeGunLoadouts,
+  setGunLoadoutSlot,
   usableSecondaryWeaponIds,
 } from './core/weaponLoadout.js';
 import {
@@ -2157,6 +2158,28 @@ function exposeSandboxApi() {
       const result = configureSandboxLoadout(game, options);
       refreshSandboxLoadoutOptions();
       return { ok: true, ...structuredClone(result) };
+    },
+    weapons() {
+      return {
+        primary: [...PRIMARY_WEAPON_IDS],
+        secondary: [...SECONDARY_WEAPON_IDS],
+      };
+    },
+    equipWeapon(weaponId, options = {}) {
+      if (!game.sandbox?.enabled) return { ok: false, error: 'Start a sandbox run before changing its weapons.' };
+      const slotKind = options.slotKind ?? (PRIMARY_WEAPON_IDS.includes(weaponId) ? 'primary' : 'secondary');
+      const catalog = slotKind === 'primary' ? PRIMARY_WEAPON_IDS : SECONDARY_WEAPON_IDS;
+      if (!catalog.includes(weaponId)) return { ok: false, error: `Unknown ${slotKind} weapon "${weaponId}".` };
+      const loadouts = normalizeGunLoadouts(game.vehicleDefinition);
+      const loadout = loadouts.find((entry) => entry.cellId === options.cellId) ?? loadouts[0];
+      if (!loadout) return { ok: false, error: 'The sandbox vehicle has no gun cell.' };
+      const requestedSlot = Number.isInteger(options.slotIndex) ? options.slotIndex : loadout[slotKind].findIndex((id) => id == null);
+      const slotIndex = requestedSlot >= 0 ? requestedSlot : 0;
+      const result = setGunLoadoutSlot(game.vehicleDefinition, loadout.cellId, slotKind, slotIndex, weaponId);
+      if (!result.changed) return { ok: false, error: result.reason };
+      game.vehicleDefinition = result.definition;
+      syncInstalledSecondaryControls(true);
+      return { ok: true, cellId: loadout.cellId, slotKind, slotIndex, weaponId };
     },
     repair(target = 'all') {
       if (!game.sandbox?.enabled) return { ok: false, error: 'Start a sandbox run before repairing its vehicle.' };

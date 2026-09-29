@@ -150,6 +150,7 @@ export class CanvasRenderer {
     drawHarpoonPowerups(ctx, game.enemies, game.time);
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics, this.cellSpriteCache, this.imageAssets, this.renderAssets);
     drawSmokeParticles(ctx, game.smokeParticles);
+    drawSpatialFields(ctx, game.spatialFields, game.time);
     if (!diagnostics.noProjectileRender) {
       drawHarpoonShots(ctx, game.harpoonShots, game.time, this.imageAssets);
       drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
@@ -162,6 +163,93 @@ export class CanvasRenderer {
     ctx.restore();
     if (!diagnostics.disableDynamicLighting) drawDynamicLightingComposite(ctx, game, w, h, this.lightBuffer, diagnostics);
     if (debug.visible) drawDebugOverlay(ctx, game);
+  }
+}
+
+function drawSpatialFields(ctx, fields = [], time = 0) {
+  for (const field of fields) {
+    if (field.kind !== 'locked_convergence_wavelet') continue;
+    const ux = Math.cos(field.lockedAngle);
+    const uy = Math.sin(field.lockedAngle);
+    const nx = -uy;
+    const ny = ux;
+    const config = field.config;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    if (field.state === 'CHARGING') {
+      const charge = Math.min(1, field.chargeElapsed / config.chargeDurationSeconds);
+      const pulse = 0.55 + Math.sin(time * Math.PI * 2 * config.chargePulseHz) ** 2 * 0.45;
+      ctx.globalAlpha = (0.2 + charge * 0.48) * pulse;
+      ctx.strokeStyle = '#6be8ff';
+      ctx.lineWidth = 1.5 + charge * 2;
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(field.lockedOrigin.x + nx * config.captureHalfWidth * side, field.lockedOrigin.y + ny * config.captureHalfWidth * side);
+        ctx.lineTo(
+          field.lockedOrigin.x + ux * field.length + nx * config.captureHalfWidth * side,
+          field.lockedOrigin.y + uy * field.length + ny * config.captureHalfWidth * side,
+        );
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.28 + charge * 0.62;
+      ctx.strokeStyle = '#fff7d6';
+      ctx.lineWidth = 1 + charge * 3;
+      ctx.beginPath();
+      ctx.moveTo(field.lockedOrigin.x, field.lockedOrigin.y);
+      ctx.lineTo(field.lockedOrigin.x + ux * field.length, field.lockedOrigin.y + uy * field.length);
+      ctx.stroke();
+      drawWaveletConvergenceStreaks(ctx, field, charge, time, ux, uy, nx, ny);
+    } else if (field.state === 'DISCHARGING') {
+      const front = Math.min(field.length, field.pulseElapsed * config.frontSpeed);
+      const fx = field.lockedOrigin.x + ux * front;
+      const fy = field.lockedOrigin.y + uy * front;
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(3, config.pulseHalfWidth * 1.1);
+      ctx.beginPath();
+      ctx.moveTo(fx - nx * config.pulseHalfWidth * 1.8, fy - ny * config.pulseHalfWidth * 1.8);
+      ctx.lineTo(fx + nx * config.pulseHalfWidth * 1.8, fy + ny * config.pulseHalfWidth * 1.8);
+      ctx.stroke();
+      drawWaveletOpticalRings(ctx, field, ux, uy, nx, ny);
+    }
+    ctx.restore();
+  }
+}
+
+function drawWaveletConvergenceStreaks(ctx, field, charge, time, ux, uy, nx, ny) {
+  const count = 12;
+  ctx.strokeStyle = '#d65cff';
+  ctx.lineWidth = 1.2;
+  for (let index = 0; index < count; index += 1) {
+    const along = ((index + 0.35 + time * (0.6 + charge)) % count) / count * field.length;
+    const side = index % 2 === 0 ? -1 : 1;
+    const outer = field.config.captureHalfWidth * (0.82 + (index % 3) * 0.06);
+    const inner = outer * (0.35 - charge * 0.18);
+    ctx.globalAlpha = 0.15 + charge * 0.45;
+    ctx.beginPath();
+    ctx.moveTo(field.lockedOrigin.x + ux * along + nx * outer * side, field.lockedOrigin.y + uy * along + ny * outer * side);
+    ctx.lineTo(field.lockedOrigin.x + ux * (along + 14) + nx * inner * side, field.lockedOrigin.y + uy * (along + 14) + ny * inner * side);
+    ctx.stroke();
+  }
+}
+
+function drawWaveletOpticalRings(ctx, field, ux, uy, nx, ny) {
+  const config = field.config;
+  const cycleCount = Math.max(1, config.visualRingCycles);
+  for (let cycle = 0; cycle < cycleCount; cycle += 1) {
+    const age = field.pulseElapsed - cycle * 0.075;
+    if (age <= 0) continue;
+    const axial = Math.min(field.length, age * config.frontSpeed);
+    const radius = Math.min(config.shockwaveMaxRadius, Math.max(0, age * config.shockwaveSpeed));
+    const centerX = field.lockedOrigin.x + ux * axial;
+    const centerY = field.lockedOrigin.y + uy * axial;
+    ctx.globalAlpha = Math.max(0, 0.55 - cycle * 0.1 - age * 0.08);
+    ctx.strokeStyle = cycle % 2 === 0 ? '#6be8ff' : '#dc63ff';
+    ctx.lineWidth = Math.max(1, 3 - cycle * 0.35);
+    ctx.beginPath();
+    ctx.moveTo(centerX - nx * radius, centerY - ny * radius);
+    ctx.lineTo(centerX + nx * radius, centerY + ny * radius);
+    ctx.stroke();
   }
 }
 

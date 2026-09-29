@@ -122,7 +122,7 @@ export function gunMuzzleWorld(vehicle, aimHeading = vehicle.turretHeading) {
   const gun = activeGunCells(vehicle)[0];
   if (!gun) return null;
   const base = localToWorld({ x: gun.gridX * CELL_SIZE, y: gun.gridY * CELL_SIZE }, vehicle);
-  return { x: base.x + Math.cos(aimHeading) * CELL_SIZE * 0.72, y: base.y + Math.sin(aimHeading) * CELL_SIZE * 0.72 };
+  return { x: base.x + Math.cos(aimHeading) * CELL_SIZE * 0.72, y: base.y + Math.sin(aimHeading) * CELL_SIZE * 0.72, cellId: gun.id };
 }
 
 export function gunMuzzlesWorld(vehicle, aimHeading = vehicle.turretHeading) {
