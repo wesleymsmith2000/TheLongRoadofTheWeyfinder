@@ -1,5 +1,6 @@
-export const PRIMARY_WEAPON_IDS = ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam', 'repulsor_beam'];
-export const SECONDARY_WEAPON_IDS = ['rocket', 'cannon', 'beam', 'tractor_beam', 'sta_missile', 'orb_of_blades'];
+export const PRIMARY_WEAPON_IDS = ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam'];
+export const SECONDARY_WEAPON_IDS = ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades'];
+export const COMBAT_UTILITY_IDS = ['repulsor_beam', 'tractor_beam'];
 export const MAX_PRIMARY_SLOTS = 4;
 export const MAX_SECONDARY_SLOTS = 3;
 
@@ -58,6 +59,48 @@ export function installedPrimaryWeaponIds(definition) {
 
 export function installedSecondaryWeaponIds(definition) {
   return installedWeaponIds(definition, 'secondary', SECONDARY_WEAPON_IDS);
+}
+
+export function usableSecondaryWeaponIds(definition) {
+  const installed = installedSecondaryWeaponIds(definition);
+  if (utilityModuleInstalled(definition, 'tractor_beam')) installed.push('tractor_beam');
+  return [...new Set(installed)];
+}
+
+export function utilityModuleInstalled(definition, moduleId) {
+  if (!definition?.cells) return COMBAT_UTILITY_IDS.includes(moduleId);
+  const utilityCells = new Set(definition.cells.filter((cell) => cell.type === 'utility').map((cell) => cell.id));
+  return (definition.modules ?? []).some((module) =>
+    module.kind === 'utilitySlots' && utilityCells.has(module.cellId) && (module.slots ?? []).includes(moduleId),
+  );
+}
+
+export function utilityModuleCellIds(definition, moduleId) {
+  if (!definition?.cells) return [];
+  const utilityCells = new Set(definition.cells.filter((cell) => cell.type === 'utility').map((cell) => cell.id));
+  return (definition.modules ?? [])
+    .filter((module) => module.kind === 'utilitySlots' && utilityCells.has(module.cellId) && (module.slots ?? []).includes(moduleId))
+    .map((module) => module.cellId);
+}
+
+export function migrateLegacyCombatUtilities(definition) {
+  if (!definition?.cells) return definition;
+  const legacyRepulsor = (definition.gunLoadouts ?? []).some((loadout) => (loadout.primary ?? []).includes('repulsor_beam'));
+  const legacyTractor = (definition.gunLoadouts ?? []).some((loadout) => (loadout.secondary ?? []).includes('tractor_beam'));
+  if (!legacyRepulsor && !legacyTractor) return definition;
+  const next = cloneDefinition(definition);
+  next.gunLoadouts = normalizeGunLoadouts(next);
+  const utilityCell = next.cells.find((cell) => cell.type === 'utility');
+  if (!utilityCell) return next;
+  next.modules ??= [];
+  let slots = next.modules.find((module) => module.kind === 'utilitySlots' && module.cellId === utilityCell.id);
+  if (!slots) {
+    slots = { cellId: utilityCell.id, kind: 'utilitySlots', slots: [] };
+    next.modules.push(slots);
+  }
+  if (legacyRepulsor && !slots.slots.includes('repulsor_beam')) slots.slots.push('repulsor_beam');
+  if (legacyTractor && !slots.slots.includes('tractor_beam')) slots.slots.push('tractor_beam');
+  return next;
 }
 
 export function availablePrimaryWeaponIds(account) {

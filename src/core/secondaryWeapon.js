@@ -1,11 +1,11 @@
 import { createProjectile } from './projectile.js';
 import { compensatedAimHeading } from './turret.js';
-import { gunMuzzleWorld } from './vehicle.js';
+import { gunMuzzleWorld, moduleMuzzlesWorld } from './vehicle.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
-import { installedSecondaryWeaponIds, normalizeGunLoadouts } from './weaponLoadout.js';
+import { normalizeGunLoadouts, usableSecondaryWeaponIds, utilityModuleCellIds } from './weaponLoadout.js';
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import { hasTargetingComputer, secondaryTargetingReticleKey, targetingReticleForSecondary } from './targetingComputers.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
@@ -58,7 +58,7 @@ const SECONDARY_PROJECTILE_VISUAL_UPGRADES = {
 };
 
 export function createSecondaryState(vehicleDefinition = null) {
-  const installedWeapons = installedSecondaryWeaponIds(vehicleDefinition);
+  const installedWeapons = usableSecondaryWeaponIds(vehicleDefinition);
   return {
     selected: installedWeapons[0] ?? 'none',
     ammo: {
@@ -79,7 +79,7 @@ export function createSecondaryState(vehicleDefinition = null) {
 
 export function stepSecondaryWeapon(game, input, dt) {
   const secondary = game.secondary;
-  const selectableWeapons = ['none', ...installedSecondaryWeaponIds(game.vehicleDefinition)];
+  const selectableWeapons = ['none', ...usableSecondaryWeaponIds(game.vehicleDefinition)];
   if (input.secondarySelect && selectableWeapons.includes(input.secondarySelect)) secondary.selected = input.secondarySelect;
   if (input.secondaryCycle) cycleSecondary(secondary, input.secondaryCycle, selectableWeapons);
   if (!selectableWeapons.includes(secondary.selected)) secondary.selected = selectableWeapons[1] ?? 'none';
@@ -98,7 +98,7 @@ export function fireSecondary(game) {
   const def = upgradedSecondaryDefinition(game, secondary.selected);
   if (!def || secondary.cooldown > 0 || secondary.heat + def.heat > secondary.maxHeat) return false;
   if ((secondary.ammo[secondary.selected] ?? 0) <= 0) return false;
-  const muzzle = gunMuzzleWorld(game.vehicle);
+  const muzzle = secondaryMuzzleWorld(game, secondary.selected);
   if (!muzzle) return false;
   const independentTargeting = game.targetingMode === 'guided' && hasTargetingComputer(game, secondary.selected);
   const targetingReticleKey = independentTargeting ? secondaryTargetingReticleKey(secondary.selected) : null;
@@ -189,6 +189,17 @@ export function fireSecondary(game) {
   }
   emitSoundEvent(game, secondary.selected === 'beam' ? SOUND_EVENTS.PLAYER_BEAM : SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH);
   return true;
+}
+
+function secondaryMuzzleWorld(game, weaponId) {
+  if (weaponId === 'tractor_beam') {
+    const utilityMuzzle = moduleMuzzlesWorld(
+      game.vehicle,
+      utilityModuleCellIds(game.vehicleDefinition, 'tractor_beam'),
+    )[0];
+    if (utilityMuzzle) return utilityMuzzle;
+  }
+  return gunMuzzleWorld(game.vehicle);
 }
 
 function playerProjectileHeight(game, def) {

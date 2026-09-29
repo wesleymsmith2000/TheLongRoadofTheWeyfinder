@@ -1,4 +1,4 @@
-import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
+import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, moduleMuzzlesWorld, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
 import { stepVehicle, typedModulePower, vehicleMaxSpeed } from './physics.js';
 import { applyRocketHullDamage, createProjectile, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
@@ -67,7 +67,8 @@ import { createTerrainGenerator } from './terrainGenerator.js';
 import { sampleTerrain } from './terrainQuery.js';
 import { createTerrainState, updateTerrainStreaming } from './terrainStreaming.js';
 import { createProceduralMusicState, setProceduralMusicBaseTrack, stepProceduralMusic } from './proceduralMusic.js';
-import { normalizeGunLoadouts } from './weaponLoadout.js';
+import { normalizeGunLoadouts, utilityModuleCellIds, utilityModuleInstalled } from './weaponLoadout.js';
+import { createWeaponBayState } from './weaponBay.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, sandboxDefinitionFromLevel, validateSandboxDefinition } from './sandboxMode.js';
 import { createProceduralRoadRoute, roadRouteLength } from './roadRoute.js';
@@ -505,6 +506,7 @@ export function createGame(seed = 1147, options = {}) {
     incomingMarkers: [],
     boost: createBoostState(),
     secondary: createSecondaryState(vehicleDefinition),
+    weaponBay: createWeaponBayState(vehicleDefinition, options.runMode ?? 'normal'),
     upgrades: createUpgradeState(),
     scrap: 0,
     scrapPickups: [],
@@ -903,7 +905,10 @@ function finishLevel(game) {
   updateTargetingAiLevelGain(game);
   if (!game.sandbox?.enabled) {
     game.levelsCompleted = game.level;
-    if (isBossLevel(game.level, game.levelMusic)) game.bossLevelsCompleted += 1;
+    if (isBossLevel(game.level, game.levelMusic)) {
+      game.bossLevelsCompleted += 1;
+      game.weaponBay.available = true;
+    }
   }
   emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
 }
@@ -928,6 +933,7 @@ function victoryBannerHasPlayed(game) {
 export function startNextLevel(game) {
   game.level += 1;
   game.levelComplete = false;
+  game.weaponBay.available = false;
   game.levelTime = 0;
   game.levelStartTime = game.time;
   game.sandbox = null;
@@ -2533,10 +2539,11 @@ function stepPlayerGun(game, dt) {
   const fireRateScale = Math.max(0, game.obstacleEffects?.primaryFireRateScale ?? 1);
   game.playerFireTimer = Math.max(0, (game.playerFireTimer ?? 0) - dt * fireRateScale);
   game.playerDefensiveFireTimer = Math.max(0, (game.playerDefensiveFireTimer ?? 0) - dt);
-  if (fireRateScale <= 0 || (!game.autofire && !game.inputFireHeld) || game.gameOver || !hasFunctionalGun(game.vehicle)) return;
+  if (fireRateScale <= 0 || (!game.autofire && !game.inputFireHeld) || game.gameOver) return;
+  stepUtilityRepulsor(game);
+  if (!hasFunctionalGun(game.vehicle)) return;
   const mounts = primaryFiringMounts(game);
   if (mounts.length === 0) return;
-  stepDefensivePrimaryWeapons(game, mounts);
   if (!hasActiveOrInboundEnemies(game)) return;
   const activeWeaponSlots = primaryFiringWeaponSlotCount(mounts, 'offensive');
   if (activeWeaponSlots <= 0) return;
@@ -2552,6 +2559,18 @@ function stepPlayerGun(game, dt) {
   game.playerGunIndex = (startIndex + 1) % mounts.length;
   if (fired) game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots);
   else if (heatBlocked) game.playerFireTimer = primaryGunVisitInterval(game, activeWeaponSlots) * 0.5;
+}
+
+function stepUtilityRepulsor(game) {
+  if (!utilityModuleInstalled(game.vehicleDefinition, 'repulsor_beam')) return;
+  const cellIds = utilityModuleCellIds(game.vehicleDefinition, 'repulsor_beam');
+  const mounts = moduleMuzzlesWorld(game.vehicle, cellIds).map((muzzle) => ({
+    muzzle,
+    weapons: ['repulsor_beam'],
+    offensiveWeapons: [],
+    defensiveWeapons: [{ weaponId: 'repulsor_beam', slotIndex: 0 }],
+  }));
+  stepDefensivePrimaryWeapons(game, mounts);
 }
 
 function stepDefensivePrimaryWeapons(game, mounts) {
@@ -2936,18 +2955,12 @@ function primaryFiringMounts(game) {
   return muzzles.map((muzzle) => {
     const weapons = (loadouts.get(muzzle.cellId)?.primary ?? ['main.basic']).filter(Boolean);
     const entries = (weapons.length ? weapons : ['main.basic']).map((weaponId, slotIndex) => ({ weaponId, slotIndex }));
-    const offensiveWeapons = entries.filter((weapon) => !isDefensivePrimaryWeapon(weapon.weaponId));
-    const defensiveWeapons = entries.filter((weapon) => isDefensivePrimaryWeapon(weapon.weaponId));
-    return { muzzle, weapons: weapons.length ? weapons : ['main.basic'], offensiveWeapons, defensiveWeapons };
+    return { muzzle, weapons: weapons.length ? weapons : ['main.basic'], offensiveWeapons: entries, defensiveWeapons: [] };
   });
 }
 
 function primaryMountWeaponEntries(mount, queueKind = 'offensive') {
   return queueKind === 'defensive' ? mount?.defensiveWeapons ?? [] : mount?.offensiveWeapons ?? [];
-}
-
-function isDefensivePrimaryWeapon(weaponId) {
-  return weaponId === 'repulsor_beam';
 }
 
 function primaryFiringWeaponSlotCount(mounts, queueKind = 'offensive') {

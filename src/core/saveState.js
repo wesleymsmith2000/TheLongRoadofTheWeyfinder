@@ -2,6 +2,7 @@ import { CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isPlainObject } from
 import { hydrateEncounterRuntime, serializeEncounterRuntime } from './encounterRuntime.js';
 import { hydrateNavigationRuntime, serializeNavigationRuntime } from './navigationGraph.js';
 import { hydrateAnimationController, serializeAnimationController } from './animationGraph.js';
+import { normalizeWeaponBayState } from './weaponBay.js';
 
 export const SAVE_STATE_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const SAVE_STATE_KIND = 'weyfinder.prototype0.save';
@@ -20,6 +21,7 @@ export function createSaveState(game, playerAccount, options = {}) {
     scrap: game.scrap ?? 0,
     upgrades: structuredClone(game.upgrades ?? {}),
     secondary: structuredClone(game.secondary ?? {}),
+    weaponBay: structuredClone(game.weaponBay ?? null),
     score: structuredClone(game.score ?? {}),
     targetingMode: game.targetingMode ?? 'mixed',
     guidedTargetCellType: game.guidedTargetCellType ?? 'auto',
@@ -73,6 +75,7 @@ export function applySaveStateToGame(game, saveState) {
   game.scrap = positiveInteger(payload.scrap, 0);
   game.upgrades = isPlainObject(payload.upgrades) ? structuredClone(payload.upgrades) : game.upgrades;
   if (isPlainObject(payload.secondary)) game.secondary = structuredClone(payload.secondary);
+  game.weaponBay = normalizeWeaponBayState(payload.weaponBay, game.vehicleDefinition, game.runMode);
   game.score = isPlainObject(payload.score) ? structuredClone(payload.score) : game.score;
   game.targetingMode = typeof payload.targetingMode === 'string' ? payload.targetingMode : game.targetingMode;
   game.guidedTargetCellType = typeof payload.guidedTargetCellType === 'string' ? payload.guidedTargetCellType : game.guidedTargetCellType;

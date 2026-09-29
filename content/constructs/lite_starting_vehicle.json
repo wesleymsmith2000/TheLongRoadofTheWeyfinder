@@ -90,15 +90,15 @@
     },
     {
       "cellId": "gun-support",
-      "primary": ["repulsor_beam", null, null, null],
-      "secondary": ["tractor_beam", null, null]
+      "primary": [null, null, null, null],
+      "secondary": [null, null, null]
     }
   ],
   "modules": [
     {
       "cellId": "utility",
       "kind": "utilitySlots",
-      "slots": ["booster", "scrap_magnet"]
+      "slots": ["booster", "scrap_magnet", "repulsor_beam", "tractor_beam"]
     }
   ]
 }

@@ -34,9 +34,9 @@ test('secondary selection and cycling are limited to weapons installed on the ve
   assert.equal(game.secondary.selected, 'rocket');
 
   stepSecondaryWeapon(game, { secondaryCycle: 1 }, 0.016);
-  assert.equal(game.secondary.selected, 'none');
+  assert.equal(game.secondary.selected, 'tractor_beam');
   stepSecondaryWeapon(game, { secondaryCycle: 1 }, 0.016);
-  assert.equal(game.secondary.selected, 'rocket');
+  assert.equal(game.secondary.selected, 'none');
 });
 
 test('secondary state selects the first installed weapon instead of assuming rockets', () => {
@@ -148,7 +148,7 @@ test('beam stores a render endpoint when it hits an enemy voxel', () => {
   game.enemies[0].y = game.vehicle.y;
   fireSecondary(game);
   stepGame(game, { secondarySelect: 'beam', gunnerEnabled: false }, 0.016);
-  const beam = game.playerProjectiles.find((projectile) => projectile.behavior === 'beam');
+  const beam = game.playerProjectiles.find((projectile) => projectile.weapon === 'beam');
   const tracedLength = Math.hypot(beam.renderEndX - beam.x, beam.renderEndY - beam.y);
   assert.equal(tracedLength < beam.length, true);
 });
@@ -416,7 +416,7 @@ test('AI aimed beam fires through the visible reticle even before turret turn ca
 
   stepGame(game, { secondarySelect: 'beam', secondaryFirePressed: true, gunnerEnabled: true }, 1 / 60);
 
-  const beam = game.playerProjectiles.find((projectile) => projectile.behavior === 'beam');
+  const beam = game.playerProjectiles.find((projectile) => projectile.weapon === 'beam');
   assert.equal(Boolean(beam?.targetHint), true);
   assert.equal(game.aimReticle.source, 'ai');
   const dx = beam.targetHint.x - beam.x;
@@ -648,7 +648,6 @@ test('rocket and cannon detonate instead of vanishing when flight time expires',
 
 test('repulsor primary only fires when close threats are present and aims at them', () => {
   const definition = structuredClone(startingVehicleDefinition);
-  definition.gunLoadouts = [{ cellId: 'gun', primary: ['repulsor_beam'], secondary: ['rocket', null, null] }];
   const game = createGame(1147, { vehicleDefinition: definition });
   game.autofire = true;
   game.vehicle.turretHeading = Math.PI;
@@ -660,7 +659,7 @@ test('repulsor primary only fires when close threats are present and aims at the
   assert.equal(beam.forceMode, 'push');
   assert.equal(beam.alpha, 0.5);
   assert.equal(beam.impulse, 10.625);
-  assert.equal(game.primaryWeaponCooldowns['gun:0:repulsor_beam'] > 0.5, true);
+  assert.equal(game.primaryWeaponCooldowns['utility:0:repulsor_beam'] > 0.5, true);
   const expectedAngle = Math.atan2(game.enemies[0].y - beam.y, game.enemies[0].x - beam.x);
   const angleDelta = Math.atan2(Math.sin(expectedAngle - beam.angle), Math.cos(expectedAngle - beam.angle));
   assert.equal(Math.abs(angleDelta) < 0.001, true);
@@ -673,7 +672,7 @@ test('repulsor primary only fires when close threats are present and aims at the
   stepGame(upgradedGame, { gunnerEnabled: false }, 1 / 60);
   const upgradedBeam = upgradedGame.playerProjectiles.find((projectile) => projectile.weapon === 'repulsor_beam');
   assert.equal(upgradedBeam.impulse.toFixed(3), (85 * 0.125 * 1.05 ** 2).toFixed(3));
-  assert.equal(upgradedGame.primaryWeaponCooldowns['gun:0:repulsor_beam'] < game.primaryWeaponCooldowns['gun:0:repulsor_beam'], true);
+  assert.equal(upgradedGame.primaryWeaponCooldowns['utility:0:repulsor_beam'] < game.primaryWeaponCooldowns['utility:0:repulsor_beam'], true);
 
   const quietGame = createGame(1147, { vehicleDefinition: definition });
   quietGame.enemies = [];

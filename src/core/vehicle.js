@@ -137,6 +137,21 @@ export function gunMuzzlesWorld(vehicle, aimHeading = vehicle.turretHeading) {
   });
 }
 
+export function moduleMuzzlesWorld(vehicle, cellIds, aimHeading = vehicle.turretHeading) {
+  const allowed = new Set(cellIds ?? []);
+  return vehicle.cells
+    .filter((cell) => allowed.has(cell.id) && cell.attached && !cell.state.destroyed && cell.state.deviceIntegrity > 0.15)
+    .map((cell) => {
+      const base = localToWorld({ x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE }, vehicle);
+      return {
+        x: base.x + Math.cos(aimHeading) * CELL_SIZE * 0.72,
+        y: base.y + Math.sin(aimHeading) * CELL_SIZE * 0.72,
+        cellId: cell.id,
+        integrity: Math.min(cell.state.deviceIntegrity, cell.state.wiringIntegrity, cell.state.structureIntegrity),
+      };
+    });
+}
+
 function activeGunCells(vehicle) {
   return vehicle.cells.filter((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed && cell.state.deviceIntegrity > 0.15);
 }

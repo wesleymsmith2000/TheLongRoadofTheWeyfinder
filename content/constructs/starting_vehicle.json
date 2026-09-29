@@ -35,7 +35,7 @@
     {
       "cellId": "utility",
       "kind": "utilitySlots",
-      "slots": ["booster", "scrap_magnet"]
+      "slots": ["booster", "scrap_magnet", "repulsor_beam", "tractor_beam"]
     }
   ]
 }

@@ -27,7 +27,24 @@ import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPerformanceDiagnostics, installPerformanceDiagnosticsGlobal } from './debug/performanceConfig.js';
 import { createPerformanceMonitor } from './debug/performanceMonitor.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
-import { PRIMARY_WEAPON_IDS, SECONDARY_WEAPON_IDS, installedSecondaryWeaponIds } from './core/weaponLoadout.js';
+import {
+  MAX_PRIMARY_SLOTS,
+  MAX_SECONDARY_SLOTS,
+  PRIMARY_WEAPON_IDS,
+  SECONDARY_WEAPON_IDS,
+  migrateLegacyCombatUtilities,
+  normalizeGunLoadouts,
+  usableSecondaryWeaponIds,
+} from './core/weaponLoadout.js';
+import {
+  LITE_SLOT_UNLOCK_COST,
+  buildWeaponWithScrap,
+  swapWeaponSlot,
+  unlockLiteWeaponSlot,
+  weaponBayAvailable,
+  weaponBaySlotView,
+  weaponConstructionCost,
+} from './core/weaponBay.js';
 import { reconcileSelectOptions } from './ui/selectOptions.js';
 import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
 import { TARGETING_COMPUTER_DEFINITIONS, syncTargetingComputerUnlocks, targetingComputerUnlocks } from './core/targetingComputers.js';
@@ -406,8 +423,10 @@ const shopRepairTarget = document.querySelector('#shopRepairTarget');
 const shopAmmoSelect = document.querySelector('#shopAmmoSelect');
 const shopRepairTab = document.querySelector('#shopRepairTab');
 const shopUpgradeTab = document.querySelector('#shopUpgradeTab');
+const shopWeaponBayTab = document.querySelector('#shopWeaponBayTab');
 const shopRepairAmmoSection = document.querySelector('#shopRepairAmmoSection');
 const shopUpgradesSection = document.querySelector('#shopUpgradesSection');
+const shopWeaponBaySection = document.querySelector('#shopWeaponBaySection');
 const shopUpgradeSystemSelect = document.querySelector('#shopUpgradeSystemSelect');
 const shopUpgradeSelect = document.querySelector('#shopUpgradeSelect');
 const shopUpgradeSystemIcon = document.querySelector('#shopUpgradeSystemIcon');
@@ -420,6 +439,16 @@ const shopUpgradeCost = document.querySelector('#shopUpgradeCost');
 const shopUpgradeAllCost = document.querySelector('#shopUpgradeAllCost');
 const shopUpgradeStatus = document.querySelector('#shopUpgradeStatus');
 const upgradeSummary = document.querySelector('#upgradeSummary');
+const weaponBayCanvas = document.querySelector('#weaponBayCanvas');
+const weaponBayGunSelect = document.querySelector('#weaponBayGunSelect');
+const weaponBayKindSelect = document.querySelector('#weaponBayKindSelect');
+const weaponBaySlotSelect = document.querySelector('#weaponBaySlotSelect');
+const weaponBayWeaponSelect = document.querySelector('#weaponBayWeaponSelect');
+const weaponBayInventory = document.querySelector('#weaponBayInventory');
+const weaponBaySwapButton = document.querySelector('#weaponBaySwapButton');
+const weaponBayBuildButton = document.querySelector('#weaponBayBuildButton');
+const weaponBayUnlockButton = document.querySelector('#weaponBayUnlockButton');
+const weaponBayStatus = document.querySelector('#weaponBayStatus');
 const restartButton = document.querySelector('#restartButton');
 const levelName = document.querySelector('#levelName');
 const levelProgressFill = document.querySelector('#levelProgressFill');
@@ -461,6 +490,7 @@ let activeShopSection = 'repair';
 let secondaryControlsGame = null;
 let secondaryControlsSignature = '';
 const upgradeSummaryOpenState = new Map();
+let weaponBayHitCells = [];
 const frameAudioCounters = {
   audioPlayCalls: 0,
   enemyBulletSoundEvents: 0,
@@ -485,7 +515,7 @@ const IDLE_PERFORMANCE_COUNTERS = Object.freeze({
 const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
 
 let playerAccount = loadPlayerAccount();
-let playerVehicleDefinition = playerAccount.savedVehicle;
+let playerVehicleDefinition = migrateLegacyCombatUtilities(playerAccount.savedVehicle);
 let liteVehicleDefinition = structuredClone(liteStartingVehicleDefinition);
 let activeRunMode = 'normal';
 let game = createGame(1147, {
@@ -831,8 +861,10 @@ pauseSecondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 targetCellTypeSelect.addEventListener('change', () => { uiDirty.pause = true; });
 shopRepairTab.addEventListener('click', () => setShopSection('repair'));
 shopUpgradeTab.addEventListener('click', () => setShopSection('upgrades'));
+shopWeaponBayTab.addEventListener('click', () => setShopSection('weapons'));
 shopRepairTab.addEventListener('keydown', handleShopTabKeydown);
 shopUpgradeTab.addEventListener('keydown', handleShopTabKeydown);
+shopWeaponBayTab.addEventListener('keydown', handleShopTabKeydown);
 shopRepairTarget.addEventListener('change', markShopUiDirty);
 shopAmmoSelect.addEventListener('change', markShopUiDirty);
 shopUpgradeSystemSelect.addEventListener('change', () => {
@@ -840,6 +872,14 @@ shopUpgradeSystemSelect.addEventListener('change', () => {
   markShopUiDirty();
 });
 shopUpgradeSelect.addEventListener('change', markShopUiDirty);
+weaponBayGunSelect.addEventListener('change', refreshWeaponBayUi);
+weaponBayKindSelect.addEventListener('change', refreshWeaponBayUi);
+weaponBaySlotSelect.addEventListener('change', refreshWeaponBayUi);
+weaponBayWeaponSelect.addEventListener('change', refreshWeaponBayUi);
+weaponBaySwapButton.addEventListener('click', handleWeaponBaySwap);
+weaponBayBuildButton.addEventListener('click', handleWeaponBayBuild);
+weaponBayUnlockButton.addEventListener('click', handleWeaponBayUnlock);
+weaponBayCanvas.addEventListener('pointerdown', selectWeaponBayGunFromCanvas);
 controlConfigClose.addEventListener('click', closeControlConfig);
 controlConfigReset.addEventListener('click', resetControlBindings);
 sandboxQuickRun.addEventListener('click', runQuickSandbox);
@@ -968,11 +1008,13 @@ function markShopUiDirty() {
 }
 
 function setShopSection(section) {
-  activeShopSection = section === 'upgrades' ? 'upgrades' : 'repair';
+  activeShopSection = section === 'weapons' && weaponBayAvailable(game) ? 'weapons' : section === 'upgrades' ? 'upgrades' : 'repair';
   shopRepairAmmoSection.classList.toggle('hidden', activeShopSection !== 'repair');
   shopUpgradesSection.classList.toggle('hidden', activeShopSection !== 'upgrades');
+  shopWeaponBaySection.classList.toggle('hidden', activeShopSection !== 'weapons');
   shopRepairTab.setAttribute('aria-pressed', String(activeShopSection === 'repair'));
   shopUpgradeTab.setAttribute('aria-pressed', String(activeShopSection === 'upgrades'));
+  shopWeaponBayTab.setAttribute('aria-pressed', String(activeShopSection === 'weapons'));
   markShopUiDirty();
 }
 
@@ -983,9 +1025,11 @@ function blurActiveControl() {
 function handleShopTabKeydown(event) {
   if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
   event.preventDefault();
-  const nextSection = activeShopSection === 'repair' ? 'upgrades' : 'repair';
+  const sections = weaponBayAvailable(game) ? ['repair', 'upgrades', 'weapons'] : ['repair', 'upgrades'];
+  const direction = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+  const nextSection = sections[(Math.max(0, sections.indexOf(activeShopSection)) + direction + sections.length) % sections.length];
   setShopSection(nextSection);
-  const button = nextSection === 'repair' ? shopRepairTab : shopUpgradeTab;
+  const button = nextSection === 'repair' ? shopRepairTab : nextSection === 'upgrades' ? shopUpgradeTab : shopWeaponBayTab;
   button.focus();
   flashElementLabel(button, button.textContent.trim());
 }
@@ -1053,8 +1097,8 @@ function startLiteRun() {
     structureLocked: true,
     editableGunCellIds: ['gun-main'],
     selectedCellId: 'gun-main',
-    primaryWeaponIds: PRIMARY_WEAPON_IDS.filter((id) => id !== 'repulsor_beam'),
-    secondaryWeaponIds: SECONDARY_WEAPON_IDS.filter((id) => id !== 'tractor_beam'),
+    primaryWeaponIds: PRIMARY_WEAPON_IDS,
+    secondaryWeaponIds: SECONDARY_WEAPON_IDS,
     requireFilledLoadout: true,
     message: 'Lite vehicle shape is fixed. Choose two primary weapons and three secondary weapons; repulsor and tractor beams are included.',
   });
@@ -2832,7 +2876,7 @@ function iconSpan(descriptor) {
 }
 
 function syncInstalledSecondaryControls(force = false) {
-  const installed = installedSecondaryWeaponIds(game.vehicleDefinition);
+  const installed = usableSecondaryWeaponIds(game.vehicleDefinition);
   const signature = installed.join('|');
   if (!force && secondaryControlsGame === game && secondaryControlsSignature === signature) return;
   secondaryControlsGame = game;
@@ -2961,6 +3005,152 @@ function refreshUpgradeSummary() {
   );
 }
 
+function refreshWeaponBayUi() {
+  if (!weaponBayAvailable(game)) return;
+  const loadouts = normalizeGunLoadouts(game.vehicleDefinition);
+  const selectedCellId = loadouts.some((loadout) => loadout.cellId === weaponBayGunSelect.value)
+    ? weaponBayGunSelect.value
+    : loadouts[0]?.cellId;
+  reconcileSelectOptions(
+    weaponBayGunSelect,
+    loadouts.map((loadout, index) => ({ value: loadout.cellId, label: `Gun ${index + 1}: ${loadout.cellId}` })),
+    selectedCellId,
+  );
+  const slotKind = weaponBayKindSelect.value === 'secondary' ? 'secondary' : 'primary';
+  const maxSlots = slotKind === 'primary' ? MAX_PRIMARY_SLOTS : MAX_SECONDARY_SLOTS;
+  const selectedSlot = Math.min(maxSlots - 1, Math.max(0, Number(weaponBaySlotSelect.value) || 0));
+  reconcileSelectOptions(
+    weaponBaySlotSelect,
+    Array.from({ length: maxSlots }, (_, index) => {
+      const view = weaponBaySlotView(game, weaponBayGunSelect.value, slotKind, index);
+      const installed = view.weaponId ? secondaryWeaponLabel(view.weaponId) : 'Empty';
+      return { value: String(index), label: `Slot ${index + 1}: ${view.unlocked ? installed : 'Locked'}` };
+    }),
+    String(selectedSlot),
+  );
+  const catalog = slotKind === 'primary' ? PRIMARY_WEAPON_IDS : SECONDARY_WEAPON_IDS;
+  const selectedWeapon = catalog.includes(weaponBayWeaponSelect.value) ? weaponBayWeaponSelect.value : '';
+  reconcileSelectOptions(
+    weaponBayWeaponSelect,
+    [{ value: '', label: 'Empty slot' }, ...catalog.map((id) => ({
+      value: id,
+      label: `${secondaryWeaponLabel(id)} (${game.weaponBay.inventory[id] ?? 0} owned)`,
+      dataset: { icon: id },
+    }))],
+    selectedWeapon,
+  );
+
+  const slotIndex = Number(weaponBaySlotSelect.value) || 0;
+  const view = weaponBaySlotView(game, weaponBayGunSelect.value, slotKind, slotIndex);
+  const desired = weaponBayWeaponSelect.value || null;
+  const buildCost = desired ? weaponConstructionCost(game, desired) : Infinity;
+  const owned = desired ? game.weaponBay.inventory[desired] ?? 0 : 0;
+  weaponBaySwapButton.disabled = !view.unlocked || view.weaponId === desired || (desired && owned <= 0);
+  weaponBayBuildButton.disabled = !desired || !Number.isFinite(buildCost) || game.scrap < buildCost;
+  weaponBayBuildButton.textContent = desired ? `Construct (${Number.isFinite(buildCost) ? buildCost : '-'} scrap)` : 'Construct Weapon';
+  const showUnlock = game.runMode === 'lite' && !view.unlocked;
+  weaponBayUnlockButton.classList.toggle('hidden', !showUnlock);
+  weaponBayUnlockButton.disabled = !showUnlock || game.scrap < LITE_SLOT_UNLOCK_COST;
+  weaponBayUnlockButton.textContent = `Unlock Slot (${LITE_SLOT_UNLOCK_COST} scrap)`;
+  const inventory = Object.entries(game.weaponBay.inventory).filter(([, quantity]) => quantity > 0);
+  weaponBayInventory.replaceChildren(
+    Object.assign(document.createElement('strong'), { textContent: 'Inventory: ' }),
+    document.createTextNode(inventory.length
+      ? inventory.map(([id, quantity]) => `${secondaryWeaponLabel(id)} x${quantity}`).join(', ')
+      : 'No spare weapons'),
+  );
+  renderWeaponBayCraft(weaponBayGunSelect.value);
+}
+
+function handleWeaponBayBuild() {
+  const result = buildWeaponWithScrap(game, weaponBayWeaponSelect.value);
+  weaponBayStatus.textContent = result.changed
+    ? `${secondaryWeaponLabel(weaponBayWeaponSelect.value)} constructed and added to inventory.`
+    : result.reason;
+  markShopUiDirty();
+  refreshWeaponBayUi();
+}
+
+function handleWeaponBaySwap() {
+  const result = swapWeaponSlot(
+    game,
+    weaponBayGunSelect.value,
+    weaponBayKindSelect.value,
+    Number(weaponBaySlotSelect.value),
+    weaponBayWeaponSelect.value || null,
+  );
+  weaponBayStatus.textContent = result.changed
+    ? result.installed
+      ? `${secondaryWeaponLabel(result.installed)} installed${result.removed ? `; ${secondaryWeaponLabel(result.removed)} returned to inventory` : ''}.`
+      : `${secondaryWeaponLabel(result.removed)} returned to inventory.`
+    : result.reason;
+  if (result.changed) commitRestAreaVehicleDefinition();
+  markShopUiDirty();
+  refreshWeaponBayUi();
+}
+
+function handleWeaponBayUnlock() {
+  const result = unlockLiteWeaponSlot(
+    game,
+    weaponBayGunSelect.value,
+    weaponBayKindSelect.value,
+    Number(weaponBaySlotSelect.value),
+  );
+  weaponBayStatus.textContent = result.changed ? 'Weapon slot unlocked.' : result.reason;
+  markShopUiDirty();
+  refreshWeaponBayUi();
+}
+
+function commitRestAreaVehicleDefinition() {
+  const definition = structuredClone(game.vehicleDefinition);
+  if (game.runMode === 'lite') liteVehicleDefinition = definition;
+  else {
+    playerVehicleDefinition = definition;
+    playerAccount = preparePlayerAccountForSave(playerAccount, definition);
+    savePlayerAccount();
+  }
+  syncInstalledSecondaryControls(true);
+}
+
+function renderWeaponBayCraft(selectedCellId) {
+  const context = weaponBayCanvas.getContext('2d');
+  const cells = game.vehicleDefinition?.cells ?? [];
+  context.clearRect(0, 0, weaponBayCanvas.width, weaponBayCanvas.height);
+  if (cells.length === 0) return;
+  const minX = Math.min(...cells.map((cell) => cell.gridX));
+  const maxX = Math.max(...cells.map((cell) => cell.gridX));
+  const minY = Math.min(...cells.map((cell) => cell.gridY));
+  const maxY = Math.max(...cells.map((cell) => cell.gridY));
+  const cellSize = Math.min(34, (weaponBayCanvas.width - 32) / (maxX - minX + 1), (weaponBayCanvas.height - 32) / (maxY - minY + 1));
+  const offsetX = (weaponBayCanvas.width - (maxX - minX + 1) * cellSize) / 2;
+  const offsetY = (weaponBayCanvas.height - (maxY - minY + 1) * cellSize) / 2;
+  weaponBayHitCells = [];
+  for (const cell of cells) {
+    const x = offsetX + (cell.gridX - minX) * cellSize;
+    const y = offsetY + (cell.gridY - minY) * cellSize;
+    const isGun = cell.type === 'gun';
+    context.fillStyle = isGun ? '#b8643f' : cell.type === 'core' ? '#59bfc8' : '#70787a';
+    context.globalAlpha = isGun ? 1 : 0.62;
+    context.fillRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+    context.globalAlpha = 1;
+    context.lineWidth = cell.id === selectedCellId ? 3 : 1;
+    context.strokeStyle = cell.id === selectedCellId ? '#f7c06a' : '#171a1b';
+    context.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+    if (isGun) weaponBayHitCells.push({ cellId: cell.id, x, y, size: cellSize });
+  }
+}
+
+function selectWeaponBayGunFromCanvas(event) {
+  const bounds = weaponBayCanvas.getBoundingClientRect();
+  const x = (event.clientX - bounds.left) * weaponBayCanvas.width / Math.max(1, bounds.width);
+  const y = (event.clientY - bounds.top) * weaponBayCanvas.height / Math.max(1, bounds.height);
+  const hit = weaponBayHitCells.find((cell) => x >= cell.x && x <= cell.x + cell.size && y >= cell.y && y <= cell.y + cell.size);
+  if (!hit) return;
+  weaponBayGunSelect.value = hit.cellId;
+  refreshWeaponBayUi();
+  weaponBayGunSelect.focus();
+}
+
 function updateShopUi(dt = 0) {
   shopUpgradesSection.classList.toggle('lite-upgrades', game.runMode === 'lite');
   const visible = Boolean(game.levelComplete) && !awaitingLaunch && !titleActive;
@@ -2976,6 +3166,9 @@ function updateShopUi(dt = 0) {
       if (game.levelComplete && !awaitingLaunch && !titleActive) shopRepairTab.focus({ preventScroll: true });
     });
   }
+  const bayAvailable = weaponBayAvailable(game);
+  shopWeaponBayTab.classList.toggle('hidden', !bayAvailable);
+  if (!bayAvailable && activeShopSection === 'weapons') setShopSection('repair');
   uiTimers.shop += dt;
   if (!uiDirty.shop && uiTimers.shop < 0.25) return;
   uiDirty.shop = false;
@@ -3012,6 +3205,7 @@ function updateShopUi(dt = 0) {
     shopUpgradeLevel.textContent = '-';
   }
   refreshUpgradeSummary();
+  if (bayAvailable) refreshWeaponBayUi();
   shopRepairCost.textContent = selectedRepairCost;
   shopReplaceCost.textContent = selectedReplacementCost;
   shopAmmoCost.textContent = Number.isFinite(ammoCost) ? ammoCost : '-';

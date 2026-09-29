@@ -26,7 +26,7 @@ test('starting vehicle content asset validates and instantiates runtime cells', 
   assert.equal(construct.cells.length, 8);
   assert.equal(construct.connections.length, 7);
   assert.equal(construct.cells.some((cell) => cell.type === 'utility'), true);
-  assert.deepEqual(construct.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet']);
+  assert.deepEqual(construct.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet', 'repulsor_beam', 'tractor_beam']);
 });
 
 test('construct validation rejects incompatible schema versions', () => {

@@ -64,7 +64,7 @@ export function addEditableVehicleCell(definition, account, type, gridX, gridY, 
   next.cells.push({ id, type, gridX, gridY, ...(gridZ ? { gridZ } : {}) });
   if (type === 'utility') {
     next.modules ??= [];
-    next.modules.push({ cellId: id, kind: 'utilitySlots', slots: ['booster', 'scrap_magnet'] });
+    next.modules.push({ cellId: id, kind: 'utilitySlots', slots: ['booster', 'scrap_magnet', 'repulsor_beam', 'tractor_beam'] });
   }
   next.gunLoadouts = normalizeGunLoadouts(next);
   return { changed: true, definition: next };

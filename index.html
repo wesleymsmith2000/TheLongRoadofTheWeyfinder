@@ -1200,7 +1200,7 @@
 
       .shop-tabs {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
         min-width: 0;
       }
@@ -1226,6 +1226,56 @@
 
       .shop-section.hidden {
         display: none;
+      }
+
+      .weapon-bay-layout {
+        display: grid;
+        grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .weapon-bay-craft {
+        display: grid;
+        place-items: center;
+        min-width: 0;
+        min-height: 220px;
+        border: 1px solid rgb(244 238 228 / 0.16);
+        border-radius: 8px;
+        background: rgb(12 13 13 / 0.68);
+      }
+
+      #weaponBayCanvas {
+        width: 100%;
+        max-width: 360px;
+        height: auto;
+        aspect-ratio: 3 / 2;
+        background: transparent;
+      }
+
+      .weapon-bay-controls,
+      .weapon-bay-actions {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .weapon-bay-pair,
+      .weapon-bay-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .weapon-bay-status,
+      .weapon-bay-inventory {
+        min-width: 0;
+        padding: 8px;
+        color: #d7ceb8;
+        background: rgb(12 13 13 / 0.62);
+        overflow-wrap: anywhere;
+      }
+
+      .weapon-bay-inventory strong {
+        color: #f7c06a;
       }
 
       .shop-upgrade-row {
@@ -1991,8 +2041,15 @@
         }
 
         .shop-repair-grid,
-        .shop-upgrade-controls {
+        .shop-upgrade-controls,
+        .weapon-bay-layout,
+        .weapon-bay-pair,
+        .weapon-bay-actions {
           grid-template-columns: 1fr;
+        }
+
+        .weapon-bay-craft {
+          min-height: 170px;
         }
 
         .shop-upgrade-readout {
@@ -2335,6 +2392,7 @@
           <div class="shop-tabs" role="group" aria-label="Shop section">
             <button id="shopRepairTab" type="button" aria-pressed="true">Repair / Ammo</button>
             <button id="shopUpgradeTab" type="button" aria-pressed="false">Upgrades</button>
+            <button id="shopWeaponBayTab" class="hidden" type="button" aria-pressed="false">Weapon Bay</button>
           </div>
           <div id="shopRepairAmmoSection" class="shop-section">
             <div class="shop-repair-grid">
@@ -2404,6 +2462,43 @@
               </button>
             </div>
             <div id="upgradeSummary" class="upgrade-summary full-upgrade-control" aria-label="Upgrade levels"></div>
+          </div>
+          <div id="shopWeaponBaySection" class="shop-section hidden">
+            <div class="weapon-bay-layout">
+              <div class="weapon-bay-craft">
+                <canvas id="weaponBayCanvas" width="360" height="240" aria-label="Vehicle gun-cell layout"></canvas>
+              </div>
+              <div class="weapon-bay-controls">
+                <label class="shop-field" for="weaponBayGunSelect">
+                  <span>Gun cell</span>
+                  <select id="weaponBayGunSelect"></select>
+                </label>
+                <div class="weapon-bay-pair">
+                  <label class="shop-field" for="weaponBayKindSelect">
+                    <span>Slot type</span>
+                    <select id="weaponBayKindSelect">
+                      <option value="primary">Primary</option>
+                      <option value="secondary">Secondary</option>
+                    </select>
+                  </label>
+                  <label class="shop-field" for="weaponBaySlotSelect">
+                    <span>Weapon slot</span>
+                    <select id="weaponBaySlotSelect"></select>
+                  </label>
+                </div>
+                <label class="shop-field" for="weaponBayWeaponSelect">
+                  <span>Install or construct</span>
+                  <select id="weaponBayWeaponSelect"></select>
+                </label>
+                <div id="weaponBayInventory" class="weapon-bay-inventory" aria-live="polite"></div>
+                <div class="weapon-bay-actions">
+                  <button id="weaponBaySwapButton" type="button">Swap Weapon</button>
+                  <button id="weaponBayBuildButton" type="button">Construct Weapon</button>
+                  <button id="weaponBayUnlockButton" class="hidden" type="button">Unlock Slot</button>
+                </div>
+                <div id="weaponBayStatus" class="weapon-bay-status" role="status">Select a gun cell and slot.</div>
+              </div>
+            </div>
           </div>
         </div>
         <button id="nextLevelButton" type="button">Start Next Level</button>

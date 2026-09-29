@@ -67,7 +67,7 @@ test('starting player vehicle content creates the default runtime vehicle', () =
   assert.equal(vehicle.alive, true);
   assert.equal(vehicle.cells.some((cell) => cell.type === 'core'), true);
   assert.equal(vehicle.cells.some((cell) => cell.type === 'utility'), true);
-  assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet']);
+  assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet', 'repulsor_beam', 'tractor_beam']);
 });
 
 test('lite vehicle is connected and reserves defensive weapons outside its configurable loadout', () => {
@@ -83,9 +83,9 @@ test('lite vehicle is connected and reserves defensive weapons outside its confi
   assert.equal(vehicle.connections.length, 45);
   assert.deepEqual(main.primary.slice(0, 2), ['main.basic', 'tracking_flechette']);
   assert.deepEqual(main.secondary, ['rocket', 'cannon', 'beam']);
-  assert.equal(support.primary.includes('repulsor_beam'), true);
-  assert.equal(support.secondary.includes('tractor_beam'), true);
-  assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet']);
+  assert.equal(support.primary.every((weapon) => weapon == null), true);
+  assert.equal(support.secondary.every((weapon) => weapon == null), true);
+  assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet', 'repulsor_beam', 'tractor_beam']);
 });
 
 test('player vehicle definitions can use adjacent connected multi-cell cores', () => {
@@ -114,7 +114,7 @@ test('player vehicle editor adds default utility slots to utility cells', () => 
   const result = addEditableVehicleCell(startingVehicleDefinition, account, 'utility', -2, -1);
   const utility = result.definition.cells.find((cell) => cell.type === 'utility' && cell.gridX === -2 && cell.gridY === -1);
   assert.equal(result.changed, true);
-  assert.deepEqual(result.definition.modules.find((module) => module.cellId === utility.id)?.slots, ['booster', 'scrap_magnet']);
+  assert.deepEqual(result.definition.modules.find((module) => module.cellId === utility.id)?.slots, ['booster', 'scrap_magnet', 'repulsor_beam', 'tractor_beam']);
 
   const removed = removeEditableVehicleCell(result.definition, utility.id);
   assert.equal(removed.changed, true);
@@ -218,8 +218,8 @@ test('installed secondary weapon catalog only exposes weapons present in gun loa
 
 test('prototype account exposes only unlocked player weapon choices', () => {
   const account = createPrototypePlayerAccountData();
-  assert.deepEqual(availablePrimaryWeaponIds(account), ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam', 'repulsor_beam']);
-  assert.deepEqual(availableSecondaryWeaponIds(account), ['rocket', 'cannon', 'beam', 'tractor_beam', 'sta_missile', 'orb_of_blades']);
+  assert.deepEqual(availablePrimaryWeaponIds(account), ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam']);
+  assert.deepEqual(availableSecondaryWeaponIds(account), ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades']);
   account.weaponUnlocks.primary.push('mortar');
   account.weaponUnlocks.secondary.push('sta_missile');
   assert.equal(availablePrimaryWeaponIds(account).includes('mortar'), true);
