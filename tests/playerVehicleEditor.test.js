@@ -15,7 +15,7 @@ import {
   setGunLoadoutSlot,
   vehicleToConstructDefinition,
 } from '../src/core/playerVehicleEditor.js';
-import { weaponStackMultiplier } from '../src/core/weaponLoadout.js';
+import { installedSecondaryWeaponIds, weaponStackMultiplier } from '../src/core/weaponLoadout.js';
 import { availablePrimaryWeaponIds, availableSecondaryWeaponIds } from '../src/core/weaponLoadout.js';
 import { recalculateCell } from '../src/core/cell.js';
 import { createStartingVehicle, recalculateVehicle } from '../src/core/vehicle.js';
@@ -208,6 +208,12 @@ test('player vehicle editor stores configurable weapon loadouts on gun cells', (
   assert.equal(loadout.primary[0], 'tracking_flechette');
   assert.equal(loadout.secondary[1], 'orb_of_blades');
   assert.equal(weaponStackMultiplier(secondaryResult.definition, 'rocket') >= 1, true);
+});
+
+test('installed secondary weapon catalog only exposes weapons present in gun loadouts', () => {
+  const definition = structuredClone(startingVehicleDefinition);
+  definition.gunLoadouts[0].secondary = ['rocket', 'sta_missile', null];
+  assert.deepEqual(installedSecondaryWeaponIds(definition), ['rocket', 'sta_missile']);
 });
 
 test('prototype account exposes only unlocked player weapon choices', () => {

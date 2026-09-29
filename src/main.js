@@ -27,7 +27,7 @@ import { createDebugOverlay } from './debug/debugOverlay.js';
 import { createPerformanceDiagnostics, installPerformanceDiagnosticsGlobal } from './debug/performanceConfig.js';
 import { createPerformanceMonitor } from './debug/performanceMonitor.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
-import { PRIMARY_WEAPON_IDS, SECONDARY_WEAPON_IDS } from './core/weaponLoadout.js';
+import { PRIMARY_WEAPON_IDS, SECONDARY_WEAPON_IDS, installedSecondaryWeaponIds } from './core/weaponLoadout.js';
 import { reconcileSelectOptions } from './ui/selectOptions.js';
 import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
 import { TARGETING_COMPUTER_DEFINITIONS, syncTargetingComputerUnlocks, targetingComputerUnlocks } from './core/targetingComputers.js';
@@ -458,6 +458,8 @@ const uiTimers = {
 let shopUiWasVisible = false;
 let pauseUiWasVisible = false;
 let activeShopSection = 'repair';
+let secondaryControlsGame = null;
+let secondaryControlsSignature = '';
 const upgradeSummaryOpenState = new Map();
 const frameAudioCounters = {
   audioPlayCalls: 0,
@@ -584,6 +586,7 @@ exposeTargetingComputerApi();
 exposeProceduralMusicApi();
 exposeHapticApi();
 annotateWeaponOptionIcons();
+syncInstalledSecondaryControls(true);
 populateUpgradeSelect();
 refreshSandboxContentOptions();
 syncSandboxScript(loadSandboxDefinition());
@@ -628,6 +631,7 @@ syncAiLeadToggle();
 
 function frame(now) {
   perfMonitor.beginFrame(now);
+  syncInstalledSecondaryControls();
   const dt = Math.min(0.1, (now - previous) / 1000);
   previous = now;
   const keyInput = keyboard.read();
@@ -2827,6 +2831,38 @@ function iconSpan(descriptor) {
   return icon;
 }
 
+function syncInstalledSecondaryControls(force = false) {
+  const installed = installedSecondaryWeaponIds(game.vehicleDefinition);
+  const signature = installed.join('|');
+  if (!force && secondaryControlsGame === game && secondaryControlsSignature === signature) return;
+  secondaryControlsGame = game;
+  secondaryControlsSignature = signature;
+
+  const selectable = ['none', ...installed];
+  if (!selectable.includes(game.secondary.selected)) game.secondary.selected = installed[0] ?? 'none';
+  const runtimeOptions = selectable.map((id) => ({
+    value: id,
+    label: secondaryWeaponLabel(id),
+    dataset: { icon: id },
+  }));
+  reconcileSelectOptions(secondarySelect, runtimeOptions, game.secondary.selected);
+  reconcileSelectOptions(pauseSecondarySelect, runtimeOptions, game.secondary.selected);
+
+  const refillable = installed.filter((id) => Number.isFinite(game.secondary.ammo[id]));
+  reconcileSelectOptions(
+    shopAmmoSelect,
+    refillable.map((id) => ({ value: id, label: secondaryWeaponLabel(id), dataset: { icon: id } })),
+    refillable.includes(shopAmmoSelect.value) ? shopAmmoSelect.value : refillable[0],
+  );
+}
+
+function secondaryWeaponLabel(id) {
+  if (id === 'none') return 'None';
+  if (id === 'beam') return 'Particle Beam';
+  if (id === 'sta_missile') return 'STA Missile';
+  return id.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function annotateWeaponOptionIcons() {
   for (const select of [secondarySelect, pauseSecondarySelect, shopAmmoSelect, ...gunLoadoutSelects]) {
     for (const option of select?.options ?? []) option.dataset.icon = option.value || 'none';
@@ -2926,6 +2962,7 @@ function refreshUpgradeSummary() {
 }
 
 function updateShopUi(dt = 0) {
+  shopUpgradesSection.classList.toggle('lite-upgrades', game.runMode === 'lite');
   const visible = Boolean(game.levelComplete) && !awaitingLaunch && !titleActive;
   if (!visible) {
     shopUiWasVisible = false;

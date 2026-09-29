@@ -5,7 +5,7 @@ import { CELL_LAYER_HEIGHT, CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
-import { normalizeGunLoadouts } from './weaponLoadout.js';
+import { installedSecondaryWeaponIds, normalizeGunLoadouts } from './weaponLoadout.js';
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import { hasTargetingComputer, secondaryTargetingReticleKey, targetingReticleForSecondary } from './targetingComputers.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
@@ -58,8 +58,9 @@ const SECONDARY_PROJECTILE_VISUAL_UPGRADES = {
 };
 
 export function createSecondaryState(vehicleDefinition = null) {
+  const installedWeapons = installedSecondaryWeaponIds(vehicleDefinition);
   return {
-    selected: 'rocket',
+    selected: installedWeapons[0] ?? 'none',
     ammo: {
       rocket: secondaryAmmoCapacity('rocket', vehicleDefinition),
       cannon: secondaryAmmoCapacity('cannon', vehicleDefinition),
@@ -78,8 +79,10 @@ export function createSecondaryState(vehicleDefinition = null) {
 
 export function stepSecondaryWeapon(game, input, dt) {
   const secondary = game.secondary;
-  if (input.secondarySelect && SECONDARY_WEAPONS.includes(input.secondarySelect)) secondary.selected = input.secondarySelect;
-  if (input.secondaryCycle) cycleSecondary(secondary, input.secondaryCycle);
+  const selectableWeapons = ['none', ...installedSecondaryWeaponIds(game.vehicleDefinition)];
+  if (input.secondarySelect && selectableWeapons.includes(input.secondarySelect)) secondary.selected = input.secondarySelect;
+  if (input.secondaryCycle) cycleSecondary(secondary, input.secondaryCycle, selectableWeapons);
+  if (!selectableWeapons.includes(secondary.selected)) secondary.selected = selectableWeapons[1] ?? 'none';
   secondary.autofire = Boolean(input.secondaryAutofire);
   const fireRateScale = Math.max(0, game.obstacleEffects?.secondaryFireRateScale ?? 1);
   secondary.cooldown = Math.max(0, secondary.cooldown - dt * fireRateScale);
@@ -225,10 +228,10 @@ export function secondaryAimProfile(game, weapon = game?.secondary?.selected) {
   };
 }
 
-function cycleSecondary(secondary, direction) {
-  const current = SECONDARY_WEAPONS.indexOf(secondary.selected);
-  const next = (current + direction + SECONDARY_WEAPONS.length) % SECONDARY_WEAPONS.length;
-  secondary.selected = SECONDARY_WEAPONS[next];
+function cycleSecondary(secondary, direction, selectableWeapons) {
+  const current = Math.max(0, selectableWeapons.indexOf(secondary.selected));
+  const next = (current + direction + selectableWeapons.length) % selectableWeapons.length;
+  secondary.selected = selectableWeapons[next];
 }
 
 function upgradedSecondaryDefinition(game, weapon) {

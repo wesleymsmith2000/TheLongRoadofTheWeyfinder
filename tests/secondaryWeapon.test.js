@@ -25,6 +25,27 @@ test('secondary weapon can cycle selection', () => {
   assert.equal(game.secondary.selected, 'cannon');
 });
 
+test('secondary selection and cycling are limited to weapons installed on the vehicle', () => {
+  const rocketOnlyDefinition = structuredClone(startingVehicleDefinition);
+  rocketOnlyDefinition.gunLoadouts[0].secondary = ['rocket', null, null];
+  const game = createGame(1147, { vehicleDefinition: rocketOnlyDefinition });
+
+  stepSecondaryWeapon(game, { secondarySelect: 'beam' }, 0.016);
+  assert.equal(game.secondary.selected, 'rocket');
+
+  stepSecondaryWeapon(game, { secondaryCycle: 1 }, 0.016);
+  assert.equal(game.secondary.selected, 'none');
+  stepSecondaryWeapon(game, { secondaryCycle: 1 }, 0.016);
+  assert.equal(game.secondary.selected, 'rocket');
+});
+
+test('secondary state selects the first installed weapon instead of assuming rockets', () => {
+  const cannonOnlyDefinition = structuredClone(startingVehicleDefinition);
+  cannonOnlyDefinition.gunLoadouts[0].secondary = ['cannon', null, null];
+  const game = createGame(1147, { vehicleDefinition: cannonOnlyDefinition });
+  assert.equal(game.secondary.selected, 'cannon');
+});
+
 test('beam secondary creates a short beam blast instead of a traveling shot', () => {
   const game = createGame();
   game.secondary.selected = 'beam';

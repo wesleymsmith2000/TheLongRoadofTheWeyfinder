@@ -1268,6 +1268,15 @@
         min-width: 0;
       }
 
+      .shop-section.lite-upgrades .shop-upgrade-controls,
+      .shop-section.lite-upgrades .shop-upgrade-actions {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .shop-section.lite-upgrades .full-upgrade-control {
+        display: none;
+      }
+
       .shop-upgrade-readout strong,
       .shop-upgrade-readout span {
         display: block;
@@ -2374,12 +2383,12 @@
                 <span>System</span>
                 <select id="shopUpgradeSystemSelect" aria-label="Select upgrade system"></select>
               </label>
-              <label class="shop-field" for="shopUpgradeSelect">
+              <label id="shopUpgradeSubsystemField" class="shop-field full-upgrade-control" for="shopUpgradeSelect">
                 <span>Subsystem</span>
                 <select id="shopUpgradeSelect" aria-label="Select upgrade subsystem"></select>
               </label>
             </div>
-            <div class="shop-upgrade-readout">
+            <div id="shopUpgradeReadout" class="shop-upgrade-readout full-upgrade-control">
               <span id="shopUpgradeSystemIcon" class="icon-sprite" data-sheet="weapon" data-icon="main.basic" aria-hidden="true"></span>
               <div>
                 <strong id="shopUpgradeReadoutTitle">Main Gun</strong>
@@ -2389,12 +2398,12 @@
               <span id="shopUpgradeIcon" class="icon-sprite" data-sheet="upgrade-a" data-icon="damage" aria-hidden="true"></span>
             </div>
             <div class="shop-upgrade-actions">
-              <button id="shopBuyUpgradeButton" type="button">Buy Upgrade</button>
+              <button id="shopBuyUpgradeButton" class="full-upgrade-control" type="button">Buy Upgrade</button>
               <button id="shopBuyAllUpgradesButton" type="button">
                 Upgrade All <span class="shop-button-detail">Cost <span id="shopUpgradeAllCost">-</span> scrap</span>
               </button>
             </div>
-            <div id="upgradeSummary" class="upgrade-summary" aria-label="Upgrade levels"></div>
+            <div id="upgradeSummary" class="upgrade-summary full-upgrade-control" aria-label="Upgrade levels"></div>
           </div>
         </div>
         <button id="nextLevelButton" type="button">Start Next Level</button>

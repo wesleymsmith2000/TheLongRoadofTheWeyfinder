@@ -52,6 +52,14 @@ export function weaponStackMultiplier(definition, weaponId) {
   return Math.sqrt(Math.max(1, copies));
 }
 
+export function installedPrimaryWeaponIds(definition) {
+  return installedWeaponIds(definition, 'primary', PRIMARY_WEAPON_IDS);
+}
+
+export function installedSecondaryWeaponIds(definition) {
+  return installedWeaponIds(definition, 'secondary', SECONDARY_WEAPON_IDS);
+}
+
 export function availablePrimaryWeaponIds(account) {
   return availableWeaponIds(account, 'primary', PRIMARY_WEAPON_IDS, ['main.basic', 'mini_beam']);
 }
@@ -81,4 +89,14 @@ function availableWeaponIds(account, slotKind, fullList, fallback) {
   const unlocks = account?.weaponUnlocks?.[slotKind];
   if (!Array.isArray(unlocks)) return [...fallback];
   return fullList.filter((id) => unlocks.includes(id));
+}
+
+function installedWeaponIds(definition, slotKind, catalog) {
+  if (!definition?.cells) return [...catalog];
+  const allowed = new Set(catalog);
+  return [...new Set(
+    normalizeGunLoadouts(definition)
+      .flatMap((loadout) => loadout[slotKind])
+      .filter((id) => allowed.has(id)),
+  )];
 }
