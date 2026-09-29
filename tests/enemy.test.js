@@ -77,6 +77,22 @@ const MULTI_CORE_ENEMY = {
   ],
 };
 
+const ROCKET_PIERCE_ROW_ENEMY = {
+  schemaVersion: '0.1',
+  assetId: 'test.rocket_pierce_row_enemy',
+  cells: [
+    { id: 'armor-0', type: 'armor', gridX: 0, gridY: 0 },
+    { id: 'armor-1', type: 'armor', gridX: 1, gridY: 0 },
+    { id: 'armor-2', type: 'armor', gridX: 2, gridY: 0 },
+    { id: 'core', type: 'core', gridX: 3, gridY: 0 },
+  ],
+  connections: [
+    { a: 'armor-0', b: 'armor-1', aSide: 'right', bSide: 'left' },
+    { a: 'armor-1', b: 'armor-2', aSide: 'right', bSide: 'left' },
+    { a: 'armor-2', b: 'core', aSide: 'right', bSide: 'left' },
+  ],
+};
+
 const WALKER_SWEEP_TEST_ENEMY = {
   schemaVersion: '0.1',
   assetId: 'test.walker_sweep_enemy',
@@ -763,6 +779,27 @@ test('projectile pierce carries damage into voxels behind the first struck modul
   assert.equal(after < before, true);
 });
 
+test('upgraded rocket pierce advances through cell depth instead of spending its budget across impact width', () => {
+  const enemy = createEnemy(0, 0, ROCKET_PIERCE_ROW_ENEMY, [], { moduleScale: 1 });
+  const projectile = createProjectile(0, 0, 100, 0, {
+    team: 'player',
+    weapon: 'rocket',
+    damage: 1093.5 * 1.05 ** 10,
+    radius: 4.5,
+    pierce: 16,
+    pierceDamageScale: 0.85,
+    pierceDamageFalloff: 0.95,
+  });
+
+  const impact = applyEnemyDamage(enemy, projectile);
+  const pierce = applyEnemyProjectilePierceDamage([enemy], projectile);
+  const destroyedCells = enemy.cells.filter((cell) => cell.state.destroyed).length;
+
+  assert.equal(impact.hit, true);
+  assert.equal(pierce.hit, true);
+  assert.equal(destroyedCells >= 3, true);
+});
+
 test('damage-budget blades damage nearest live voxel when crossing an empty cell pocket', () => {
   const enemy = createEnemy(0, 0, SINGLE_CORE_ENEMY, [], { moduleScale: 1 });
   const core = enemy.cells.find((cell) => cell.type === 'core');
@@ -1414,6 +1451,7 @@ test('multileg walkers fire red STA missiles that lock a descent point without t
   assert.equal(missile.targetHint, null);
   assert.equal(missile.descentMode, 'direct');
   assert.equal(missile.hideLandingMarkerUntilTargetHint, true);
+  assert.equal(missile.sourceEnemy, walker);
   assert.equal(game.enemyProjectiles.some((projectile) => projectile.weapon === 'bullet'), false);
 
   game.vehicle.x += CELL_SIZE * 5;
@@ -1435,6 +1473,152 @@ test('multileg walkers fire red STA missiles that lock a descent point without t
   for (let index = 0; index < 8; index += 1) stepGame(game, { gunnerEnabled: false }, 1 / 60);
   assert.deepEqual(missile.targetHint, lockedTarget);
   assert.equal(missile.angle, lockedAngle);
+});
+
+test('walker rockets damage another walker lowest layer without damaging their source', () => {
+  const game = createGame();
+  game.autofire = false;
+  const source = createEnemy(game.vehicle.x - CELL_SIZE * 20, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [], { moduleScale: 1 });
+  const target = createEnemy(game.vehicle.x + CELL_SIZE * 20, game.vehicle.y, WALKER_SWEEP_TEST_ENEMY, [], { moduleScale: 1 });
+  source.archetypeId = 'starlight_walker.prototype0';
+  target.archetypeId = 'twilight_walker.prototype0';
+  source.walkerStaCooldown = 99;
+  target.walkerBeamCooldown = 99;
+  game.enemies = [source, target];
+  game.enemySpawnQueue = [];
+  const sourceLeg = source.cells.find((cell) => cell.id === 'lower-wheel');
+  const targetLeg = target.cells.find((cell) => cell.id === 'lower-wheel');
+  const sourceBefore = sourceLeg.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const targetBefore = targetLeg.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  game.enemyProjectiles = [createProjectile(target.x, target.y, 0, 0, {
+    team: 'enemy',
+    weapon: 'boss-missile',
+    damage: 80,
+    radius: 2,
+    lifetime: 1,
+    sourceEnemy: source,
+  })];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const sourceAfter = sourceLeg.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const targetAfter = targetLeg.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(sourceAfter, sourceBefore);
+  assert.equal(targetAfter < targetBefore, true);
+});
+
+test('walker beams damage another walker lowest layer without tracing into their source', () => {
+  const game = createGame();
+  game.autofire = false;
+  const source = createEnemy(game.vehicle.x - CELL_SIZE * 20, game.vehicle.y + CELL_SIZE * 12, WALKER_SWEEP_TEST_ENEMY, [], { moduleScale: 1 });
+  const target = createEnemy(source.x + CELL_SIZE * 12, source.y, WALKER_SWEEP_TEST_ENEMY, [], { moduleScale: 1 });
+  source.archetypeId = 'twilight_walker.prototype0';
+  target.archetypeId = 'starlight_walker.prototype0';
+  source.walkerBeamCooldown = 99;
+  target.walkerStaCooldown = 99;
+  game.enemies = [source, target];
+  game.enemySpawnQueue = [];
+  const sourceLeg = source.cells.find((cell) => cell.id === 'lower-wheel');
+  const targetLeg = target.cells.find((cell) => cell.id === 'lower-wheel');
+  const sourceBefore = sourceLeg.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const targetBefore = targetLeg.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  game.enemyProjectiles = [createProjectile(source.x, source.y, 0, 0, {
+    team: 'enemy',
+    weapon: 'walker-ground-sweep',
+    behavior: 'beam',
+    damage: 120,
+    radius: 1,
+    length: CELL_SIZE * 16,
+    angle: 0,
+    pierce: 4,
+    lifetime: 1,
+    sourceEnemy: source,
+  })];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const sourceAfter = sourceLeg.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  const targetAfter = targetLeg.mask.flat().reduce((sum, voxel) => sum + voxel.hp, 0);
+  assert.equal(sourceAfter, sourceBefore);
+  assert.equal(targetAfter < targetBefore, true);
+});
+
+test('repulsor deflection transfers enemy projectile ownership to the player', () => {
+  const game = createGame();
+  game.autofire = false;
+  game.enemies = [];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [createProjectile(game.vehicle.x, game.vehicle.y, 0, 0, {
+    team: 'player',
+    weapon: 'repulsor_beam',
+    behavior: 'beam',
+    damage: 1,
+    impulse: 30,
+    radius: 2,
+    length: CELL_SIZE * 10,
+    angle: 0,
+    forceMode: 'push',
+    lifetime: 1,
+  })];
+  game.enemyProjectiles = [createProjectile(game.vehicle.x + CELL_SIZE * 4, game.vehicle.y, -20, 0, {
+    team: 'enemy',
+    weapon: 'enemy-bullet',
+    damage: 7,
+    radius: 2,
+    lifetime: 1,
+    blastOnExpire: { radius: CELL_SIZE * 2, damage: 5, impulse: 8 },
+  })];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const deflected = game.playerProjectiles.find((projectile) => projectile.weapon === 'deflected-enemy-bullet');
+  assert.equal(Boolean(deflected), true);
+  assert.equal(deflected.team, 'player');
+  assert.equal(deflected.deflectedByTeam, 'player');
+  assert.equal(deflected.blastRadius, CELL_SIZE * 2);
+  assert.equal(deflected.blastDamage, 5);
+});
+
+test('enemy repulsor deflection transfers player projectile ownership to its source walker', () => {
+  const game = createGame();
+  game.autofire = false;
+  const walker = createEnemy(game.vehicle.x - CELL_SIZE * 20, game.vehicle.y + CELL_SIZE * 14, WALKER_SWEEP_TEST_ENEMY, [], { moduleScale: 1 });
+  walker.archetypeId = 'twilight_walker.prototype0';
+  walker.walkerBeamCooldown = 99;
+  game.enemies = [walker];
+  game.enemySpawnQueue = [];
+  game.playerProjectiles = [createProjectile(walker.x + CELL_SIZE * 4, walker.y, 20, 0, {
+    team: 'player',
+    weapon: 'player-test-rocket',
+    damage: 20,
+    radius: 2,
+    lifetime: 1,
+    blastDamage: 9,
+    blastRadius: CELL_SIZE * 2,
+    blastKnockback: 12,
+  })];
+  game.enemyProjectiles = [createProjectile(walker.x, walker.y, 0, 0, {
+    team: 'enemy',
+    weapon: 'walker-repulsor-beam',
+    behavior: 'beam',
+    damage: 1,
+    impulse: 30,
+    radius: 2,
+    length: CELL_SIZE * 10,
+    angle: 0,
+    forceMode: 'push',
+    lifetime: 1,
+    sourceEnemy: walker,
+  })];
+
+  stepGame(game, { gunnerEnabled: false }, 1 / 60);
+
+  const deflected = game.enemyProjectiles.find((projectile) => projectile.weapon === 'deflected-player-test-rocket');
+  assert.equal(Boolean(deflected), true);
+  assert.equal(deflected.team, 'enemy');
+  assert.equal(deflected.sourceEnemy, walker);
+  assert.equal(deflected.blastOnExpire.radius, CELL_SIZE * 2);
+  assert.equal(deflected.blastOnExpire.damage, 9);
 });
 
 test('large armored walkers charge a yellow ground sweep beam from a raised gun', () => {
@@ -1953,7 +2137,7 @@ test('buzzard harpoons target the nearest active buzzard', () => {
   const game = createGame(1147, { levelMusic: ['ShadowedDesert_Journey'] });
   game.autofire = false;
   const buzzard = game.enemies.find((enemy) => enemy.archetypeId === 'scrap_buzzard.shadowed_desert');
-  buzzard.x = game.vehicle.x + CELL_SIZE * 4;
+  buzzard.x = game.vehicle.x + CELL_SIZE * 12;
   buzzard.y = game.vehicle.y;
   buzzard.buzzard = { mode: 'air', harpoonSpawnTimer: 99 };
   buzzard.patterns = [];

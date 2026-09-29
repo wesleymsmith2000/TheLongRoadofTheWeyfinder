@@ -166,7 +166,7 @@ test('walker brood escorts use the smaller multileg walker instead of raised tur
   const escorts = enemies.slice(1);
   assert.equal(enemies[0].assetId, 'example.construct.spider_walker_sculpted');
   assert.equal(escorts.length >= 1, true);
-  assert.equal(escorts.length <= 3, true);
+  assert.equal(escorts.length <= 2, true);
   assert.equal(escorts.every((enemy) => enemy.archetypeId === 'twilight_walker.prototype0.brood_walker'), true);
   assert.equal(escorts.every((enemy) => enemy.assetId === 'example.construct.spidery_walker_sculpted'), true);
   assert.equal(escorts.every((enemy) => enemy.poseRig.groups.some((group) => group.role === 'legAssembly')), true);

@@ -14,7 +14,7 @@ test('secondary weapon can be fired manually and spends ammo', () => {
   const fired = fireSecondary(game);
   assert.equal(fired, true);
   assert.equal(game.playerProjectiles.length, 1);
-  assert.equal(game.playerProjectiles[0].damage, 546.75);
+  assert.equal(game.playerProjectiles[0].damage, 1093.5);
   assert.equal(game.secondary.ammo.rocket, 16);
   assert.equal(consumeSoundEvents(game).some((event) => event.id === SOUND_EVENTS.PLAYER_SECONDARY_LAUNCH), true);
 });
@@ -46,6 +46,7 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(game.playerProjectiles[0].vx, game.vehicle.vx);
   assert.equal(game.playerProjectiles[0].maxSpeed, 219.375);
   assert.equal(game.playerProjectiles[0].pierce, 6);
+  assert.equal(game.playerProjectiles[0].pierceDamageFalloff, 0.95);
   assert.equal(game.playerProjectiles[0].explodeOnExpire, true);
   assert.equal(game.playerProjectiles[0].radius, 4.5);
   assert.equal(game.playerProjectiles[0].blastDamage, 27);

@@ -851,8 +851,13 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
     y: projectile.y + Math.sin(angle) * unit,
   };
   const maxLength = options.maxLength ?? unit * (pierce + 2) * 2.4;
-  const maxHits = options.maxHits ?? pierce;
   const halfWidth = options.halfWidth ?? Math.max(0, projectile.radius ?? 0);
+  // Pierce is measured in voxel depths. A broad shot may touch several voxels at
+  // one depth, so its lateral samples must not consume the forward depth budget.
+  const lateralSamples = options.halfWidth == null
+    ? Math.max(1, Math.min(VOXELS, Math.ceil((halfWidth * 2) / unit)))
+    : 1;
+  const maxHits = options.maxHits ?? pierce * lateralSamples;
   let power = projectile.damage * (options.damageScale ?? projectile.pierceDamageScale ?? 0.7);
   const falloff = projectile.pierceDamageFalloff ?? 0.68;
   const hits = traceEnemyVoxelPierceLine(enemies, start, angle, maxLength, maxHits, halfWidth, {

@@ -112,7 +112,11 @@ test('active boost shield deflects nearby enemy projectiles', () => {
   game.boost.activeTime = 0.08;
   game.boost.maxDuration = 0.08;
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
-  assert.equal(game.enemyProjectiles[0].vx > 0, true);
+  const deflected = game.playerProjectiles.find((projectile) => projectile.deflectedByTeam === 'player');
+  assert.equal(Boolean(deflected), true);
+  assert.equal(deflected.vx > 0, true);
+  assert.equal(deflected.team, 'player');
+  assert.equal(game.enemyProjectiles.every((projectile) => projectile.lifetime <= 0), true);
   assert.equal(game.vehicle.alive, true);
 });
 

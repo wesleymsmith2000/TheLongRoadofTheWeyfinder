@@ -1532,7 +1532,8 @@ function createBroodTurretsForEnemy(archetype, road, offset, level, index, kind,
 function createWalkerBroodEscorts(archetype, road, offset, level, index, trackName = null) {
   const alternate = getEnemyArchetype('starlight_walker.prototype0') ?? RUNTIME_ENEMY_ARCHETYPES['starlight_walker.prototype0'];
   if (!alternate) return [];
-  const count = 1 + ((level + index + archetype.id.length) % 3);
+  const baseCount = 1 + ((level + index + archetype.id.length) % 3);
+  const count = Math.max(1, Math.floor(baseCount * 0.75));
   const velocity = roadDirectionToWorld(0, 1, road);
   const sideDirection = roadDirectionToWorld(1, 0, road);
   const escorts = [];
@@ -3339,6 +3340,7 @@ function fireWalkerStaMissile(game, enemy, source) {
     },
     contrail: ENEMY_RED_BLACK_CONTRAIL,
     zCollision: true,
+    sourceEnemy: enemy,
   });
   shell.angle = -Math.PI / 2;
   game.enemyProjectiles.push(shell);
@@ -3393,6 +3395,7 @@ function fireGroundedWalkerSpiralMissile(game, enemy, source) {
       },
       contrail: ENEMY_RED_BLACK_CONTRAIL,
       vanishOffscreen: true,
+      sourceEnemy: enemy,
     }),
   );
   enemy.lastFiredAt = game.time;
@@ -6580,11 +6583,12 @@ function handleBoostShieldRepel(game, dt) {
     const nx = dx / distance;
     const ny = dy / distance;
     const speed = Math.hypot(projectile.vx, projectile.vy);
-    projectile.vx = nx * Math.max(speed, projectileImpulse);
-    projectile.vy = ny * Math.max(speed, projectileImpulse);
     projectile.x = game.vehicle.x + nx * (radius + projectile.radius + 0.5);
     projectile.y = game.vehicle.y + ny * (radius + projectile.radius + 0.5);
-    projectile.lifetime *= 0.72;
+    transferDeflectedProjectile(game, projectile, 'player', Math.atan2(ny, nx), Math.max(speed, projectileImpulse), {
+      sourceWeaponId: 'boost-shield',
+      lifetimeScale: 0.72,
+    });
   }
 }
 
@@ -6595,11 +6599,14 @@ function boostShieldRadius(game) {
 function handleCollisions(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
+    if ((projectile.deflectionGraceUntil ?? 0) > game.time) continue;
     if (projectile.behavior === 'arc' && !projectile.arcLanded) continue;
     if (projectile.behavior === 'beam') {
       hitVehicleWithEnemyBeam(game, projectile);
+      hitOtherWalkersWithEnemyBeam(game, projectile);
       continue;
     }
+    if (hitOtherWalkerWithEnemyProjectile(game, projectile)) continue;
     if (hitDestructiblePlayerProjectile(game, projectile)) {
       projectile.lifetime = 0;
       continue;
@@ -6607,7 +6614,10 @@ function handleCollisions(game) {
     const vehicleHitRange = CELL_SIZE * 3.8 + projectile.radius;
     if (distanceSquared(projectile, game.vehicle) < vehicleHitRange * vehicleHitRange) {
       const hit = hitVehicleWithProjectile(game.vehicle, shieldedProjectile(game, projectile));
-      if (hit.hit) projectile.lifetime = 0;
+      if (hit.hit) {
+        projectile.lifetime = 0;
+        projectile.readyToExplode = Boolean(projectile.blastOnExpire);
+      }
     }
   }
 
@@ -6620,6 +6630,7 @@ function handleCollisions(game) {
       continue;
     }
     if (projectile.lifetime <= 0) continue;
+    if ((projectile.deflectionGraceUntil ?? 0) > game.time) continue;
     if (projectile.behavior === 'arc' && !projectile.arcLanded) continue;
     if (projectile.behavior === 'beam') {
       hitEnemiesWithBeam(game, projectile);
@@ -7239,18 +7250,53 @@ function deflectEnemyProjectile(game, enemyProjectile, playerProjectile) {
   const fallbackAngle = playerProjectile.angle ?? Math.atan2(playerProjectile.vy, playerProjectile.vx);
   const angle = target ? Math.atan2(target.y - enemyProjectile.y, target.x - enemyProjectile.x) : fallbackAngle;
   const speed = Math.max(120, Math.hypot(enemyProjectile.vx ?? 0, enemyProjectile.vy ?? 0), Math.hypot(playerProjectile.vx ?? 0, playerProjectile.vy ?? 0) * 0.55);
-  game.playerProjectiles.push(createProjectile(enemyProjectile.x, enemyProjectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
-    team: 'player',
-    weapon: `deflected-${enemyProjectile.weapon ?? 'projectile'}`,
-    behavior: 'ballistic',
-    radius: enemyProjectile.radius ?? 2,
-    damage: Math.max(1, enemyProjectile.damage ?? 1),
-    impulse: enemyProjectile.impulse ?? 20,
-    lifetime: Math.max(0.45, Math.min(2.2, enemyProjectile.lifetime ?? 1.2)),
-    angle,
+  transferDeflectedProjectile(game, enemyProjectile, 'player', angle, speed, {
+    sourceWeaponId: playerProjectile.sourceWeaponId ?? playerProjectile.weapon,
     color: '#9be5ff',
-  }));
-  enemyProjectile.lifetime = 0;
+    lifetime: Math.max(0.45, Math.min(2.2, enemyProjectile.lifetime ?? 1.2)),
+  });
+}
+
+function transferDeflectedProjectile(game, projectile, team, angle, speed, options = {}) {
+  const originalWeapon = projectile.originalWeapon ?? String(projectile.weapon ?? 'projectile').replace(/^deflected-/, '');
+  const incomingBlast = projectile.blastOnExpire;
+  const playerBlastRadius = projectile.blastRadius || incomingBlast?.radius || 0;
+  const playerBlastDamage = projectile.blastDamage || incomingBlast?.damage || 0;
+  const enemyBlast = incomingBlast ?? ((projectile.blastRadius ?? 0) > 0 ? {
+    radius: projectile.blastRadius,
+    damage: projectile.blastDamage || projectile.damage * 0.5,
+    impulse: projectile.blastKnockback || projectile.impulse * 0.5,
+  } : null);
+  const transferred = {
+    ...projectile,
+    previousX: projectile.x,
+    previousY: projectile.y,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    angle,
+    team,
+    weapon: `deflected-${originalWeapon}`,
+    originalWeapon,
+    color: options.color ?? projectile.color,
+    sourceEnemy: team === 'enemy' ? options.sourceEnemy ?? null : null,
+    sourceCellId: team === 'enemy' ? options.sourceCellId ?? null : null,
+    sourceWeaponId: options.sourceWeaponId ?? projectile.sourceWeaponId ?? null,
+    lifetime: options.lifetime ?? Math.max(0.05, (projectile.lifetime ?? 1) * (options.lifetimeScale ?? 1)),
+    blastRadius: team === 'player' ? playerBlastRadius : projectile.blastRadius,
+    blastDamage: team === 'player' ? playerBlastDamage : projectile.blastDamage,
+    blastKnockback: team === 'player' ? projectile.blastKnockback || incomingBlast?.impulse || 0 : projectile.blastKnockback,
+    blastOnExpire: team === 'enemy' ? enemyBlast : incomingBlast,
+    explodeOnExpire: Boolean(projectile.explodeOnExpire || incomingBlast || enemyBlast),
+    readyToExplode: false,
+    deflected: true,
+    deflectedByTeam: team,
+    deflectionGraceUntil: game.time + 1 / 120,
+  };
+  projectile.lifetime = 0;
+  projectile.readyToExplode = false;
+  if (team === 'player') game.playerProjectiles.push(transferred);
+  else game.enemyProjectiles.push(transferred);
+  return transferred;
 }
 
 function nearestTargetFromPoint(targets, point) {
@@ -7410,6 +7456,7 @@ function spawnEnemyPulseBlast(game, projectile) {
     }),
   ];
   for (const enemy of activeEnemies(game)) {
+    if (enemy === projectile.sourceEnemy) continue;
     if (projectile.sourceEnemy?.kind === 'zeppelinBoss' && enemy.kind === 'zeppelinBoss') continue;
     if (enemyHasAnyTag(enemy, blast.enemyIgnoreTags ?? [])) continue;
     if (distanceSquared(enemy, projectile) > (enemy.radius + blast.radius) ** 2) continue;
@@ -7570,6 +7617,57 @@ function hitVehicleWithEnemyBeam(game, projectile) {
   return false;
 }
 
+function hitOtherWalkerWithEnemyProjectile(game, projectile) {
+  if (!walkerProjectileAllowsFriendlyFire(projectile)) return false;
+  for (const enemy of activeEnemies(game)) {
+    if (enemy === projectile.sourceEnemy || !isWalkerEnemy(enemy)) continue;
+    if (!projectileIntersectsPoint(projectile, enemy, enemy.radius + projectile.radius)) continue;
+    const hit = applyEnemyDamage(enemy, {
+      ...projectile,
+      behavior: 'ballistic',
+      zCollision: false,
+    });
+    if (!hit.hit) continue;
+    if (hit.destroyedNow) explodeEnemy(game, enemy);
+    projectile.lifetime = 0;
+    projectile.readyToExplode = Boolean(projectile.blastOnExpire);
+    return true;
+  }
+  return false;
+}
+
+function walkerProjectileAllowsFriendlyFire(projectile) {
+  if (!isWalkerEnemy(projectile.sourceEnemy)) return false;
+  if (projectile.deflected) return true;
+  const weapon = projectile.originalWeapon ?? projectile.weapon;
+  return weapon === 'walker-sta-missile' || weapon === 'boss-missile';
+}
+
+function hitOtherWalkersWithEnemyBeam(game, projectile) {
+  if (!isWalkerEnemy(projectile.sourceEnemy)) return false;
+  if (projectile.weapon !== 'walker-ground-sweep' && projectile.weapon !== 'walker-repulsor-beam') return false;
+  const targets = activeEnemies(game).filter((enemy) => enemy !== projectile.sourceEnemy && isWalkerEnemy(enemy));
+  if (targets.length === 0) return false;
+  const trace = traceEnemyVoxelBeam(
+    targets,
+    projectile,
+    projectile.angle,
+    projectile.length,
+    beamHalfWidth(projectile),
+    projectile.pierce ?? 0,
+    { groundOnly: true },
+  );
+  const scale = beamDamageScale(projectile);
+  let hitAny = false;
+  for (const voxelHit of trace.hits) {
+    const hit = applyEnemyVoxelDamage(voxelHit.enemy, voxelHit, projectile.damage * scale);
+    if (!hit.hit) continue;
+    hitAny = true;
+    if (hit.destroyedNow) explodeEnemy(game, voxelHit.enemy);
+  }
+  return hitAny;
+}
+
 function repelPlayerProjectilesWithEnemyBeam(game, projectile, dx = Math.cos(projectile.angle), dy = Math.sin(projectile.angle)) {
   const halfWidth = beamHalfWidth(projectile);
   for (const target of game.playerProjectiles) {
@@ -7579,10 +7677,12 @@ function repelPlayerProjectilesWithEnemyBeam(game, projectile, dx = Math.cos(pro
     const closest = { x: projectile.x + dx * along, y: projectile.y + dy * along };
     if (distanceSquared(target, closest) > (halfWidth + target.radius) ** 2) continue;
     const speed = Math.max(70, Math.hypot(target.vx, target.vy));
-    target.vx = dx * (speed + projectile.impulse * 0.55);
-    target.vy = dy * (speed + projectile.impulse * 0.55);
-    target.angle = projectile.angle;
-    target.lifetime = Math.min(target.lifetime, 1.4);
+    transferDeflectedProjectile(game, target, 'enemy', projectile.angle, speed + projectile.impulse * 0.55, {
+      sourceEnemy: projectile.sourceEnemy,
+      sourceCellId: projectile.sourceCellId,
+      sourceWeaponId: projectile.weapon,
+      lifetime: Math.min(target.lifetime, 1.4),
+    });
   }
 }
 
@@ -7709,10 +7809,10 @@ function repelEnemyProjectilesWithBeam(game, projectile, halfWidth) {
     const closest = { x: projectile.x + dx * along, y: projectile.y + dy * along };
     if (distanceSquared(target, closest) > (halfWidth + target.radius) ** 2) continue;
     const speed = Math.max(90, Math.hypot(target.vx, target.vy));
-    target.vx = dx * (speed + projectile.impulse * 0.95);
-    target.vy = dy * (speed + projectile.impulse * 0.95);
-    target.angle = projectile.angle;
-    target.lifetime = Math.min(target.lifetime, 1.2);
+    transferDeflectedProjectile(game, target, 'player', projectile.angle, speed + projectile.impulse * 0.95, {
+      sourceWeaponId: projectile.sourceWeaponId ?? projectile.weapon,
+      lifetime: Math.min(target.lifetime, 1.2),
+    });
   }
 }
 
