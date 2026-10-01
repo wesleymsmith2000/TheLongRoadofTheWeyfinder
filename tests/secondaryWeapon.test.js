@@ -98,6 +98,31 @@ test('rocket secondary creates a homing missile with longer flight time', () => 
   assert.equal(game.playerProjectiles[0].lifetime > 5, true);
 });
 
+test('ordinary cannon shells launch forward under extreme reverse vehicle motion', () => {
+  const game = createGame();
+  game.secondary.selected = 'cannon';
+  game.vehicle.turretHeading = 0;
+  game.vehicle.vx = -10_000;
+  game.vehicle.vy = 75;
+
+  assert.equal(fireSecondary(game), true);
+
+  const cannon = game.playerProjectiles[0];
+  assert.equal(cannon.vx >= Math.sqrt(421.875) - 1e-9, true);
+  assert.equal(cannon.vy, 75);
+  assert.equal(cannon.angle, 0);
+});
+
+test('rocket shooter-only launch policy remains unchanged under reverse motion', () => {
+  const game = createGame();
+  game.vehicle.vx = -10_000;
+  game.vehicle.vy = 75;
+
+  assert.equal(fireSecondary(game), true);
+  assert.equal(game.playerProjectiles[0].vx, -10_000);
+  assert.equal(game.playerProjectiles[0].vy, 75);
+});
+
 test('rocket reaches top speed within the first quarter of its flight', () => {
   for (const velocityUpgrade of [0, 3]) {
     const game = createGame();

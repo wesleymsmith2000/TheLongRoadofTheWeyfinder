@@ -71,6 +71,7 @@ import { normalizeGunLoadouts, utilityModuleCellIds, utilityModuleInstalled } fr
 import { createWeaponBayState } from './weaponBay.js';
 import { carrySpatialFields, stepSpatialFields } from './spatialWaveletBeam.js';
 import { createWeaponInterlock, stepWeaponInterlock, weaponFireBlocked } from './weaponInterlock.js';
+import { forwardSafeInheritedVelocity } from './projectileLaunch.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, sandboxDefinitionFromLevel, validateSandboxDefinition } from './sandboxMode.js';
 import { createProceduralRoadRoute, roadRouteLength } from './roadRoute.js';
@@ -2676,8 +2677,12 @@ function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSl
 function firePrimaryBullet(game, muzzle, damage, speed, spread, visualScale = 1, aimReticle = null, targetingReticleKey = null) {
   const baseAngle = aimReticle ? compensatedAimHeading(game.vehicle, aimReticle, speed) : game.vehicle.turretHeading;
   const angle = baseAngle + game.rng.range(-spread, spread);
+  const launchVelocity = forwardSafeInheritedVelocity(
+    { x: game.vehicle.vx, y: game.vehicle.vy },
+    { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
+  );
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, Math.cos(angle) * speed + game.vehicle.vx, Math.sin(angle) * speed + game.vehicle.vy, {
+    createProjectile(muzzle.x, muzzle.y, launchVelocity.x, launchVelocity.y, {
       team: 'player',
       weapon: 'bullet',
       sourceWeaponId: 'main.basic',
@@ -2834,9 +2839,13 @@ function primaryProjectileLaunch(game, muzzle, def, targetHint, angle) {
     }
   }
   const launchAngle = def.launchAngleMode === 'orthogonal' ? orthogonalLaunchAngle(game, angle, def.launchAngleSpreadRadians ?? 0) : angle;
+  const launchVelocity = forwardSafeInheritedVelocity(
+    { x: game.vehicle.vx, y: game.vehicle.vy },
+    { x: Math.cos(launchAngle) * def.projectileSpeed, y: Math.sin(launchAngle) * def.projectileSpeed },
+  );
   return {
-    vx: Math.cos(launchAngle) * def.projectileSpeed + game.vehicle.vx,
-    vy: Math.sin(launchAngle) * def.projectileSpeed + game.vehicle.vy,
+    vx: launchVelocity.x,
+    vy: launchVelocity.y,
     angle: launchAngle,
     detonateDistance: def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null,
   };

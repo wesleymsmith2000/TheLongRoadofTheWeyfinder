@@ -67,6 +67,26 @@ test('main gun velocity upgrade increases bullet speed', () => {
   assert.equal(Math.hypot(upgradedBullet.vx, upgradedBullet.vy) > Math.hypot(baseBullet.vx, baseBullet.vy), true);
 });
 
+test('basic primary launch inheritance stays forward-safe and preserves forward and sideways motion', () => {
+  const cases = [
+    { vehicleVelocity: { x: -10_000, y: 0 }, expected: (bullet) => bullet.vx > 0 },
+    { vehicleVelocity: { x: 60, y: 0 }, expected: (bullet) => Math.abs(bullet.vx - (161.25 + 60)) < 1e-9 },
+    { vehicleVelocity: { x: 0, y: 80 }, expected: (bullet) => Math.abs(bullet.vx - 161.25) < 1e-9 && Math.abs(bullet.vy - 80) < 1e-9 },
+  ];
+
+  for (const { vehicleVelocity, expected } of cases) {
+    const game = createGame();
+    game.vehicle.vx = vehicleVelocity.x;
+    game.vehicle.vy = vehicleVelocity.y;
+    game.vehicle.turretHeading = 0;
+    game.rng.range = () => 0;
+    game.autofire = true;
+    stepGame(game, { gunnerEnabled: false }, 0);
+    const bullet = game.playerProjectiles.find((projectile) => projectile.weapon === 'bullet');
+    assert.equal(expected(bullet), true);
+  }
+});
+
 test('additional gun modules fire in succession and improve fire interval', () => {
   const game = createGame();
   game.autofire = true;
@@ -289,6 +309,40 @@ test('advanced primary weapon loadouts fire from runtime weapon definitions', ()
   assert.equal(blade.spinRate, 15);
   assert.equal(bladeGame.playerFireTimer.toFixed(3), (0.44 / Math.sqrt(2)).toFixed(3));
   assert.equal(bladeGame.primaryWeaponCooldowns['gun:0:blade_launcher'] > 0.44 / Math.sqrt(2) * 4, true);
+});
+
+test('defined primary blades remain forward-safe under extreme reverse vehicle motion', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'blade_launcher').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.vehicle.vx = -10_000;
+  game.vehicle.vy = 0;
+  game.vehicle.turretHeading = 0;
+  game.rng.range = () => 0;
+  game.autofire = true;
+
+  stepGame(game, { gunnerEnabled: false }, 0);
+
+  const blade = game.playerProjectiles.find((projectile) => projectile.weapon === 'blade_launcher');
+  assert.equal(blade.angle, 0);
+  assert.equal(blade.vx > 0, true);
+});
+
+test('tracking flechettes use their actual orthogonal launch axis for forward safety', () => {
+  const vehicleDefinition = setGunLoadoutSlot(startingVehicleDefinition, 'gun', 'primary', 0, 'tracking_flechette').definition;
+  const game = createGame(1147, { vehicleDefinition });
+  game.vehicle.vx = 0;
+  game.vehicle.vy = 10_000;
+  game.vehicle.turretHeading = 0;
+  game.rng.next = () => 0;
+  game.rng.range = () => 0;
+  game.autofire = true;
+
+  stepGame(game, { gunnerEnabled: false }, 0);
+
+  const flechette = game.playerProjectiles.find((projectile) => projectile.weapon === 'tracking_flechette');
+  const forward = flechette.vx * Math.cos(flechette.angle) + flechette.vy * Math.sin(flechette.angle);
+  assert.equal(Math.abs(flechette.angle + Math.PI / 2) < 1e-9, true);
+  assert.equal(forward >= Math.sqrt(161.25) - 1e-9, true);
 });
 
 test('tracking flechette upgrades scale primary weapon stats', () => {

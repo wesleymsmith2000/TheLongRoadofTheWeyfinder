@@ -10,6 +10,7 @@ import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projecti
 import { hasTargetingComputer, secondaryTargetingReticleKey, targetingReticleForSecondary } from './targetingComputers.js';
 import { activePlayerWaveletField, createSpatialWaveletField } from './spatialWaveletBeam.js';
 import { weaponFireBlocked } from './weaponInterlock.js';
+import { forwardSafeInheritedVelocity } from './projectileLaunch.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
@@ -411,9 +412,10 @@ function projectileLaunch(game, muzzle, def, targetHint, angle, useVehicleVeloci
       };
     }
   }
+  const velocity = projectileLaunchVelocity(game, angle, def, useVehicleVelocityOnly);
   return {
-    vx: projectileVelocityX(game, angle, def, useVehicleVelocityOnly),
-    vy: projectileVelocityY(game, angle, def, useVehicleVelocityOnly),
+    vx: velocity.x,
+    vy: velocity.y,
     angle,
     detonateDistance: null,
   };
@@ -426,12 +428,12 @@ function arcFlightTime(def) {
   return (2 * verticalVelocity) / gravity;
 }
 
-function projectileVelocityX(game, angle, def, useVehicleVelocityOnly) {
-  return useVehicleVelocityOnly ? game.vehicle.vx : Math.cos(angle) * def.projectileSpeed + game.vehicle.vx;
-}
-
-function projectileVelocityY(game, angle, def, useVehicleVelocityOnly) {
-  return useVehicleVelocityOnly ? game.vehicle.vy : Math.sin(angle) * def.projectileSpeed + game.vehicle.vy;
+function projectileLaunchVelocity(game, angle, def, useVehicleVelocityOnly) {
+  if (useVehicleVelocityOnly) return { x: game.vehicle.vx, y: game.vehicle.vy };
+  return forwardSafeInheritedVelocity(
+    { x: game.vehicle.vx, y: game.vehicle.vy },
+    { x: Math.cos(angle) * def.projectileSpeed, y: Math.sin(angle) * def.projectileSpeed },
+  );
 }
 
 function heatSinkRate(game) {

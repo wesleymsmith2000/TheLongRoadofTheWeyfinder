@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, stepGame } from '../src/core/game.js';
+import { forwardSafeInheritedVelocity } from '../src/core/projectileLaunch.js';
 import { createStartingVehicle, gunMuzzleWorld } from '../src/core/vehicle.js';
 import { PRIMARY_PROJECTILE_SPEED, compensatedAimHeading, gunnerAim, resolveTurretAim, stepTurretAim } from '../src/core/turret.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
@@ -61,7 +62,7 @@ test('disabled gunner AI leaves turret heading alone without manual aim', () => 
   assert.equal(angle, vehicle.turretHeading);
 });
 
-test('compensated mouse aim fires through the cursor point after vehicle velocity', () => {
+test('compensated mouse aim stays within two pixels of the cursor line with forward-safe inheritance', () => {
   const vehicle = createStartingVehicle();
   vehicle.vx = 0;
   vehicle.vy = -90;
@@ -69,13 +70,14 @@ test('compensated mouse aim fires through the cursor point after vehicle velocit
   const angle = compensatedAimHeading(vehicle, target, PRIMARY_PROJECTILE_SPEED);
   vehicle.turretHeading = angle;
   const muzzle = gunMuzzleWorld(vehicle);
-  const shot = {
-    x: Math.cos(angle) * PRIMARY_PROJECTILE_SPEED + vehicle.vx,
-    y: Math.sin(angle) * PRIMARY_PROJECTILE_SPEED + vehicle.vy,
-  };
+  const shot = forwardSafeInheritedVelocity(
+    { x: vehicle.vx, y: vehicle.vy },
+    { x: Math.cos(angle) * PRIMARY_PROJECTILE_SPEED, y: Math.sin(angle) * PRIMARY_PROJECTILE_SPEED },
+  );
   const toTarget = { x: target.x - muzzle.x, y: target.y - muzzle.y };
   const cross = shot.x * toTarget.y - shot.y * toTarget.x;
-  assert.equal(Math.abs(cross) < 0.001, true);
+  const perpendicularMiss = Math.abs(cross) / Math.hypot(shot.x, shot.y);
+  assert.equal(perpendicularMiss < 2, true);
 });
 
 test('manual aim compensation can be disabled', () => {
