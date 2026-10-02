@@ -34,6 +34,8 @@ test('save states restore run progression and verify checksum', () => {
   game.music.semanticState = 'SUSPICION';
   game.music.layerVolumes.suspicion = 0.5;
   game.weaponBay.inventory.cannon = 2;
+  game.weaponBay.inventory.future_merged_utility = 3;
+  game.weaponBay.discoveredMerges.push('merge.prototype_vortex_wavelet_beam');
   game.weaponBay.unlockedSlots.gun.primary[3] = false;
   beginEncounter(game, SAVE_TEST_ENCOUNTER);
   const save = createSaveState(game, account, { savedAt: '2026-08-31T00:00:00.000Z' });
@@ -55,6 +57,8 @@ test('save states restore run progression and verify checksum', () => {
   assert.equal(restored.music.semanticState, 'SUSPICION');
   assert.equal(restored.music.layerVolumes.suspicion, 0.5);
   assert.equal(restored.weaponBay.inventory.cannon, 2);
+  assert.equal(restored.weaponBay.inventory.future_merged_utility, 3);
+  assert.deepEqual(restored.weaponBay.discoveredMerges, ['merge.prototype_vortex_wavelet_beam']);
   assert.equal(restored.weaponBay.unlockedSlots.gun.primary[3], false);
   assert.equal(restored.encounters.active[0].definitionId, 'encounter.test.save');
   assert.equal(restored.paused, true);

@@ -648,6 +648,21 @@ test('tractor beam is a secondary utility beam with unlimited reserve', () => {
   assert.equal(game.secondary.ammo.tractor_beam, Infinity);
 });
 
+test('tractor beam upgrade family scales pull strength range and width', () => {
+  const game = createGame();
+  game.secondary.selected = 'tractor_beam';
+  game.upgrades.tractorPullStrength = 2;
+  game.upgrades.tractorRange = 1;
+  game.upgrades.tractorWidth = 3;
+  game.aimReticle = { x: game.vehicle.x + 80, y: game.vehicle.y, active: true, source: 'pointer' };
+
+  assert.equal(fireSecondary(game), true);
+  const beam = game.playerProjectiles[0];
+  assert.equal(beam.impulse.toFixed(3), (20 * 1.05 ** 2).toFixed(3));
+  assert.equal(beam.length.toFixed(3), (180 * 1.05).toFixed(3));
+  assert.equal(beam.radius.toFixed(3), (0.9 * 1.05 ** 3).toFixed(3));
+});
+
 test('tractor tether pulls the player upward toward elevated enemies and pulls movable targets back', () => {
   const game = createGame();
   const enemy = createEnemy(game.vehicle.x + 80, game.vehicle.y);

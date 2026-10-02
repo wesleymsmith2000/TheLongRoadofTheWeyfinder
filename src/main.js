@@ -28,24 +28,29 @@ import { createPerformanceDiagnostics, installPerformanceDiagnosticsGlobal } fro
 import { createPerformanceMonitor } from './debug/performanceMonitor.js';
 import { createPlayerVehicleLaunchEditor } from './editor/playerVehicleLaunchEditor.js';
 import {
-  MAX_PRIMARY_SLOTS,
-  MAX_SECONDARY_SLOTS,
   PRIMARY_WEAPON_IDS,
   SECONDARY_WEAPON_IDS,
   migrateLegacyCombatUtilities,
   normalizeGunLoadouts,
+  normalizeUtilityLoadouts,
   setGunLoadoutSlot,
   usableSecondaryWeaponIds,
 } from './core/weaponLoadout.js';
 import {
+  EQUIPMENT_IDS,
   LITE_SLOT_UNLOCK_COST,
-  buildWeaponWithScrap,
-  swapWeaponSlot,
+  buildEquipmentWithScrap,
+  equipmentConstructionCost,
+  equipmentFabricationMode,
+  equipmentIdsForSlotKind,
+  equipmentSlotCapacity,
+  equipmentSlotView,
+  swapEquipmentSlot,
   unlockLiteWeaponSlot,
   weaponBayAvailable,
-  weaponBaySlotView,
-  weaponConstructionCost,
+  workshopAccess,
 } from './core/weaponBay.js';
+import { evaluateMergeRecipe, listEquipmentMergeRecipes, mergeEquipment } from './core/equipmentMerge.js';
 import { reconcileSelectOptions } from './ui/selectOptions.js';
 import { createPrototypePlayerAccountData, normalizePrototypePlayerAccountData, preparePlayerAccountForSave } from './core/playerAccount.js';
 import { TARGETING_COMPUTER_DEFINITIONS, syncTargetingComputerUnlocks, targetingComputerUnlocks } from './core/targetingComputers.js';
@@ -450,6 +455,19 @@ const weaponBaySwapButton = document.querySelector('#weaponBaySwapButton');
 const weaponBayBuildButton = document.querySelector('#weaponBayBuildButton');
 const weaponBayUnlockButton = document.querySelector('#weaponBayUnlockButton');
 const weaponBayStatus = document.querySelector('#weaponBayStatus');
+const weaponBayFabricationSelect = document.querySelector('#weaponBayFabricationSelect');
+const workshopFabricationInventory = document.querySelector('#workshopFabricationInventory');
+const workshopFabricationStatus = document.querySelector('#workshopFabricationStatus');
+const workshopLoadoutTab = document.querySelector('#workshopLoadoutTab');
+const workshopFabricationTab = document.querySelector('#workshopFabricationTab');
+const workshopMergeTab = document.querySelector('#workshopMergeTab');
+const workshopVehicleTab = document.querySelector('#workshopVehicleTab');
+const workshopLoadoutPanel = document.querySelector('#workshopLoadoutPanel');
+const workshopFabricationPanel = document.querySelector('#workshopFabricationPanel');
+const workshopMergePanel = document.querySelector('#workshopMergePanel');
+const workshopVehiclePanel = document.querySelector('#workshopVehiclePanel');
+const workshopMergeRecipes = document.querySelector('#workshopMergeRecipes');
+const workshopMergeStatus = document.querySelector('#workshopMergeStatus');
 const restartButton = document.querySelector('#restartButton');
 const levelName = document.querySelector('#levelName');
 const levelProgressFill = document.querySelector('#levelProgressFill');
@@ -488,6 +506,8 @@ const uiTimers = {
 let shopUiWasVisible = false;
 let pauseUiWasVisible = false;
 let activeShopSection = 'repair';
+let activeWorkshopSection = 'loadout';
+let workshopMergeSignature = '';
 let secondaryControlsGame = null;
 let secondaryControlsSignature = '';
 const upgradeSummaryOpenState = new Map();
@@ -873,14 +893,22 @@ shopUpgradeSystemSelect.addEventListener('change', () => {
   markShopUiDirty();
 });
 shopUpgradeSelect.addEventListener('change', markShopUiDirty);
-weaponBayGunSelect.addEventListener('change', refreshWeaponBayUi);
-weaponBayKindSelect.addEventListener('change', refreshWeaponBayUi);
+weaponBayGunSelect.addEventListener('change', handleWorkshopCellChange);
+weaponBayKindSelect.addEventListener('change', handleWorkshopSlotKindChange);
 weaponBaySlotSelect.addEventListener('change', refreshWeaponBayUi);
 weaponBayWeaponSelect.addEventListener('change', refreshWeaponBayUi);
 weaponBaySwapButton.addEventListener('click', handleWeaponBaySwap);
 weaponBayBuildButton.addEventListener('click', handleWeaponBayBuild);
 weaponBayUnlockButton.addEventListener('click', handleWeaponBayUnlock);
 weaponBayCanvas.addEventListener('pointerdown', selectWeaponBayGunFromCanvas);
+workshopLoadoutTab.addEventListener('click', () => setWorkshopSection('loadout'));
+workshopFabricationTab.addEventListener('click', () => setWorkshopSection('fabrication'));
+workshopMergeTab.addEventListener('click', () => setWorkshopSection('merge'));
+workshopVehicleTab.addEventListener('click', () => setWorkshopSection('vehicle'));
+for (const tab of [workshopLoadoutTab, workshopFabricationTab, workshopMergeTab, workshopVehicleTab]) {
+  tab.addEventListener('keydown', handleWorkshopTabKeydown);
+}
+weaponBayFabricationSelect.addEventListener('change', refreshWeaponBayUi);
 controlConfigClose.addEventListener('click', closeControlConfig);
 controlConfigReset.addEventListener('click', resetControlBindings);
 sandboxQuickRun.addEventListener('click', runQuickSandbox);
@@ -1019,6 +1047,22 @@ function setShopSection(section) {
   markShopUiDirty();
 }
 
+function setWorkshopSection(section) {
+  const access = workshopAccess(game);
+  const allowed = ['loadout', 'fabrication', 'merge', 'vehicle'];
+  activeWorkshopSection = allowed.includes(section) ? section : 'loadout';
+  workshopLoadoutPanel.classList.toggle('hidden', activeWorkshopSection !== 'loadout');
+  workshopFabricationPanel.classList.toggle('hidden', activeWorkshopSection !== 'fabrication');
+  workshopMergePanel.classList.toggle('hidden', activeWorkshopSection !== 'merge');
+  workshopVehiclePanel.classList.toggle('hidden', activeWorkshopSection !== 'vehicle');
+  workshopLoadoutTab.setAttribute('aria-pressed', String(activeWorkshopSection === 'loadout'));
+  workshopFabricationTab.setAttribute('aria-pressed', String(activeWorkshopSection === 'fabrication'));
+  workshopMergeTab.setAttribute('aria-pressed', String(activeWorkshopSection === 'merge'));
+  workshopVehicleTab.setAttribute('aria-pressed', String(activeWorkshopSection === 'vehicle'));
+  workshopVehicleTab.setAttribute('aria-disabled', String(!access.structure));
+  markShopUiDirty();
+}
+
 function blurActiveControl() {
   document.activeElement?.blur?.();
 }
@@ -1033,6 +1077,18 @@ function handleShopTabKeydown(event) {
   const button = nextSection === 'repair' ? shopRepairTab : nextSection === 'upgrades' ? shopUpgradeTab : shopWeaponBayTab;
   button.focus();
   flashElementLabel(button, button.textContent.trim());
+}
+
+function handleWorkshopTabKeydown(event) {
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+  event.preventDefault();
+  const sections = ['loadout', 'fabrication', 'merge', 'vehicle'];
+  const direction = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+  const next = sections[(sections.indexOf(activeWorkshopSection) + direction + sections.length) % sections.length];
+  setWorkshopSection(next);
+  const buttons = { loadout: workshopLoadoutTab, fabrication: workshopFabricationTab, merge: workshopMergeTab, vehicle: workshopVehicleTab };
+  buttons[next].focus();
+  flashElementLabel(buttons[next], buttons[next].textContent.trim());
 }
 
 function toggleDebug() {
@@ -2925,8 +2981,14 @@ function syncInstalledSecondaryControls(force = false) {
 
 function secondaryWeaponLabel(id) {
   if (id === 'none') return 'None';
+  if (id === 'main.basic') return 'Main Gun';
   if (id === 'beam') return 'Particle Beam';
   if (id === 'sta_missile') return 'STA Missile';
+  if (id === 'orb_of_blades') return 'Orb of Blades';
+  if (id === 'vortex_wavelet_beam') return 'Vortex Wavelet Beam';
+  if (id === 'repulsor_beam') return 'Repulsor Beam';
+  if (id === 'tractor_beam') return 'Tractor Beam';
+  if (id === 'scrap_magnet') return 'Scrap Magnet';
   return id.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
@@ -3030,28 +3092,36 @@ function refreshUpgradeSummary() {
 
 function refreshWeaponBayUi() {
   if (!weaponBayAvailable(game)) return;
-  const loadouts = normalizeGunLoadouts(game.vehicleDefinition);
-  const selectedCellId = loadouts.some((loadout) => loadout.cellId === weaponBayGunSelect.value)
+  const gunLoadouts = normalizeGunLoadouts(game.vehicleDefinition);
+  const utilityLoadouts = normalizeUtilityLoadouts(game.vehicleDefinition);
+  let slotKind = ['primary', 'secondary', 'utility'].includes(weaponBayKindSelect.value) ? weaponBayKindSelect.value : 'primary';
+  const compatibleLoadouts = slotKind === 'utility' ? utilityLoadouts : gunLoadouts;
+  const selectedCellId = compatibleLoadouts.some((loadout) => loadout.cellId === weaponBayGunSelect.value)
     ? weaponBayGunSelect.value
-    : loadouts[0]?.cellId;
+    : compatibleLoadouts[0]?.cellId;
+  if (!selectedCellId && slotKind === 'utility') slotKind = 'primary';
+  weaponBayKindSelect.value = slotKind;
+  const allCells = [
+    ...gunLoadouts.map((loadout, index) => ({ value: loadout.cellId, label: `Gun ${index + 1}: ${loadout.cellId}` })),
+    ...utilityLoadouts.map((loadout, index) => ({ value: loadout.cellId, label: `Utility ${index + 1}: ${loadout.cellId}` })),
+  ];
   reconcileSelectOptions(
     weaponBayGunSelect,
-    loadouts.map((loadout, index) => ({ value: loadout.cellId, label: `Gun ${index + 1}: ${loadout.cellId}` })),
+    allCells,
     selectedCellId,
   );
-  const slotKind = weaponBayKindSelect.value === 'secondary' ? 'secondary' : 'primary';
-  const maxSlots = slotKind === 'primary' ? MAX_PRIMARY_SLOTS : MAX_SECONDARY_SLOTS;
+  const maxSlots = equipmentSlotCapacity(slotKind);
   const selectedSlot = Math.min(maxSlots - 1, Math.max(0, Number(weaponBaySlotSelect.value) || 0));
   reconcileSelectOptions(
     weaponBaySlotSelect,
     Array.from({ length: maxSlots }, (_, index) => {
-      const view = weaponBaySlotView(game, weaponBayGunSelect.value, slotKind, index);
+      const view = equipmentSlotView(game, weaponBayGunSelect.value, slotKind, index);
       const installed = view.weaponId ? secondaryWeaponLabel(view.weaponId) : 'Empty';
       return { value: String(index), label: `Slot ${index + 1}: ${view.unlocked ? installed : 'Locked'}` };
     }),
     String(selectedSlot),
   );
-  const catalog = slotKind === 'primary' ? PRIMARY_WEAPON_IDS : SECONDARY_WEAPON_IDS;
+  const catalog = equipmentIdsForSlotKind(slotKind);
   const selectedWeapon = catalog.includes(weaponBayWeaponSelect.value) ? weaponBayWeaponSelect.value : '';
   reconcileSelectOptions(
     weaponBayWeaponSelect,
@@ -3064,38 +3134,32 @@ function refreshWeaponBayUi() {
   );
 
   const slotIndex = Number(weaponBaySlotSelect.value) || 0;
-  const view = weaponBaySlotView(game, weaponBayGunSelect.value, slotKind, slotIndex);
+  const view = equipmentSlotView(game, weaponBayGunSelect.value, slotKind, slotIndex);
   const desired = weaponBayWeaponSelect.value || null;
-  const buildCost = desired ? weaponConstructionCost(game, desired) : Infinity;
   const owned = desired ? game.weaponBay.inventory[desired] ?? 0 : 0;
   weaponBaySwapButton.disabled = !view.unlocked || view.weaponId === desired || (desired && owned <= 0);
-  weaponBayBuildButton.disabled = !desired || !Number.isFinite(buildCost) || game.scrap < buildCost;
-  weaponBayBuildButton.textContent = desired ? `Construct (${Number.isFinite(buildCost) ? buildCost : '-'} scrap)` : 'Construct Weapon';
-  const showUnlock = game.runMode === 'lite' && !view.unlocked;
+  const showUnlock = slotKind !== 'utility' && game.runMode === 'lite' && !view.unlocked;
   weaponBayUnlockButton.classList.toggle('hidden', !showUnlock);
   weaponBayUnlockButton.disabled = !showUnlock || game.scrap < LITE_SLOT_UNLOCK_COST;
   weaponBayUnlockButton.textContent = `Unlock Slot (${LITE_SLOT_UNLOCK_COST} scrap)`;
-  const inventory = Object.entries(game.weaponBay.inventory).filter(([, quantity]) => quantity > 0);
-  weaponBayInventory.replaceChildren(
-    Object.assign(document.createElement('strong'), { textContent: 'Inventory: ' }),
-    document.createTextNode(inventory.length
-      ? inventory.map(([id, quantity]) => `${secondaryWeaponLabel(id)} x${quantity}`).join(', ')
-      : 'No spare weapons'),
-  );
+  renderWorkshopInventory(weaponBayInventory);
   renderWeaponBayCraft(weaponBayGunSelect.value);
+  refreshWorkshopFabricationUi();
+  refreshWorkshopMergeUi();
 }
 
 function handleWeaponBayBuild() {
-  const result = buildWeaponWithScrap(game, weaponBayWeaponSelect.value);
-  weaponBayStatus.textContent = result.changed
-    ? `${secondaryWeaponLabel(weaponBayWeaponSelect.value)} constructed and added to inventory.`
+  const itemId = weaponBayFabricationSelect.value;
+  const result = buildEquipmentWithScrap(game, itemId);
+  workshopFabricationStatus.textContent = result.changed
+    ? `${secondaryWeaponLabel(itemId)} fabricated and added to inventory.`
     : result.reason;
   markShopUiDirty();
   refreshWeaponBayUi();
 }
 
 function handleWeaponBaySwap() {
-  const result = swapWeaponSlot(
+  const result = swapEquipmentSlot(
     game,
     weaponBayGunSelect.value,
     weaponBayKindSelect.value,
@@ -3110,6 +3174,103 @@ function handleWeaponBaySwap() {
   if (result.changed) commitRestAreaVehicleDefinition();
   markShopUiDirty();
   refreshWeaponBayUi();
+}
+
+function handleWorkshopCellChange() {
+  const cell = game.vehicleDefinition?.cells?.find((candidate) => candidate.id === weaponBayGunSelect.value);
+  if (cell?.type === 'utility') weaponBayKindSelect.value = 'utility';
+  else if (weaponBayKindSelect.value === 'utility') weaponBayKindSelect.value = 'primary';
+  refreshWeaponBayUi();
+}
+
+function handleWorkshopSlotKindChange() {
+  const wantsUtility = weaponBayKindSelect.value === 'utility';
+  const cell = game.vehicleDefinition?.cells?.find((candidate) => candidate.id === weaponBayGunSelect.value);
+  if ((wantsUtility && cell?.type !== 'utility') || (!wantsUtility && cell?.type !== 'gun')) {
+    weaponBayGunSelect.value = game.vehicleDefinition?.cells?.find((candidate) => candidate.type === (wantsUtility ? 'utility' : 'gun'))?.id ?? '';
+  }
+  refreshWeaponBayUi();
+}
+
+function refreshWorkshopFabricationUi() {
+  const selected = EQUIPMENT_IDS.includes(weaponBayFabricationSelect.value) ? weaponBayFabricationSelect.value : EQUIPMENT_IDS[0];
+  reconcileSelectOptions(
+    weaponBayFabricationSelect,
+    EQUIPMENT_IDS.map((itemId) => ({
+      value: itemId,
+      label: `${secondaryWeaponLabel(itemId)}${equipmentFabricationMode(itemId) === 'mergeOnly' ? ' (merge only)' : ''}`,
+      dataset: { icon: itemId },
+    })),
+    selected,
+  );
+  const itemId = weaponBayFabricationSelect.value;
+  const cost = equipmentConstructionCost(game, itemId);
+  const mergeOnly = equipmentFabricationMode(itemId) === 'mergeOnly';
+  weaponBayBuildButton.disabled = mergeOnly || !Number.isFinite(cost) || game.scrap < cost;
+  weaponBayBuildButton.textContent = mergeOnly ? 'Merge Recipe Required' : `Fabricate (${Number.isFinite(cost) ? cost : '-'} scrap)`;
+  renderWorkshopInventory(workshopFabricationInventory);
+}
+
+function refreshWorkshopMergeUi() {
+  const access = workshopAccess(game);
+  const recipes = listEquipmentMergeRecipes();
+  const evaluations = recipes.map((recipe) => evaluateMergeRecipe(game, playerAccount, recipe));
+  const signature = JSON.stringify(evaluations.map((evaluation) => evaluation.requirements.map((requirement) => [requirement.kind, requirement.itemId, requirement.actual, requirement.required, requirement.met])));
+  if (signature === workshopMergeSignature) return;
+  workshopMergeSignature = signature;
+  workshopMergeRecipes.replaceChildren(...recipes.map((recipe, recipeIndex) => {
+    const evaluation = evaluations[recipeIndex];
+    const card = document.createElement('div');
+    card.className = `workshop-recipe${evaluation.available ? '' : ' locked'}`;
+    const copy = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = `${recipe.displayName} -> ${secondaryWeaponLabel(recipe.output.itemId)} x${recipe.output.quantity}`;
+    const description = document.createElement('span');
+    description.textContent = recipe.description;
+    const requirements = document.createElement('ul');
+    requirements.className = 'workshop-requirements';
+    for (const requirement of evaluation.requirements) {
+      const line = document.createElement('li');
+      line.className = requirement.met ? 'met' : 'unmet';
+      line.textContent = `${requirement.met ? 'Ready' : 'Missing'}: ${mergeRequirementLabel(requirement)}`;
+      requirements.append(line);
+    }
+    copy.append(title, description, requirements);
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.textContent = evaluation.available ? 'Merge' : 'Inspect';
+    action.setAttribute('aria-label', `${evaluation.available ? 'Merge' : 'Inspect requirements for'} ${recipe.displayName}`);
+    action.addEventListener('click', () => {
+      if (!access.merge) return;
+      const result = mergeEquipment(game, playerAccount, recipe.assetId);
+      workshopMergeStatus.textContent = result.changed
+        ? `${secondaryWeaponLabel(result.output.itemId)} added to Workshop inventory.`
+        : result.evaluation
+          ? result.evaluation.requirements.filter((requirement) => !requirement.met).map(mergeRequirementLabel).join('; ')
+          : result.reason;
+      markShopUiDirty();
+      refreshWeaponBayUi();
+    });
+    card.append(copy, action);
+    return card;
+  }));
+}
+
+function mergeRequirementLabel(requirement) {
+  if (requirement.kind === 'systemLevel') return `${secondaryWeaponLabel(requirement.itemId)} system level ${requirement.actual}/${requirement.required}${requirement.consumed === false ? ' (technology only)' : ''}`;
+  if (requirement.kind === 'inventory') return `${secondaryWeaponLabel(requirement.itemId)} inventory ${requirement.actual}/${requirement.required}`;
+  if (requirement.kind === 'achievement') return `achievement ${requirement.achievementId}`;
+  return 'Unknown requirement';
+}
+
+function renderWorkshopInventory(container) {
+  const inventory = Object.entries(game.weaponBay.inventory).filter(([, quantity]) => quantity > 0);
+  container.replaceChildren(
+    Object.assign(document.createElement('strong'), { textContent: 'Workshop Inventory: ' }),
+    document.createTextNode(inventory.length
+      ? inventory.map(([id, quantity]) => `${secondaryWeaponLabel(id)} x${quantity}`).join(', ')
+      : 'No spare equipment'),
+  );
 }
 
 function handleWeaponBayUnlock() {
@@ -3151,15 +3312,15 @@ function renderWeaponBayCraft(selectedCellId) {
   for (const cell of cells) {
     const x = offsetX + (cell.gridX - minX) * cellSize;
     const y = offsetY + (cell.gridY - minY) * cellSize;
-    const isGun = cell.type === 'gun';
-    context.fillStyle = isGun ? '#b8643f' : cell.type === 'core' ? '#59bfc8' : '#70787a';
-    context.globalAlpha = isGun ? 1 : 0.62;
+    const isEquipmentCell = cell.type === 'gun' || cell.type === 'utility';
+    context.fillStyle = cell.type === 'gun' ? '#b8643f' : cell.type === 'utility' ? '#4f9c86' : cell.type === 'core' ? '#59bfc8' : '#70787a';
+    context.globalAlpha = isEquipmentCell ? 1 : 0.62;
     context.fillRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
     context.globalAlpha = 1;
     context.lineWidth = cell.id === selectedCellId ? 3 : 1;
     context.strokeStyle = cell.id === selectedCellId ? '#f7c06a' : '#171a1b';
     context.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
-    if (isGun) weaponBayHitCells.push({ cellId: cell.id, x, y, size: cellSize });
+    if (isEquipmentCell) weaponBayHitCells.push({ cellId: cell.id, x, y, size: cellSize });
   }
 }
 
@@ -3170,7 +3331,7 @@ function selectWeaponBayGunFromCanvas(event) {
   const hit = weaponBayHitCells.find((cell) => x >= cell.x && x <= cell.x + cell.size && y >= cell.y && y <= cell.y + cell.size);
   if (!hit) return;
   weaponBayGunSelect.value = hit.cellId;
-  refreshWeaponBayUi();
+  handleWorkshopCellChange();
   weaponBayGunSelect.focus();
 }
 

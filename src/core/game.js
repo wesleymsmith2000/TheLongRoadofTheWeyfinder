@@ -912,10 +912,8 @@ function finishLevel(game) {
   updateTargetingAiLevelGain(game);
   if (!game.sandbox?.enabled) {
     game.levelsCompleted = game.level;
-    if (isBossLevel(game.level, game.levelMusic)) {
-      game.bossLevelsCompleted += 1;
-      game.weaponBay.available = true;
-    }
+    game.weaponBay.available = true;
+    if (isBossLevel(game.level, game.levelMusic)) game.bossLevelsCompleted += 1;
   }
   emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
 }

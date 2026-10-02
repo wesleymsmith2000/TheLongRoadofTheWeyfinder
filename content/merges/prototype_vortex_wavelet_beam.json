@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "merge.prototype_vortex_wavelet_beam",
+  "displayName": "Prototype Convergence Wavelet",
+  "description": "A development merge that combines beam, impact, attraction, and repulsion hardware into the existing Vortex Wavelet Beam.",
+  "output": {
+    "itemId": "vortex_wavelet_beam",
+    "quantity": 1
+  },
+  "ingredients": [
+    { "itemId": "beam", "quantity": 1, "minSystemLevel": 1 },
+    { "itemId": "cannon", "quantity": 1, "minSystemLevel": 1 },
+    { "itemId": "repulsor_beam", "quantity": 1, "minSystemLevel": 1 },
+    { "itemId": "tractor_beam", "quantity": 1, "minSystemLevel": 1 }
+  ],
+  "technologyPrerequisites": [],
+  "requirements": {
+    "achievementId": null
+  }
+}

@@ -340,7 +340,15 @@ function upgradedSecondaryDefinition(game, weapon) {
       targetHint: 'aimReticle',
     }, visualScale);
   }
-  if (weapon === 'tractor_beam') return scaleProjectileVisuals({ ...base, targetHint: 'aimReticle' }, visualScale);
+  if (weapon === 'tractor_beam') {
+    return scaleProjectileVisuals({
+      ...base,
+      targetHint: 'aimReticle',
+      impulse: base.impulse * multiplier(game, 'tractorPullStrength'),
+      length: base.length * multiplier(game, 'tractorRange'),
+      radius: base.radius * multiplier(game, 'tractorWidth'),
+    }, visualScale);
+  }
   if (weapon === 'sta_missile') {
     return scaleProjectileVisuals({
       ...base,

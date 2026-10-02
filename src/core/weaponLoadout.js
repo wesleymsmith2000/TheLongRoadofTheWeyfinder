@@ -1,8 +1,10 @@
 export const PRIMARY_WEAPON_IDS = ['main.basic', 'tracking_flechette', 'mortar', 'blade_launcher', 'mini_beam'];
 export const SECONDARY_WEAPON_IDS = ['rocket', 'cannon', 'beam', 'sta_missile', 'orb_of_blades', 'vortex_wavelet_beam'];
 export const COMBAT_UTILITY_IDS = ['repulsor_beam', 'tractor_beam'];
+export const UTILITY_EQUIPMENT_IDS = ['booster', 'scrap_magnet', ...COMBAT_UTILITY_IDS];
 export const MAX_PRIMARY_SLOTS = 4;
 export const MAX_SECONDARY_SLOTS = 3;
+export const MAX_UTILITY_SLOTS = 4;
 
 export function defaultGunLoadout(cellId) {
   return {
@@ -45,6 +47,41 @@ export function setGunLoadoutSlot(definition, cellId, slotKind, index, weaponId)
   return { changed: true, definition: next };
 }
 
+export function normalizeUtilityLoadouts(definition) {
+  if (!definition?.cells) return [];
+  const loadouts = new Map(
+    (definition.modules ?? [])
+      .filter((module) => module.kind === 'utilitySlots')
+      .map((module) => [module.cellId, normalizeUtilityLoadout(module)]),
+  );
+  return definition.cells
+    .filter((cell) => cell.type === 'utility')
+    .map((cell) => loadouts.get(cell.id) ?? defaultUtilityLoadout(cell.id));
+}
+
+export function normalizeUtilityLoadout(loadout, fallbackCellId = loadout?.cellId) {
+  return {
+    cellId: fallbackCellId,
+    kind: 'utilitySlots',
+    slots: normalizeSlots(loadout?.slots, UTILITY_EQUIPMENT_IDS, MAX_UTILITY_SLOTS, null),
+  };
+}
+
+export function setUtilityLoadoutSlot(definition, cellId, index, utilityId) {
+  const cell = definition?.cells?.find((candidate) => candidate.id === cellId);
+  if (!cell || cell.type !== 'utility') return { changed: false, reason: 'Choose a utility cell first.' };
+  if (!Number.isInteger(index) || index < 0 || index >= MAX_UTILITY_SLOTS) return { changed: false, reason: 'Utility slot is out of range.' };
+  if (utilityId != null && !UTILITY_EQUIPMENT_IDS.includes(utilityId)) return { changed: false, reason: 'That equipment does not fit a utility slot.' };
+
+  const next = cloneDefinition(definition);
+  const normalized = normalizeUtilityLoadouts(next);
+  next.modules = (next.modules ?? []).filter((module) => module.kind !== 'utilitySlots');
+  const loadout = normalized.find((candidate) => candidate.cellId === cellId) ?? defaultUtilityLoadout(cellId);
+  loadout.slots[index] = utilityId || null;
+  next.modules.push(...normalized.map((candidate) => candidate.cellId === cellId ? loadout : candidate));
+  return { changed: true, definition: next };
+}
+
 export function weaponStackMultiplier(definition, weaponId) {
   const copies = normalizeGunLoadouts(definition).reduce(
     (sum, loadout) => sum + [...loadout.primary, ...loadout.secondary].filter((id) => id === weaponId).length,
@@ -68,19 +105,25 @@ export function usableSecondaryWeaponIds(definition) {
 }
 
 export function utilityModuleInstalled(definition, moduleId) {
-  if (!definition?.cells) return COMBAT_UTILITY_IDS.includes(moduleId);
-  const utilityCells = new Set(definition.cells.filter((cell) => cell.type === 'utility').map((cell) => cell.id));
-  return (definition.modules ?? []).some((module) =>
-    module.kind === 'utilitySlots' && utilityCells.has(module.cellId) && (module.slots ?? []).includes(moduleId),
-  );
+  if (!definition?.cells) return UTILITY_EQUIPMENT_IDS.includes(moduleId);
+  return utilityModuleCount(definition, moduleId) > 0;
 }
 
 export function utilityModuleCellIds(definition, moduleId) {
-  if (!definition?.cells) return [];
-  const utilityCells = new Set(definition.cells.filter((cell) => cell.type === 'utility').map((cell) => cell.id));
-  return (definition.modules ?? [])
-    .filter((module) => module.kind === 'utilitySlots' && utilityCells.has(module.cellId) && (module.slots ?? []).includes(moduleId))
-    .map((module) => module.cellId);
+  return normalizeUtilityLoadouts(definition)
+    .filter((loadout) => loadout.slots.includes(moduleId))
+    .map((loadout) => loadout.cellId);
+}
+
+export function utilityModuleCount(definition, moduleId) {
+  return normalizeUtilityLoadouts(definition).reduce(
+    (count, loadout) => count + loadout.slots.filter((id) => id === moduleId).length,
+    0,
+  );
+}
+
+export function installedUtilityIds(definition) {
+  return [...new Set(normalizeUtilityLoadouts(definition).flatMap((loadout) => loadout.slots).filter(Boolean))];
 }
 
 export function migrateLegacyCombatUtilities(definition) {
@@ -122,6 +165,10 @@ function normalizeSlots(value, allowed, maxSlots, fallback) {
   const slots = source.slice(0, maxSlots).map((id) => (allowed.includes(id) ? id : null));
   while (slots.length < maxSlots) slots.push(null);
   return slots;
+}
+
+function defaultUtilityLoadout(cellId) {
+  return normalizeUtilityLoadout({ cellId, slots: ['booster', 'scrap_magnet'] });
 }
 
 function cloneDefinition(definition) {
