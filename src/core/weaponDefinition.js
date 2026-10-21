@@ -85,6 +85,7 @@ export function runtimeWeaponDefinition(definition) {
     damagePiercesUntilSpent: Boolean(projectile.damagePiercesUntilSpent),
     maxRicochets: projectile.maxRicochets ?? 0,
     ricochetFactor: projectile.ricochetFactor ?? 0.5,
+    ricochetProbability: projectile.ricochetProbability ?? 1,
     ricochetOnEnemyExit: Boolean(projectile.ricochetOnEnemyExit),
     absorbsEnemyProjectiles: Boolean(projectile.absorbsEnemyProjectiles),
     projectileDeflectionProbability: projectile.projectileDeflectionProbability ?? projectile.deflectionProbability ?? 0,
@@ -154,6 +155,7 @@ function validateProjectile(projectile, errors, warnings) {
   validateNumber(projectile.pierceDamageScale ?? 0.7, 'projectile.pierceDamageScale', errors, { min: 0 });
   validateNumber(projectile.pierceDamageFalloff ?? 0.68, 'projectile.pierceDamageFalloff', errors, { min: 0, max: 1 });
   validateNumber(projectile.maxRicochets ?? 0, 'projectile.maxRicochets', errors, { min: 0, integer: true });
+  validateNumber(projectile.ricochetProbability ?? 1, 'projectile.ricochetProbability', errors, { min: 0, max: 1 });
   validateNumber(projectile.ricochetFactor ?? 0.5, 'projectile.ricochetFactor', errors, { min: 0, max: 1 });
   validateNumber(projectile.projectileDeflectionProbability ?? projectile.deflectionProbability ?? 0, 'projectile.projectileDeflectionProbability', errors, { min: 0, max: 1 });
   validateNumber(projectile.spinRate ?? 0, 'projectile.spinRate', errors);
@@ -329,6 +331,7 @@ function validateBladePayload(payload, label, errors) {
   if (payload == null) return;
   if (!isPlainObject(payload)) return;
   validateNumber(payload.maxRicochets ?? 0, `${label}.maxRicochets`, errors, { min: 0, integer: true });
+  validateNumber(payload.ricochetProbability ?? 1, `${label}.ricochetProbability`, errors, { min: 0, max: 1 });
   validateNumber(payload.ricochetFactor ?? 0.5, `${label}.ricochetFactor`, errors, { min: 0, max: 1 });
   validateNumber(payload.projectileDeflectionProbability ?? payload.deflectionProbability ?? 0, `${label}.projectileDeflectionProbability`, errors, { min: 0, max: 1 });
   validateNumber(payload.spinRate ?? 0, `${label}.spinRate`, errors);

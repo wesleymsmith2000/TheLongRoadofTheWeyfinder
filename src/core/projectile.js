@@ -6,6 +6,8 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     vy,
     previousX: x,
     previousY: y,
+    arcadeForwardLocked: Boolean(options.arcadeForwardLocked),
+    homingReference: options.homingReference ?? null,
     angle: options.angle ?? Math.atan2(vy, vx),
     spinRate: options.spinRate ?? 0,
     length: options.length ?? 0,
@@ -65,6 +67,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     damagePiercesUntilSpent: Boolean(options.damagePiercesUntilSpent),
     maxRicochets: Math.max(0, Math.floor(options.maxRicochets ?? 0)),
     ricochetCount: Math.max(0, Math.floor(options.ricochetCount ?? 0)),
+    ricochetProbability: Math.max(0, Math.min(1, options.ricochetProbability ?? 1)),
     ricochetFactor: Math.max(0, Math.min(1, options.ricochetFactor ?? 0.5)),
     ricochetOnEnemyExit: Boolean(options.ricochetOnEnemyExit),
     ricochetContactEnemy: options.ricochetContactEnemy ?? null,
@@ -219,7 +222,7 @@ function stepDelayedAcceleration(projectile, targets, dt) {
     if (projectile.explodeAfterAcceleration) projectile.readyToExplode = true;
     return;
   }
-  const liveReticleTarget = projectile.tracksReticleInHoming && projectile.targetHint ? projectile.targetHint : null;
+  const liveReticleTarget = projectile.homingReference ? nearestTarget(projectile, targets) : projectile.tracksReticleInHoming && projectile.targetHint ? projectile.targetHint : null;
   if (liveReticleTarget) {
     const desired = Math.atan2(liveReticleTarget.y - projectile.y, liveReticleTarget.x - projectile.x);
     const delta = Math.atan2(Math.sin(desired - projectile.angle), Math.cos(desired - projectile.angle));
@@ -257,12 +260,13 @@ function stepHomingProjectile(projectile, targets, dt) {
 }
 
 function delayedAccelerationTarget(projectile, targets) {
+  if (projectile.homingReference) return nearestTarget(projectile, targets);
   if (projectile.tracksReticleInHoming && projectile.targetHint) return projectile.targetHint;
   return projectile.accelerationTarget ?? nearestTarget(projectile, targets);
 }
 
 function nearestTarget(projectile, targets) {
-  const reference = projectile.targetHint ?? projectile;
+  const reference = projectile.homingReference ?? projectile.targetHint ?? projectile;
   return targets.reduce((nearest, target) => {
     if (target.destroyed) return nearest;
     if (!nearest) return target;

@@ -1,4 +1,4 @@
-import { createProjectile } from './projectile.js';
+import { createCombatProjectile } from './arcadeMode.js';
 import { compensatedAimHeading } from './turret.js';
 import { gunMuzzleWorld, moduleMuzzlesWorld } from './vehicle.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE } from './voxelMask.js';
@@ -129,7 +129,7 @@ export function fireSecondary(game) {
   const detonateDistance = def.detonateAtTarget && targetHint ? Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) : null;
   const height = playerProjectileHeight(game, def);
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, launch.vx, launch.vy, {
+    createCombatProjectile(game, muzzle.x, muzzle.y, launch.vx, launch.vy, {
       team: 'player',
       weapon: secondary.selected,
       sourceWeaponId: secondary.selected,
@@ -169,6 +169,7 @@ export function fireSecondary(game) {
       damagePiercesUntilSpent: def.damagePiercesUntilSpent,
       maxRicochets: def.maxRicochets,
       ricochetFactor: def.ricochetFactor,
+      ricochetProbability: def.ricochetProbability,
       ricochetOnEnemyExit: def.ricochetOnEnemyExit,
       detonateAtTarget: def.detonateAtTarget,
       explodeOnExpire: def.explodeOnExpire,

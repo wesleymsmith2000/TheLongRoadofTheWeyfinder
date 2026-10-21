@@ -8,7 +8,7 @@ Runtime entry points live in `src/core/weaponBay.js`:
 
 - `buildWeaponWithScrap(game, weaponId)` constructs one spare weapon.
 - `swapWeaponSlot(game, cellId, slotKind, slotIndex, weaponId)` installs or removes a weapon.
-- `unlockLiteWeaponSlot(game, cellId, slotKind, slotIndex)` buys a Lite slot unlock.
+- `unlockArcadeWeaponSlot(game, cellId, slotKind, slotIndex)` buys an Arcade slot unlock.
 - `weaponConstructionCost(game, weaponId)` combines one gun-cell replacement cost with every level-one upgrade cost for that weapon.
 
 Repulsor and tractor beams are utility modules. Author them under a utility cell:

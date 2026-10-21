@@ -121,7 +121,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
         state.selectedCellId = cell.id;
         state.message = `Selected ${cell.id}.`;
       } else {
-        state.message = 'Lite mode uses a fixed vehicle. Choose weapons from the loadout controls.';
+        state.message = 'Arcade mode uses a fixed vehicle. Choose weapons from the loadout controls.';
       }
       render();
       return;

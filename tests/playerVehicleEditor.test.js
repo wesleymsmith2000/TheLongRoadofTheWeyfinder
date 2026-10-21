@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import startingVehicleDefinition from '../content/constructs/starting_vehicle.json' with { type: 'json' };
-import liteStartingVehicleDefinition from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
+import arcadeStartingVehicleDefinition from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
 import { createPrototypePlayerAccountData, equipmentLimit, normalizePrototypePlayerAccountData, validatePlayerAccountData } from '../src/core/playerAccount.js';
 import {
   addEditableVehicleCell,
@@ -70,13 +70,13 @@ test('starting player vehicle content creates the default runtime vehicle', () =
   assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet', 'repulsor_beam', 'tractor_beam']);
 });
 
-test('lite vehicle is connected and reserves defensive weapons outside its configurable loadout', () => {
+test('Arcade vehicle is connected and reserves defensive weapons outside its configurable loadout', () => {
   const account = createPrototypePlayerAccountData();
-  const report = editableVehicleReport(liteStartingVehicleDefinition, account);
-  const loadouts = normalizeGunLoadouts(liteStartingVehicleDefinition);
+  const report = editableVehicleReport(arcadeStartingVehicleDefinition, account);
+  const loadouts = normalizeGunLoadouts(arcadeStartingVehicleDefinition);
   const main = loadouts.find((loadout) => loadout.cellId === 'gun-main');
   const support = loadouts.find((loadout) => loadout.cellId === 'gun-support');
-  const vehicle = createStartingVehicle(liteStartingVehicleDefinition);
+  const vehicle = createStartingVehicle(arcadeStartingVehicleDefinition);
 
   assert.equal(report.valid, true);
   assert.equal(vehicle.cells.length, 28);

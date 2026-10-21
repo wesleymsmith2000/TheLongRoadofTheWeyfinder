@@ -1,10 +1,10 @@
 {
   "schemaVersion": "0.1",
-  "assetId": "lite_starting_vehicle",
+  "assetId": "arcade_starting_vehicle",
   "author": "Weyfinder prototype",
-  "provenance": "Fixed starter vehicle for CodePad Lite mode.",
+  "provenance": "Fixed starter vehicle for Arcade mode.",
   "canonStatus": "CANON",
-  "tags": ["player", "vehicle", "lite"],
+  "tags": ["player", "vehicle", "arcade"],
   "cells": [
     { "id": "armor-r0-c2", "type": "armor", "gridX": -1, "gridY": -2 },
     { "id": "armor-r0-c3", "type": "armor", "gridX": 0, "gridY": -2 },

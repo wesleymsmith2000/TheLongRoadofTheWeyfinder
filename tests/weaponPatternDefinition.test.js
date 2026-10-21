@@ -25,6 +25,20 @@ import { runtimeWeaponDefinition, validateWeaponDefinition } from '../src/core/w
 import { Rng } from '../src/core/rng.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 
+test('ricochet probability defaults to certainty and validates separately from retained damage', () => {
+  assert.equal(runtimeWeaponDefinition(bladeLauncherDefinition).ricochetProbability, 1);
+  const definition = structuredClone(bladeLauncherDefinition);
+  definition.projectile.ricochetProbability = 0.5;
+  assert.equal(runtimeWeaponDefinition(definition).ricochetProbability, 0.5);
+  for (const invalid of [-0.1, 1.1, 'often']) {
+    definition.projectile.ricochetProbability = invalid;
+    assert.equal(validateWeaponDefinition(definition).valid, false);
+  }
+  const orb = structuredClone(orbOfBladesDefinition);
+  orb.projectile.emitsProjectiles.ricochetProbability = 1.5;
+  assert.equal(validateWeaponDefinition(orb).valid, false);
+});
+
 test('canon secondary weapon assets validate and normalize for runtime use', () => {
   for (const definition of [
     rocketDefinition,

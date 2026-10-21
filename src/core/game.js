@@ -1,6 +1,7 @@
+import { normalizeRunMode, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias } from './arcadeMode.js';
 import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, moduleMuzzlesWorld, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
 import { stepVehicle, typedModulePower, vehicleMaxSpeed } from './physics.js';
-import { applyRocketHullDamage, createProjectile, stepProjectiles } from './projectile.js';
+import { applyRocketHullDamage, stepProjectiles } from './projectile.js';
 import { hitVehicleWithProjectile } from './damage.js';
 import { clamp, distanceSquared } from './math.js';
 import { Rng } from './rng.js';
@@ -71,7 +72,7 @@ import { normalizeGunLoadouts, utilityModuleCellIds, utilityModuleInstalled } fr
 import { createWeaponBayState } from './weaponBay.js';
 import { carrySpatialFields, stepSpatialFields } from './spatialWaveletBeam.js';
 import { createWeaponInterlock, stepWeaponInterlock, weaponFireBlocked } from './weaponInterlock.js';
-import { forwardSafeInheritedVelocity } from './projectileLaunch.js';
+import { arcadeProjectileVelocity, forwardSafeInheritedVelocity } from './projectileLaunch.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { normalizeSandboxDefinition, sandboxDefinitionFromLevel, validateSandboxDefinition } from './sandboxMode.js';
 import { createProceduralRoadRoute, roadRouteLength } from './roadRoute.js';
@@ -484,9 +485,13 @@ export function createGame(seed = 1147, options = {}) {
     : levelDefinition
       ? authoredLevelTraversal(levelDefinition, road)
       : traversalTargetForTrack(currentMusic, road);
+  if (normalizeRunMode(options.runMode) === 'arcade') {
+    vehicle.heading = arcadeForwardHeading({ road });
+    vehicle.angularVelocity = 0;
+  }
   const game = {
     seed,
-    runMode: options.runMode ?? 'normal',
+    runMode: normalizeRunMode(options.runMode),
     rng,
     levelMusic,
     currentMusic,
@@ -509,7 +514,7 @@ export function createGame(seed = 1147, options = {}) {
     incomingMarkers: [],
     boost: createBoostState(),
     secondary: createSecondaryState(vehicleDefinition),
-    weaponBay: createWeaponBayState(vehicleDefinition, options.runMode ?? 'normal'),
+    weaponBay: createWeaponBayState(vehicleDefinition, normalizeRunMode(options.runMode)),
     upgrades: createUpgradeState(),
     scrap: 0,
     scrapPickups: [],
@@ -631,8 +636,11 @@ export function stepGame(game, input, dt) {
   const obstacleInput = applyObstacleContacts(game, input, dt);
   configureBoostFromUpgrades(game);
   game.vehicle.maxVelocityScale = game.boost.driveTime > 0 ? game.boost.maxVelocityFactor : 1;
-  stepVehicle(game.vehicle, obstacleInput, dt, game.road.heading, game.upgrades, game.terrainSample);
+  lockArcadeFacing(game);
+  stepVehicle(game.vehicle, game.runMode === 'arcade' ? { ...obstacleInput, turn: 0 } : obstacleInput, dt, game.road.heading, game.upgrades, game.terrainSample);
+  lockArcadeFacing(game);
   stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
+  lockArcadeFacing(game);
   const turretInput = aimInputForTurret(game, input, dt);
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
   stepEnemies(game, dt);
@@ -1142,6 +1150,7 @@ function createSandboxEnemies(spawn, x, y, road, options = {}) {
   } else if (sideStrafeEntry) {
     configureRaceStrafeEntry(enemy, archetype, road, raceStrafeSide, spawn.speed, 0.45);
   } else {
+    enemy.arcadeBehindEntry = spawn.entry === 'behind';
     const velocitySign = spawn.entry === 'behind' ? -1 : 1;
     const direction = roadDirectionToWorld(0, velocitySign, road);
     const speed = spawn.speed ?? (spawn.entry === 'behind' ? 155 : 24);
@@ -1465,6 +1474,7 @@ function configureRaceStrafeEntry(enemy, archetype, road, spawnSide, speedOverri
   const speed = speedOverride ?? archetype?.entry?.speed ?? archetype?.carBehavior?.speed ?? RACE_CAR_STRAFE_SPEED;
   enemy.vx = velocity.x * speed;
   enemy.vy = velocity.y * speed;
+  enemy.arcadeEntryCrossing = spawnSide;
   enemy.carRuntime = {
     ...(enemy.carRuntime ?? {}),
     side: -spawnSide,
@@ -2596,7 +2606,7 @@ function stepDefensivePrimaryWeapons(game, mounts) {
     const result = fireReadyPrimaryFromMount(game, mounts[mountIndex], activeWeaponSlots, 'defensive');
     if (result !== 'fired') continue;
     game.playerDefensiveGunIndex = (mountIndex + 1) % mounts.length;
-    game.playerDefensiveFireTimer = primaryGunVisitInterval(game, activeWeaponSlots);
+    game.playerDefensiveFireTimer = primaryGunVisitInterval(game, activeWeaponSlots, false);
     return;
   }
 }
@@ -2635,10 +2645,11 @@ function fireReadyPrimaryFromMount(game, mount, activeWeaponSlots, queueKind = '
 
 function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSlots, options = {}) {
   const spread = (Math.PI / 18) * upgradeReduction(game, 'gunAccuracy');
-  const damage = 16 * upgradeMultiplier(game, 'gunDamage');
+  const damage = 16 * upgradeMultiplier(game, 'gunDamage') * (game.runMode === 'arcade' ? 2 : 1);
   const speed = PRIMARY_PROJECTILE_SPEED * upgradeMultiplier(game, 'gunVelocity');
   if (weaponId !== 'main.basic') {
-    const def = upgradedPrimaryWeaponDefinition(game, weaponId);
+    const def = options.defensive ? upgradedPrimaryBaseDefinition(game, weaponId) : upgradedPrimaryWeaponDefinition(game, weaponId);
+    if (def && options.defensive) def.utility = true;
     if (!def) return 'unavailable';
     const usesHeat = options.defensive !== true;
     if (usesHeat && game.primaryHeat.heat + def.heat > game.primaryHeat.maxHeat) return 'heat-blocked';
@@ -2657,7 +2668,7 @@ function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSl
       muzzle.cellId,
       slotIndex,
       weaponId,
-      primaryWeaponFireInterval(game, def, activeWeaponSlots) * (usesHeat ? primaryHeatCooldownScale(game.primaryHeat) : 1),
+      primaryWeaponFireInterval(game, def, activeWeaponSlots, !options.defensive) * (usesHeat ? primaryHeatCooldownScale(game.primaryHeat) : 1),
     );
     return 'fired';
   }
@@ -2673,14 +2684,11 @@ function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSl
 }
 
 function firePrimaryBullet(game, muzzle, damage, speed, spread, visualScale = 1, aimReticle = null, targetingReticleKey = null) {
-  const baseAngle = aimReticle ? compensatedAimHeading(game.vehicle, aimReticle, speed) : game.vehicle.turretHeading;
-  const angle = baseAngle + game.rng.range(-spread, spread);
-  const launchVelocity = forwardSafeInheritedVelocity(
-    { x: game.vehicle.vx, y: game.vehicle.vy },
-    { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
-  );
+  const baseAngle = game.runMode === 'arcade' ? arcadeForwardHeading(game) : aimReticle ? compensatedAimHeading(game.vehicle, aimReticle, speed) : game.vehicle.turretHeading;
+  const angle = game.runMode === 'arcade' ? baseAngle : baseAngle + game.rng.range(-spread, spread);
+  const launchVelocity = playerLaunchVelocity(game, angle, speed);
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, launchVelocity.x, launchVelocity.y, {
+    createCombatProjectile(game, muzzle.x, muzzle.y, launchVelocity.x, launchVelocity.y, {
       team: 'player',
       weapon: 'bullet',
       sourceWeaponId: 'main.basic',
@@ -2759,7 +2767,7 @@ function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targ
   const launch = primaryProjectileLaunch(game, muzzle, def, targetHint, angle);
   const shotHeight = playerProjectileHeightOptions(game, def);
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, launch.vx, launch.vy, {
+    createCombatProjectile(game, muzzle.x, muzzle.y, launch.vx, launch.vy, {
       team: 'player',
       weapon: def.id,
       sourceWeaponId: def.id,
@@ -2782,7 +2790,8 @@ function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targ
       acceleration: def.behavior === 'homing' ? def.acceleration : 0,
       maxSpeed: def.behavior === 'homing' ? def.maxSpeed : Infinity,
       delayBeforeAcceleration: def.delayBeforeAcceleration ?? 0,
-      tracksReticleInHoming: def.tracksReticleInHoming,
+      tracksReticleInHoming: game.runMode === 'arcade' && def.id === 'tracking_flechette' ? false : def.tracksReticleInHoming,
+      homingReference: game.runMode === 'arcade' && def.id === 'tracking_flechette' ? game.vehicle : null,
       stopBeforeAcceleration: def.stopBeforeAcceleration,
       accelerationDuration: def.accelerationDuration ?? Infinity,
       accelerationJitter: game.rng.range(-(def.accelerationSpreadRadians ?? 0), def.accelerationSpreadRadians ?? 0),
@@ -2800,6 +2809,7 @@ function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targ
       damagePiercesUntilSpent: def.damagePiercesUntilSpent,
       maxRicochets: def.maxRicochets,
       ricochetFactor: def.ricochetFactor,
+      ricochetProbability: def.ricochetProbability,
       ricochetOnEnemyExit: def.ricochetOnEnemyExit,
       absorbsEnemyProjectiles: def.absorbsEnemyProjectiles,
       projectileDeflectionProbability: def.projectileDeflectionProbability,
@@ -2825,7 +2835,8 @@ function firePrimaryWeapon(game, muzzle, def, aimReticle = game.aimReticle, targ
 }
 
 function primaryProjectileLaunch(game, muzzle, def, targetHint, angle) {
-  if (def.behavior === 'arc' && def.detonateAtTarget && targetHint) {
+  const forwardFire = game.runMode === 'arcade' && def.id !== 'mortar';
+  if (!forwardFire && def.behavior === 'arc' && def.detonateAtTarget && targetHint) {
     const flightTime = arcFlightTime(def);
     if (flightTime > 0) {
       return {
@@ -2836,11 +2847,8 @@ function primaryProjectileLaunch(game, muzzle, def, targetHint, angle) {
       };
     }
   }
-  const launchAngle = def.launchAngleMode === 'orthogonal' ? orthogonalLaunchAngle(game, angle, def.launchAngleSpreadRadians ?? 0) : angle;
-  const launchVelocity = forwardSafeInheritedVelocity(
-    { x: game.vehicle.vx, y: game.vehicle.vy },
-    { x: Math.cos(launchAngle) * def.projectileSpeed, y: Math.sin(launchAngle) * def.projectileSpeed },
-  );
+  const launchAngle = forwardFire ? arcadeForwardHeading(game) : def.launchAngleMode === 'orthogonal' ? orthogonalLaunchAngle(game, angle, def.launchAngleSpreadRadians ?? 0) : angle;
+  const launchVelocity = playerLaunchVelocity(game, launchAngle, def.projectileSpeed, forwardFire);
   return {
     vx: launchVelocity.x,
     vy: launchVelocity.y,
@@ -2865,15 +2873,16 @@ function firePrimaryBeam(game, muzzle, def, aimReticle = game.aimReticle, target
   const threat = def.id === 'repulsor_beam' ? nearestRepulsorThreat(game, muzzle) : null;
   const targetHint = def.targetHint === 'aimReticle' && aimReticle ? { x: aimReticle.x, y: aimReticle.y } : null;
   const sourceZ = Math.max(0, game.vehicle.elevation?.z ?? 0);
-  const angle = threat ? Math.atan2(threat.y - muzzle.y, threat.x - muzzle.x) : targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
+  const angle = game.runMode === 'arcade' && !def.utility ? arcadeForwardHeading(game) : threat ? Math.atan2(threat.y - muzzle.y, threat.x - muzzle.x) : targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : game.vehicle.turretHeading;
   game.playerProjectiles.push(
-    createProjectile(muzzle.x, muzzle.y, 0, 0, {
+    createCombatProjectile(game, muzzle.x, muzzle.y, 0, 0, {
       team: 'player',
       weapon: def.id,
       sourceWeaponId: def.id,
       guidedTargeting: game.targetingMode === 'guided',
       targetingReticleKey,
       behavior: 'beam',
+      arcadeForwardLocked: game.runMode === 'arcade' && !def.utility,
       angle,
       sourceCellId: muzzle.cellId,
       z: sourceZ,
@@ -2901,6 +2910,12 @@ function firePrimaryBeam(game, muzzle, def, aimReticle = game.aimReticle, target
 }
 
 function upgradedPrimaryWeaponDefinition(game, weaponId) {
+  const def = upgradedPrimaryBaseDefinition(game, weaponId);
+  if (!def || game.runMode !== 'arcade') return def;
+  return { ...def, damage: def.damage * 2, blastDamage: (def.blastDamage ?? 0) * 2 };
+}
+
+function upgradedPrimaryBaseDefinition(game, weaponId) {
   const base = PRIMARY_WEAPON_DEFINITIONS[weaponId] ? { ...PRIMARY_WEAPON_DEFINITIONS[weaponId], id: weaponId } : null;
   if (!base) return null;
   const visualScale = primaryProjectileVisualScale(game, weaponId);
@@ -2935,10 +2950,13 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
     }, visualScale);
   }
   if (weaponId === 'blade_launcher') {
-    const baseDeflectChance = base.projectileDeflectionProbability ?? 0.25;
+    const baseDeflectChance = game.runMode === 'arcade' ? 0.33 : base.projectileDeflectionProbability ?? 0.25;
     return scaleProjectileVisuals({
       ...base,
       cooldown: base.cooldown / upgradeMultiplier(game, 'bladeLauncherFireRate'),
+      projectileSpeed: base.projectileSpeed * (game.runMode === 'arcade' ? 0.5 : 1),
+      radius: base.radius * (game.runMode === 'arcade' ? 1.25 : 1),
+      ricochetProbability: game.runMode === 'arcade' ? 0.5 : base.ricochetProbability,
       damage: base.damage * upgradeMultiplier(game, 'bladeLauncherImpactDamage'),
       pierce: base.pierce + upgradeLevel(game, 'bladeLauncherPierce'),
       maxRicochets: base.maxRicochets + upgradeLevel(game, 'bladeLauncherMaxRicochets'),
@@ -2961,7 +2979,7 @@ function upgradedPrimaryWeaponDefinition(game, weaponId) {
 }
 
 function primaryProjectileVisualScale(game, weaponId) {
-  return projectileUpgradeVisualScale(sumUpgradeLevels(game, PRIMARY_PROJECTILE_VISUAL_UPGRADES[weaponId] ?? []));
+  return projectileUpgradeVisualScale(sumUpgradeLevels(game, PRIMARY_PROJECTILE_VISUAL_UPGRADES[weaponId] ?? [])) * (game.runMode === 'arcade' && weaponId === 'blade_launcher' ? 1.25 : 1);
 }
 
 function sumUpgradeLevels(game, ids) {
@@ -2992,16 +3010,16 @@ function hasActiveOrInboundEnemies(game) {
   return activeEnemies(game).length > 0 || game.enemySpawnQueue.some((entry) => entry.markerShown && !entry.enemy?.destroyed);
 }
 
-function playerGunFireInterval(game, activeMounts = primaryFiringWeaponSlotCount(primaryFiringMounts(game))) {
-  return 0.44 / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeMounts + 1)));
+function playerGunFireInterval(game, activeMounts = primaryFiringWeaponSlotCount(primaryFiringMounts(game)), arcadePrimary = true) {
+  return (arcadePrimary && game.runMode === 'arcade' ? 0.88 : 0.44) / (upgradeMultiplier(game, 'gunFireRate') * Math.sqrt(Math.max(1, activeMounts + 1)));
 }
 
-function primaryGunVisitInterval(game, activeWeaponSlots = primaryFiringWeaponSlotCount(primaryFiringMounts(game))) {
-  return playerGunFireInterval(game, activeWeaponSlots);
+function primaryGunVisitInterval(game, activeWeaponSlots = primaryFiringWeaponSlotCount(primaryFiringMounts(game)), arcadePrimary = true) {
+  return playerGunFireInterval(game, activeWeaponSlots, arcadePrimary);
 }
 
-function primaryWeaponFireInterval(game, def, activeMounts) {
-  return def.cooldown / Math.sqrt(Math.max(1, activeMounts + 1));
+function primaryWeaponFireInterval(game, def, activeMounts, arcadePrimary = true) {
+  return def.cooldown * (arcadePrimary && game.runMode === 'arcade' ? 2 : 1) / Math.sqrt(Math.max(1, activeMounts + 1));
 }
 
 function projectileDeflectionChance(baseChance, levels) {
@@ -3112,6 +3130,7 @@ function stepEnemy(game, enemy, dt) {
   triggerEnemyEntranceBark(game, enemy, 'active');
   if (enemy.destroyed) return;
   if (enemyCanFire(enemy) && (enemy.patterns?.length ?? 0) > 0 && !walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
+  applyArcadeEnemyFrontBias(game, enemy, dt);
   updateEnemyVisualHeading(enemy, dt);
   updateEnemyCollisionRotation(enemy, game.time);
   stepEnemyTetherElevation(enemy, dt);
@@ -3210,7 +3229,7 @@ function stepGhostPhaser(game, enemy, dt) {
     stepPhantomOverload(game, enemy, dt);
     return;
   }
-  if (enemyFireTimerScale(enemy) <= 0) {
+  if (enemyFireTimerScale(game, enemy) <= 0) {
     startPhantomOverload(enemy);
     stepPhantomOverload(game, enemy, dt);
     return;
@@ -3269,12 +3288,15 @@ function stepHopperFrog(game, enemy, dt) {
   enemy.vx += direction.x * HOPPER_FROG_HOP_IMPULSE * enemyMovementUpgradeScale(enemy);
   enemy.vy += direction.y * HOPPER_FROG_HOP_IMPULSE * enemyMovementUpgradeScale(enemy);
   enemy.hopTimer = game.rng.range(0.65, 1.25);
-  if (enemyCanFire(enemy)) fireShortEnemyBeam(game, enemy, '#f26cff', 0.65);
+  if (game.runMode === 'arcade') enemy.arcadeHopShotIndex = (enemy.arcadeHopShotIndex ?? 0) + 1;
+  if (enemyCanFire(enemy) && (game.runMode !== 'arcade' || enemy.arcadeHopShotIndex % 2 === 1)) {
+    fireShortEnemyBeam(game, enemy, '#f26cff', 0.65);
+  }
 }
 
 function stepMortarBoat(game, enemy, dt) {
   if (!enemyCanFire(enemy)) return;
-  enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.2, 2.4)) - dt * enemyAttackRateUpgradeScale(enemy);
+  enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.2, 2.4)) - dt * enemyAttackRateUpgradeScale(enemy) * arcadeEnemyFireRateScale(game);
   if (enemy.artilleryTimer > 0) return;
   enemy.artilleryTimer = game.rng.range(4.8, 7.2);
   fireEnemyMortarLine(game, enemy, 7);
@@ -3298,7 +3320,7 @@ function stepMortarSkiff(game, enemy, dt) {
   applyVehicleLikeVelocity(enemy, { x: direction.x * desiredSpeed, y: direction.y * desiredSpeed }, steer);
 
   if (!enemyCanFire(enemy)) return;
-  enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.4, 2.6)) - dt * enemyAttackRateUpgradeScale(enemy);
+  enemy.artilleryTimer = (enemy.artilleryTimer ?? game.rng.range(1.4, 2.6)) - dt * enemyAttackRateUpgradeScale(enemy) * arcadeEnemyFireRateScale(game);
   if (enemy.artilleryTimer > 0) return;
   enemy.artilleryTimer = game.rng.range(2.8, 4.4);
   const target = inaccuratePlayerMortarTarget(game, CELL_SIZE * 7.5);
@@ -3339,7 +3361,7 @@ function stepWalkerEnemy(game, enemy, dt) {
 
 function stepWalkerStaMissile(game, enemy, dt) {
   const source = walkerBeamSource(enemy);
-  const fireScale = walkerSweepFireScale(enemy, source);
+  const fireScale = walkerSweepFireScale(game, enemy, source);
   if (!source || fireScale <= 0 || !enemyCanFire(enemy)) return;
 
   enemy.walkerStaCooldown = Math.max(0, (enemy.walkerStaCooldown ?? game.rng.range(0.7, 1.8)) - dt * fireScale);
@@ -3350,7 +3372,7 @@ function stepWalkerStaMissile(game, enemy, dt) {
 }
 
 function fireWalkerStaMissile(game, enemy, source) {
-  const shell = createProjectile(source.x, source.y, 0, 0, {
+  const shell = createCombatProjectile(game, source.x, source.y, 0, 0, {
     team: 'enemy',
     weapon: 'walker-sta-missile',
     behavior: 'arc',
@@ -3387,7 +3409,7 @@ function fireWalkerStaMissile(game, enemy, source) {
 
 function stepGroundedWalkerSpiralMissiles(game, enemy, dt) {
   const source = walkerBeamSource(enemy);
-  const fireScale = walkerSweepFireScale(enemy, source);
+  const fireScale = walkerSweepFireScale(game, enemy, source);
   if (!source || fireScale <= 0 || !enemyCanFire(enemy)) return;
 
   enemy.walkerGroundedSpiralCooldown = Math.max(0, (enemy.walkerGroundedSpiralCooldown ?? game.rng.range(0.25, 0.8)) - dt * fireScale);
@@ -3406,7 +3428,7 @@ function fireGroundedWalkerSpiralMissile(game, enemy, source) {
   enemy.walkerGroundedSpiralOffset ??= game.rng.range(0, Math.PI * 2);
   const angle = enemy.walkerGroundedSpiralOffset + (Math.PI * 2 * index) / WALKER_GROUNDED_SPIRAL_COUNT;
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, Math.cos(angle) * 27.5, Math.sin(angle) * 27.5, {
+    createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 27.5, Math.sin(angle) * 27.5, {
       team: 'enemy',
       weapon: 'boss-missile',
       radius: 3,
@@ -3443,7 +3465,7 @@ function fireGroundedWalkerSpiralMissile(game, enemy, source) {
 
 function stepGroundedWalkerRepulsor(game, enemy, dt) {
   const source = walkerBeamSource(enemy);
-  const fireScale = walkerSweepFireScale(enemy, source);
+  const fireScale = walkerSweepFireScale(game, enemy, source);
   if (!source || fireScale <= 0 || !enemyCanFire(enemy) || enemyBeamIsActive(game, enemy, 'walker-repulsor-beam')) return;
 
   enemy.walkerRepulsorCooldown = Math.max(0, (enemy.walkerRepulsorCooldown ?? game.rng.range(0.35, 1)) - dt * fireScale);
@@ -3451,7 +3473,7 @@ function stepGroundedWalkerRepulsor(game, enemy, dt) {
 
   const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, 0, 0, {
+    createCombatProjectile(game, source.x, source.y, 0, 0, {
       team: 'enemy',
       weapon: 'walker-repulsor-beam',
       behavior: 'beam',
@@ -3480,7 +3502,7 @@ function stepGroundedWalkerRepulsor(game, enemy, dt) {
 
 function stepWalkerSweepBeam(game, enemy, dt) {
   const source = walkerBeamSource(enemy);
-  const fireScale = walkerSweepFireScale(enemy, source);
+  const fireScale = walkerSweepFireScale(game, enemy, source);
   if (!source || fireScale <= 0 || !enemyCanFire(enemy)) {
     enemy.walkerSweepWarning = null;
     return;
@@ -3506,7 +3528,7 @@ function stepWalkerSweepBeam(game, enemy, dt) {
   if (warning.timer > 0) return;
 
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, 0, 0, {
+    createCombatProjectile(game, source.x, source.y, 0, 0, {
       team: 'enemy',
       weapon: 'walker-ground-sweep',
       behavior: 'beam',
@@ -3558,10 +3580,10 @@ function enemyBeamIsActive(game, enemy, weapon) {
   return game.enemyProjectiles.some((projectile) => projectile.weapon === weapon && projectile.sourceEnemy === enemy && projectile.lifetime > 0);
 }
 
-function walkerSweepFireScale(enemy, source) {
+function walkerSweepFireScale(game, enemy, source) {
   if (!source) return 0;
-  if (source.fromGun) return enemyFireTimerScale(enemy);
-  return enemy.cells.some((cell) => cell.type === 'gun') ? 0 : enemyCoreTimerScale(enemy);
+  if (source.fromGun) return enemyFireTimerScale(game, enemy);
+  return enemy.cells.some((cell) => cell.type === 'gun') ? 0 : enemyCoreTimerScale(game, enemy);
 }
 
 function walkerUsesElevatedSweepBeam(enemy) {
@@ -3739,7 +3761,7 @@ function stepScrapBuzzard(game, enemy, dt) {
   enemy.elevation.canBeHitByGroundFire = false;
   enemy.elevation.arcCollision = true;
   if (scrap) steerBuzzardTowardScrap(game, enemy, scrap, dt);
-  enemy.buzzardTimer = (enemy.buzzardTimer ?? game.rng.range(0.8, 1.8)) - dt * enemyAttackRateUpgradeScale(enemy);
+  enemy.buzzardTimer = (enemy.buzzardTimer ?? game.rng.range(0.8, 1.8)) - dt * enemyAttackRateUpgradeScale(enemy) * arcadeEnemyFireRateScale(game);
   if (enemy.buzzardTimer <= 0) {
     enemy.buzzardTimer = game.rng.range(1.4, 2.2);
     fireEnemyArcShell(game, enemy, { x: enemy.x - enemy.vx * 0.55, y: enemy.y - enemy.vy * 0.55 }, '#d6cfb9');
@@ -3976,15 +3998,15 @@ function stepMothBomber(game, enemy, dt) {
 
   if (state.phase !== 'dive') {
     state.timer -= dt * enemyAttackRateUpgradeScale(enemy);
-    const aim = game.vehicle.turretHeading ?? game.vehicle.heading ?? 0;
-    const behind = {
-      x: game.vehicle.x - Math.cos(aim) * CELL_SIZE * 10,
-      y: game.vehicle.y - Math.sin(aim) * CELL_SIZE * 10,
+    const aim = game.runMode === 'arcade' ? arcadeForwardHeading(game) : game.vehicle.turretHeading ?? game.vehicle.heading ?? 0;
+    const orbitAnchor = {
+      x: game.vehicle.x + (game.runMode === 'arcade' ? 1 : -1) * Math.cos(aim) * CELL_SIZE * 10,
+      y: game.vehicle.y + (game.runMode === 'arcade' ? 1 : -1) * Math.sin(aim) * CELL_SIZE * 10,
     };
     const side = CELL_SIZE * (3.5 + Math.sin(game.time * 2.4 + state.orbitSign) * 1.7) * state.orbitSign;
     const target = {
-      x: behind.x + Math.cos(aim + Math.PI / 2) * side,
-      y: behind.y + Math.sin(aim + Math.PI / 2) * side,
+      x: orbitAnchor.x + Math.cos(aim + Math.PI / 2) * side,
+      y: orbitAnchor.y + Math.sin(aim + Math.PI / 2) * side,
     };
     const direction = directionFromTo(enemy, target);
     const desiredSpeed = 74 * enemyMovementUpgradeScale(enemy);
@@ -4021,7 +4043,17 @@ function stepMothBomber(game, enemy, dt) {
       enemy.vy *= Math.pow(0.12, dt);
     }
   }
-  if (state.phase === 'dive') enemy.visualHeading = state.diveAngle;
+  if (state.phase === 'dive') {
+    enemy.visualHeading = state.diveAngle;
+    const passedTarget = state.diveTarget &&
+      (enemy.x - state.diveTarget.x) * Math.cos(state.diveAngle) +
+      (enemy.y - state.diveTarget.y) * Math.sin(state.diveAngle) >= 0;
+    if (game.runMode === 'arcade' && (passedTarget || (state.diveTarget && distanceSquared(enemy, state.diveTarget) <= (CELL_SIZE * 1.15) ** 2))) {
+      state.phase = 'orbit';
+      state.timer = 1.2;
+      state.diveTarget = null;
+    }
+  }
 }
 
 function stepRoadBossCar(game, enemy, dt) {
@@ -4100,12 +4132,12 @@ function toggleRoadBossCarPhase(game, enemy, state) {
 
 function stepRoadBossCarAttacks(game, enemy, state, dt) {
   if (state.variant === 'shadowedRoad') stepShadowedRoadBossAttacks(game, enemy, state, dt);
-  state.bulletCooldown = Math.max(0, (state.bulletCooldown ?? 0.2) - dt * enemyFireTimerScale(enemy));
+  state.bulletCooldown = Math.max(0, (state.bulletCooldown ?? 0.2) - dt * enemyFireTimerScale(game, enemy));
   if (state.bulletCooldown <= 0) {
     fireRoadBossBulletBarrage(game, enemy, state);
     state.bulletCooldown = state.phase === 'strafe' ? 0.22 : 0.34;
   }
-  state.bladeCooldown = Math.max(0, (state.bladeCooldown ?? 0.8) - dt * enemyFireTimerScale(enemy));
+  state.bladeCooldown = Math.max(0, (state.bladeCooldown ?? 0.8) - dt * enemyFireTimerScale(game, enemy));
   if (state.bladeCooldown <= 0) {
     fireRoadBossBladeBarrage(game, enemy, state);
     state.bladeCooldown = state.phase === 'strafe' ? 1.15 : 1.55;
@@ -4113,12 +4145,12 @@ function stepRoadBossCarAttacks(game, enemy, state, dt) {
 }
 
 function stepShadowedRoadBossAttacks(game, enemy, state, dt) {
-  state.mineCooldown = Math.max(0, (state.mineCooldown ?? 1.2) - dt * enemyFireTimerScale(enemy));
+  state.mineCooldown = Math.max(0, (state.mineCooldown ?? 1.2) - dt * enemyFireTimerScale(game, enemy));
   if (state.mineCooldown <= 0) {
     dropShadowedRoadMine(game, enemy);
     state.mineCooldown = game.rng.range(1.1, 1.85);
   }
-  state.mortarCooldown = Math.max(0, (state.mortarCooldown ?? 0.7) - dt * enemyFireTimerScale(enemy));
+  state.mortarCooldown = Math.max(0, (state.mortarCooldown ?? 0.7) - dt * enemyFireTimerScale(game, enemy));
   if (state.phase !== 'strafe' || state.mortarCooldown > 0) return;
   state.mortarCooldown = 1.25;
   const source = liveEnemyCellWorldCenters(enemy, (cell) => cell.type === 'gun' && !cell.state?.destroyed)[0] ?? enemy;
@@ -4141,7 +4173,7 @@ function fireRoadBossBulletBarrage(game, enemy, state) {
   const baseAngle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
   for (let index = 0; index < 5; index += 1) {
     const angle = baseAngle + (index - 2) * 0.075 + game.rng.range(-0.03, 0.03);
-    game.enemyProjectiles.push(createProjectile(source.x, source.y, Math.cos(angle) * 176, Math.sin(angle) * 176, {
+    game.enemyProjectiles.push(createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 176, Math.sin(angle) * 176, {
       team: 'enemy',
       weapon: 'road-boss-bullet',
       radius: 3,
@@ -4167,7 +4199,7 @@ function fireRoadBossBladeBarrage(game, enemy, state) {
   const baseAngle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
   for (let index = 0; index < 3; index += 1) {
     const angle = baseAngle + (index - 1) * 0.16 + game.rng.range(-0.04, 0.04);
-    game.enemyProjectiles.push(createProjectile(source.x, source.y, Math.cos(angle) * (blade.projectileSpeed * 0.86), Math.sin(angle) * (blade.projectileSpeed * 0.86), {
+    game.enemyProjectiles.push(createCombatProjectile(game, source.x, source.y, Math.cos(angle) * (blade.projectileSpeed * 0.86), Math.sin(angle) * (blade.projectileSpeed * 0.86), {
       team: 'enemy',
       weapon: 'road-boss-blade',
       behavior: blade.behavior,
@@ -4261,7 +4293,7 @@ function stepRaceCarEnemy(game, enemy, dt) {
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
 
   if (!enemyCanFire(enemy)) return;
-  state.flechetteCooldown = Math.max(0, (state.flechetteCooldown ?? RACE_CAR_FLECHETTE_COOLDOWN) - dt * enemyFireTimerScale(enemy));
+  state.flechetteCooldown = Math.max(0, (state.flechetteCooldown ?? RACE_CAR_FLECHETTE_COOLDOWN) - dt * enemyFireTimerScale(game, enemy));
   if (state.flechetteCooldown > 0) return;
   state.flechetteCooldown = config.flechetteCooldown ?? RACE_CAR_FLECHETTE_COOLDOWN;
   fireRaceCarFlechetteStrafe(game, enemy);
@@ -4337,7 +4369,7 @@ function stepShadowedMineDropper(game, enemy, dt) {
   enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
   enemy.renderHeadingOffset ??= Math.PI / 2;
   if (!enemyCanFire(enemy)) return;
-  state.mineCooldown = Math.max(0, (state.mineCooldown ?? game.rng.range(...SHADOWED_MINE_COOLDOWN)) - dt * enemyFireTimerScale(enemy));
+  state.mineCooldown = Math.max(0, (state.mineCooldown ?? game.rng.range(...SHADOWED_MINE_COOLDOWN)) - dt * enemyFireTimerScale(game, enemy));
   if (state.mineCooldown > 0) return;
   state.mineCooldown = game.rng.range(...SHADOWED_MINE_COOLDOWN);
   dropShadowedRoadMine(game, enemy);
@@ -4346,7 +4378,7 @@ function stepShadowedMineDropper(game, enemy, dt) {
 function dropShadowedRoadMine(game, enemy) {
   const source = liveEnemyCellWorldCenters(enemy, (cell) => cell.type === 'gun' && !cell.state?.destroyed)[0] ?? enemy;
   const drift = roadDirectionToWorld(0, 1, game.road);
-  const mine = createProjectile(source.x + drift.x * CELL_SIZE * 1.8, source.y + drift.y * CELL_SIZE * 1.8, 0, 0, {
+  const mine = createCombatProjectile(game, source.x + drift.x * CELL_SIZE * 1.8, source.y + drift.y * CELL_SIZE * 1.8, 0, 0, {
     team: 'enemy',
     weapon: 'shadowed-road-mine',
     behavior: 'ballistic',
@@ -4499,7 +4531,7 @@ function fireRaceCarFlechetteStrafe(game, enemy) {
   for (let index = 0; index < 5; index += 1) {
     const angle = baseAngle + (index - 2) * 0.12 + game.rng.range(-0.035, 0.035);
     game.enemyProjectiles.push(
-      createProjectile(source.x, source.y, Math.cos(angle) * 172, Math.sin(angle) * 172, {
+      createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 172, Math.sin(angle) * 172, {
         team: 'enemy',
         weapon: 'race-car-flechette',
         behavior: 'homing',
@@ -4561,7 +4593,7 @@ function stepPirateBossMovement(game, enemy, state, dt) {
 }
 
 function stepPirateBossMortars(game, enemy, state, dt) {
-  state.mortarCooldown = Math.max(0, (state.mortarCooldown ?? 1) - dt * enemyFireTimerScale(enemy));
+  state.mortarCooldown = Math.max(0, (state.mortarCooldown ?? 1) - dt * enemyFireTimerScale(game, enemy));
   if (state.mortarCooldown > 0) return;
   state.mortarCooldown = state.mortarMode === 'frontHeavy' ? 2.4 : 1.25;
   if (state.mortarMode === 'frontHeavy') {
@@ -4594,7 +4626,7 @@ function stepPirateBossMortars(game, enemy, state, dt) {
 }
 
 function stepPirateBossSideGuns(game, enemy, state, dt) {
-  state.sideCooldown = Math.max(0, (state.sideCooldown ?? 0.4) - dt * enemyFireTimerScale(enemy));
+  state.sideCooldown = Math.max(0, (state.sideCooldown ?? 0.4) - dt * enemyFireTimerScale(game, enemy));
   if (state.sideCooldown > 0) return;
   const sources = pirateBossBroadsideSources(enemy, game.vehicle);
   if (sources.length === 0) return;
@@ -4657,7 +4689,7 @@ function averageSource(sources) {
 function firePirateBossBroadsideBullet(game, enemy, source) {
   const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x) + game.rng.range(-0.045, 0.045);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, Math.cos(angle) * 152, Math.sin(angle) * 152, {
+    createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 152, Math.sin(angle) * 152, {
       team: 'enemy',
       weapon: 'pirate-boss-broadside',
       radius: 3.4,
@@ -4677,7 +4709,7 @@ function firePirateBossShotgunFlechettes(game, enemy, source) {
     const spread = (index - 3) * 0.13 + game.rng.range(-0.035, 0.035);
     const angle = baseAngle + spread;
     game.enemyProjectiles.push(
-      createProjectile(source.x, source.y, Math.cos(angle) * 182, Math.sin(angle) * 182, {
+      createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 182, Math.sin(angle) * 182, {
         team: 'enemy',
         weapon: 'pirate-boss-flechette',
         radius: 1.55,
@@ -4729,12 +4761,13 @@ function detonateMothBomber(game, enemy) {
   enemy.mothBomber.detonated = true;
   const origin = { x: enemy.x, y: enemy.y };
   game.enemyProjectiles.push(
-    createProjectile(origin.x, origin.y, 0, 0, {
+    createCombatProjectile(game, origin.x, origin.y, 0, 0, {
       team: 'enemy',
       weapon: 'moth-bomber-blast',
       behavior: 'blast',
       radius: 1,
-      maxRadius: MOTH_BOMBER_BLAST_RADIUS,
+      maxRadius: arcadeBlastRadius(game, MOTH_BOMBER_BLAST_RADIUS),
+      blastRadiusScaled: true,
       damage: 0,
       impulse: 0,
       lifetime: 0.22,
@@ -4743,12 +4776,12 @@ function detonateMothBomber(game, enemy) {
     }),
   );
   damageEnemiesFromMothBlast(game, enemy, origin);
-  if (distanceSquared(game.vehicle, origin) <= (MOTH_BOMBER_BLAST_RADIUS + CELL_SIZE * 3.8) ** 2) {
-    applyVehicleDamage(game.vehicle, origin, MOTH_BOMBER_BLAST_RADIUS, MOTH_BOMBER_BLAST_DAMAGE, 92, directionFromTo(origin, game.vehicle));
+  if (distanceSquared(game.vehicle, origin) <= (arcadeBlastRadius(game, MOTH_BOMBER_BLAST_RADIUS) + CELL_SIZE * 3.8) ** 2) {
+    applyVehicleDamage(game.vehicle, origin, arcadeBlastRadius(game, MOTH_BOMBER_BLAST_RADIUS), (MOTH_BOMBER_BLAST_DAMAGE * (game.runMode === 'arcade' ? 2 : 1)), 92, directionFromTo(origin, game.vehicle));
   }
   for (let index = 0; index < 7; index += 1) {
     const angle = game.rng.range(0, Math.PI * 2);
-    const distance = Math.sqrt(game.rng.next()) * MOTH_BOMBER_BLAST_RADIUS * 3;
+    const distance = Math.sqrt(game.rng.next()) * arcadeBlastRadius(game, MOTH_BOMBER_BLAST_RADIUS) * 3;
     const target = {
       x: origin.x + Math.cos(angle) * distance,
       y: origin.y + Math.sin(angle) * distance,
@@ -4771,16 +4804,16 @@ function detonateMothBomber(game, enemy) {
 function damageEnemiesFromMothBlast(game, sourceEnemy, origin) {
   for (const target of activeEnemies(game)) {
     if (target === sourceEnemy || enemyHasAnyTag(target, MOTH_BOMBER_FRIENDLY_FIRE_IGNORE_TAGS)) continue;
-    if (distanceSquared(target, origin) > (target.radius + MOTH_BOMBER_BLAST_RADIUS) ** 2) continue;
+    if (distanceSquared(target, origin) > (target.radius + arcadeBlastRadius(game, MOTH_BOMBER_BLAST_RADIUS)) ** 2) continue;
     const hit = applyEnemyBlastDamage(target, origin, {
-      maxVoxelDistance: Math.max(1, MOTH_BOMBER_BLAST_RADIUS / VOXEL_SIZE),
+      maxVoxelDistance: Math.max(1, arcadeBlastRadius(game, MOTH_BOMBER_BLAST_RADIUS) / VOXEL_SIZE),
       closeVoxelDistance: 3,
       closePenetration: 2,
       farPenetration: 1,
-      damage: MOTH_BOMBER_BLAST_DAMAGE,
+      damage: (MOTH_BOMBER_BLAST_DAMAGE * (game.runMode === 'arcade' ? 2 : 1)),
     });
     if (hit.destroyedNow) explodeEnemy(game, target);
-    knockEnemyFromPoint(target, origin, target.radius + MOTH_BOMBER_BLAST_RADIUS, 52);
+    knockEnemyFromPoint(target, origin, target.radius + arcadeBlastRadius(game, MOTH_BOMBER_BLAST_RADIUS), 52);
   }
 }
 
@@ -4820,12 +4853,21 @@ function stepZeppelinStrafe(game, enemy, state, dt) {
     return;
   }
   const offset = worldToRoadOffset(enemy, game.road);
+  const playerOffset = worldToRoadOffset(game.vehicle, game.road);
+  if (game.runMode === 'arcade' && state.phase === 'recover') {
+    if (offset.y - playerOffset.y < -game.road.halfHeight * 0.15) {
+      state.phase = 'turn';
+      state.turnTimer = 0.75;
+    }
+    // Common front bias owns longitudinal recovery between flyovers.
+    return;
+  }
   if (state.phase === 'strafe') {
     if (
       Math.abs(offset.x) > game.road.halfWidth + ZEPPELIN_STRAFE_EXIT_MARGIN ||
       Math.abs(offset.y) > game.road.halfHeight + ZEPPELIN_STRAFE_EXIT_MARGIN
     ) {
-      state.phase = 'turn';
+      state.phase = game.runMode === 'arcade' && offset.y - playerOffset.y > -game.road.halfHeight * 0.15 ? 'recover' : 'turn';
       state.turnTimer = 0.75;
       state.runCount += 1;
       if (activeZeppelinSummonedWalkers(game, enemy).length < ZEPPELIN_SUMMONED_WALKER_LIMIT) state.walkerDropPending = true;
@@ -5005,7 +5047,7 @@ function stepZeppelinCannons(game, enemy, state, dt) {
   }
   const sources = zeppelinCannonSources(enemy);
   if (sources.length === 0) return;
-  state.atsCooldown = Math.max(0, (state.atsCooldown ?? 1.4) - dt * enemyFireTimerScale(enemy));
+  state.atsCooldown = Math.max(0, (state.atsCooldown ?? 1.4) - dt * enemyFireTimerScale(game, enemy));
   if (state.atsCooldown <= 0) {
     fireZeppelinAtsRocket(game, enemy, sources[Math.floor(game.rng.range(0, sources.length))] ?? sources[0]);
     state.atsCooldown = game.rng.range(2.2, 3.4);
@@ -5014,7 +5056,7 @@ function stepZeppelinCannons(game, enemy, state, dt) {
 }
 
 function stepZeppelinGroundLaserSequence(game, enemy, state, sources, dt) {
-  const fireScale = enemyFireTimerScale(enemy);
+  const fireScale = enemyFireTimerScale(game, enemy);
   if (enemyBeamIsActive(game, enemy, 'zeppelin-ground-laser')) return;
   if (state.laserWarning) {
     stepZeppelinLaserWarning(game, enemy, state, sources, dt * fireScale);
@@ -5131,7 +5173,7 @@ function zeppelinCannonSources(enemy) {
 }
 
 function fireZeppelinAtsRocket(game, enemy, source) {
-  const rocket = createProjectile(source.x, source.y, 0, 0, {
+  const rocket = createCombatProjectile(game, source.x, source.y, 0, 0, {
     team: 'enemy',
     weapon: 'ats-grav-rocket',
     behavior: 'arc',
@@ -5175,7 +5217,7 @@ function fireZeppelinGroundLaser(game, enemy, source, warning) {
   };
   const angle = warning?.angle ?? Math.atan2(target.y - source.y, target.x - source.x);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, 0, 0, {
+    createCombatProjectile(game, source.x, source.y, 0, 0, {
       team: 'enemy',
       weapon: 'zeppelin-ground-laser',
       behavior: 'beam',
@@ -5492,7 +5534,7 @@ function stepZeppelinMeltdown(game, enemy, dt) {
     if (cell) {
       const local = { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE };
       const world = enemyLocalToWorldPoint(enemy, local);
-      game.enemyProjectiles.push(createProjectile(world.x, world.y, 0, 0, {
+      game.enemyProjectiles.push(createCombatProjectile(game, world.x, world.y, 0, 0, {
         team: 'enemy',
         weapon: 'zeppelin-internal-blast',
         behavior: 'blast',
@@ -5635,7 +5677,7 @@ function stepBossEnemy(game, boss, dt) {
     boss.centerPulseTimer = Math.max(boss.centerPulseTimer ?? 0, 1);
     return;
   }
-  boss.centerPulseTimer -= dt * enemyCoreTimerScale(boss);
+  boss.centerPulseTimer -= dt * enemyCoreTimerScale(game, boss);
   stepBossArms(game, boss, dt);
   if (boss.centerPulseTimer <= 0) {
     fireBossCenterPulse(game, boss);
@@ -5809,7 +5851,7 @@ function stepBossArms(game, boss, dt) {
     if ((boss.armUnfurl ?? 1) < 0.55) continue;
     fireBossNoduleShots(game, boss, arm, dt);
     if (stepBossLaser(game, boss, arm, dt)) continue;
-    arm.fireTimer = (arm.fireTimer ?? game.rng.range(0.2, 1.5)) - dt * bossArmGunTimerScale(boss, arm);
+    arm.fireTimer = (arm.fireTimer ?? game.rng.range(0.2, 1.5)) - dt * bossArmGunTimerScale(game, boss, arm);
     if (arm.fireTimer > 0) continue;
     arm.fireTimer = game.rng.range(1.8, 4.3);
     fireBossArmAttack(game, boss, arm);
@@ -5824,7 +5866,7 @@ function stepBossLaser(game, boss, arm, dt) {
     arm.laser = null;
     return false;
   }
-  laser.timer -= dt;
+  laser.timer -= dt * arcadeEnemyFireRateScale(game);
   if (laser.timer > BOSS_LASER_LOCK_TIME) {
     laser.target = { x: game.vehicle.x, y: game.vehicle.y };
   }
@@ -5832,7 +5874,7 @@ function stepBossLaser(game, boss, arm, dt) {
   if (laser.timer > 0) return true;
   const angle = Math.atan2(laser.target.y - source.y, laser.target.x - source.x);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, 0, 0, {
+    createCombatProjectile(game, source.x, source.y, 0, 0, {
       team: 'enemy',
       weapon: 'boss-laser',
       behavior: 'beam',
@@ -5876,7 +5918,7 @@ function fireBossArmAttack(game, boss, arm) {
 function fireBossStandardShot(game, source, arm) {
   const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, Math.cos(angle) * 112 * enemyMovementUpgradeScale(source.enemy ?? {}), Math.sin(angle) * 112 * enemyMovementUpgradeScale(source.enemy ?? {}), {
+    createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 112 * enemyMovementUpgradeScale(source.enemy ?? {}), Math.sin(angle) * 112 * enemyMovementUpgradeScale(source.enemy ?? {}), {
       team: 'enemy',
       weapon: 'boss-tentacle',
       radius: 2.2,
@@ -5892,7 +5934,7 @@ function fireBossStandardShot(game, source, arm) {
 function fireBossDelayedShot(game, source, arm) {
   const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, Math.cos(angle) * 27.5, Math.sin(angle) * 27.5, {
+    createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 27.5, Math.sin(angle) * 27.5, {
       team: 'enemy',
       weapon: 'boss-drifter',
       radius: 1.1,
@@ -5915,7 +5957,7 @@ function fireBossDelayedShot(game, source, arm) {
 function fireBossProtectiveShot(game, source, arm) {
   const angle = Math.atan2(arm.aim.y - source.y, arm.aim.x - source.x);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, Math.cos(angle) * 41, Math.sin(angle) * 41, {
+    createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 41, Math.sin(angle) * 41, {
       team: 'enemy',
       weapon: 'boss-shield-shot',
       radius: 3.2,
@@ -5973,7 +6015,7 @@ function detonateBrokenBossArm(game, boss, arm) {
       for (let index = 0; index < 4; index += 1) {
         const angle = game.rng.range(0, Math.PI * 2);
         game.enemyProjectiles.push(
-          createProjectile(origin.x, origin.y, Math.cos(angle) * game.rng.range(37.5, 75), Math.sin(angle) * game.rng.range(37.5, 75), {
+          createCombatProjectile(game, origin.x, origin.y, Math.cos(angle) * game.rng.range(37.5, 75), Math.sin(angle) * game.rng.range(37.5, 75), {
             team: 'enemy',
             weapon: 'boss-arm-shrapnel',
             radius: 1.4,
@@ -6272,7 +6314,7 @@ function spawnBossInternalBlastEffect(game, boss) {
   const origin = cell
     ? enemyLocalToWorldPoint(boss, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE })
     : { x: boss.x, y: boss.y };
-  game.enemyProjectiles.push(createProjectile(origin.x, origin.y, 0, 0, {
+  game.enemyProjectiles.push(createCombatProjectile(game, origin.x, origin.y, 0, 0, {
     team: 'enemy',
     weapon: 'boss-internal-blast',
     behavior: 'blast',
@@ -6324,7 +6366,7 @@ function fireBossCenterPulse(game, boss) {
   for (let index = 0; index < count; index += 1) {
     const angle = (Math.PI * 2 * index) / count;
     game.enemyProjectiles.push(
-      createProjectile(boss.x, boss.y, Math.cos(angle) * 27.5, Math.sin(angle) * 27.5, {
+      createCombatProjectile(game, boss.x, boss.y, Math.cos(angle) * 27.5, Math.sin(angle) * 27.5, {
         team: 'enemy',
         weapon: 'boss-missile',
         radius: 3,
@@ -6350,7 +6392,7 @@ function fireShortEnemyBeam(game, enemy, color = '#83f7ff', damageScale = 1) {
   const source = { x: enemy.x, y: enemy.y };
   const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
   game.enemyProjectiles.push(
-    createProjectile(source.x, source.y, 0, 0, {
+    createCombatProjectile(game, source.x, source.y, 0, 0, {
       team: 'enemy',
       weapon: 'enemy-short-beam',
       behavior: 'beam',
@@ -6440,7 +6482,7 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {})
   const vx = ((target.x - enemy.x) / flightTime) * horizontalScale;
   const vy = ((target.y - enemy.y) / flightTime) * horizontalScale;
   const verticalVelocity = options.verticalVelocity ?? (gravity * flightTime) / 2;
-  const shell = createProjectile(enemy.x, enemy.y, vx, vy, {
+  const shell = createCombatProjectile(game, enemy.x, enemy.y, vx, vy, {
     team: 'enemy',
     weapon: options.weapon ?? 'enemy-mortar',
     behavior: 'arc',
@@ -6471,12 +6513,12 @@ function fireEnemyArcShell(game, enemy, target, color = '#ffb25f', options = {})
 
 function stepEnemyPatterns(game, enemy, dt) {
   if (enemy.phantomOverload) return;
-  const fireScale = enemyFireTimerScale(enemy);
+  const fireScale = enemyFireTimerScale(game, enemy);
   if (fireScale <= 0) return;
   for (const patternState of enemy.patterns ?? []) {
     patternState.timer -= dt * fireScale;
     if (patternState.timer > 0) continue;
-    const projectiles = firePattern(patternState, enemy, game.vehicle, game.rng).map((projectile) => scaleEnemyProjectile(enemy, projectile));
+    const projectiles = firePattern(patternState, enemy, game.vehicle, game.rng).map((projectile) => applyArcadeProjectileScaling(game, scaleEnemyProjectile(enemy, projectile)));
     game.enemyProjectiles.push(...projectiles);
     if (projectiles.length > 0) {
       enemy.lastFiredAt = game.time;
@@ -6488,7 +6530,7 @@ function stepEnemyPatterns(game, enemy, dt) {
 }
 
 function fireBossNoduleShots(game, boss, arm, dt) {
-  const fireScale = bossArmGunTimerScale(boss, arm);
+  const fireScale = bossArmGunTimerScale(game, boss, arm);
   if (fireScale <= 0) return;
   const chancePerSecond = 0.18 * fireScale;
   for (const gun of boss.cells.filter((cell) => cell.id.startsWith(`arm-${arm.index}-`) && cell.type === 'gun' && !cell.state.destroyed)) {
@@ -6496,7 +6538,7 @@ function fireBossNoduleShots(game, boss, arm, dt) {
     const source = { x: boss.x + gun.gridX * CELL_SIZE, y: boss.y + gun.gridY * CELL_SIZE };
     const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x) + game.rng.range(-0.08, 0.08);
     game.enemyProjectiles.push(
-      createProjectile(source.x, source.y, Math.cos(angle) * 112, Math.sin(angle) * 112, {
+      createCombatProjectile(game, source.x, source.y, Math.cos(angle) * 112, Math.sin(angle) * 112, {
         team: 'enemy',
         weapon: 'boss-nodule',
         radius: 2.2,
@@ -6514,10 +6556,10 @@ function enemyCanFire(enemy) {
   return !enemy?.phasedOut || enemy.canFireWhilePhased === true;
 }
 
-function enemyFireTimerScale(enemy) {
+function enemyFireTimerScale(game, enemy) {
   const gun = enemyGunEfficiency(enemy);
   if (gun <= 0.05) return 0;
-  return clamp(0.18 + gun * 0.82, 0, 1) * enemyAttackRateUpgradeScale(enemy);
+  return clamp(0.18 + gun * 0.82, 0, 1) * enemyAttackRateUpgradeScale(enemy) * arcadeEnemyFireRateScale(game);
 }
 
 function enemyMobilityScale(enemy) {
@@ -6525,17 +6567,17 @@ function enemyMobilityScale(enemy) {
   return clamp(0.25 + engine * 0.75, 0.25, 1) * enemyMovementUpgradeScale(enemy);
 }
 
-function enemyCoreTimerScale(enemy) {
+function enemyCoreTimerScale(game, enemy) {
   const core = enemyCoreEfficiency(enemy);
-  return clamp(0.3 + core * 0.7, 0.3, 1) * enemyAttackRateUpgradeScale(enemy);
+  return clamp(0.3 + core * 0.7, 0.3, 1) * enemyAttackRateUpgradeScale(enemy) * arcadeEnemyFireRateScale(game);
 }
 
-function bossArmGunTimerScale(boss, arm) {
+function bossArmGunTimerScale(game, boss, arm) {
   const cells = boss.cells.filter((cell) => cell.id.startsWith(`arm-${arm.index}-`) && cell.type === 'gun');
   if (cells.length === 0) return 0;
   const integrity = cells.reduce((sum, cell) => sum + Math.min(cell.state.deviceIntegrity, cell.state.wiringIntegrity, cell.state.structureIntegrity), 0) / cells.length;
   if (integrity <= 0.05) return 0;
-  return clamp(0.18 + integrity * 0.82, 0, 1) * enemyAttackRateUpgradeScale(boss);
+  return clamp(0.18 + integrity * 0.82, 0, 1) * enemyAttackRateUpgradeScale(boss) * arcadeEnemyFireRateScale(game);
 }
 
 function scaleEnemyProjectile(enemy, projectile) {
@@ -6806,6 +6848,7 @@ function handleDamageBudgetProjectileRicochet(game, projectile, previousEnemy = 
   }
   const target = nearestRicochetTarget(game, projectile, previousEnemy);
   if (!target) return false;
+  if (projectile.ricochetProbability < 1 && !game.rng.chance(projectile.ricochetProbability)) return false;
   emitSoundEvent(game, SOUND_EVENTS.GLAIVE_BOUNCE);
   projectile.ricochetCount = (projectile.ricochetCount ?? 0) + 1;
   projectile.damage *= projectile.ricochetFactor ?? 0.5;
@@ -6838,6 +6881,7 @@ function maybeRicochetDamageBudgetProjectile(game, projectile) {
   if ((projectile.ricochetCount ?? 0) >= (projectile.maxRicochets ?? 0)) return false;
   const target = nearestRicochetTarget(game, projectile, previousEnemy);
   if (!target) return false;
+  if (projectile.ricochetProbability < 1 && !game.rng.chance(projectile.ricochetProbability)) return false;
   emitSoundEvent(game, SOUND_EVENTS.GLAIVE_BOUNCE);
   projectile.ricochetCount = (projectile.ricochetCount ?? 0) + 1;
   projectile.damage *= projectile.ricochetFactor ?? 0.5;
@@ -6914,7 +6958,7 @@ function fractureBladeOnFirstRicochet(game, projectile, targetPoint) {
   for (let index = 1; index < count; index += 1) {
     const angle = projectile.angle + game.rng.range(-0.32, 0.32);
     game.playerProjectiles.push(
-      createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+      createCombatProjectile(game, projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
         weapon: projectile.weapon,
         sourceWeaponId: projectile.sourceWeaponId ?? projectile.weapon,
@@ -6934,6 +6978,7 @@ function fractureBladeOnFirstRicochet(game, projectile, targetPoint) {
         maxRicochets: projectile.maxRicochets,
         ricochetCount: projectile.ricochetCount,
         ricochetFactor: projectile.ricochetFactor,
+        ricochetProbability: projectile.ricochetProbability,
         ricochetOnEnemyExit: projectile.ricochetOnEnemyExit,
         absorbsEnemyProjectiles: projectile.absorbsEnemyProjectiles,
         projectileDeflectionProbability: projectile.projectileDeflectionProbability,
@@ -6966,7 +7011,7 @@ function burstSpentBladeIntoFlechettes(game, projectile) {
   for (let index = 0; index < count; index += 1) {
     const angle = baseAngle + game.rng.range(-0.52, 0.52);
     game.playerProjectiles.push(
-      createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+      createCombatProjectile(game, projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
         weapon: 'blade_flechette',
         sourceWeaponId: projectile.sourceWeaponId ?? projectile.weapon,
@@ -7016,7 +7061,7 @@ function spawnPlayerDetonationBurst(game, projectile) {
       const angle = projectile.angle + angleOffset + (Math.PI * 2 * index) / count + (jitter > 0 ? game.rng.range(-jitter, jitter) : 0);
       const speed = group.projectileSpeed ?? group.speed ?? 180;
       game.playerProjectiles.push(
-        createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+        createCombatProjectile(game, projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
           team: 'player',
           weapon: group.weapon ?? 'detonation-burst',
           sourceWeaponId: projectile.sourceWeaponId ?? projectile.weapon,
@@ -7034,6 +7079,7 @@ function spawnPlayerDetonationBurst(game, projectile) {
           damagePiercesUntilSpent: group.damagePiercesUntilSpent,
           maxRicochets: group.maxRicochets,
           ricochetFactor: group.ricochetFactor,
+          ricochetProbability: group.ricochetProbability,
           ricochetOnEnemyExit: group.ricochetOnEnemyExit,
           absorbsEnemyProjectiles: group.absorbsEnemyProjectiles,
           projectileDeflectionProbability: group.projectileDeflectionProbability,
@@ -7049,12 +7095,13 @@ function spawnPlayerDetonationBurst(game, projectile) {
 function spawnGenericPlayerBlast(game, projectile) {
   emitSoundEvent(game, SOUND_EVENTS.PLAYER_EXPLOSION);
   game.playerProjectiles.push(
-    createProjectile(projectile.x, projectile.y, 0, 0, {
+    createCombatProjectile(game, projectile.x, projectile.y, 0, 0, {
       team: 'player',
       weapon: `${projectile.weapon}-blast`,
       behavior: 'blast',
       radius: 1,
       maxRadius: projectile.blastRadius,
+      blastRadiusScaled: true,
       damage: 0,
       impulse: 0,
       lifetime: 0.22,
@@ -7106,7 +7153,7 @@ function createEmittedPlayerProjectile(game, source, emitter) {
   const vx = Math.cos(angle) * speed + source.vx * 0.25;
   const vy = Math.sin(angle) * speed + source.vy * 0.25;
   const travelAngle = Math.atan2(vy, vx);
-  return createProjectile(source.x, source.y, vx, vy, {
+  return createCombatProjectile(game, source.x, source.y, vx, vy, {
     team: 'player',
     weapon: emitter.weapon ?? 'emitted-projectile',
     sourceWeaponId: source.sourceWeaponId ?? source.weapon,
@@ -7124,6 +7171,7 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     damagePiercesUntilSpent: emitter.damagePiercesUntilSpent,
     maxRicochets: emitter.maxRicochets,
     ricochetFactor: emitter.ricochetFactor,
+    ricochetProbability: emitter.ricochetProbability,
     ricochetOnEnemyExit: emitter.ricochetOnEnemyExit,
     absorbsEnemyProjectiles: emitter.absorbsEnemyProjectiles,
     projectileDeflectionProbability: emitter.projectileDeflectionProbability,
@@ -7480,14 +7528,18 @@ function easeOutCubic(t) {
 }
 
 function spawnEnemyPulseBlast(game, projectile) {
-  const blast = projectile.blastOnExpire ?? { radius: CELL_SIZE * 2.55, damage: 9, impulse: 55 };
+  const payload = projectile.blastOnExpire ?? { radius: CELL_SIZE * 2.55, damage: 9, impulse: 55 };
+  const blast = game.runMode === 'arcade' && !projectile.arcadeScaled
+    ? { ...payload, radius: arcadeBlastRadius(game, payload.radius), damage: payload.damage * 2 }
+    : payload;
   const effects = [
-    createProjectile(projectile.x, projectile.y, 0, 0, {
+    createCombatProjectile(game, projectile.x, projectile.y, 0, 0, {
       team: 'enemy',
       weapon: 'enemy-pulse-blast',
       behavior: 'blast',
       radius: 1,
       maxRadius: blast.radius,
+      blastRadiusScaled: true,
       damage: 0,
       impulse: 0,
       lifetime: 0.18,
@@ -7889,7 +7941,7 @@ function syncBeamProjectiles(game) {
     projectile.y = muzzle.y;
     projectile.sourceZ = Math.max(0, game.vehicle.elevation?.z ?? 0);
     const threat = projectile.weapon === 'repulsor_beam' ? nearestRepulsorThreat(game, muzzle) : null;
-    projectile.angle = threat
+    projectile.angle = projectile.arcadeForwardLocked ? arcadeForwardHeading(game) : threat
       ? Math.atan2(threat.y - muzzle.y, threat.x - muzzle.x)
       : projectile.targetHint
         ? Math.atan2(projectile.targetHint.y - muzzle.y, projectile.targetHint.x - muzzle.x)
@@ -7923,19 +7975,20 @@ function beamHalfWidth(projectile) {
 function spawnCannonImpact(game, projectile, enemy) {
   emitSoundEvent(game, SOUND_EVENTS.PLAYER_EXPLOSION);
   game.playerProjectiles.push(
-    createProjectile(projectile.x, projectile.y, 0, 0, {
+    createCombatProjectile(game, projectile.x, projectile.y, 0, 0, {
       team: 'player',
       weapon: 'cannon-blast',
       behavior: 'blast',
       radius: 1,
-      maxRadius: projectile.blastRadius || CELL_SIZE * 5.1,
+      maxRadius: projectile.blastRadius || arcadeBlastRadius(game, CELL_SIZE * 5.1),
+      blastRadiusScaled: true,
       damage: 0,
       impulse: 0,
       lifetime: 0.22,
     }),
   );
 
-  const blastRadius = projectile.blastRadius || CELL_SIZE * 5.1;
+  const blastRadius = projectile.blastRadius || arcadeBlastRadius(game, CELL_SIZE * 5.1);
   const blastPierceVoxels = Math.max(0, (projectile.blastPierceCells ?? 0) * VOXELS);
   for (const blastTarget of activeEnemies(game)) {
     const distance = Math.hypot(blastTarget.x - projectile.x, blastTarget.y - projectile.y);
@@ -7962,7 +8015,7 @@ function spawnCannonImpact(game, projectile, enemy) {
     const angle = baseAngle + fan + game.rng.range(-0.08, 0.08);
     const speed = game.rng.range(127.5, 232.5);
     game.playerProjectiles.push(
-      createProjectile(projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+      createCombatProjectile(game, projectile.x, projectile.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
         team: 'player',
         weapon: 'cannon-shrapnel',
         sourceWeaponId: projectile.sourceWeaponId ?? 'cannon',
@@ -7984,12 +8037,13 @@ function spawnRocketImpact(game, projectile, enemy) {
   if ((projectile.blastRadius ?? 0) <= 0) return;
   emitSoundEvent(game, SOUND_EVENTS.PLAYER_EXPLOSION);
   game.playerProjectiles.push(
-    createProjectile(projectile.x, projectile.y, 0, 0, {
+    createCombatProjectile(game, projectile.x, projectile.y, 0, 0, {
       team: 'player',
       weapon: 'rocket-blast',
       behavior: 'blast',
       radius: 1,
       maxRadius: projectile.blastRadius,
+      blastRadiusScaled: true,
       damage: 0,
       impulse: 0,
       lifetime: 0.18,
@@ -8213,7 +8267,7 @@ function spawnWalkerFallInternalBlastEffect(game, enemy) {
   const origin = cell
     ? enemyLocalToWorldPoint(enemy, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE })
     : { x: enemy.x, y: enemy.y };
-  game.enemyProjectiles.push(createProjectile(origin.x, origin.y, 0, 0, {
+  game.enemyProjectiles.push(createCombatProjectile(game, origin.x, origin.y, 0, 0, {
     team: 'enemy',
     weapon: 'walker-internal-blast',
     behavior: 'blast',
@@ -8233,7 +8287,7 @@ function spawnWalkerFallImpactEffect(game, enemy, state) {
     x: enemy.x + Math.cos(state.fallAngle ?? 0) * offset,
     y: enemy.y + Math.sin(state.fallAngle ?? 0) * offset,
   };
-  game.enemyProjectiles.push(createProjectile(origin.x, origin.y, 0, 0, {
+  game.enemyProjectiles.push(createCombatProjectile(game, origin.x, origin.y, 0, 0, {
     team: 'enemy',
     weapon: 'walker-fall-impact',
     behavior: 'blast',
@@ -8450,7 +8504,7 @@ function explodeEnemy(game, enemy) {
   if (bossUsesInternalDestruction(enemy)) emitRandomBossMainExplosionSound(game);
   else emitEnemyDestroyedSound(game, enemy);
   game.playerProjectiles.push(
-    createProjectile(enemy.x, enemy.y, 0, 0, {
+    createCombatProjectile(game, enemy.x, enemy.y, 0, 0, {
       team: 'player',
       weapon: 'enemy-explosion',
       behavior: 'blast',
@@ -8649,4 +8703,18 @@ function roadDirectionToWorld(x, y, road) {
 
 function exponentialInterval(rng, mean) {
   return -Math.log(Math.max(0.0001, 1 - rng.next())) * mean;
+}
+
+function lockArcadeFacing(game) {
+  if (game.runMode !== 'arcade') return;
+  game.vehicle.heading = arcadeForwardHeading(game);
+  game.vehicle.angularVelocity = 0;
+}
+
+function playerLaunchVelocity(game, angle, speed, arcadeLaunch = true) {
+  const shooter = { x: game.vehicle.vx, y: game.vehicle.vy };
+  const direction = { x: Math.cos(angle), y: Math.sin(angle) };
+  return game.runMode === 'arcade' && arcadeLaunch
+    ? arcadeProjectileVelocity(shooter, direction, speed)
+    : forwardSafeInheritedVelocity(shooter, { x: direction.x * speed, y: direction.y * speed });
 }

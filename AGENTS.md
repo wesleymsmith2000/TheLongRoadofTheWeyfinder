@@ -8,3 +8,6 @@
 - Split creator tooling to a separate repo once it needs an independent release cycle, dependency stack, publishing/community services, or a total-conversion launcher.
 - Keep `docs/` aligned with runtime schemas whenever adding creator-facing asset fields, verbs, or extension points.
 - Update this file and `README.md` when setup or development conventions change.
+
+- Keep Arcade-only balance and movement rules in runtime mode overrides; normalize legacy `lite` to `arcade` at input boundaries and preserve Normal/Sandbox content balance.
+- Give gameplay releases a distinct visible `BUILD_VERSION` and distinguish local verification from a successful GitHub Pages deployment when reporting completion.

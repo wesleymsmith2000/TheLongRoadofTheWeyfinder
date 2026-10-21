@@ -1,16 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame } from '../src/core/game.js';
-import liteVehicleDefinition from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
+import arcadeVehicleDefinition from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
 import {
-  LITE_SLOT_UNLOCK_COST,
+  ARCADE_SLOT_UNLOCK_COST,
   buildEquipmentWithScrap,
   buildWeaponWithScrap,
   equipmentConstructionCost,
   normalizeWeaponBayState,
   swapEquipmentSlot,
   swapWeaponSlot,
-  unlockLiteWeaponSlot,
+  unlockArcadeWeaponSlot,
   weaponConstructionCost,
   weaponSlotUnlocked,
 } from '../src/core/weaponBay.js';
@@ -84,14 +84,14 @@ test('old weapon-bay saves normalize without losing generic equipment inventory'
   assert.deepEqual(normalized.discoveredMerges, []);
 });
 
-test('lite support gun unlocks its first primary slot before later slots', () => {
-  const game = createGame(1147, { vehicleDefinition: liteVehicleDefinition, runMode: 'lite' });
+test('Arcade support gun unlocks its first primary slot before later slots', () => {
+  const game = createGame(1147, { vehicleDefinition: arcadeVehicleDefinition, runMode: 'arcade' });
   game.levelComplete = true;
   game.weaponBay.available = true;
-  game.scrap = LITE_SLOT_UNLOCK_COST * 2;
+  game.scrap = ARCADE_SLOT_UNLOCK_COST * 2;
   assert.equal(weaponSlotUnlocked(game, 'gun-support', 'primary', 0), false);
-  assert.equal(unlockLiteWeaponSlot(game, 'gun-support', 'secondary', 0).changed, false);
-  assert.equal(unlockLiteWeaponSlot(game, 'gun-support', 'primary', 0).changed, true);
-  assert.equal(unlockLiteWeaponSlot(game, 'gun-support', 'secondary', 0).changed, true);
+  assert.equal(unlockArcadeWeaponSlot(game, 'gun-support', 'secondary', 0).changed, false);
+  assert.equal(unlockArcadeWeaponSlot(game, 'gun-support', 'primary', 0).changed, true);
+  assert.equal(unlockArcadeWeaponSlot(game, 'gun-support', 'secondary', 0).changed, true);
   assert.equal(game.scrap, 0);
 });

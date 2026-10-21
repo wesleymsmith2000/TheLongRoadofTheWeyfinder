@@ -1,3 +1,4 @@
+import { normalizeRunMode } from './arcadeMode.js';
 import { SHOP_COSTS, UPGRADE_DEFINITIONS, upgradeCost } from './economy.js';
 import {
   MAX_PRIMARY_SLOTS,
@@ -15,16 +16,17 @@ import {
 export const WEAPON_SLOT_KINDS = ['primary', 'secondary'];
 export const EQUIPMENT_SLOT_KINDS = [...WEAPON_SLOT_KINDS, 'utility'];
 export const EQUIPMENT_IDS = [...new Set([...PRIMARY_WEAPON_IDS, ...SECONDARY_WEAPON_IDS, ...UTILITY_EQUIPMENT_IDS])];
-export const LITE_SLOT_UNLOCK_COST = SHOP_COSTS.replaceDetached * 5;
+export const ARCADE_SLOT_UNLOCK_COST = SHOP_COSTS.replaceDetached * 5;
 
 const MERGE_ONLY_EQUIPMENT = new Set(['vortex_wavelet_beam']);
 
 export function createWeaponBayState(vehicleDefinition, runMode = 'normal') {
+  runMode = normalizeRunMode(runMode);
   const unlockedSlots = {};
   for (const loadout of normalizeGunLoadouts(vehicleDefinition)) {
     unlockedSlots[loadout.cellId] = {
-      primary: Array.from({ length: MAX_PRIMARY_SLOTS }, (_, index) => runMode !== 'lite' || Boolean(loadout.primary[index])),
-      secondary: Array.from({ length: MAX_SECONDARY_SLOTS }, (_, index) => runMode !== 'lite' || Boolean(loadout.secondary[index])),
+      primary: Array.from({ length: MAX_PRIMARY_SLOTS }, (_, index) => runMode !== 'arcade' || Boolean(loadout.primary[index])),
+      secondary: Array.from({ length: MAX_SECONDARY_SLOTS }, (_, index) => runMode !== 'arcade' || Boolean(loadout.secondary[index])),
     };
   }
   return {
@@ -140,8 +142,8 @@ export function swapUtilitySlot(game, cellId, slotIndex, utilityId) {
   return { changed: true, removed: currentUtility, installed: utilityId || null, definition: result.definition };
 }
 
-export function unlockLiteWeaponSlot(game, cellId, slotKind, slotIndex) {
-  if (!weaponBayAvailable(game) || game.runMode !== 'lite') return { changed: false, reason: 'Slot unlocking is only used by Lite rest areas.' };
+export function unlockArcadeWeaponSlot(game, cellId, slotKind, slotIndex) {
+  if (!weaponBayAvailable(game) || game.runMode !== 'arcade') return { changed: false, reason: 'Slot unlocking is only used by Arcade rest areas.' };
   if (!WEAPON_SLOT_KINDS.includes(slotKind)) return { changed: false, reason: 'Unknown weapon slot type.' };
   const flags = game.weaponBay.unlockedSlots?.[cellId]?.[slotKind];
   if (!flags || !Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= flags.length) return { changed: false, reason: 'Weapon slot is out of range.' };
@@ -149,10 +151,10 @@ export function unlockLiteWeaponSlot(game, cellId, slotKind, slotIndex) {
   if (cellId === 'gun-support' && countUnlockedSlots(game, cellId) === 0 && (slotKind !== 'primary' || slotIndex !== 0)) {
     return { changed: false, reason: 'Unlock the support gun primary slot first.' };
   }
-  if (game.scrap < LITE_SLOT_UNLOCK_COST) return { changed: false, reason: `Need ${LITE_SLOT_UNLOCK_COST - game.scrap} more scrap.` };
-  game.scrap -= LITE_SLOT_UNLOCK_COST;
+  if (game.scrap < ARCADE_SLOT_UNLOCK_COST) return { changed: false, reason: `Need ${ARCADE_SLOT_UNLOCK_COST - game.scrap} more scrap.` };
+  game.scrap -= ARCADE_SLOT_UNLOCK_COST;
   flags[slotIndex] = true;
-  return { changed: true, cost: LITE_SLOT_UNLOCK_COST };
+  return { changed: true, cost: ARCADE_SLOT_UNLOCK_COST };
 }
 
 export function weaponBaySlotView(game, cellId, slotKind, slotIndex) {

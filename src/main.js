@@ -38,7 +38,7 @@ import {
 } from './core/weaponLoadout.js';
 import {
   EQUIPMENT_IDS,
-  LITE_SLOT_UNLOCK_COST,
+  ARCADE_SLOT_UNLOCK_COST,
   buildEquipmentWithScrap,
   equipmentConstructionCost,
   equipmentFabricationMode,
@@ -46,7 +46,7 @@ import {
   equipmentSlotCapacity,
   equipmentSlotView,
   swapEquipmentSlot,
-  unlockLiteWeaponSlot,
+  unlockArcadeWeaponSlot,
   weaponBayAvailable,
   workshopAccess,
 } from './core/weaponBay.js';
@@ -85,7 +85,7 @@ import {
   upgradeSystemCost,
   upgradeStatus,
 } from './core/economy.js';
-import liteStartingVehicleDefinition from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
+import arcadeStartingVehicleDefinition from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
 import {
   countDetachedVehicleCells,
   hasRepairableVehicleDamage,
@@ -306,7 +306,7 @@ const buildVersionTag = document.querySelector('#buildVersionTag');
 const titleScreen = document.querySelector('#titleScreen');
 const titleVersionTag = document.querySelector('#titleVersionTag');
 const titleNormalRun = document.querySelector('#titleNormalRun');
-const titleLiteRun = document.querySelector('#titleLiteRun');
+const titleArcadeRun = document.querySelector('#titleArcadeRun');
 const titleSandboxRun = document.querySelector('#titleSandboxRun');
 const titleVehicleBay = document.querySelector('#titleVehicleBay');
 const titleControls = document.querySelector('#titleControls');
@@ -537,7 +537,7 @@ const PLAYER_ACCOUNT_STORAGE_KEY = 'weyfinder.prototype0.playerAccount';
 
 let playerAccount = loadPlayerAccount();
 let playerVehicleDefinition = migrateLegacyCombatUtilities(playerAccount.savedVehicle);
-let liteVehicleDefinition = structuredClone(liteStartingVehicleDefinition);
+let arcadeVehicleDefinition = structuredClone(arcadeStartingVehicleDefinition);
 let activeRunMode = 'normal';
 let game = createGame(1147, {
   vehicleDefinition: playerVehicleDefinition ?? undefined,
@@ -662,8 +662,8 @@ const vehicleEditor = createPlayerVehicleLaunchEditor(
     account: playerAccount,
     definition: playerVehicleDefinition,
     onChange(definition) {
-      if (activeRunMode === 'lite') {
-        liteVehicleDefinition = definition;
+      if (activeRunMode === 'arcade') {
+        arcadeVehicleDefinition = definition;
       } else {
         playerVehicleDefinition = definition;
         playerAccount = preparePlayerAccountForSave(playerAccount, definition);
@@ -871,7 +871,7 @@ bindButtonActivation(controlConfigToggle, toggleControlConfig);
 bindButtonActivation(achievementsToggle, toggleAchievements);
 bindButtonActivation(launchButton, launchVehicle);
 bindButtonActivation(titleNormalRun, startNormalRun);
-bindButtonActivation(titleLiteRun, startLiteRun);
+bindButtonActivation(titleArcadeRun, startArcadeRun);
 bindButtonActivation(titleSandboxRun, startTitleSandboxRun);
 bindButtonActivation(titleVehicleBay, openVehicleBay);
 bindButtonActivation(titleControls, openTitleControlConfig);
@@ -1115,7 +1115,7 @@ function launchVehicle() {
 }
 
 function activeVehicleDefinition() {
-  return activeRunMode === 'lite' ? liteVehicleDefinition : playerVehicleDefinition;
+  return activeRunMode === 'arcade' ? arcadeVehicleDefinition : playerVehicleDefinition;
 }
 
 function createPlayerRunGame(vehicleDefinition, runMode = 'normal') {
@@ -1147,19 +1147,19 @@ function startNormalRun() {
   syncTitleScreen();
 }
 
-function startLiteRun() {
-  activeRunMode = 'lite';
-  liteVehicleDefinition = structuredClone(liteStartingVehicleDefinition);
-  vehicleEditor.setDefinition(liteVehicleDefinition, {
+function startArcadeRun() {
+  activeRunMode = 'arcade';
+  arcadeVehicleDefinition = structuredClone(arcadeStartingVehicleDefinition);
+  vehicleEditor.setDefinition(arcadeVehicleDefinition, {
     structureLocked: true,
     editableGunCellIds: ['gun-main'],
     selectedCellId: 'gun-main',
     primaryWeaponIds: PRIMARY_WEAPON_IDS,
     secondaryWeaponIds: SECONDARY_WEAPON_IDS,
     requireFilledLoadout: true,
-    message: 'Lite vehicle shape is fixed. Choose two primary weapons and three secondary weapons; repulsor and tractor beams are included.',
+    message: 'Arcade vehicle shape is fixed. Choose two primary weapons and three secondary weapons; repulsor and tractor beams are included.',
   });
-  game = createPlayerRunGame(liteVehicleDefinition, 'lite');
+  game = createPlayerRunGame(arcadeVehicleDefinition, 'arcade');
   awaitingLaunch = true;
   titleActive = false;
   closeControlConfig();
@@ -3138,10 +3138,10 @@ function refreshWeaponBayUi() {
   const desired = weaponBayWeaponSelect.value || null;
   const owned = desired ? game.weaponBay.inventory[desired] ?? 0 : 0;
   weaponBaySwapButton.disabled = !view.unlocked || view.weaponId === desired || (desired && owned <= 0);
-  const showUnlock = slotKind !== 'utility' && game.runMode === 'lite' && !view.unlocked;
+  const showUnlock = slotKind !== 'utility' && game.runMode === 'arcade' && !view.unlocked;
   weaponBayUnlockButton.classList.toggle('hidden', !showUnlock);
-  weaponBayUnlockButton.disabled = !showUnlock || game.scrap < LITE_SLOT_UNLOCK_COST;
-  weaponBayUnlockButton.textContent = `Unlock Slot (${LITE_SLOT_UNLOCK_COST} scrap)`;
+  weaponBayUnlockButton.disabled = !showUnlock || game.scrap < ARCADE_SLOT_UNLOCK_COST;
+  weaponBayUnlockButton.textContent = `Unlock Slot (${ARCADE_SLOT_UNLOCK_COST} scrap)`;
   renderWorkshopInventory(weaponBayInventory);
   renderWeaponBayCraft(weaponBayGunSelect.value);
   refreshWorkshopFabricationUi();
@@ -3274,7 +3274,7 @@ function renderWorkshopInventory(container) {
 }
 
 function handleWeaponBayUnlock() {
-  const result = unlockLiteWeaponSlot(
+  const result = unlockArcadeWeaponSlot(
     game,
     weaponBayGunSelect.value,
     weaponBayKindSelect.value,
@@ -3287,7 +3287,7 @@ function handleWeaponBayUnlock() {
 
 function commitRestAreaVehicleDefinition() {
   const definition = structuredClone(game.vehicleDefinition);
-  if (game.runMode === 'lite') liteVehicleDefinition = definition;
+  if (game.runMode === 'arcade') arcadeVehicleDefinition = definition;
   else {
     playerVehicleDefinition = definition;
     playerAccount = preparePlayerAccountForSave(playerAccount, definition);
@@ -3336,7 +3336,7 @@ function selectWeaponBayGunFromCanvas(event) {
 }
 
 function updateShopUi(dt = 0) {
-  shopUpgradesSection.classList.toggle('lite-upgrades', game.runMode === 'lite');
+  shopUpgradesSection.classList.toggle('arcade-upgrades', game.runMode === 'arcade');
   const visible = Boolean(game.levelComplete) && !awaitingLaunch && !titleActive;
   if (!visible) {
     shopUiWasVisible = false;

@@ -457,6 +457,7 @@ Pierce fields:
 - `damagePiercesUntilSpent`: if true, the projectile uses its visible radius as a swept hit box and continues through hit voxels until its damage budget is depleted.
 - `maxRicochets`: number of times a damage-budget projectile can retarget after leaving enemy contact.
 - `ricochetFactor`: remaining damage multiplier applied each time a projectile ricochets.
+- `ricochetProbability`: chance in `[0, 1]` of retargeting when an eligible hit/exit has a next target; defaults to `1`. Failed rolls preserve trajectory and lifetime. Applies to projectile definitions and emitted/detonation payloads; successful bounces still count toward `maxRicochets`. Arcade Blade Launcher overrides its base chance to `0.5` without changing authored Normal content.
 - `ricochetOnEnemyExit`: if true, a damage-budget projectile marks the enemy it is touching and retargets after it exits contact.
 - `projectileDeflectionProbability`: chance that an overlapping enemy shot is converted into a player-owned projectile instead of being destroyed.
 
