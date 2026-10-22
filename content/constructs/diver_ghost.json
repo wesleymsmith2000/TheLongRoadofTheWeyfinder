@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy.diver.ghost",
+  "displayName": "Diver ghost",
+  "author": "Weyfinder prototype",
+  "canonStatus": "CANON",
+  "tags": [
+    "enemy",
+    "diver",
+    "ghost"
+  ],
+  "cells": [
+    {
+      "id": "core",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "gun",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -1,
+      "gridZ": 0
+    },
+    {
+      "id": "crown",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "gridZ": 0
+    },
+    {
+      "id": "engine",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 1,
+      "gridZ": 0
+    },
+    {
+      "id": "tail",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 2,
+      "gridZ": 0
+    },
+    {
+      "id": "tail-tip",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 3,
+      "gridZ": 0
+    },
+    {
+      "id": "left",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "left-tip",
+      "type": "armor",
+      "gridX": -2,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "right",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "right-tip",
+      "type": "armor",
+      "gridX": 2,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "left-drape",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 1,
+      "gridZ": 0
+    },
+    {
+      "id": "right-drape",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 1,
+      "gridZ": 0
+    }
+  ],
+  "connections": [
+    {
+      "a": "core",
+      "b": "gun",
+      "aSide": "top",
+      "bSide": "bottom"
+    },
+    {
+      "a": "core",
+      "b": "engine",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "left",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "core",
+      "b": "right",
+      "aSide": "right",
+      "bSide": "left"
+    },
+    {
+      "a": "gun",
+      "b": "crown",
+      "aSide": "top",
+      "bSide": "bottom"
+    },
+    {
+      "a": "engine",
+      "b": "tail",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "engine",
+      "b": "left-drape",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "engine",
+      "b": "right-drape",
+      "aSide": "right",
+      "bSide": "left"
+    },
+    {
+      "a": "tail",
+      "b": "tail-tip",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "left",
+      "b": "left-tip",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "left",
+      "b": "left-drape",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "right",
+      "b": "right-tip",
+      "aSide": "right",
+      "bSide": "left"
+    },
+    {
+      "a": "right",
+      "b": "right-drape",
+      "aSide": "bottom",
+      "bSide": "top"
+    }
+  ]
+}

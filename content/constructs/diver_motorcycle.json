@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy.diver.motorcycle",
+  "displayName": "Diver motorcycle",
+  "author": "Weyfinder prototype",
+  "canonStatus": "CANON",
+  "tags": [
+    "enemy",
+    "diver",
+    "motorcycle"
+  ],
+  "cells": [
+    {
+      "id": "gun",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -2,
+      "gridZ": 0
+    },
+    {
+      "id": "front-wheel",
+      "type": "wheel",
+      "gridX": 0,
+      "gridY": -1,
+      "gridZ": 0
+    },
+    {
+      "id": "core",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "rear-wheel",
+      "type": "wheel",
+      "gridX": 0,
+      "gridY": 1,
+      "gridZ": 0
+    },
+    {
+      "id": "engine",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 2,
+      "gridZ": 0
+    },
+    {
+      "id": "left-fairing",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "right-fairing",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 0
+    }
+  ],
+  "connections": [
+    {
+      "a": "gun",
+      "b": "front-wheel",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "front-wheel",
+      "b": "core",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "rear-wheel",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "left-fairing",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "core",
+      "b": "right-fairing",
+      "aSide": "right",
+      "bSide": "left"
+    },
+    {
+      "a": "rear-wheel",
+      "b": "engine",
+      "aSide": "bottom",
+      "bSide": "top"
+    }
+  ]
+}

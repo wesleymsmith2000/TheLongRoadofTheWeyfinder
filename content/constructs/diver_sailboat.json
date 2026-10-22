@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy.diver.sailboat",
+  "displayName": "Diver sailboat",
+  "author": "Weyfinder prototype",
+  "canonStatus": "CANON",
+  "tags": [
+    "enemy",
+    "diver",
+    "sailboat"
+  ],
+  "cells": [
+    {
+      "id": "bow-gun",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -2,
+      "gridZ": 0
+    },
+    {
+      "id": "mast",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "gridZ": 0,
+      "role": "diverSail"
+    },
+    {
+      "id": "core",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "stern",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 1,
+      "gridZ": 0
+    },
+    {
+      "id": "engine",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 2,
+      "gridZ": 0
+    },
+    {
+      "id": "port-hull",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "starboard-hull",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "mortar",
+      "type": "gun",
+      "gridX": -1,
+      "gridY": 1,
+      "gridZ": 0
+    }
+  ],
+  "connections": [
+    {
+      "a": "bow-gun",
+      "b": "mast",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "mast",
+      "b": "core",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "stern",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "port-hull",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "core",
+      "b": "starboard-hull",
+      "aSide": "right",
+      "bSide": "left"
+    },
+    {
+      "a": "stern",
+      "b": "engine",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "stern",
+      "b": "mortar",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "port-hull",
+      "b": "mortar",
+      "aSide": "bottom",
+      "bSide": "top"
+    }
+  ]
+}

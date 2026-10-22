@@ -1,3 +1,4 @@
+import { drawDiverUnderlay, drawDiverOverlay, diverCellVisualOffset } from './diverRenderer.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { livePirateBossGunPodCount } from '../core/enemy.js';
 import { cameraViewScale } from '../core/camera.js';
@@ -612,7 +613,7 @@ function drawTurret(ctx, vehicle) {
   const gun = vehicle.cells.find((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed);
   if (!gun) return;
   ctx.save();
-  const localHeading = vehicle.turretHeading - vehicle.heading;
+  const localHeading = (vehicle.primaryFacingHeading ?? vehicle.turretHeading) - vehicle.heading;
   const baseX = gun.gridX * CELL_SIZE;
   const baseY = gun.gridY * CELL_SIZE;
   const dx = Math.cos(localHeading) * CELL_SIZE * 1.1;
@@ -897,6 +898,7 @@ function drawComMarker(ctx, com) {
 }
 
 function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCache = null, imageAssets = null, renderAssets = null) {
+  if (enemy.diver?.burrowed && !enemy.destroyed) return;
   const remnantAlpha = destroyedEnemyRemnantAlpha(enemy, time);
   if (enemy.destroyed && remnantAlpha <= 0) return;
   ctx.save();
@@ -922,6 +924,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
     drawEnemyBillboardCues(ctx, enemy, time, fallVisual);
     return;
   }
+  drawDiverUnderlay(ctx, enemy, time);
   drawEnemyPresentationUnderlay(ctx, enemy, time);
   const palette = enemy.kind === 'boss' ? BOSS_COLORS : enemy.palette ?? COLORS;
   const poseTransforms = evaluatePoseRig(enemy, {
@@ -940,7 +943,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
       drawCell(
         ctx,
         cell,
-        posed.x,
+        posed.x + diverCellVisualOffset(enemy, cell, time),
         posed.y - projectHeight(layerLift + (posed.z ?? 0)),
         (enemy.destroyed ? 0.35 : 1) * phasedCoreAlpha,
         palette,
@@ -949,6 +952,7 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
       );
     }
   }
+  drawDiverOverlay(ctx, enemy, time);
   drawEnemyPresentationOverlay(ctx, enemy, palette, time);
   drawHarpoonElectricAura(ctx, enemy, time);
   drawPirateShipFlair(ctx, enemy, palette, time);
@@ -2040,7 +2044,7 @@ function drawSmokeParticles(ctx, particles = []) {
     ctx.globalAlpha = Math.max(0, 0.52 * (1 - age));
     ctx.fillStyle = particle.color;
     ctx.beginPath();
-    ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+    ctx.arc(particle.x, particle.y - (particle.weapon === 'diver-thruster' ? projectHeight(particle.z ?? 0) : 0), particle.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }

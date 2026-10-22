@@ -11,3 +11,4 @@
 
 - Keep Arcade-only balance and movement rules in runtime mode overrides; normalize legacy `lite` to `arcade` at input boundaries and preserve Normal/Sandbox content balance.
 - Give gameplay releases a distinct visible `BUILD_VERSION` and distinguish local verification from a successful GitHub Pages deployment when reporting completion.
+- Vehicle body rotation transforms authored local negative Y; projectile headings are measured from positive X. Keep those angle conventions distinct, and use numeric visible-view bounds for Arcade enemy staging rather than the smaller player movement lane.

@@ -1,3 +1,4 @@
+import { updateDiverDamageState } from './diverDamage.js';
 import { recalculateCell } from './cell.js';
 import { annotateConstructRuntimeMetadata, instantiateConstruct } from './constructDefinition.js';
 import { createPatternState } from './patternDefinition.js';
@@ -748,6 +749,7 @@ function enemyIncomingDamageScale(enemy, projectile) {
 }
 
 export function applyEnemyDamage(enemy, projectile) {
+  if (enemy.diver && enemy.phasedOut) return { hit: false, removed: 0, destroyedNow: false };
   const elevatedDirectShot = projectileMatchesEnemyElevation(enemy, projectile);
   if (enemy.kind === 'zeppelinBoss' && !enemy.harpoonField && projectile?.behavior !== 'arc' && !elevatedDirectShot) {
     return { hit: false, removed: 0, destroyedNow: false };
@@ -825,7 +827,7 @@ function damageNearestLiveVoxel(cell, localX, localY, projectile) {
 }
 
 export function applyEnemyVoxelDamage(enemy, hit, damage) {
-  if (enemy.destroyed || !hit?.cell || hit.cell.state.destroyed || !hit?.voxelIndex) return { hit: false, removed: 0, destroyedNow: false };
+  if ((enemy.diver && enemy.phasedOut) || enemy.destroyed || !hit?.cell || hit.cell.state.destroyed || !hit?.voxelIndex) return { hit: false, removed: 0, destroyedNow: false };
   const voxel = hit.cell.mask[hit.voxelIndex.y]?.[hit.voxelIndex.x];
   if (!voxel || voxel.hp <= 0) return { hit: false, removed: 0, destroyedNow: false };
   const wasDestroyed = enemy.destroyed;
@@ -918,7 +920,7 @@ export function applyEnemyProjectilePierceDamage(enemies, projectile, options = 
 }
 
 export function applyEnemyBlastDamage(enemy, origin, options = {}) {
-  if (enemy.destroyed) return { hit: false, removed: 0, destroyedNow: false };
+  if (enemy.destroyed || (enemy.diver && enemy.phasedOut)) return { hit: false, removed: 0, destroyedNow: false };
   const scale = enemyVisualScale(enemy);
   const voxelSize = (CELL_SIZE / VOXELS) * scale;
   const maxDistance = options.maxVoxelDistance ?? 20;
@@ -1208,7 +1210,7 @@ function enemiesNearTracePath(enemies, start, angle, maxLength, margin = 0) {
     y: start.y + Math.sin(angle) * maxLength,
   };
   return enemies.filter((enemy) => {
-    if (enemy.destroyed) return false;
+    if (enemy.destroyed || (enemy.diver && enemy.phasedOut)) return false;
     const radius = enemyWorldRadius(enemy) + margin;
     return pointSegmentDistanceSquared(enemy, start, end) <= radius * radius;
   });
@@ -1236,7 +1238,7 @@ function enemyVoxelKey(hit) {
 
 function findEnemyVoxelAt(enemies, worldPoint, options = {}) {
   for (const enemy of enemies) {
-    if (enemy.destroyed) continue;
+    if (enemy.destroyed || (enemy.diver && enemy.phasedOut)) continue;
     const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
     for (const cell of enemyCellsAtLocalPointForDirectDamage(enemy, localX, localY, options)) {
       if (cell.state.destroyed) continue;
@@ -1285,7 +1287,7 @@ function findNearestEnemyVoxelInCellAt(enemies, worldPoint, options = {}) {
 
 function findEnemyCellAt(enemies, worldPoint, options = {}) {
   for (const enemy of enemies) {
-    if (enemy.destroyed) continue;
+    if (enemy.destroyed || (enemy.diver && enemy.phasedOut)) continue;
     const { x: localX, y: localY } = enemyWorldToLocal(enemy, worldPoint);
     for (const cell of enemyCellsAtLocalPointForDirectDamage(enemy, localX, localY, options)) {
       if (cell.state.destroyed) continue;
@@ -1771,6 +1773,7 @@ export function updateEnemyDestroyed(enemy) {
     return enemy.destroyed;
   }
   enemy.destroyed = !enemy.cells.some((cell) => cell.type === 'core' && !cell.state.destroyed);
+  updateDiverDamageState(enemy);
   return enemy.destroyed;
 }
 

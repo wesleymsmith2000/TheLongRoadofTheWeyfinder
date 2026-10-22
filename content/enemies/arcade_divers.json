@@ -1,0 +1,219 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy_pack.arcade_divers",
+  "displayName": "Arcade Divers",
+  "author": "Weyfinder prototype",
+  "canonStatus": "CANON",
+  "variants": [
+    {
+      "id": "motorcycle",
+      "displayName": "Road Diver",
+      "construct": "enemy.diver.motorcycle",
+      "profile": {
+        "trackingSeconds": 10,
+        "approachSpeed": 12,
+        "climbSpeed": 190,
+        "turnSpeed": 65,
+        "turnRadiusRatio": 0.38,
+        "turnRate": 4.5,
+        "diveSpeed": 190,
+        "acceleration": 150,
+        "trackingGain": 0.65,
+        "trackingDamping": 0.75,
+        "trackingLag": 1.2,
+        "maxTrackingSpeed": 25,
+        "fireInterval": 1,
+        "mortarInterval": 4
+      },
+      "palette": {
+        "core": "#e9b377",
+        "armor": "#8a4334",
+        "gun": "#b9cbd4",
+        "engine": "#ef8a36",
+        "wheel": "#343f43",
+        "structure": "#8a4334",
+        "wire": "#75bdba"
+      }
+    },
+    {
+      "id": "sailboat",
+      "displayName": "Sail Diver",
+      "construct": "enemy.diver.sailboat",
+      "profile": {
+        "trackingSeconds": 10,
+        "approachSpeed": 12,
+        "climbSpeed": 190,
+        "turnSpeed": 65,
+        "turnRadiusRatio": 0.65,
+        "turnRate": 2,
+        "diveSpeed": 145,
+        "acceleration": 75,
+        "trackingGain": 0.5,
+        "trackingDamping": 0.65,
+        "trackingLag": 1,
+        "maxTrackingSpeed": 25,
+        "fireInterval": 1,
+        "mortarInterval": 4
+      },
+      "palette": {
+        "core": "#eee1a7",
+        "armor": "#596c81",
+        "gun": "#e2a56d",
+        "engine": "#ef8a36",
+        "wheel": "#343f43",
+        "structure": "#596c81",
+        "wire": "#75bdba"
+      }
+    },
+    {
+      "id": "insect",
+      "displayName": "Stream Mosquito Diver",
+      "construct": "enemy.diver.insect",
+      "profile": {
+        "trackingSeconds": 10,
+        "approachSpeed": 12,
+        "climbSpeed": 190,
+        "turnSpeed": 65,
+        "turnRadiusRatio": 0.28,
+        "turnRate": 6,
+        "diveSpeed": 200,
+        "acceleration": 160,
+        "trackingGain": 1.7,
+        "trackingDamping": 1.2,
+        "trackingLag": 3.5,
+        "maxTrackingSpeed": 40,
+        "fireInterval": 1,
+        "mortarInterval": 4
+      },
+      "palette": {
+        "core": "#b5f3a2",
+        "armor": "#476747",
+        "gun": "#e989e3",
+        "engine": "#ef8a36",
+        "wheel": "#343f43",
+        "structure": "#476747",
+        "wire": "#75bdba"
+      }
+    },
+    {
+      "id": "walker",
+      "displayName": "Mini Walker Diver",
+      "construct": "enemy.diver.walker",
+      "profile": {
+        "trackingSeconds": 10,
+        "approachSpeed": 12,
+        "climbSpeed": 190,
+        "turnSpeed": 65,
+        "turnRadiusRatio": 0.5,
+        "turnRate": 3,
+        "diveSpeed": 160,
+        "acceleration": 100,
+        "trackingGain": 0.8,
+        "trackingDamping": 0.9,
+        "trackingLag": 1.5,
+        "maxTrackingSpeed": 25,
+        "fireInterval": 1,
+        "mortarInterval": 4
+      },
+      "palette": {
+        "core": "#d3c9f0",
+        "armor": "#6f5c88",
+        "gun": "#94e7f0",
+        "engine": "#ef8a36",
+        "wheel": "#343f43",
+        "structure": "#6f5c88",
+        "wire": "#75bdba"
+      }
+    },
+    {
+      "id": "ghost",
+      "displayName": "Ghost Diver",
+      "construct": "enemy.diver.ghost",
+      "profile": {
+        "trackingSeconds": 10,
+        "approachSpeed": 12,
+        "climbSpeed": 190,
+        "turnSpeed": 65,
+        "turnRadiusRatio": 0.5,
+        "turnRate": 3.4,
+        "diveSpeed": 160,
+        "acceleration": 100,
+        "trackingGain": 0.85,
+        "trackingDamping": 0.85,
+        "trackingLag": 1.5,
+        "maxTrackingSpeed": 25,
+        "fireInterval": 1,
+        "mortarInterval": 4
+      },
+      "palette": {
+        "core": "#d0f2ef",
+        "armor": "#6c858c",
+        "gun": "#ff4d6b",
+        "engine": "#ef8a36",
+        "wheel": "#343f43",
+        "structure": "#6c858c",
+        "wire": "#75bdba"
+      }
+    },
+    {
+      "id": "snake",
+      "displayName": "Desert Serpent Diver",
+      "construct": "enemy.diver.snake",
+      "profile": {
+        "trackingSeconds": 10,
+        "approachSpeed": 12,
+        "climbSpeed": 190,
+        "turnSpeed": 65,
+        "turnRadiusRatio": 0.55,
+        "turnRate": 3.2,
+        "diveSpeed": 165,
+        "acceleration": 100,
+        "trackingGain": 0.85,
+        "trackingDamping": 0.8,
+        "trackingLag": 1.4,
+        "maxTrackingSpeed": 25,
+        "fireInterval": 1,
+        "mortarInterval": 4
+      },
+      "palette": {
+        "core": "#e4cd83",
+        "armor": "#8f6c3e",
+        "gun": "#e77e48",
+        "engine": "#ef8a36",
+        "wheel": "#343f43",
+        "structure": "#8f6c3e",
+        "wire": "#75bdba"
+      }
+    },
+    {
+      "id": "burrower",
+      "displayName": "Burrowing Diver",
+      "construct": "enemy.diver.burrower",
+      "profile": {
+        "trackingSeconds": 10,
+        "approachSpeed": 12,
+        "climbSpeed": 190,
+        "turnSpeed": 65,
+        "turnRadiusRatio": 0.45,
+        "turnRate": 3.5,
+        "diveSpeed": 175,
+        "acceleration": 120,
+        "trackingGain": 0.75,
+        "trackingDamping": 0.8,
+        "trackingLag": 1.4,
+        "maxTrackingSpeed": 25,
+        "fireInterval": 1,
+        "mortarInterval": 4
+      },
+      "palette": {
+        "core": "#cd9a6a",
+        "armor": "#76533b",
+        "gun": "#e5ad6c",
+        "engine": "#ef8a36",
+        "wheel": "#343f43",
+        "structure": "#76533b",
+        "wire": "#75bdba"
+      }
+    }
+  ]
+}

@@ -13,7 +13,7 @@ Open the forwarded Vite preview. Vite starts on port `5173`, or the next open po
 
 ## Arcade Mode
 
-Choose **Arcade Run** on the title screen for the fixed-vehicle forward shooter. The vehicle faces the road, ordinary primaries fire forward, and enemies recover toward the combat space ahead. Primaries and enemy projectile attacks fire at half rate with double damage; explosive radii grow by 50%. Mortar retains target aiming, while secondary damage and cadence stay unchanged. See [Arcade runtime rules](docs/arcade-mode.md) for the mode boundaries and Blade/Flechette behavior.
+Choose **Arcade Run** on the title screen for the fixed-vehicle forward shooter. The vehicle faces the road, the Main Gun sprays around road-forward, and ordinary enemies recover toward the visible forward edge. Themed Divers stage near that edge, track for ten seconds, then U-turn into a firing dive and loop back for another pass. Primaries and enemy projectile attacks fire at half rate with double damage; explosive radii grow by 50%. Mortar retains target aiming, while secondary damage and cadence stay unchanged. Arcade levels require two cleared Diver waves; waves wait 60?240 seconds when no Divers are alive, with a seeded count of 1?3 plus the zone number and level within that zone. See [Arcade runtime rules](docs/arcade-mode.md) and [Diver content and behavior](docs/arcade-divers.md).
 
 ## Public Playtest
 
@@ -23,7 +23,7 @@ The `main` branch deploys to GitHub Pages:
 https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
 ```
 
-Local edits and builds do not update the public site. A release reaches Pages after its commit is pushed to `main` and the **Deploy Pages** workflow succeeds. Check the visible build version to distinguish releases; the Arcade release is **v1.0.13.0** and shows **Arcade Run** on the title screen.
+Local edits and builds do not update the public site. A release reaches Pages after its commit is pushed to `main` and the **Deploy Pages** workflow succeeds. Check the visible build version to distinguish releases; the Diver release is **v1.0.14.0** and shows **Arcade Run** on the title screen.
 
 ## Test
 

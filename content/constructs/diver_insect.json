@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy.diver.insect",
+  "displayName": "Diver insect",
+  "author": "Weyfinder prototype",
+  "canonStatus": "CANON",
+  "tags": [
+    "enemy",
+    "diver",
+    "insect"
+  ],
+  "cells": [
+    {
+      "id": "proboscis",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -2,
+      "gridZ": 0
+    },
+    {
+      "id": "head",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "gridZ": 0
+    },
+    {
+      "id": "core",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "abdomen",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 1,
+      "gridZ": 0
+    },
+    {
+      "id": "wing-left",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 0,
+      "role": "diverWing"
+    },
+    {
+      "id": "wing-right",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 0,
+      "role": "diverWing"
+    }
+  ],
+  "connections": [
+    {
+      "a": "proboscis",
+      "b": "head",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "head",
+      "b": "core",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "abdomen",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "wing-left",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "core",
+      "b": "wing-right",
+      "aSide": "right",
+      "bSide": "left"
+    }
+  ]
+}

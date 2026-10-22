@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy.diver.burrower",
+  "displayName": "Diver burrower",
+  "author": "Weyfinder prototype",
+  "canonStatus": "CANON",
+  "tags": [
+    "enemy",
+    "diver",
+    "burrower"
+  ],
+  "cells": [
+    {
+      "id": "nose",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -2,
+      "gridZ": 0
+    },
+    {
+      "id": "gun",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -1,
+      "gridZ": 0
+    },
+    {
+      "id": "core",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "engine",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 1,
+      "gridZ": 0
+    },
+    {
+      "id": "tail",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 2,
+      "gridZ": 0
+    },
+    {
+      "id": "left-claw",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "right-claw",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 0
+    }
+  ],
+  "connections": [
+    {
+      "a": "nose",
+      "b": "gun",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "gun",
+      "b": "core",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "engine",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "left-claw",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "core",
+      "b": "right-claw",
+      "aSide": "right",
+      "bSide": "left"
+    },
+    {
+      "a": "engine",
+      "b": "tail",
+      "aSide": "bottom",
+      "bSide": "top"
+    }
+  ]
+}

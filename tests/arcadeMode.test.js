@@ -8,6 +8,7 @@ import { arcadeForwardHeading, arcadeForwardVector, applyArcadeEnemyFrontBias, a
 import { roadOffsetToWorld, worldToRoadOffset } from '../src/core/camera.js';
 import { setGunLoadoutSlot } from '../src/core/weaponLoadout.js';
 import { createWeaponBayState } from '../src/core/weaponBay.js';
+import { localToWorld, angleDelta } from '../src/core/math.js';
 import { Rng } from '../src/core/rng.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 import startingVehicle from '../content/constructs/starting_vehicle.json' with { type: 'json' };
@@ -57,7 +58,11 @@ test('Arcade locks the body to current road-forward through turns, spin input an
     game.vehicle.angularVelocity = 20;
     for (let frame = 0; frame < 8; frame++) {
       stepGame(game, { turn: 1, x: 1 }, 1 / 60);
-      near(game.vehicle.heading, arcadeForwardHeading(game));
+      near(game.vehicle.heading, game.road.heading);
+      const nose = localToWorld({ x: 0, y: -1 }, game.vehicle);
+      const forward = arcadeForwardVector(game);
+      near(nose.x - game.vehicle.x, forward.x);
+      near(nose.y - game.vehicle.y, forward.y);
       assert.equal(game.vehicle.angularVelocity, 0);
     }
     assert.ok(Math.abs(game.road.heading - heading) > 0.01);
@@ -92,8 +97,10 @@ for (const weapon of ['main.basic', 'blade_launcher', 'mini_beam', 'tracking_fle
     game.road.route = { ...game.road.route, startHeading: 0.8 };
     const shot = firstShot(game, weapon);
     assert.ok(shot);
-    near(shot.angle, arcadeForwardHeading(game));
-    if (shot.behavior !== 'beam') {
+    const deviation = angleDelta(arcadeForwardHeading(game), shot.angle);
+    if (weapon === 'main.basic') assert.ok(Math.abs(deviation) <= Math.PI / 18);
+    else near(deviation, 0);
+    if (shot.behavior !== 'beam' && weapon !== 'main.basic') {
       const forward = arcadeForwardVector(game);
       near(shot.vx * forward.y - shot.vy * forward.x, 0);
     }
@@ -103,6 +110,30 @@ for (const weapon of ['main.basic', 'blade_launcher', 'mini_beam', 'tracking_fle
     }
   });
 }
+
+test('Arcade Main Gun spray is seeded on both sides of road-forward and tightens with accuracy upgrades', () => {
+  function sample(accuracy = 0) {
+    const game = weaponGame('main.basic');
+    game.road.route = { ...game.road.route, startHeading: 0.65 };
+    game.rng = new Rng(42);
+    game.upgrades.gunAccuracy = accuracy;
+    const offsets = [];
+    for (let i = 0; i < 80; i++) {
+      game.primaryWeaponCooldowns = {};
+      game.playerProjectiles = [];
+      stepGame(game, { gunnerEnabled: false, aimWorld: { x: game.vehicle.x - 500, y: game.vehicle.y } }, 0);
+      const shot = game.playerProjectiles.find(p => p.weapon === 'bullet');
+      offsets.push(angleDelta(arcadeForwardHeading(game), shot.angle));
+    }
+    return offsets;
+  }
+  const offsets = sample();
+  assert.deepEqual(sample(), offsets);
+  assert.ok(offsets.some(a => a > 0.02) && offsets.some(a => a < -0.02));
+  assert.ok(offsets.every(a => Math.abs(a) <= Math.PI / 18));
+  assert.ok(Math.abs(offsets.reduce((a, b) => a + b, 0) / offsets.length) < 0.03);
+  assert.ok(Math.max(...sample(8).map(Math.abs)) < Math.max(...offsets.map(Math.abs)));
+});
 
 for (const weapon of ['main.basic', 'blade_launcher', 'mini_beam', 'tracking_flechette', 'mortar']) {
   test(`Arcade ${weapon} doubles upgraded primary damage and cooldown exactly once`, () => {
@@ -266,7 +297,7 @@ test('pattern enemies and bespoke bosses halve projectile timer speed and double
   }
 });
 
-test('front recovery is road-relative, preserves an ahead band and permits temporary maneuvers', () => {
+test('front recovery is road-relative, preserves a top band and permits temporary maneuvers', () => {
   for (const heading of [0, 1.2, -1.4]) {
     const game = { runMode: 'arcade', road: { x: 10, y: 20, heading, halfHeight: 100, halfWidth: 150 }, vehicle: { vx: 0, vy: 0 } };
     Object.assign(game.vehicle, roadOffsetToWorld({ x: 15, y: 20 }, game.road));
@@ -274,7 +305,7 @@ test('front recovery is road-relative, preserves an ahead band and permits tempo
     const forward = arcadeForwardVector(game);
     applyArcadeEnemyFrontBias(game, behind, 0.1);
     assert.ok(behind.vx * forward.x + behind.vy * forward.y > 0);
-    for (const y of [-40, -10]) {
+    for (const y of [-75, -60]) {
       const ahead = { ...roadOffsetToWorld({ x: 0, y }, game.road), vx: 13, vy: 4 };
       applyArcadeEnemyFrontBias(game, ahead, 0.1);
       assert.deepEqual({ vx: ahead.vx, vy: ahead.vy }, { vx: 13, vy: 4 });

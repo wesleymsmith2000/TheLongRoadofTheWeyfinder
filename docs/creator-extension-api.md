@@ -1076,3 +1076,7 @@ Do not build these yet:
 - total-conversion launcher
 
 Keep the current work focused on runtime-compatible assets, validation, and editor output discipline.
+
+## Arcade Diver runtime extension
+
+The enemy archetype validator accepts `runtimeFactory: 'createDiverEnemy'`, an optional `diverTheme` (`motorcycle`, `sailboat`, `insect`, `walker`, `ghost`, `snake`, `burrower`), and matching `diver.<theme>` presentation variants. Built-in IDs such as `diver.sailboat` work in sandbox spawn JSON. First-party variants use the profile pack and standard explicit-edge constructs described in [Arcade Diver content and behavior](arcade-divers.md). Automatic themed waves are restricted to Arcade runs.

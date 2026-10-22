@@ -1,3 +1,4 @@
+import { createDiverEnemy, DIVER_VARIANTS, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from './diverEnemy.js';
 import { normalizeRunMode, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias } from './arcadeMode.js';
 import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, moduleMuzzlesWorld, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
 import { stepVehicle, typedModulePower, vehicleMaxSpeed } from './physics.js';
@@ -362,6 +363,10 @@ const ROAD_BOSS_DESTRUCTION_CUE_TEXTS = [
 ];
 const ROAD_BOSS_TAUNT_CUE_TEXT = String.fromCodePoint(0x1f61b);
 const RUNTIME_ENEMY_ARCHETYPES = {
+  ...Object.fromEntries(DIVER_VARIANTS.map(variant => [`diver.${variant.id}`, {
+    id: `diver.${variant.id}`, displayName: variant.displayName,
+    runtimeFactory: 'createDiverEnemy', diverTheme: variant.id, construct: variant.construct,
+  }])),
   'mortar_skiff.prototype0': {
     id: 'mortar_skiff.prototype0',
     displayName: 'Dizzy Mortar Skiff',
@@ -486,7 +491,8 @@ export function createGame(seed = 1147, options = {}) {
       ? authoredLevelTraversal(levelDefinition, road)
       : traversalTargetForTrack(currentMusic, road);
   if (normalizeRunMode(options.runMode) === 'arcade') {
-    vehicle.heading = arcadeForwardHeading({ road });
+    vehicle.heading = road.heading;
+    vehicle.primaryFacingHeading = arcadeForwardHeading({ road });
     vehicle.angularVelocity = 0;
   }
   const game = {
@@ -569,6 +575,7 @@ export function createGame(seed = 1147, options = {}) {
   if (sandboxDefinition) {
     for (const enemy of initialSpawns) triggerEnemyEntranceBark(game, enemy, 'warning');
   }
+  resetDiverWaves(game);
   return game;
 }
 
@@ -632,6 +639,7 @@ export function stepGame(game, input, dt) {
   slideLooseObjectsAgainstEdgeNudge(game, roadEdgePressure);
   applyRoadTurnDizziness(game, roadDelta.turnAngle);
   stepEnemySpawner(game, dt);
+  stepDiverWaves(game, dt, enemy => applyEnemyLevelUpgrades(enemy, game.level, game.currentMusic));
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   const obstacleInput = applyObstacleContacts(game, input, dt);
   configureBoostFromUpgrades(game);
@@ -687,7 +695,7 @@ export function stepGame(game, input, dt) {
   game.gameOver = !game.vehicle.alive;
   const traversalClear = traversalTargetReached(game);
   if (traversalClear) game.enemySpawnQueue = [];
-  const arenaClear = traversalClear || (shouldCompleteRun(game) && activeCompletionEnemies(game).length === 0 && game.enemySpawnQueue.length === 0);
+  const arenaClear = diverWavesCleared(game) && (traversalClear || (shouldCompleteRun(game) && activeCompletionEnemies(game).length === 0 && game.enemySpawnQueue.length === 0));
   stepVictoryBanner(game, arenaClear, dt);
   if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
   stepProceduralMusic(game, dt);
@@ -971,6 +979,7 @@ export function startNextLevel(game) {
   game.animationEvents = [];
   game.scrapPickups = [];
   startTargetingAiLevel(game);
+  resetDiverWaves(game);
   return game;
 }
 
@@ -1004,6 +1013,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.guidedTargetId = null;
   resetAiAimReticle(game);
   startTargetingAiLevel(game);
+  resetDiverWaves(game);
   return { game, report };
 }
 
@@ -1245,7 +1255,7 @@ function runtimeArchetype(id) {
 }
 
 function listCanonEnemyArchetypes() {
-  return listEnemyArchetypes();
+  return [...listEnemyArchetypes(), ...Object.values(RUNTIME_ENEMY_ARCHETYPES).filter(archetype => archetype.runtimeFactory === 'createDiverEnemy')];
 }
 
 function sandboxLaneOffset(spawn, index, count, rng) {
@@ -1506,6 +1516,7 @@ function usesWeyfinderRoadBoss(trackName = '') {
 }
 
 function createEnemyForArchetype(archetype, x, y, kind) {
+  if (archetype.runtimeFactory === 'createDiverEnemy') return createDiverEnemy(x, y, archetype.diverTheme ?? 'motorcycle');
   const runtimeConstruct = RUNTIME_CONSTRUCT_DEFINITIONS.get(archetype.construct) ?? RUNTIME_SCULPTED_CONSTRUCTS[archetype.id];
   if (runtimeConstruct) {
     const enemy = createEnemy(x, y, runtimeConstruct, undefined, { moduleScale: 1 });
@@ -2685,7 +2696,7 @@ function firePrimarySlotWeapon(game, muzzle, slotIndex, weaponId, activeWeaponSl
 
 function firePrimaryBullet(game, muzzle, damage, speed, spread, visualScale = 1, aimReticle = null, targetingReticleKey = null) {
   const baseAngle = game.runMode === 'arcade' ? arcadeForwardHeading(game) : aimReticle ? compensatedAimHeading(game.vehicle, aimReticle, speed) : game.vehicle.turretHeading;
-  const angle = game.runMode === 'arcade' ? baseAngle : baseAngle + game.rng.range(-spread, spread);
+  const angle = baseAngle + game.rng.range(-spread, spread);
   const launchVelocity = playerLaunchVelocity(game, angle, speed);
   game.playerProjectiles.push(
     createCombatProjectile(game, muzzle.x, muzzle.y, launchVelocity.x, launchVelocity.y, {
@@ -2987,7 +2998,7 @@ function sumUpgradeLevels(game, ids) {
 }
 
 function primaryFiringMounts(game) {
-  const muzzles = gunMuzzlesWorld(game.vehicle);
+  const muzzles = gunMuzzlesWorld(game.vehicle, game.runMode === 'arcade' ? arcadeForwardHeading(game) : game.vehicle.turretHeading);
   if (muzzles.length === 0) return [];
   const definition = game.vehicleDefinition?.cells ? game.vehicleDefinition : { cells: game.vehicle.cells.map((cell) => ({ id: cell.id, type: cell.type })) };
   const loadouts = new Map(normalizeGunLoadouts(definition).map((loadout) => [loadout.cellId, loadout]));
@@ -3106,6 +3117,10 @@ function stepEnemy(game, enemy, dt) {
   }
   if (enemy.zeppelinWalkerRout) {
     stepZeppelinWalkerRout(game, enemy, dt);
+    return;
+  }
+  if (enemy.diver) {
+    stepDiverEnemy(game, enemy, dt);
     return;
   }
   triggerEnemyStartSound(game, enemy);
@@ -3290,7 +3305,7 @@ function stepHopperFrog(game, enemy, dt) {
   enemy.hopTimer = game.rng.range(0.65, 1.25);
   if (game.runMode === 'arcade') enemy.arcadeHopShotIndex = (enemy.arcadeHopShotIndex ?? 0) + 1;
   if (enemyCanFire(enemy) && (game.runMode !== 'arcade' || enemy.arcadeHopShotIndex % 2 === 1)) {
-    fireShortEnemyBeam(game, enemy, '#f26cff', 0.65);
+    fireShortEnemyBeam(game, enemy, '#f26cff', 0.65, nearestHopperDiverPrey(game, enemy));
   }
 }
 
@@ -6388,13 +6403,15 @@ function fireBossCenterPulse(game, boss) {
   emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
 }
 
-function fireShortEnemyBeam(game, enemy, color = '#83f7ff', damageScale = 1) {
+function fireShortEnemyBeam(game, enemy, color = '#83f7ff', damageScale = 1, prey = null) {
   const source = { x: enemy.x, y: enemy.y };
-  const angle = Math.atan2(game.vehicle.y - source.y, game.vehicle.x - source.x);
+  const target = prey ?? game.vehicle;
+  const angle = Math.atan2(target.y - source.y, target.x - source.x);
   game.enemyProjectiles.push(
     createCombatProjectile(game, source.x, source.y, 0, 0, {
       team: 'enemy',
-      weapon: 'enemy-short-beam',
+      weapon: prey ? 'hopper-prey-beam' : 'enemy-short-beam',
+      sourceEnemy: enemy,
       behavior: 'beam',
       radius: 0.75,
       damage: 2.5 * damageScale * enemyDamageUpgradeScale(enemy),
@@ -6682,6 +6699,7 @@ function handleCollisions(game) {
     if ((projectile.deflectionGraceUntil ?? 0) > game.time) continue;
     if (projectile.behavior === 'arc' && !projectile.arcLanded) continue;
     if (projectile.behavior === 'beam') {
+      hitDiverWithHopperBeam(game, projectile, enemy => explodeEnemy(game, enemy));
       hitVehicleWithEnemyBeam(game, projectile);
       hitOtherWalkersWithEnemyBeam(game, projectile);
       continue;
@@ -6779,6 +6797,7 @@ function handleCollisions(game) {
 }
 
 function enemyCanBeHitByProjectile(enemy, projectile) {
+  if (enemy.diver && enemy.phasedOut) return false;
   if (enemy.phasedOut && projectile.behavior !== 'arc') return false;
   const altitudeMatched = projectile.zCollision
     && Number.isFinite(projectile.z)
@@ -8450,6 +8469,14 @@ function pushSmokeParticle(game, particle) {
 function stepSmokeParticles(game, dt) {
   const kept = [];
   for (const particle of game.smokeParticles) {
+    if (particle.attractorEnemy && !particle.attractorEnemy.destroyed) {
+      const dx = particle.attractorEnemy.x - particle.x;
+      const dy = particle.attractorEnemy.y - particle.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 2) continue;
+      particle.vx = dx / distance * 120;
+      particle.vy = dy / distance * 120;
+    }
     particle.x += particle.vx * dt;
     particle.y += particle.vy * dt;
     particle.vx *= Math.pow(0.22, dt);
@@ -8497,7 +8524,7 @@ function explodeEnemy(game, enemy) {
   enemy.explosionStart = game.time;
   recordEnemyDefeatWithTargeting(game, enemy);
   game.scrapPickups.push(...enemyDeathPickups(game, enemy));
-  if (enemy.inchworm?.role === 'segment' || enemy.inchworm?.suppressDeathBlast) {
+  if (enemy.diver?.consumedByHopper || enemy.inchworm?.role === 'segment' || enemy.inchworm?.suppressDeathBlast) {
     emitEnemyDestroyedSound(game, enemy);
     return;
   }
@@ -8560,6 +8587,9 @@ function enemyDeathPickups(game, enemy) {
       value: Math.max(1, Math.round(enemy.buzzard.feedValue * scrapScale)),
       radius: CELL_SIZE * 1.25,
     }));
+  }
+  if ((enemy.hopperConsumedScrap ?? 0) > 0) {
+    scrap.push(createRewardPickup(game, enemy, 'scrap', { value: enemy.hopperConsumedScrap, radius: CELL_SIZE }));
   }
   if (enemy.dropProfile !== 'zeppelinWalker') return scrap;
   const totalValue = scrap.reduce((sum, pickup) => sum + (pickup.value ?? 0), 0);
@@ -8707,7 +8737,8 @@ function exponentialInterval(rng, mean) {
 
 function lockArcadeFacing(game) {
   if (game.runMode !== 'arcade') return;
-  game.vehicle.heading = arcadeForwardHeading(game);
+  game.vehicle.heading = game.road.heading;
+  game.vehicle.primaryFacingHeading = arcadeForwardHeading(game);
   game.vehicle.angularVelocity = 0;
 }
 

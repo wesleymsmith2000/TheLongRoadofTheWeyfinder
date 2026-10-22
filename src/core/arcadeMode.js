@@ -15,6 +15,22 @@ export function arcadeForwardHeading(game) {
   return Math.atan2(forward.y, forward.x);
 }
 
+// The camera places the road origin at 58% of screen height. The drive lane
+// occupies only part of that view; enemies stage against the visible edge.
+export function arcadePlayBounds(road) {
+  if (!(road.viewWidth > 0 && road.viewHeight > 0)) {
+    return { ahead: road.halfHeight, behind: road.halfHeight };
+  }
+  function extent(dx, dy) {
+    const xLimit = Math.abs(dx) > 1e-6 ? road.viewWidth * 0.5 / Math.abs(dx) : Infinity;
+    const yLimit = Math.abs(dy) > 1e-6 ? road.viewHeight * (dy < 0 ? 0.58 : 0.42) / Math.abs(dy) : Infinity;
+    return Math.min(xLimit, yLimit);
+  }
+  const dx = Math.sin(road.heading);
+  const dy = -Math.cos(road.heading);
+  return { ahead: extent(dx, dy), behind: extent(-dx, -dy) };
+}
+
 export function arcadeBlastRadius(game, radius) {
   return radius * (game.runMode === 'arcade' ? 1.5 : 1);
 }
@@ -51,7 +67,7 @@ export function createCombatProjectile(game, x, y, vx, vy, options) {
 }
 
 export function arcadeFrontBiasWeight(enemy) {
-  if (enemy.destroyed || enemy.staticObstacle || enemy.terrainAnchored || enemy.internalDestruction ||
+  if (enemy.diver || enemy.destroyed || enemy.staticObstacle || enemy.terrainAnchored || enemy.internalDestruction ||
       enemy.zeppelinWalkerRout || enemy.escapePod || enemy.kind === 'escapePodBoat' ||
       enemy.walkerFallAnimation || enemy.carRuntime?.spinout || (enemy.dizzyTimer ?? 0) > 0 ||
       enemy.phantomOverload || enemy.phasedOut || enemy.octopusEvade || enemy.octopusRetreat ||
@@ -66,10 +82,8 @@ export function applyArcadeEnemyFrontBias(game, enemy, dt) {
   if (game.runMode !== 'arcade') return;
   const weight = arcadeFrontBiasWeight(enemy);
   if (weight === 0) return;
-  const player = worldToRoadOffset(game.vehicle, game.road);
   const position = worldToRoadOffset(enemy, game.road);
-  const relativeY = position.y - player.y;
-  const height = game.road.halfHeight;
+  const height = arcadePlayBounds(game.road).ahead;
   if (enemy.arcadeEntryCrossing || enemy.arcadeBehindEntry) {
     enemy.arcadeEntryGraceRemaining = Math.max(0, (enemy.arcadeEntryGraceRemaining ?? 2.5) - dt);
     if (enemy.arcadeEntryGraceRemaining === 0) {
@@ -83,14 +97,13 @@ export function applyArcadeEnemyFrontBias(game, enemy, dt) {
     enemy.arcadeEntryCrossing = 0;
   }
   if (enemy.arcadeBehindEntry) {
-    if (relativeY > 0) return;
+    if (position.y > worldToRoadOffset(game.vehicle, game.road).y) return;
     enemy.arcadeBehindEntry = false;
   }
-  if (relativeY >= -0.65 * height && relativeY <= -0.15 * height) return;
+  if (position.y >= -0.85 * height && position.y <= -0.55 * height) return;
   const forward = arcadeForwardVector(game);
   const current = enemy.vx * forward.x + enemy.vy * forward.y;
-  const playerSpeed = game.vehicle.vx * forward.x + game.vehicle.vy * forward.y;
-  const desired = playerSpeed + clamp((relativeY + 0.35 * height) * 2.4, -100, 260);
+  const desired = clamp((position.y + 0.72 * height) * 3.6, -100, 260);
   const correction = (desired - current) * (1 - Math.exp(-4 * dt)) * weight;
   enemy.vx += forward.x * correction;
   enemy.vy += forward.y * correction;

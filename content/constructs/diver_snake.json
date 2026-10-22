@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy.diver.snake",
+  "displayName": "Diver snake",
+  "author": "Weyfinder prototype",
+  "canonStatus": "CANON",
+  "tags": [
+    "enemy",
+    "diver",
+    "snake"
+  ],
+  "cells": [
+    {
+      "id": "fang",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -3,
+      "gridZ": 0
+    },
+    {
+      "id": "head",
+      "type": "core",
+      "gridX": 0,
+      "gridY": -2,
+      "gridZ": 0
+    },
+    {
+      "id": "body-1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": -1,
+      "gridZ": 0
+    },
+    {
+      "id": "body-2",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 0,
+      "gridZ": 0
+    },
+    {
+      "id": "body-3",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 1,
+      "gridZ": 0
+    },
+    {
+      "id": "tail-1",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 2,
+      "gridZ": 0
+    },
+    {
+      "id": "tail-2",
+      "type": "armor",
+      "gridX": 0,
+      "gridY": 3,
+      "gridZ": 0
+    }
+  ],
+  "connections": [
+    {
+      "a": "fang",
+      "b": "head",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "head",
+      "b": "body-1",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "body-1",
+      "b": "body-2",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "body-2",
+      "b": "body-3",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "body-3",
+      "b": "tail-1",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "tail-1",
+      "b": "tail-2",
+      "aSide": "bottom",
+      "bSide": "top"
+    }
+  ]
+}

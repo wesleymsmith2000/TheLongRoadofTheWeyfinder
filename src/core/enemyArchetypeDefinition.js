@@ -5,6 +5,7 @@ import { TARGET_CONDITIONS } from './combatEvents.js';
 export const CANON_ENEMY_ARCHETYPE_PACK = canonEnemyArchetypes;
 export const ENEMY_RUNTIME_FACTORIES = [
   'createEnemy',
+  'createDiverEnemy',
   'createEnhancedEnemy',
   'createPirateShipEnemy',
   'createEnhancedPirateShipEnemy',
@@ -35,6 +36,7 @@ export const ENEMY_AGGREGATE_KINDS = ['singleBody', 'limbArray', 'multiPartBoss'
 export const ENEMY_CELL_ANIMATION_KINDS = ['none', 'opacityPulse', 'sineWave', 'swirl', 'fabricWeave', 'phaseFade', 'legStride', 'wingBeat'];
 export const ENEMY_TARGET_CONDITIONS = Object.freeze(Object.values(TARGET_CONDITIONS));
 export const ENEMY_PRESENTATION_VARIANTS = [
+  'diver.motorcycle', 'diver.sailboat', 'diver.insect', 'diver.walker', 'diver.ghost', 'diver.snake', 'diver.burrower',
   'ghostWraith',
   'tractorFrog',
   'heavyMortarBoat',
@@ -103,6 +105,7 @@ function validateArchetypes(archetypes, errors, warnings) {
     if (!ENEMY_RUNTIME_FACTORIES.includes(archetype.runtimeFactory)) {
       errors.push(`${prefix}.runtimeFactory must be one of: ${ENEMY_RUNTIME_FACTORIES.join(', ')}.`);
     }
+    if (archetype.diverTheme != null && !['motorcycle', 'sailboat', 'insect', 'walker', 'ghost', 'snake', 'burrower'].includes(archetype.diverTheme)) errors.push(`${prefix}.diverTheme is not a supported Diver theme.`);
     if (archetype.construct != null && !isNonEmptyString(archetype.construct)) errors.push(`${prefix}.construct must be a non-empty string when provided.`);
     if (archetype.patterns != null && !isStringArray(archetype.patterns)) errors.push(`${prefix}.patterns must be an array of strings when provided.`);
     validateEntry(archetype.entry, `${prefix}.entry`, errors);

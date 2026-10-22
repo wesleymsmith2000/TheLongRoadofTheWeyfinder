@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "enemy.diver.walker",
+  "displayName": "Diver walker",
+  "author": "Weyfinder prototype",
+  "canonStatus": "CANON",
+  "tags": [
+    "enemy",
+    "diver",
+    "walker"
+  ],
+  "cells": [
+    {
+      "id": "core",
+      "type": "core",
+      "gridX": 0,
+      "gridY": 0,
+      "gridZ": 3
+    },
+    {
+      "id": "gun",
+      "type": "gun",
+      "gridX": 0,
+      "gridY": -1,
+      "gridZ": 3
+    },
+    {
+      "id": "thruster",
+      "type": "engine",
+      "gridX": 0,
+      "gridY": 1,
+      "gridZ": 3
+    },
+    {
+      "id": "left-hip",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 3
+    },
+    {
+      "id": "right-hip",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 3
+    },
+    {
+      "id": "left-upper-leg",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 2,
+      "role": "diverLeg"
+    },
+    {
+      "id": "left-foot",
+      "type": "wheel",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 0,
+      "role": "diverLeg"
+    },
+    {
+      "id": "right-upper-leg",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 2,
+      "role": "diverLeg"
+    },
+    {
+      "id": "right-foot",
+      "type": "wheel",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 0,
+      "role": "diverLeg"
+    },
+    {
+      "id": "left-lower-leg",
+      "type": "armor",
+      "gridX": -1,
+      "gridY": 0,
+      "gridZ": 1,
+      "role": "diverLeg"
+    },
+    {
+      "id": "right-lower-leg",
+      "type": "armor",
+      "gridX": 1,
+      "gridY": 0,
+      "gridZ": 1,
+      "role": "diverLeg"
+    }
+  ],
+  "connections": [
+    {
+      "a": "core",
+      "b": "gun",
+      "aSide": "top",
+      "bSide": "bottom"
+    },
+    {
+      "a": "core",
+      "b": "thruster",
+      "aSide": "bottom",
+      "bSide": "top"
+    },
+    {
+      "a": "core",
+      "b": "left-hip",
+      "aSide": "left",
+      "bSide": "right"
+    },
+    {
+      "a": "core",
+      "b": "right-hip",
+      "aSide": "right",
+      "bSide": "left"
+    },
+    {
+      "a": "left-hip",
+      "b": "left-upper-leg",
+      "aSide": "below",
+      "bSide": "above"
+    },
+    {
+      "a": "right-hip",
+      "b": "right-upper-leg",
+      "aSide": "below",
+      "bSide": "above"
+    },
+    {
+      "a": "left-upper-leg",
+      "b": "left-lower-leg",
+      "aSide": "below",
+      "bSide": "above"
+    },
+    {
+      "a": "left-foot",
+      "b": "left-lower-leg",
+      "aSide": "above",
+      "bSide": "below"
+    },
+    {
+      "a": "right-upper-leg",
+      "b": "right-lower-leg",
+      "aSide": "below",
+      "bSide": "above"
+    },
+    {
+      "a": "right-foot",
+      "b": "right-lower-leg",
+      "aSide": "above",
+      "bSide": "below"
+    }
+  ]
+}
