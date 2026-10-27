@@ -1,4 +1,4 @@
-import { drawDiverUnderlay, drawDiverOverlay, diverCellVisualOffset } from './diverRenderer.js';
+import { drawDiverUnderlay, drawDiverOverlay, diverCellVisualOffset, diverKickPose } from './diverRenderer.js';
 import { firingGunLoadouts, gunCellInactive } from '../core/arcadeLoadout.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { livePirateBossGunPodCount } from '../core/enemy.js';
@@ -162,6 +162,11 @@ export class CanvasRenderer {
       drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
     }
     drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets, this.cellSpriteCache, game.environmentLighting, this.renderAssets, game);
+    if (game.vehicle.reactionCueQueue?.length) {
+      ctx.save(); ctx.translate(game.vehicle.x, game.vehicle.y);
+      drawFloatingCueQueue(ctx, game.vehicle.reactionCueQueue, { color: '#c3f4ff' });
+      ctx.restore();
+    }
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     drawWaveletDistortion(ctx, this.canvas, this.waveletBuffer, game.spatialFields, game.time);
     drawSpatialFields(ctx, game.spatialFields, game.time);
@@ -982,10 +987,10 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
         ctx,
         cell,
         posed.x + diverCellVisualOffset(enemy, cell, time),
-        posed.y - projectHeight(layerLift + (posed.z ?? 0)),
+        posed.y + diverKickPose(enemy, cell).y - projectHeight(layerLift + (posed.z ?? 0)),
         (enemy.destroyed ? 0.35 : 1) * phasedCoreAlpha,
         palette,
-        posed.rotation,
+        posed.rotation + diverKickPose(enemy, cell).rotation,
         { cellSpriteCache, environmentLighting: game?.environmentLighting, imageAssets, renderAssets },
       );
     }
@@ -1522,6 +1527,7 @@ function drawFloatingCueQueue(ctx, cues, options = {}) {
   ctx.strokeStyle = options.stroke ?? 'rgb(0 0 0 / 0.68)';
   ctx.fillStyle = options.color ?? '#fff1a8';
   for (const cue of cues) {
+    if ((cue.age ?? 0) < 0) continue;
     const progress = Math.max(0, Math.min(1, (cue.age ?? 0) / Math.max(0.001, cue.lifetime ?? 1)));
     const growth = 1 + ((cue.growth ?? 1) - 1) * progress;
     const alpha = (options.alpha ?? 0.9) * (1 - progress);

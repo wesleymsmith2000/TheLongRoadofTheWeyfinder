@@ -88,7 +88,7 @@ export function createCombatProjectile(game, x, y, vx, vy, options) {
 }
 
 export function arcadeFrontBiasWeight(enemy) {
-  if (enemy.diver || enemy.destroyed || enemy.staticObstacle || enemy.terrainAnchored || enemy.internalDestruction ||
+  if (enemy.diver || enemy.hopperRescue || enemy.destroyed || enemy.staticObstacle || enemy.terrainAnchored || enemy.internalDestruction ||
       enemy.zeppelinWalkerRout || enemy.escapePod || enemy.kind === 'escapePodBoat' ||
       enemy.walkerFallAnimation || enemy.carRuntime?.spinout || (enemy.dizzyTimer ?? 0) > 0 ||
       enemy.phantomOverload || enemy.phasedOut || enemy.octopusEvade || enemy.octopusRetreat ||

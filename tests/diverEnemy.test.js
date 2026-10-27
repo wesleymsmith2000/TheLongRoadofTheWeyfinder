@@ -52,7 +52,7 @@ test('seven Diver variants have valid connected content and distinct physical si
 test('Diver theme and 1-based zone/local-level counts follow the actual music sequence, including bosses', () => {
   for (const [level, theme, zoneNumber, zoneLevel] of [
     [1, 'motorcycle', 1, 1], [4, 'motorcycle', 1, 4], [5, 'insect', 2, 1],
-    [7, 'insect', 2, 3], [8, 'sailboat', 3, 1], [11, 'motorcycle', 4, 1],
+    [7, 'insect', 2, 3], [8, 'sailboat', 3, 1], [11, 'walker', 4, 1],
     [13, 'walker', 5, 1], [15, 'walker', 6, 1], [19, 'ghost', 7, 1],
     [20, 'ghost', 7, 2], [23, 'snake', 8, 1], [31, 'burrower', 9, 1],
   ]) {

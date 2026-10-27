@@ -10,7 +10,7 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   const enginePower = typedModulePower(vehicle, 'engine');
   const wheelPower = typedModulePower(vehicle, 'wheel');
   const engineAcceleration = upgradeMultiplier(upgrades, 'engineAcceleration', 0.08) * (vehicle.handlingScale?.acceleration ?? 1);
-  const engineMaxVelocity = upgradeMultiplier(upgrades, 'engineMaxVelocity', 0.08);
+  const engineMaxVelocity = upgradeMultiplier(upgrades, 'engineMaxVelocity', 0.08) * (vehicle.chillSpeedScale ?? 1);
   const wheelInertiaCompensation = upgradeMultiplier(upgrades, 'wheelInertiaCompensation', 0.08);
   const propulsion = Math.max(0.25, Math.sqrt(Math.max(0.05, enginePower)));
   const turnBalance = vehicle.cells
@@ -104,7 +104,7 @@ export function vehicleMaxSpeed(vehicle, upgrades = {}) {
   const enginePower = typedModulePower(vehicle, 'engine');
   const wheelPower = typedModulePower(vehicle, 'wheel');
   const massPenalty = Math.sqrt(vehicle.totalMass / 120);
-  const engineMaxVelocity = upgradeMultiplier(upgrades, 'engineMaxVelocity', 0.08);
+  const engineMaxVelocity = upgradeMultiplier(upgrades, 'engineMaxVelocity', 0.08) * (vehicle.chillSpeedScale ?? 1);
   return (380 * Math.sqrt(Math.max(0.05, enginePower)) * Math.sqrt(Math.max(0.05, wheelPower)) * engineMaxVelocity * (vehicle.handlingScale?.maxSpeed ?? 1)) / Math.max(0.8, massPenalty);
 }
 

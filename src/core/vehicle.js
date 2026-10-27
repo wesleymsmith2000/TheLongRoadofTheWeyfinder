@@ -158,6 +158,7 @@ function activeGunCells(vehicle) {
 
 export function applyImpulse(vehicle, worldPoint, direction, impulse) {
   if (impulse <= 0) return;
+  vehicle.knockbackSerial = (vehicle.knockbackSerial ?? 0) + 1;
   const invMass = 1 / Math.max(vehicle.totalMass, 1);
   vehicle.vx += direction.x * impulse * invMass;
   vehicle.vy += direction.y * impulse * invMass;

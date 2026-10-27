@@ -3,6 +3,7 @@ import { roadOffsetToWorld, worldToRoadOffset } from './camera.js';
 import { arcadePlayBounds } from './arcadeMode.js';
 import { createDiverEnemy, diverLevelContext, diverWavesCleared, DIVER_MIN_WAVES } from './diverEnemy.js';
 import { Rng } from './rng.js';
+import { configureDiverFlavor } from './diverFlavor.js';
 
 export function arcadeObjectVisible(game, object) {
   const width = game.road.viewWidth ?? game.road.halfWidth * 2;
@@ -45,6 +46,7 @@ export function stepArcadeGapDivers(game, dt, onSpawn = () => {}) {
   const rng = new Rng((game.seed ?? 1147) ^ (game.level * 65537) ^ (game.arcadeGapSpawnCount * 104729));
   const point = roadOffsetToWorld({ x: clamp(worldToRoadOffset(game.vehicle, game.road).x + rng.range(-0.3, 0.3) * game.road.halfWidth, -game.road.halfWidth * 0.7, game.road.halfWidth * 0.7), y: -arcadePlayBounds(game.road).ahead * 0.72 }, game.road);
   const enemy = createDiverEnemy(point.x, point.y, diverLevelContext(game.level, game.levelMusic).theme, { roadHeading: game.road.heading });
+  configureDiverFlavor(game, enemy, diverLevelContext(game.level, game.levelMusic).zone, false);
   enemy.arcadeGapDiver = true;
   enemy.countsForCompletion = false;
   enemy.diver.random = rng;

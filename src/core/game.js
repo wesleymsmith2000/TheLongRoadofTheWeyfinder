@@ -2,6 +2,8 @@ import { createDiverEnemy, DIVER_VARIANTS, resetDiverWaves, stepDiverWaves, dive
 import { createIncomingMarker, SPAWN_WARNING_LEAD } from './incomingWarning.js';
 import { arcadeBossPending, resetArcadeBossStage, stepArcadeBossStage } from './arcadeBossStage.js';
 import { awardArcadeBossSlot } from './arcadeBossReward.js';
+import { dislodgeDiverFlies, handleDiverContacts, stepPlayerDiverStatus } from './diverContact.js';
+import { releaseDiverBlades, syncDiverOrbitBlades } from './diverAttacks.js';
 import { emergencyPrimaryState, functionalPrimaryCell } from './emergencyWeapon.js';
 import { arcadeObjectVisible, retireArcadeGapDivers, stepArcadeGapDivers } from './arcadePacing.js';
 import { normalizeRunMode, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias, containArcadeBoss } from './arcadeMode.js';
@@ -663,6 +665,7 @@ export function stepGame(game, input, dt) {
   stepArcadeGapDivers(game, dt, enemy => applyEnemyLevelUpgrades(enemy, game.level, game.currentMusic));
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   const obstacleInput = applyObstacleContacts(game, input, dt);
+  stepPlayerDiverStatus(game, dt);
   configureBoostFromUpgrades(game);
   game.vehicle.maxVelocityScale = game.boost.driveTime > 0 ? game.boost.maxVelocityFactor : 1;
   lockArcadeFacing(game);
@@ -693,6 +696,7 @@ export function stepGame(game, input, dt) {
   syncBeamProjectiles(game);
   lockEnemyStaMissileDescents(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
+  syncDiverOrbitBlades(game);
   syncEnemyBeamProjectiles(game);
   stepSpatialFields(game, dt, {
     onEnemyDestroyed: (enemy) => explodeEnemy(game, enemy),
@@ -714,6 +718,7 @@ export function stepGame(game, input, dt) {
     },
     onDischarge: field => {
       if (!field.config.pinSourceDuringCharge) return;
+      game.vehicle.knockbackSerial = (game.vehicle.knockbackSerial ?? 0) + 1;
       emitSoundEvent(game, SOUND_EVENTS.PLAYER_BEAM);
       emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_WEAPON_FIRE, { weapon: field.sourceWeaponId, intensity: 0.8, durationMs: 180 });
     },
@@ -726,10 +731,15 @@ export function stepGame(game, input, dt) {
   stepRocketContrails(game, dt);
   stepBoostContrails(game, dt);
   if (!game.performanceDiagnostics?.disableCollisions) {
+    handleDiverContacts(game, {
+      spinout: enemy => startCarSpinout(game, enemy, enemy.carRuntime ??= {}),
+      blast: enemy => game.enemyProjectiles.push(createCombatProjectile(game, enemy.x, enemy.y, 0, 0, { team: 'enemy', weapon: 'diver-ram-blast', behavior: 'blast', damage: 0, maxRadius: CELL_SIZE * 7.5, impulse: 0, lifetime: 0.3 })),
+    });
     handleCollisions(game);
     handleBoostExhaustDamage(game);
     handleSmokeHazardDamage(game);
   }
+  dislodgeDiverFlies(game);
   updatePlayerDamageFeedback(game, livePlayerCellsBeforeDamage, livePlayerVoxelHealthBeforeDamage, dt);
   collectEnemyDetachScrapEvents(game);
   accelerateNextSpawnWhenArenaEmpty(game);
@@ -1009,6 +1019,8 @@ function victoryBannerHasPlayed(game) {
 
 export function startNextLevel(game) {
   game.bossReward = null;
+  game.vehicle.diverChill = null;
+  game.vehicle.chillSpeedScale = 1;
   game.level += 1;
   game.levelComplete = false;
   game.weaponBay.available = false;
@@ -3424,6 +3436,18 @@ function stepPhantomOverload(game, enemy, dt) {
 }
 
 function stepHopperFrog(game, enemy, dt) {
+  const attachedPrey = game.runMode === 'arcade' ? game.enemies.filter(candidate => candidate.diver?.attachment && !candidate.destroyed).sort((a, b) => distanceSquared(a, enemy) - distanceSquared(b, enemy))[0] : null;
+  enemy.hopperRescue = Boolean(attachedPrey);
+  if (attachedPrey) {
+    const chase = directionFromTo(enemy, attachedPrey);
+    enemy.vx = chase.x * 160 * enemyMovementUpgradeScale(enemy);
+    enemy.vy = chase.y * 160 * enemyMovementUpgradeScale(enemy);
+    enemy.rescueBeamTimer = Math.max(0, (enemy.rescueBeamTimer ?? 0) - dt);
+    if (enemy.rescueBeamTimer === 0 && distanceSquared(enemy, attachedPrey) <= (CELL_SIZE * 7.5) ** 2 && enemyCanFire(enemy)) {
+      fireShortEnemyBeam(game, enemy, '#f26cff', 0.65, attachedPrey);
+      enemy.rescueBeamTimer = 0.5;
+    }
+  }
   enemy.hopTimer = (enemy.hopTimer ?? game.rng.range(0.5, 1.2)) - dt;
   enemy.elevation ??= { z: 0, arcCollision: true, canBeHitByGroundFire: true };
   enemy.elevation.z = Math.max(0, Math.sin(Math.max(0, enemy.hopTimer) * Math.PI * 2) * 18);
@@ -6823,6 +6847,8 @@ function boostShieldRadius(game) {
 }
 
 function handleCollisions(game) {
+  const bladeHitRadius = game.enemyProjectiles.some(projectile => projectile.diverBlade)
+    ? Math.max(CELL_SIZE * 3.8, ...game.vehicle.cells.filter(cell => cell.attached && !cell.state.destroyed).map(cell => Math.hypot(cell.gridX, cell.gridY) * CELL_SIZE + CELL_SIZE)) : CELL_SIZE * 3.8;
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
     if (projectile.weapon === 'diver-time-bomb') continue;
@@ -6830,6 +6856,7 @@ function handleCollisions(game) {
     if (projectile.behavior === 'arc' && !projectile.arcLanded) continue;
     if (projectile.behavior === 'beam') {
       hitDiverWithHopperBeam(game, projectile, enemy => explodeEnemy(game, enemy));
+      if (game.runMode === 'arcade' && projectile.weapon === 'hopper-prey-beam') continue;
       hitVehicleWithEnemyBeam(game, projectile);
       hitOtherWalkersWithEnemyBeam(game, projectile);
       continue;
@@ -6839,10 +6866,12 @@ function handleCollisions(game) {
       projectile.lifetime = 0;
       continue;
     }
-    const vehicleHitRange = CELL_SIZE * 3.8 + projectile.radius;
+    const hullRadius = projectile.diverBlade ? bladeHitRadius : CELL_SIZE * 3.8;
+    const vehicleHitRange = hullRadius + projectile.radius;
     if (distanceSquared(projectile, game.vehicle) < vehicleHitRange * vehicleHitRange) {
       const hit = hitVehicleWithProjectile(game.vehicle, shieldedProjectile(game, projectile));
       if (hit.hit) {
+        if (projectile.diverOrbitOwner) releaseDiverBlades(game, projectile.diverOrbitOwner, projectile);
         projectile.lifetime = 0;
         projectile.readyToExplode = Boolean(projectile.blastOnExpire);
       }
@@ -7411,7 +7440,12 @@ function playerProjectileAbsorbedByEnemyProjectile(game, playerProjectile) {
   for (const enemyProjectile of game.enemyProjectiles) {
     if (!enemyProjectile.absorbsPlayerProjectiles || enemyProjectile.lifetime <= 0) continue;
     const hitRange = enemyProjectile.radius + playerProjectileContactRadius(playerProjectile);
-    if (distanceSquared(enemyProjectile, playerProjectile) > hitRange * hitRange) continue;
+    if (enemyProjectile.diverBlade ? !projectileSegmentsIntersectRange(playerProjectile, enemyProjectile, hitRange) : distanceSquared(enemyProjectile, playerProjectile) > hitRange * hitRange) continue;
+    if (enemyProjectile.diverBlade && game.rng.next() < enemyProjectile.projectileDeflectionProbability) {
+      const angle = Math.atan2(game.vehicle.y - playerProjectile.y, game.vehicle.x - playerProjectile.x);
+      transferDeflectedProjectile(game, playerProjectile, 'enemy', angle, Math.max(160, Math.hypot(playerProjectile.vx, playerProjectile.vy)), { sourceWeaponId: 'diver-blade' });
+      return true;
+    }
     enemyProjectile.absorbHp -= playerProjectile.damage;
     if (enemyProjectile.absorbHp <= 0) enemyProjectile.lifetime = 0;
     return true;
@@ -7534,6 +7568,7 @@ function transferDeflectedProjectile(game, projectile, team, angle, speed, optio
     deflected: true,
     deflectedByTeam: team,
     deflectionGraceUntil: game.time + 1 / 120,
+    diverOrbitOwner: null,
   };
   projectile.lifetime = 0;
   projectile.readyToExplode = false;

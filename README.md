@@ -21,6 +21,8 @@ Arcade v1.0.20.0 adds draining cooldown rings with three-digit readouts on HUD i
 
 Arcade v1.0.21.0 adds one Wavelet ammo round at upgrade levels 1, 3, 6, 10, 15 and subsequent triangular counts. Bosses arrive after the two required Diver waves and a final group of one to three Divers, with no further scheduled Diver waves after the boss. A boss-clear notice opens Workshop Loadout at the newly unlocked slot; additional gun cells are fitted when existing slots are exhausted.
 
+Arcade v1.0.22.0 gives Divers distinct zone behaviors: Stream flies orbit and latch onto the hull until boosted or knocked loose, walkers weave up from rear corners with zone-specific turn volleys and animated contact kicks, ghosts stack a short chill, desert snakes recoil and teleport, and Freedom Pass burrowers ricochet with two level-20 orbit blades. Weyfinder motorcycles fire dive flechettes every 0.75 seconds and crash on contact. Hoppers chase attached flies to eat them. The simulation is split into `diverFlavor.js`, `diverContact.js` and `diverAttacks.js`; renderers read the resulting movement, kick and cue state. See [zone behavior details](docs/arcade-divers.md#zone-specific-behavior-v10220).
+
 ## Public Playtest
 
 The `main` branch deploys to GitHub Pages:
@@ -29,7 +31,7 @@ The `main` branch deploys to GitHub Pages:
 https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
 ```
 
-Publish each verified gameplay update to Pages by default so PC and phone playtests use the same release. After tests and the Pages build pass, commit and push the relevant changes to `main`, wait for the **Deploy Pages** workflow to succeed, and verify the public build version before reporting deployment complete. The current Arcade build is **v1.0.21.0**. Local edits and builds alone do not update the public site; the visible version identifies the release loaded by each browser.
+Publish each verified gameplay update to Pages by default so PC and phone playtests use the same release. After tests and the Pages build pass, commit and push the relevant changes to `main`, wait for the **Deploy Pages** workflow to succeed, and verify the public build version before reporting deployment complete. The current Arcade build is **v1.0.22.0**. Local edits and builds alone do not update the public site; the visible version identifies the release loaded by each browser.
 
 ## Test
 

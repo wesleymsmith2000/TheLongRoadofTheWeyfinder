@@ -1,7 +1,15 @@
 import { CELL_SIZE } from '../core/voxelMask.js';
 
 export function diverCellVisualOffset(enemy, cell, time) {
-  return enemy.diver?.theme === 'snake' ? Math.sin(time * 7 + cell.gridY * 0.95) * CELL_SIZE * 0.32 : 0;
+  return (enemy.diver?.theme === 'snake' ? Math.sin(time * 7 + cell.gridY * 0.95) * CELL_SIZE * 0.32 : 0) + diverKickPose(enemy, cell).x;
+}
+
+export function diverKickPose(enemy, cell) {
+  const kick = enemy.diver?.kick;
+  if (!kick || cell.role !== 'diverLeg' || !cell.id.startsWith(kick.cellId.split('-')[0])) return { x: 0, y: 0, rotation: 0 };
+  const swing = Math.sin(Math.min(1, kick.age / kick.duration) * Math.PI);
+  const side = cell.id.startsWith('left') ? -1 : 1;
+  return { x: side * CELL_SIZE * 3 * swing, y: -CELL_SIZE * 2 * swing, rotation: -side * swing * 0.8 };
 }
 
 export function drawDiverUnderlay(ctx, enemy, time) {
@@ -35,10 +43,11 @@ export function drawDiverUnderlay(ctx, enemy, time) {
       const prefix = side < 0 ? 'left' : 'right';
       if (!enemy.cells.some(c => c.id.startsWith(prefix) && c.role === 'diverLeg' && !c.state.destroyed)) continue;
       const stride = Math.sin(time * 8 + side * Math.PI / 2) * 2;
+      const kick = diverKickPose(enemy, { id: `${prefix}-foot`, role: 'diverLeg' });
       ctx.beginPath();
       ctx.moveTo(side * CELL_SIZE * 0.7, -CELL_SIZE * 1.3);
       ctx.lineTo(side * CELL_SIZE * 1.4, -CELL_SIZE * 0.4 + stride);
-      ctx.lineTo(side * CELL_SIZE, CELL_SIZE * 0.5 + stride);
+      ctx.lineTo(side * CELL_SIZE + kick.x, CELL_SIZE * 0.5 + stride + kick.y);
       ctx.stroke();
     }
   }

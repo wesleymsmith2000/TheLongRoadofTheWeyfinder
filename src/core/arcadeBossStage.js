@@ -2,6 +2,7 @@ import { createDiverEnemy, diverLevelContext, diverWavesCleared, DIVER_MIN_WAVES
 import { createIncomingMarker, SPAWN_WARNING_LEAD } from './incomingWarning.js';
 import { arcadePlayBounds } from './arcadeMode.js';
 import { roadOffsetToWorld, worldToRoadOffset } from './camera.js';
+import { configureDiverFlavor, diverApproachPoint } from './diverFlavor.js';
 
 const BOSS_KINDS = new Set(['boss', 'roadBossCar', 'pirateBoss', 'zeppelinBoss']);
 
@@ -30,7 +31,7 @@ export function stepArcadeBossStage(game, dt, onSpawn = () => {}) {
       const count = 1 + Math.floor(game.rng.next() * 3);
       stage.vanguard = { nextIn: 2, entries: Array.from({ length: count }, (_, i) => ({ x: count === 1 ? 0 : (i / (count - 1) * 2 - 1) * game.road.halfWidth * 0.65, phaseOffset: game.rng.range(0, 1) })) };
       for (const entry of stage.vanguard.entries) {
-        const point = roadOffsetToWorld({ x: entry.x, y: -arcadePlayBounds(game.road).ahead * 0.94 }, game.road);
+        const point = diverApproachPoint(game, diverLevelContext(game.level, game.levelMusic).zone, entry.x);
         game.incomingMarkers.push(createIncomingMarker(point, 'diver', 2));
       }
       return;
@@ -41,6 +42,7 @@ export function stepArcadeBossStage(game, dt, onSpawn = () => {}) {
     for (const [i, entry] of stage.vanguard.entries.entries()) {
       const point = roadOffsetToWorld({ x: entry.x, y: -arcadePlayBounds(game.road).ahead * 0.94 }, game.road);
       const enemy = createDiverEnemy(point.x, point.y, context.theme, { roadHeading: game.road.heading, phaseOffset: entry.phaseOffset });
+      configureDiverFlavor(game, enemy, context.zone);
       if (context.zone === 'ShadowedRoad') enemy.palette = { ...enemy.palette, armor: '#444f5c', core: '#9aafbb', gun: '#ff884e' };
       enemy.bossVanguardDiver = true;
       enemy.targetId = `boss-vanguard:${game.level}:${i}`;
