@@ -52,6 +52,7 @@ export function mapStandardGamepad(pad, previousButtons = new Set(), bindings = 
     cursorClickPressed: actionJustPressed(pad, previousButtons, controlBindings.cursorClick),
     brake: actionPressed(pad, controlBindings.brake),
     hudTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.hudToggle),
+    manifestTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.manifestToggle),
     debugTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.debugToggle),
     controlConfigTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.controlConfigToggle),
     achievementsTogglePressed: actionJustPressed(pad, previousButtons, controlBindings.achievementsToggle),

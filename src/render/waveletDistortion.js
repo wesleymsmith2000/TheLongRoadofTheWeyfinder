@@ -1,4 +1,5 @@
 // Render-only displacement. The simulation remains independent of Canvas.
+import { waveletRippleHalfWidth } from '../core/waveletGeometry.js';
 export function waveletDisplacement(field, along, perpendicular, time) {
   const config = field.config;
   const charging = field.state === 'CHARGING';
@@ -11,7 +12,7 @@ export function waveletDisplacement(field, along, perpendicular, time) {
       * config.maxVisualStrengthPx * charge ** 1.3 * edge;
   }
   const age = field.pulseElapsed - along / config.frontSpeed - config.shockwaveLagSeconds;
-  if (age < 0) return 0;
+  if (age < 0 || Math.abs(perpendicular) > waveletRippleHalfWidth(field, along, field.pulseElapsed)) return 0;
   const distance = Math.abs(perpendicular) - age * config.shockwaveSpeed;
   return Math.sin(distance * config.spatialFrequency) * Math.exp(-Math.abs(distance) / 24)
     * config.maxVisualStrengthPx * edge;

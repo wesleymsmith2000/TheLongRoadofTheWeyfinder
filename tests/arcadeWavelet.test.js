@@ -8,6 +8,8 @@ import { stepProjectiles } from '../src/core/projectile.js';
 import { carrySpatialFields, pinPlayerWaveletCharge, stepSpatialFields, waveletBeamCoordinates } from '../src/core/spatialWaveletBeam.js';
 import { beamBurstDamage } from '../src/core/beamDamage.js';
 import { waveletDisplacement } from '../src/render/waveletDistortion.js';
+import { waveletChargeAppearance, waveletChargeParticle } from '../src/render/waveletCharge.js';
+import { waveletReleaseBands, waveletReleaseContains } from '../src/core/waveletGeometry.js';
 import starter from '../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
 
 const near = (a, b, epsilon = 1e-7) => assert.ok(Math.abs(a - b) < epsilon, `${a} != ${b}`);
@@ -36,14 +38,14 @@ function point(field, along, perpendicular) {
     y: field.lockedOrigin.y + uy * along + ux * perpendicular };
 }
 
-test('all Arcade wavelet tiers are longer, narrower and triple-distorted without changing Normal tiers', () => {
+test('all Arcade wavelet tiers retain reach and pull with 25 percent softer distortion than v1.0.18', () => {
   for (let tier = 0; tier <= 4; tier++) {
     const arcade = start(weaponGame('vortex_wavelet_beam', 'arcade', { waveletTier: tier }));
     const normal = start(weaponGame('vortex_wavelet_beam', 'normal', { waveletTier: tier }));
     near(arcade.length, normal.length * 1.5);
     near(arcade.config.captureHalfWidth, normal.config.captureHalfWidth * 0.75);
     near(arcade.config.pulseHalfWidth, normal.config.pulseHalfWidth * 0.75);
-    near(arcade.config.maxVisualStrengthPx, normal.config.maxVisualStrengthPx * 3);
+    near(arcade.config.maxVisualStrengthPx, normal.config.maxVisualStrengthPx * 3 * 0.75);
     near(arcade.config.chargePullAcceleration, normal.config.chargePullAcceleration * 2);
     assert.equal(arcade.config.showGuides, false);
     assert.equal(arcade.config.distortionEnabled, true);
@@ -170,11 +172,11 @@ test('each enemy intersecting the pulse receives at least a complete level-ten p
   }
 });
 
-test('distortion peaks at triple the authored amplitude and fades at field edges', () => {
+test('distortion peaks at 75 percent of the previous amplitude and fades at field edges', () => {
   const field = start(weaponGame());
   field.chargeElapsed = field.config.chargeDurationSeconds;
   const along = Math.PI / 2 / field.config.spatialFrequency;
-  near(waveletDisplacement(field, along, 0, 0), 54);
+  near(waveletDisplacement(field, along, 0, 0), 40.5);
   near(waveletDisplacement(field, along, field.config.captureHalfWidth, 0), 0);
   near(waveletDisplacement(field, field.length + 1, 0, 0), 0);
   field.chargeElapsed = 0;
@@ -216,4 +218,71 @@ test('derived fragments inherit boosted damage instead of multiplying it again',
   for (const shot of fragments) {
     assert.ok(shot.damage >= shell.damage * 0.2 && shot.damage <= shell.damage * 0.36);
   }
+});
+
+test('the whole visible front, rings and displaced ripple area deal damage, once per voxel', () => {
+  const game = weaponGame();
+  const field = start(game);
+  const construct = { schemaVersion: '0.1', assetId: 'area-target', cells: [
+    { id: 'core', type: 'core', gridX: 0, gridY: 0 },
+  ], connections: [] };
+  const offsets = [22, 55, 95, field.config.shockwaveMaxRadius + 15];
+  game.enemies = offsets.map(perpendicular => {
+    const position = point(field, 200, perpendicular);
+    const enemy = createEnemy(position.x, position.y, construct, [], { moduleScale: 1 });
+    for (const voxel of enemy.cells[0].mask.flat()) if (voxel.hp > 0) voxel.hp = 10000;
+    return enemy;
+  });
+  stepSpatialFields(game, field.config.chargeDurationSeconds);
+  stepSpatialFields(game, 0.25);
+  assert.ok(game.enemies[0].damageTaken > 0, 'bright front edge outside the old narrow strip');
+  assert.ok(game.enemies[1].damageTaken > 0, 'wide optical ring');
+  assert.equal(game.enemies[2].damageTaken, 0, 'ripple has not yet reached this target');
+  stepSpatialFields(game, 0.35);
+  assert.ok(game.enemies[2].damageTaken > 0, 'expanding distorted area');
+  assert.equal(game.enemies[3].damageTaken, 0, 'outside the visual effect');
+  stepSpatialFields(game, 0.35);
+  for (const enemy of game.enemies) for (const voxel of enemy.cells[0].mask.flat()) {
+    if (voxel.hp > 0) assert.ok(voxel.hp >= 10000 - field.config.frontDamage - 1e-7);
+  }
+});
+
+test('swept release collision covers every visible ring endpoint, including across a large frame step', () => {
+  const field = start(weaponGame());
+  for (const elapsed of [0.02, 0.2, 0.6, 0.9]) {
+    for (const band of waveletReleaseBands(field, elapsed)) {
+      for (const side of [-1, 1]) assert.equal(waveletReleaseContains(field, band.along,
+        side * band.halfWidth, Math.max(0, elapsed - 0.033), elapsed), true);
+    }
+  }
+  assert.equal(waveletReleaseContains(field, 250, 60, 0, 0.5), true);
+  assert.equal(waveletReleaseContains(field, 250, field.config.shockwaveMaxRadius + 20, 0, 0.5), false);
+});
+
+test('the wide visible rings deflect projectiles immediately instead of waiting for the narrower old shock timing', () => {
+  const game = weaponGame();
+  const field = start(game);
+  const position = point(field, 200, 55);
+  const shot = createCombatProjectile(game, position.x, position.y, 0, 100,
+    { team: 'enemy', weapon: 'boss-missile', lifetime: 5 });
+  stepSpatialFields(game, field.config.chargeDurationSeconds);
+  game.enemyProjectiles = [shot];
+  const returned = [];
+  stepSpatialFields(game, 0.25, { onProjectileDeflected: (projectile, angle, speed) => returned.push({ projectile, angle, speed }) });
+  assert.equal(returned.length, 1);
+  near(returned[0].speed, 300);
+});
+
+test('charge glow builds from almost transparent to 33 percent with deterministic inward-flowing teal particles', () => {
+  const field = start(weaponGame());
+  near(waveletChargeAppearance(field).opacity, 0.005);
+  const startParticle = waveletChargeParticle(field, 0, 0.001);
+  assert.ok(Math.abs(startParticle.perpendicular) > field.config.captureHalfWidth);
+  field.chargeElapsed = field.config.chargeDurationSeconds;
+  near(waveletChargeAppearance(field).opacity, 0.33);
+  const early = waveletChargeParticle(field, 0, 0.1);
+  const late = waveletChargeParticle(field, 0, 0.8);
+  assert.ok(Math.abs(late.perpendicular) < Math.abs(early.perpendicular));
+  assert.deepEqual(late, waveletChargeParticle(field, 0, 0.8));
+  assert.ok(waveletChargeAppearance(field).particleCount > 12);
 });

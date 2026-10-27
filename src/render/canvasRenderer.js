@@ -20,6 +20,8 @@ import { createPerformanceDiagnostics } from '../debug/performanceConfig.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
 import { TerrainRenderer } from './terrainRenderer.js';
 import { drawWaveletDistortion } from './waveletDistortion.js';
+import { drawWaveletCharge } from './waveletCharge.js';
+import { waveletReleaseBands } from '../core/waveletGeometry.js';
 import trackingFlechetteUrl from '../../assets/images/weapons/tracking_flechette.png';
 import orbFlechetteUrl from '../../assets/images/weapons/orb_flechette.png';
 import orbBladeShardUrl from '../../assets/images/weapons/orb_blade_shard.png';
@@ -205,7 +207,8 @@ function drawSpatialFields(ctx, fields = [], time = 0) {
         ctx.lineTo(field.lockedOrigin.x + ux * field.length, field.lockedOrigin.y + uy * field.length);
         ctx.stroke();
       }
-      drawWaveletConvergenceStreaks(ctx, field, charge, time, ux, uy, nx, ny);
+      if (config.distortionEnabled) drawWaveletCharge(ctx, field, time);
+      else drawWaveletConvergenceStreaks(ctx, field, charge, time, ux, uy, nx, ny);
     } else if (field.state === 'DISCHARGING') {
       const front = Math.min(field.length, field.pulseElapsed * config.frontSpeed);
       const fx = field.lockedOrigin.x + ux * front;
@@ -251,18 +254,13 @@ function drawWaveletConvergenceStreaks(ctx, field, charge, time, ux, uy, nx, ny)
 }
 
 function drawWaveletOpticalRings(ctx, field, ux, uy, nx, ny) {
-  const config = field.config;
-  const cycleCount = Math.max(1, config.visualRingCycles);
-  for (let cycle = 0; cycle < cycleCount; cycle += 1) {
-    const age = field.pulseElapsed - cycle * 0.075;
-    if (age <= 0) continue;
-    const axial = Math.min(field.length, age * config.frontSpeed);
-    const radius = Math.min(config.shockwaveMaxRadius, Math.max(0, age * config.shockwaveSpeed));
+  for (const band of waveletReleaseBands(field, field.pulseElapsed).filter(band => band.kind === 'ring')) {
+    const { age, cycle, along: axial, halfWidth: radius } = band;
     const centerX = field.lockedOrigin.x + ux * axial;
     const centerY = field.lockedOrigin.y + uy * axial;
     ctx.globalAlpha = Math.max(0, 0.55 - cycle * 0.1 - age * 0.08);
     ctx.strokeStyle = cycle % 2 === 0 ? '#6be8ff' : '#dc63ff';
-    ctx.lineWidth = Math.max(1, 3 - cycle * 0.35);
+    ctx.lineWidth = band.thickness;
     ctx.beginPath();
     ctx.moveTo(centerX - nx * radius, centerY - ny * radius);
     ctx.lineTo(centerX + nx * radius, centerY + ny * radius);

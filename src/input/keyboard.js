@@ -34,6 +34,7 @@ export function createKeyboardInput(target = window, bindings = {}) {
         aimY: 0,
         brake: actionHeld(keys, controlBindings.brake),
         hudTogglePressed: actionPressed(pressed, controlBindings.hudToggle),
+        manifestTogglePressed: actionPressed(pressed, controlBindings.manifestToggle),
         debugTogglePressed: actionPressed(pressed, controlBindings.debugToggle),
         controlConfigTogglePressed: actionPressed(pressed, controlBindings.controlConfigToggle),
         achievementsTogglePressed: actionPressed(pressed, controlBindings.achievementsToggle),

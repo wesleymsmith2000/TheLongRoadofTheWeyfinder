@@ -996,6 +996,46 @@
         bottom: 158px;
       }
 
+      .manifest-toggle {
+        position: fixed;
+        left: max(12px, env(safe-area-inset-left));
+        bottom: max(12px, env(safe-area-inset-bottom));
+        z-index: 35;
+        min-height: 36px;
+        padding: 7px 12px;
+        border: 1px solid #60cdb7;
+        border-radius: 8px;
+        background: rgb(15 30 28 / 0.85);
+        color: #a5f4df;
+        font: 700 11px system-ui;
+        touch-action: manipulation;
+      }
+      .weapon-manifest-overlay {
+        position: fixed;
+        left: max(12px, env(safe-area-inset-left));
+        bottom: max(56px, calc(env(safe-area-inset-bottom) + 48px));
+        width: min(280px, calc(100vw - 116px));
+        z-index: 29;
+        pointer-events: none;
+      }
+      .manifest-heading { font: 700 10px system-ui; color: rgb(165 244 223 / 0.6); margin-bottom: 4px; }
+      .weapon-manifest { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+      .manifest-card { position: relative; min-width: 0; padding: 4px 2px; border: 1px solid; border-radius: 5px; text-align: center; }
+      .manifest-good { border-color: rgb(91 230 198 / 0.5); background: rgb(45 182 153 / 0.12); }
+      .manifest-danger { border-color: #edcc59; background: rgb(237 204 89 / 0.2); box-shadow: inset 0 0 8px rgb(237 204 89 / 0.25); }
+      .manifest-lost { border-color: rgb(245 89 88 / 0.5); background: rgb(151 34 36 / 0.12); }
+      .manifest-art { display: grid; justify-items: center; gap: 3px; opacity: 0.5; }
+      .manifest-name { font: 10px/1.15 system-ui; color: #d6f7ee; max-width: 100%; height: 2.3em; overflow: hidden; overflow-wrap: anywhere; }
+      .manifest-lost-cross { position: absolute; inset: 0; display: grid; place-items: center; color: #ff5050; font: 700 42px/1 system-ui; text-shadow: 0 0 3px #2d0909; }
+      .manifest-legend { color: #b0c4bd; font-size: 10px; }
+      .pause-section h4 { margin: 4px 0 8px; font-size: 12px; }
+      body.title-active .manifest-toggle, body.title-active .weapon-manifest-overlay { display: none; }
+      @media (max-width: 700px), (pointer: coarse) {
+        .weapon-manifest-overlay { width: min(220px, calc(100vw - 108px)); }
+        .manifest-name { font-size: 9px; }
+        .weapon-manifest-overlay .icon-sprite.small { width: 20px; height: 20px; }
+      }
+
       .combat-panel {
         position: fixed;
         right: 14px;
@@ -2245,6 +2285,11 @@
       </div>
     </div>
     <button id="hudToggle" class="hud-toggle" type="button" aria-label="Toggle vehicle info">HUD</button>
+    <button id="manifestToggle" class="manifest-toggle hidden" type="button" aria-label="Toggle weapon manifest (M)" aria-controls="weaponManifestOverlay" aria-expanded="true" aria-pressed="true">GEAR · M</button>
+    <aside id="weaponManifestOverlay" class="weapon-manifest-overlay hidden" aria-label="Weapon and utility manifest">
+      <div class="manifest-heading">SYSTEMS</div>
+      <div id="weaponManifestList" class="weapon-manifest" role="list"></div>
+    </aside>
     <button id="pauseToggle" class="pause-toggle" type="button" aria-label="Pause and gear menu">PAUSE</button>
     <button id="debugToggle" class="debug-toggle" type="button" aria-label="Toggle debug stats">DBG</button>
     <button id="controlConfigToggle" class="control-config-toggle" type="button" aria-label="Configure controls">CFG</button>
@@ -2342,6 +2387,7 @@
       <p>Controller: left stick moves, right stick aims, bumpers cycle secondary, L2 cycles guided targets, R2 cycles guided focus, Start pauses.</p>
       <p>When a menu is open, left stick/D-pad moves the cursor, A/B clicks, and right stick scrolls or changes selects.</p>
       <p>Mobile: left side drags movement, right side aims and fires.</p>
+      <p>GEAR toggles the lower-left weapon manifest; keyboard uses M.</p>
       <p>Right stick moves an aim reticle. Comp aim bends manual aim against vehicle velocity so shots pass through the selected point.</p>
       <h3>Combat</h3>
       <p>Primary fire can use gunner AI. Secondary weapons trade ammo, heat, cooldown, and impact style.</p>
@@ -2402,6 +2448,9 @@
           </section>
           <section class="pause-section">
             <h3>Rover</h3>
+            <h4>Weapon &amp; utility manifest</h4>
+            <div id="pauseWeaponManifest" class="weapon-manifest" role="list" aria-label="Installed weapon and utility status"></div>
+            <p class="manifest-legend">Teal: good · Yellow: at risk · Red ×: lost / disabled</p>
             <div id="moduleStatusList" class="module-status-list"></div>
           </section>
           <section class="pause-section">

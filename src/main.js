@@ -9,6 +9,8 @@ import {
 } from './core/game.js';
 import { BUILD_VERSION } from './core/buildVersion.js';
 import { arcadeLevelProgress } from './core/arcadePacing.js';
+import { weaponManifest } from './core/weaponManifest.js';
+import { createWeaponManifestView } from './ui/weaponManifest.js';
 import { arcadeSlotFlags, gunCellInactive, INACTIVE_GUN_HINT } from './core/arcadeLoadout.js';
 import { worldToLocal } from './core/math.js';
 import { CELL_SIZE } from './core/voxelMask.js';
@@ -341,6 +343,10 @@ const targetCellTypeSelect = document.querySelector('#targetCellTypeSelect');
 const targetCellNextButton = document.querySelector('#targetCellNextButton');
 const targetInfo = document.querySelector('#targetInfo');
 const moduleStatusList = document.querySelector('#moduleStatusList');
+const manifestToggle = document.querySelector('#manifestToggle');
+const weaponManifestOverlay = document.querySelector('#weaponManifestOverlay');
+const weaponManifestList = document.querySelector('#weaponManifestList');
+const pauseWeaponManifest = document.querySelector('#pauseWeaponManifest');
 const pauseLevelNumber = document.querySelector('#pauseLevelNumber');
 const pauseScrapCount = document.querySelector('#pauseScrapCount');
 const pauseDamageDone = document.querySelector('#pauseDamageDone');
@@ -508,6 +514,15 @@ const uiTimers = {
 };
 let shopUiWasVisible = false;
 let pauseUiWasVisible = false;
+let manifestVisible = true;
+try { manifestVisible = localStorage.getItem('weyfinder.prototype0.weaponManifest') !== 'false'; } catch {}
+const manifestViewOptions = {
+  label: secondaryWeaponLabel,
+  icon: id => iconSpan(id === 'booster' ? systemIconDescriptor('boost') : id === 'scrap_magnet' ? systemIconDescriptor('scrap') : weaponIconDescriptor(id)),
+};
+const updateManifestOverlay = createWeaponManifestView(weaponManifestList, manifestViewOptions);
+const updatePauseManifest = createWeaponManifestView(pauseWeaponManifest, manifestViewOptions);
+let manifestTimer = 0;
 let activeShopSection = 'repair';
 let activeWorkshopSection = 'loadout';
 let workshopMergeSignature = '';
@@ -792,6 +807,7 @@ function frame(now) {
   if (input.debugTogglePressed) toggleDebug();
   if (input.controlsTogglePressed) toggleControls();
   if (keyInput.hudTogglePressed || padActionInput.hudTogglePressed) toggleCombatHud();
+  if (keyInput.manifestTogglePressed || padActionInput.manifestTogglePressed) toggleWeaponManifest();
   if (keyInput.controlConfigTogglePressed || padActionInput.controlConfigTogglePressed) toggleControlConfig();
   if (keyInput.achievementsTogglePressed || padActionInput.achievementsTogglePressed) toggleAchievements();
   if (keyInput.sandboxTogglePressed || padActionInput.sandboxTogglePressed) toggleSandboxPanel();
@@ -822,6 +838,7 @@ function frame(now) {
     levelsCompleted.textContent = game.levelsCompleted;
     updateShopUi(dt);
     syncPauseUi(mouseInput.aimWorld ?? padAimWorld, dt);
+    syncWeaponManifest(dt);
     boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
     secondarySelect.value = game.secondary.selected;
     setIconElement(secondaryIcon, weaponIconDescriptor(game.secondary.selected));
@@ -868,6 +885,7 @@ function scheduleNextFrame(frontPageIdle) {
 
 bindButtonActivation(debugToggle, toggleDebug);
 bindButtonActivation(hudToggle, toggleCombatHud);
+bindButtonActivation(manifestToggle, toggleWeaponManifest);
 bindButtonActivation(controlsToggle, toggleControls);
 bindButtonActivation(sandboxToggle, toggleSandboxPanel);
 bindButtonActivation(controlConfigToggle, toggleControlConfig);
@@ -1113,6 +1131,27 @@ function toggleDebug() {
 function toggleCombatHud() {
   combatPanel.classList.toggle('hidden');
   hudToggle.setAttribute('aria-pressed', String(!combatPanel.classList.contains('hidden')));
+}
+
+function toggleWeaponManifest() {
+  manifestVisible = !manifestVisible;
+  manifestTimer = 1;
+  try { localStorage.setItem('weyfinder.prototype0.weaponManifest', String(manifestVisible)); } catch {}
+  syncWeaponManifest(0);
+}
+
+function syncWeaponManifest(dt) {
+  const playing = !awaitingLaunch && !titleActive;
+  manifestToggle.classList.toggle('hidden', !playing || game.paused);
+  manifestToggle.setAttribute('aria-pressed', String(manifestVisible));
+  manifestToggle.setAttribute('aria-expanded', String(manifestVisible));
+  weaponManifestOverlay.classList.toggle('hidden', !playing || !manifestVisible || game.paused);
+  manifestTimer += dt;
+  if (!playing || (!manifestVisible && !game.paused) || manifestTimer < 0.15) return;
+  manifestTimer = 0;
+  const entries = weaponManifest(game);
+  if (manifestVisible && !game.paused) updateManifestOverlay(entries);
+  if (game.paused) updatePauseManifest(entries);
 }
 
 function launchVehicle() {
@@ -1386,6 +1425,7 @@ function syncPauseUi(hoverWorld = null, dt = 0) {
   pauseDamageDone.textContent = game.score.damageDone;
   if (!saveStatus.textContent) saveStatus.textContent = 'Save exports restore run progress as a checkpoint.';
   renderModuleStatus();
+  updatePauseManifest(weaponManifest(game));
   renderTargetInfo(hoverWorld);
 }
 

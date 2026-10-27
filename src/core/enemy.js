@@ -1350,7 +1350,7 @@ function enemyCellIntersectsBlastLocal(enemy, cell, localOrigin, originZ, radius
   return Math.hypot(dx * scale, dy * scale, dz) <= radius;
 }
 
-function enemyVoxelWorldCenter(enemy, cell, vx, vy) {
+export function enemyVoxelWorldCenter(enemy, cell, vx, vy) {
   const unit = CELL_SIZE / VOXELS;
   const localX = cell.gridX * CELL_SIZE + (vx + 0.5) * unit - CELL_SIZE / 2;
   const localY = cell.gridY * CELL_SIZE + (vy + 0.5) * unit - CELL_SIZE / 2;

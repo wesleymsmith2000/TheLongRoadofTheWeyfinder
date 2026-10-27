@@ -1,4 +1,5 @@
-import { applyEnemyVoxelDamage, traceEnemyVoxelBeam } from './enemy.js';
+import { applyEnemyVoxelDamage, enemyVoxelWorldCenter, pirateBossCoreProtected, traceEnemyVoxelBeam } from './enemy.js';
+import { waveletReleaseBands, waveletReleaseContains } from './waveletGeometry.js';
 import { applyWeaponInterlock } from './weaponInterlock.js';
 
 export const WAVELET_FIELD_STATES = Object.freeze({
@@ -188,7 +189,9 @@ function stepDischargingField(game, field, dt, hooks) {
   field.previousPulseElapsed = field.pulseElapsed;
   field.pulseElapsed += dt;
   const frontDistance = Math.min(field.length, field.pulseElapsed * field.config.frontSpeed);
-  if (frontDistance > field.previousFrontDistance && field.team === 'player') {
+  if (field.config.damageVisualArea && field.team === 'player') {
+    damagePlayerWaveletArea(game, field, hooks);
+  } else if (frontDistance > field.previousFrontDistance && field.team === 'player') {
     damagePlayerWaveletFront(game, field, field.previousFrontDistance, frontDistance, hooks);
   }
   field.previousFrontDistance = frontDistance;
@@ -197,6 +200,31 @@ function stepDischargingField(game, field, dt, hooks) {
     + field.config.shockwaveLagSeconds
     + field.config.shockwaveMaxRadius / field.config.shockwaveSpeed;
   if (field.pulseElapsed >= finalShockTime) field.state = WAVELET_FIELD_STATES.DONE;
+}
+
+function damagePlayerWaveletArea(game, field, hooks) {
+  const bands = waveletReleaseBands(field, field.pulseElapsed);
+  for (const enemy of game.enemies ?? []) {
+    const radius = (enemy.radius ?? 0) * (enemy.radiusIncludesVisualScale ? 1 : Math.max(0.001, enemy.visualScale ?? 1));
+    if (enemy.destroyed || enemy.phasedOut || !objectInsideAabb(enemy, field.shockAabb, radius)) continue;
+    if (waveletBeamCoordinates(field, enemy.x, enemy.y).s - radius > field.previousFrontDistance +
+        (field.pulseElapsed - field.previousPulseElapsed) * field.config.frontSpeed + field.config.pulseHalfWidth) continue;
+    for (const cell of enemy.cells ?? []) {
+      if (cell.state.destroyed || (cell.role === 'pirateBossCore' && pirateBossCoreProtected(enemy))) continue;
+      for (let y = 0; y < cell.mask.length; y++) for (let x = 0; x < cell.mask[y].length; x++) {
+        const voxel = cell.mask[y][x];
+        if (enemy.destroyed || voxel.hp <= 0 || field.pulseHitVoxels.has(voxel)) continue;
+        const point = enemyVoxelWorldCenter(enemy, cell, x, y);
+        const { s, p } = waveletBeamCoordinates(field, point.x, point.y);
+        if (!waveletReleaseContains(field, s, p, field.previousPulseElapsed, field.pulseElapsed, 0, bands)) continue;
+        field.pulseHitVoxels.add(voxel);
+        const result = applyEnemyVoxelDamage(enemy, { cell, voxel, voxelIndex: { x, y } }, field.config.frontDamage);
+        if (!result.hit) continue;
+        game.score.damageDone += Math.round(field.config.frontDamage + result.removed * 3);
+        if (result.destroyedNow) hooks.onEnemyDestroyed?.(enemy, field);
+      }
+    }
+  }
 }
 
 function damagePlayerWaveletFront(game, field, from, to, hooks) {
@@ -226,18 +254,22 @@ function damagePlayerWaveletFront(game, field, from, to, hooks) {
 
 function applyShockwaveCrossings(game, field, hooks) {
   const projectiles = new Set(field.team === 'player' ? game.enemyProjectiles : game.playerProjectiles);
+  const bands = field.config.damageVisualArea ? waveletReleaseBands(field, field.pulseElapsed) : null;
   for (const object of shockwaveTargets(game, field)) {
     if (field.shockwaveHitObjects.has(object)) continue;
     if (!objectInsideAabb(object, field.shockAabb)) continue;
     const coordinates = waveletBeamCoordinates(field, object.x, object.y);
-    if (coordinates.s < 0 || coordinates.s > field.length || coordinates.r > field.config.shockwaveMaxRadius) continue;
+    if (!field.config.damageVisualArea && (coordinates.s < 0 || coordinates.s > field.length || coordinates.r > field.config.shockwaveMaxRadius)) continue;
     const arrival = coordinates.s / field.config.frontSpeed
       + field.config.shockwaveLagSeconds
       + coordinates.r / field.config.shockwaveSpeed;
     const previous = waveletBeamCoordinates(field, object.previousX ?? object.x, object.previousY ?? object.y);
     const previousArrival = previous.s / field.config.frontSpeed
       + field.config.shockwaveLagSeconds + previous.r / field.config.shockwaveSpeed;
-    if (field.pulseElapsed < arrival || (field.previousPulseElapsed > 0 &&
+    if (field.config.damageVisualArea) {
+      if (!waveletReleaseContains(field, coordinates.s, coordinates.p,
+        field.previousPulseElapsed, field.pulseElapsed, object.radius ?? 0, bands)) continue;
+    } else if (field.pulseElapsed < arrival || (field.previousPulseElapsed > 0 &&
         field.previousPulseElapsed >= arrival && field.previousPulseElapsed >= previousArrival)) continue;
     field.shockwaveHitObjects.add(object);
     const side = Math.sign(coordinates.p);
@@ -280,8 +312,7 @@ function insideCapture(field, object, coordinates) {
   return coordinates.r <= field.config.captureHalfWidth + radius;
 }
 
-function objectInsideAabb(object, aabb) {
-  const radius = object.radius ?? 0;
+function objectInsideAabb(object, aabb, radius = object.radius ?? 0) {
   return object.x + radius >= aabb.minX && object.x - radius <= aabb.maxX
     && object.y + radius >= aabb.minY && object.y - radius <= aabb.maxY;
 }
@@ -312,5 +343,6 @@ function waveletBaseConfig(effect) {
     showGuides: effect.visual?.showGuides ?? true,
     distortionEnabled: effect.visual?.distortionEnabled ?? false,
     pierceEachEnemy: gameplay.pierceEachEnemy ?? false,
+    damageVisualArea: gameplay.damageVisualArea ?? false,
   };
 }

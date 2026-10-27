@@ -7,6 +7,7 @@ export const CONTROL_ACTIONS = [
   { id: 'pause', label: 'Pause / Gear Menu', keyboard: ['Escape', 'KeyP'], gamepad: [9] },
   { id: 'primaryAutofire', label: 'Toggle Primary Autofire', keyboard: ['KeyF'], gamepad: [12] },
   { id: 'hudToggle', label: 'Toggle HUD', keyboard: ['KeyU'], gamepad: [] },
+  { id: 'manifestToggle', label: 'Toggle Weapon Manifest', keyboard: ['KeyM'], gamepad: [] },
   { id: 'debugToggle', label: 'Toggle Debug', keyboard: ['Backquote'], gamepad: [2] },
   { id: 'controlConfigToggle', label: 'Toggle Control Config', keyboard: ['KeyC'], gamepad: [] },
   { id: 'achievementsToggle', label: 'Toggle Achievements', keyboard: ['KeyV'], gamepad: [] },

@@ -314,11 +314,12 @@ function upgradedSecondaryDefinition(game, weapon) {
     effect.gameplay.pinSourceDuringCharge = true;
     effect.gameplay.recoilSpeed = 140;
     effect.gameplay.pierceEachEnemy = true;
+    effect.gameplay.damageVisualArea = true;
     effect.visual.showGuides = false;
     effect.visual.distortionEnabled = true;
     effect.tiers = effect.tiers.map(tier => ({
       ...tier, beamWidthPixels: tier.beamWidthPixels * 0.75,
-      maxStrengthPixels: tier.maxStrengthPixels * 3,
+      maxStrengthPixels: tier.maxStrengthPixels * 3 * 0.75,
     }));
     const particleBeam = upgradedSecondaryDefinition({
       ...game, upgrades: { ...game.upgrades, beamDamage: 10, beamFireTime: 10 },

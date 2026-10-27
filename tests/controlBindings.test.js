@@ -47,6 +47,7 @@ test('pause and guided targeting defaults are bindable', () => {
   assert.deepEqual(bindings.keyboard.pause, ['Escape', 'KeyP']);
   assert.deepEqual(bindings.keyboard.primaryAutofire, ['KeyF']);
   assert.deepEqual(bindings.keyboard.hudToggle, ['KeyU']);
+  assert.deepEqual(bindings.keyboard.manifestToggle, ['KeyM']);
   assert.deepEqual(bindings.keyboard.controlConfigToggle, ['KeyC']);
   assert.deepEqual(bindings.keyboard.achievementsToggle, ['KeyV']);
   assert.deepEqual(bindings.keyboard.sandboxToggle, ['KeyB']);

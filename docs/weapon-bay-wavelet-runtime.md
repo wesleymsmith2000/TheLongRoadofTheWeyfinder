@@ -39,6 +39,7 @@ Arcade applies its ultimate tuning at the secondary-weapon runtime boundary, lea
 - `effect.gameplay.recoilSpeed` (default `0`): backward velocity added once at discharge when charge pinning is enabled.
 - `effect.gameplay.projectileDeflectionSpeedScale` (default `0`): enables hostile projectile returns at shock crossing through the `onProjectileDeflected(projectile, angle, speed, field)` simulation hook. A positive scale multiplies the projectile's recorded pre-attraction speed. Beam/blast effects and terrain-anchored projectiles are excluded from attraction and deflection.
 - `effect.gameplay.pierceEachEnemy` (default `false`): gives each intersected enemy its own front-pulse pierce budget.
+- `effect.gameplay.damageVisualArea` (default `false`): uses `src/core/waveletGeometry.js` to sweep the drawn front/rings and ripple area against live enemy voxel world positions. Every covered voxel is damaged once per field, with the same geometry used for hostile projectile deflection. This replaces the narrow front trace when enabled. Normal/Sandbox keep their original trace. Phase-protected cores remain protected.
 - `effect.visual.showGuides` (default `true`): controls straight charge boundary/axis guides.
 - `effect.visual.distortionEnabled` (default `false`): enables render-only scene displacement, using the tier's `maxStrengthPixels` and `frequencyMod`.
 
