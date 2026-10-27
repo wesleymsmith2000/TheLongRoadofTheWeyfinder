@@ -343,6 +343,8 @@ Player/construct definitions may carry per-gun weapon loadouts:
 }
 ```
 
+Constructs may optionally specify `emergencyWeapon`: `"main.basic"`, `"tracking_flechette"`, `"mortar"`, `"blade_launcher"`, or `null`. Arcade defaults an omitted value to Main Gun. This separate core mount fires only when every installed active primary mount is disabled; `null` removes the emergency slot. The Pause menu exposes the choice and saves retain it. Normal/Sandbox core behavior is unchanged.
+
 Normal primary ids are `main.basic`, `tracking_flechette`, `mortar`, `blade_launcher`, and `mini_beam`. Secondary gun ids are `rocket`, `cannon`, `beam`, `sta_missile`, `orb_of_blades`, and `vortex_wavelet_beam`. Repulsor and Tractor Beam are utility equipment in `modules` entries with `kind: 'utilitySlots'` and a `slots` array. Arcade also accepts `mini_beam` in these utility slots and removes it from its primary catalog; a functioning utility cell automatically fires it at a live enemy within its upgraded beam length. Normal retains its primary Mini Beam behavior. Arcade uses one primary and one secondary per gun cell, enabled by boss-clear progression; see [Arcade rules](arcade-mode.md) for starter availability and migration. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`. Secondary ammo capacity uses `ceil((baseCapacity + ammoBonus) * sqrt(N + 1))`, where `N` is the number of mounted copies of that secondary weapon on the player's craft.
 
 Available equipment is read from player account data rather than hard-coded into the editor. Prototype 0 uses local in-memory account data:

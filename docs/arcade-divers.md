@@ -74,3 +74,9 @@ Editing first-party variant profiles or construct JSON changes the same content 
 ## Verification
 
 `tests/diverEnemy.test.js` covers all constructs, zone counting, repeated cycles on straight/curved road frames, desktop/mobile view edges, tracking lag and overshoot, snapshot dives, mortar aim, phase protection, leg-loss thrusters, burrowing, hopper ray contact and reward drops, wave timing/counts, level gates, and sandbox loading. `tests/arcadeMode.test.js` checks the corrected authored body-forward transform and seeded forward-centered spray alongside the existing Arcade rules.
+
+## Dive payloads and inbound warnings
+
+Each main dive reserves a seeded budget of one to three tracking flechettes. They launch along the dive heading at spaced progress points and home toward the moving player. Each return climb independently reserves one to three stationary terrain-anchored time bombs, dropped at spaced progress points. Bombs use the enemy mortar shell/marker artwork, flashing danger cue and growing numeric countdown. They explode once after three simulation seconds, retain their fuse after the source is destroyed, and do not detonate from mere vehicle contact. Destroyed gun systems suppress new payloads. Burrowers can leave bombs during their underground return. These payload budgets reset on each new dive/return cycle; ordinary tracking spray and sailboat mortar fire remain.
+
+Scheduled Diver waves reserve their actual formation when their ETA reaches two seconds and display the same incoming-craft triangles as ordinary waves at the visible top entry lanes. The HUD displays INTERCEPTORS INBOUND with an ETA. Gap Divers do not affect these reservations or warnings.

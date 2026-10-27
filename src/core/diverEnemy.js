@@ -6,6 +6,7 @@ import { createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
 import { createCombatProjectile, arcadeEnemyFireRateScale, arcadePlayBounds } from './arcadeMode.js';
 import { CELL_SIZE } from './voxelMask.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
+import { createIncomingMarker } from './incomingWarning.js';
 import pack from '../../content/enemies/arcade_divers.json' with { type: 'json' };
 import motorcycle from '../../content/constructs/diver_motorcycle.json' with { type: 'json' };
 import sailboat from '../../content/constructs/diver_sailboat.json' with { type: 'json' };
@@ -14,6 +15,7 @@ import walker from '../../content/constructs/diver_walker.json' with { type: 'js
 import ghost from '../../content/constructs/diver_ghost.json' with { type: 'json' };
 import snake from '../../content/constructs/diver_snake.json' with { type: 'json' };
 import burrower from '../../content/constructs/diver_burrower.json' with { type: 'json' };
+import trackingFlechette from '../../content/patterns/enemy_tracking_flechette_strafe.json' with { type: 'json' };
 
 export const DIVER_CONSTRUCTS = { motorcycle, sailboat, insect, walker, ghost, snake, burrower };
 export const DIVER_VARIANTS = pack.variants;
@@ -107,17 +109,38 @@ export function stepDiverWaves(game, dt, onSpawn = () => {}) {
     state.wavesCleared++;
     state.waitingForClear = false;
     state.nextIn = game.rng.range(...DIVER_WAVE_INTERVAL);
+    state.pendingWave = null;
   }
   state.nextIn = Math.max(0, state.nextIn - dt);
   if (game.arcadeRushDiverEntry) state.nextIn = 0;
-  if (state.nextIn > 0) return;
   const context = diverLevelContext(game.level, game.levelMusic);
-  const count = 1 + Math.floor(game.rng.next() * 3) + context.zoneNumber + context.zoneLevel;
+  const rushSoon = !game.enemySpawnQueue?.length && state.wavesSpawned < DIVER_MIN_WAVES && (game.arcadeEmptyScreenSeconds ?? 0) >= 13;
+  const warningEta = Math.min(state.nextIn, rushSoon ? Math.max(0, 15 - game.arcadeEmptyScreenSeconds) : Infinity);
+  if (state.pendingWave && state.pendingFromRush && warningEta > 2) {
+    game.incomingMarkers = (game.incomingMarkers ?? []).filter(marker => marker.diverWaveId !== state.warningId);
+    state.pendingWave = null;
+  }
+  if (warningEta <= 2 && !state.pendingWave) {
+    const count = 1 + Math.floor(game.rng.next() * 3) + context.zoneNumber + context.zoneLevel;
+    state.pendingWave = Array.from({ length: count }, (_, i) => ({
+      x: count === 1 ? 0 : ((i / (count - 1)) * 2 - 1) * game.road.halfWidth * 0.72,
+      phaseOffset: game.rng.range(0, 1),
+    }));
+    game.incomingMarkers ??= [];
+    state.pendingFromRush = state.nextIn > 2;
+    state.warningId = `diver-wave:${game.level}:${state.wavesSpawned}`;
+    for (const entry of state.pendingWave) {
+      const point = roadOffsetToWorld({ x: entry.x, y: -arcadePlayBounds(game.road).ahead * 0.94 }, game.road);
+      game.incomingMarkers.push({ ...createIncomingMarker(point, 'diver', warningEta), diverWaveId: state.warningId });
+    }
+  }
+  if (state.nextIn > 0) return;
+  const count = state.pendingWave.length;
   for (let i = 0; i < count; i++) {
-    const x = count === 1 ? 0 : ((i / (count - 1)) * 2 - 1) * game.road.halfWidth * 0.72;
+    const { x, phaseOffset } = state.pendingWave[i];
     const ahead = arcadePlayBounds(game.road).ahead;
     const world = roadOffsetToWorld({ x, y: game.arcadeRushDiverEntry ? -ahead * 0.72 : -ahead - 110 - i * CELL_SIZE * 3 }, game.road);
-    const enemy = createDiverEnemy(world.x, world.y, context.theme, { roadHeading: game.road.heading, phaseOffset: game.rng.range(0, 1) });
+    const enemy = createDiverEnemy(world.x, world.y, context.theme, { roadHeading: game.road.heading, phaseOffset });
     enemy.targetId = `diver:${game.level}:${state.wavesSpawned}:${i}`;
     if (context.zone === 'ShadowedRoad') enemy.palette = { ...enemy.palette, armor: '#444f5c', core: '#9aafbb', gun: '#ff884e' };
     onSpawn(enemy);
@@ -125,6 +148,7 @@ export function stepDiverWaves(game, dt, onSpawn = () => {}) {
   }
   state.wavesSpawned++;
   state.currentWaveSize = count;
+  state.pendingWave = null;
   game.arcadeRushDiverEntry = false;
   state.waitingForClear = true;
 }
@@ -241,6 +265,7 @@ export function stepDiverEnemy(game, enemy, dt) {
       setPhase(state, 'dive');
     }
   } else if (state.phase === 'dive' || state.phase === 'return') {
+    const previousY = position.y;
     state.speed = Math.min((state.phase === 'dive' ? profile.diveSpeed : profile.climbSpeed) * speedScale, state.speed + profile.acceleration * speedScale * dt);
     position.x += Math.cos(state.roadAngle) * state.speed * dt;
     position.y += Math.sin(state.roadAngle) * state.speed * dt;
@@ -251,6 +276,7 @@ export function stepDiverEnemy(game, enemy, dt) {
       position.y += Math.cos(state.roadAngle) * wiggle;
       state.slitherPhase = next;
     }
+    stepDiverPayloads(game, enemy, position, previousY, state.phase === 'dive' ? bounds.behind * 0.88 : -bounds.ahead - 110);
     if (state.phase === 'dive' && position.y > bounds.behind * 0.88) {
       beginTurn(game, enemy, position, 'bottomTurn', UP);
     } else if (state.phase === 'return' && position.y < -bounds.ahead - 110) {
@@ -279,6 +305,45 @@ export function stepDiverEnemy(game, enemy, dt) {
   if (state.particleTimer <= 0 && (state.burrowed || state.thrusterActive)) {
     emitDiverParticles(game, enemy, state.burrowed ? 'dirt' : 'thruster', 2);
     state.particleTimer = 0.045;
+  }
+}
+
+function stepDiverPayloads(game, enemy, position, previousY, endY) {
+  const state = enemy.diver;
+  if (state.payloadPhase !== state.phase) {
+    state.payloadPhase = state.phase;
+    state.payload = { count: 1 + Math.floor(game.rng.next() * 3), fired: 0, startY: previousY };
+  }
+  const plan = state.payload;
+  const progress = clamp((position.y - plan.startY) / (endY - plan.startY || 1), 0, 1);
+  if (!enemy.cells.some(cell => cell.type === 'gun' && !cell.state.destroyed && cell.state.deviceIntegrity > 0.1)) return;
+  if (state.phase === 'dive' && enemy.phasedOut) return;
+  const source = roadOffsetToWorld(position, game.road);
+  const damageScale = enemy.combatScale?.damage ?? 1;
+  while (plan.fired < plan.count && progress >= (plan.fired + 0.3) / plan.count) {
+    if (state.phase === 'dive') {
+      const angle = game.road.heading + state.roadAngle;
+      const speed = trackingFlechette.emitter.speed;
+      game.enemyProjectiles.push(createCombatProjectile(game, source.x, source.y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
+        ...trackingFlechette.emitter.projectile,
+        team: 'enemy', weapon: 'diver-tracking-flechette', behavior: 'homing', angle,
+        damage: trackingFlechette.emitter.projectile.damage * damageScale,
+        delayBeforeAcceleration: 0, stopBeforeAcceleration: false, acceleration: 220,
+        turnRate: 2.2, maxSpeed: 440, targetHint: game.vehicle, tracksHomingTargetHint: true,
+        sourceEnemy: enemy, lifetime: 4.2,
+      }));
+      emitSoundEvent(game, SOUND_EVENTS.ENEMY_BULLET);
+    } else {
+      game.enemyProjectiles.push(createCombatProjectile(game, source.x, source.y, 0, 0, {
+        team: 'enemy', weapon: 'diver-time-bomb', radius: 2.8, damage: 0, impulse: 0,
+        lifetime: 3, countdown: true, terrainAnchored: true, explodeOnExpire: true, sourceEnemy: enemy,
+        sprite: { assetId: 'sprite.weapon.mortar_enemy_shell', displaySize: [10.5, 14.7], anchor: [0.5, 0.6] },
+        landingMarkerSprite: { assetId: 'sprite.weapon.mortar_enemy_marker', displaySize: [58, 24], anchor: [0.5, 0.5] },
+        blastOnExpire: { radius: CELL_SIZE * 5, damage: 12 * damageScale, impulse: 55 },
+      }));
+      emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE);
+    }
+    plan.fired++;
   }
 }
 

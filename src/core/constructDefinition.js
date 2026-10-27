@@ -1,4 +1,5 @@
 import { createCell, recalculateCell } from './cell.js';
+import { EMERGENCY_PRIMARY_WEAPONS } from './emergencyWeapon.js';
 import { coreDistanceMap, createConnection, OPPOSITE } from './connections.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { normalizePoseRig, validatePoseRig } from './poseAnimation.js';
@@ -28,6 +29,7 @@ export function validateConstructDefinition(definition) {
   if (definition.modules != null && !Array.isArray(definition.modules)) errors.push('modules must be an array when provided.');
   if (definition.tags != null && !isStringArray(definition.tags)) warnings.push('tags should be an array of strings.');
   if (definition.dependencies != null && !isStringArray(definition.dependencies)) warnings.push('dependencies should be an array of strings.');
+  if (definition.emergencyWeapon != null && !EMERGENCY_PRIMARY_WEAPONS.includes(definition.emergencyWeapon)) errors.push('emergencyWeapon must be an offensive primary weapon id or null.');
   if (definition.damageGroups != null && !damageGroupsAreValidShape(definition.damageGroups)) {
     errors.push('damageGroups must be an object of cell id arrays or an array of { id, cells } entries.');
   }

@@ -15,6 +15,7 @@ export function weaponFireBlocked(game) {
 export function applyWeaponInterlock(game, seconds, source = null) {
   game.weaponInterlock ??= createWeaponInterlock();
   game.weaponInterlock.remaining = Math.max(game.weaponInterlock.remaining, Math.max(0, seconds));
+  game.weaponInterlock.duration = game.weaponInterlock.remaining;
   if (game.weaponInterlock.remaining > 0) game.weaponInterlock.source = source;
   return game.weaponInterlock;
 }

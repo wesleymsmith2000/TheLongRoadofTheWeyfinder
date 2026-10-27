@@ -94,9 +94,9 @@ test('the compact view keeps an X over a lost duplicate and removes it after rep
   assert.equal(container.children.length, 2);
   assert.equal(container.children[0].children[1].textContent, '×');
   assert.match(container.children[0].attributes['aria-label'], /Lost.*gun-a/);
-  assert.equal(container.children[1].children.length, 1);
+  assert.equal(container.children[1].children.some(child => child.className === 'manifest-lost-cross'), false);
   entries[0].status = 'good'; entries[0].integrity = 1;
   update(entries);
-  assert.equal(container.children[0].children.length, 1);
+  assert.equal(container.children[0].children.some(child => child.className === 'manifest-lost-cross'), false);
   assert.equal(container.children[0].className, 'manifest-card manifest-good');
 });

@@ -1,4 +1,6 @@
 import { createDiverEnemy, DIVER_VARIANTS, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from './diverEnemy.js';
+import { createIncomingMarker, SPAWN_WARNING_LEAD } from './incomingWarning.js';
+import { emergencyPrimaryState, functionalPrimaryCell } from './emergencyWeapon.js';
 import { arcadeObjectVisible, retireArcadeGapDivers, stepArcadeGapDivers } from './arcadePacing.js';
 import { normalizeRunMode, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias, containArcadeBoss } from './arcadeMode.js';
 import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, moduleMuzzlesWorld, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
@@ -126,7 +128,6 @@ export const GUIDED_TARGET_CELL_TYPE_LABELS = Object.freeze({
   core: 'Core',
   armor: 'Nearest Armor',
 });
-const SPAWN_WARNING_LEAD = 2.4;
 const BOSS_LASER_CHARGE_TIME = 3;
 const BOSS_LASER_LOCK_TIME = 1;
 const DESTROYED_ENEMY_REMNANT_SECONDS = 3.8;
@@ -547,6 +548,7 @@ export function createGame(seed = 1147, options = {}) {
     primaryHeat: { heat: 0, maxHeat: 100 },
     repulsor: { charges: 5, maxCharges: 5, rechargeTimer: 0, cooldown: 4.5 },
     primaryWeaponCooldowns: {},
+    primaryWeaponCooldownDurations: {},
     primaryGunQueues: {},
     primaryDefensiveGunQueues: {},
     playerFireTimer: 0,
@@ -1908,16 +1910,6 @@ function accelerateNextSpawnWhenArenaEmpty(game) {
   game.enemySpawnQueue[0].at = Math.min(game.enemySpawnQueue[0].at, elapsed + 3);
 }
 
-function createIncomingMarker(enemy, type) {
-  return {
-    x: enemy.x,
-    y: enemy.y,
-    type,
-    age: 0,
-    lifetime: SPAWN_WARNING_LEAD + 0.6,
-  };
-}
-
 function triggerEnemyEntranceBark(game, enemy, trigger) {
   const barks = enemy?.entranceBarks;
   if (!barks || enemy.entranceBarkPlayed || (barks.trigger ?? 'warning') !== trigger) return;
@@ -2666,7 +2658,7 @@ function stepPlayerGun(game, dt) {
   if (game.runMode === 'arcade' && !game.gameOver) stepUtilityMiniBeam(game);
   if (fireRateScale <= 0 || (!game.autofire && !game.inputFireHeld) || game.gameOver) return;
   stepUtilityRepulsor(game);
-  if (!hasFunctionalGun(game.vehicle)) return;
+  if (!hasFunctionalGun(game.vehicle) && !emergencyPrimaryState(game).active) return;
   const mounts = primaryFiringMounts(game);
   if (mounts.length === 0) return;
   if (!hasActiveOrInboundEnemies(game)) return;
@@ -2714,7 +2706,7 @@ function stepUtilityMiniBeam(game) {
     if (!target || game.primaryHeat.heat + def.heat > game.primaryHeat.maxHeat) continue;
     firePrimaryBeam(game, muzzle, def, target);
     game.primaryHeat.heat += def.heat;
-    game.primaryWeaponCooldowns[key] = def.cooldown * primaryHeatCooldownScale(game.primaryHeat);
+    setPrimaryWeaponCooldown(game, muzzle.cellId, 0, 'mini_beam', def.cooldown * primaryHeatCooldownScale(game.primaryHeat));
   }
 }
 
@@ -2873,6 +2865,8 @@ function setPrimaryWeaponCooldown(game, cellId, slotIndex, weaponId, cooldown) {
   const key = primaryWeaponCooldownKey(cellId, slotIndex, weaponId);
   game.primaryWeaponCooldowns ??= {};
   game.primaryWeaponCooldowns[key] = Math.max(0, cooldown);
+  game.primaryWeaponCooldownDurations ??= {};
+  game.primaryWeaponCooldownDurations[key] = Math.max(0, cooldown);
 }
 
 function primaryWeaponCooldownKey(cellId, slotIndex, weaponId) {
@@ -3110,15 +3104,20 @@ function sumUpgradeLevels(game, ids) {
 
 function primaryFiringMounts(game) {
   const muzzles = gunMuzzlesWorld(game.vehicle, game.runMode === 'arcade' ? arcadeForwardHeading(game) : game.vehicle.turretHeading);
-  if (muzzles.length === 0) return [];
   const definition = game.vehicleDefinition?.cells ? game.vehicleDefinition : { cells: game.vehicle.cells.map((cell) => ({ id: cell.id, type: cell.type })) };
   const loadouts = new Map(firingGunLoadouts({ ...game, vehicleDefinition: definition }).map((loadout) => [loadout.cellId, loadout]));
-  return muzzles.map((muzzle) => {
+  const mounts = muzzles.filter(muzzle => game.runMode !== 'arcade' || functionalPrimaryCell(game.vehicle.cells.find(cell => cell.id === muzzle.cellId))).map((muzzle) => {
     let slots = loadouts.get(muzzle.cellId)?.primary ?? [];
     if (game.runMode !== 'arcade') slots = slots.some(Boolean) ? slots.filter(Boolean) : ['main.basic'];
     const entries = slots.map((weaponId, slotIndex) => ({ weaponId, slotIndex })).filter(entry => entry.weaponId);
     return { muzzle, weapons: entries.map(entry => entry.weaponId), offensiveWeapons: entries, defensiveWeapons: [] };
   });
+  const emergency = emergencyPrimaryState(game);
+  if (emergency.active) {
+    const muzzle = moduleMuzzlesWorld(game.vehicle, [emergency.cell.id], arcadeForwardHeading(game))[0];
+    if (muzzle) mounts.push({ muzzle, weapons: [emergency.weaponId], offensiveWeapons: [{ weaponId: emergency.weaponId, slotIndex: 0 }], defensiveWeapons: [] });
+  }
+  return mounts;
 }
 
 function primaryMountWeaponEntries(mount, queueKind = 'offensive') {
@@ -6816,6 +6815,7 @@ function boostShieldRadius(game) {
 function handleCollisions(game) {
   for (const projectile of game.enemyProjectiles) {
     if (projectile.lifetime <= 0) continue;
+    if (projectile.weapon === 'diver-time-bomb') continue;
     if ((projectile.deflectionGraceUntil ?? 0) > game.time) continue;
     if (projectile.behavior === 'arc' && !projectile.arcLanded) continue;
     if (projectile.behavior === 'beam') {

@@ -1028,10 +1028,25 @@
       .manifest-name { font: 10px/1.15 system-ui; color: #d6f7ee; max-width: 100%; height: 2.3em; overflow: hidden; overflow-wrap: anywhere; }
       .manifest-lost-cross { position: absolute; inset: 0; display: grid; place-items: center; color: #ff5050; font: 700 42px/1 system-ui; text-shadow: 0 0 3px #2d0909; }
       .manifest-legend { color: #b0c4bd; font-size: 10px; }
+      .manifest-emergency-state { display: block; color: #92f4db; font: 7px system-ui; margin-top: 2px; }
+      .cooldown-anchor { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex: 0 0 40px; }
+      .cooldown-ring { position: absolute; z-index: 4; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 38px; height: 38px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgb(8 24 27 / 0.9); color: #c3fff0; pointer-events: none; font: 700 10px/1.1 ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+      .cooldown-ring::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#69f6d0 var(--cooldown-progress), rgb(105 246 208 / 0.15) 0); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0); }
+      .cooldown-ring small { font-size: 7px; font-weight: 500; }
+      .cooldown-ring[hidden], .wave-warning[hidden], #emergencyWeaponField[hidden] { display: none; }
+      .manifest-card .cooldown-ring { top: 18px; width: 32px; height: 32px; font-size: 9px; }
+      .wave-warning-panel { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); z-index: 28; pointer-events: none; display: grid; gap: 4px; max-width: calc(100vw - 24px); text-align: center; }
+      .wave-warning { border: 1px solid rgb(255 185 100 / 0.35); border-radius: 5px; padding: 5px 10px; background: rgb(20 16 12 / 0.8); color: #ffd2a0; font: 800 11px/1.2 system-ui; font-variant-numeric: tabular-nums; animation: inbound-flash 1.2s ease-in-out infinite; }
+      .wave-warning-panel.hidden { display: none; }
+      #diverWaveWarning { color: #a6fff1; border-color: rgb(105 246 208 / 0.4); }
+      .wave-warning.imminent { animation-duration: 0.4s; }
+      @keyframes inbound-flash { 50% { opacity: 0.4; } }
+      @media (prefers-reduced-motion: reduce) { .wave-warning { animation: none; } }
       .pause-section h4 { margin: 4px 0 8px; font-size: 12px; }
       body.title-active .manifest-toggle, body.title-active .weapon-manifest-overlay { display: none; }
       @media (max-width: 700px), (pointer: coarse) {
         .weapon-manifest-overlay { width: min(220px, calc(100vw - 108px)); }
+        .wave-warning-panel { top: 104px; }
         .manifest-name { font-size: 9px; }
         .weapon-manifest-overlay .icon-sprite.small { width: 20px; height: 20px; }
       }
@@ -2290,6 +2305,10 @@
       <div class="manifest-heading">SYSTEMS</div>
       <div id="weaponManifestList" class="weapon-manifest" role="list"></div>
     </aside>
+    <aside id="waveWarningPanel" class="wave-warning-panel hidden" aria-label="Incoming wave countdowns">
+      <div id="diverWaveWarning" class="wave-warning" hidden></div>
+      <div id="standardWaveWarning" class="wave-warning" hidden></div>
+    </aside>
     <button id="pauseToggle" class="pause-toggle" type="button" aria-label="Pause and gear menu">PAUSE</button>
     <button id="debugToggle" class="debug-toggle" type="button" aria-label="Toggle debug stats">DBG</button>
     <button id="controlConfigToggle" class="control-config-toggle" type="button" aria-label="Configure controls">CFG</button>
@@ -2403,6 +2422,9 @@
         <div class="pause-grid">
           <section class="pause-section">
             <h3>Weapons</h3>
+            <label id="emergencyWeaponField" for="emergencyWeaponSelect">Core emergency primary
+              <select id="emergencyWeaponSelect"></select>
+            </label>
             <label for="pauseSecondarySelect">
               Secondary
               <select id="pauseSecondarySelect">
@@ -2485,7 +2507,7 @@
     <button id="boostButton" class="boost-button" type="button" aria-label="Dodge boost">BOOST</button>
     <div id="combatPanel" class="combat-panel">
       <div class="combat-row">
-        <span id="secondaryIcon" class="icon-sprite" data-icon="rocket" aria-hidden="true"></span>
+        <span id="secondaryCooldownAnchor" class="cooldown-anchor"><span id="secondaryIcon" class="icon-sprite" data-icon="rocket" aria-hidden="true"></span></span>
         <label for="secondarySelect">Secondary</label>
         <select id="secondarySelect">
           <option value="none">None</option>

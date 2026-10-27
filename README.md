@@ -17,6 +17,8 @@ Choose **Arcade Run** for the fixed-vehicle forward shooter. The 114-cell hull u
 
 Arcade v1.0.19.0 softens the Wavelet distortion by 25% from v1.0.18.0, adds a teal fog-light glow that charges to 33% opacity with inward-flowing particles, and matches release damage to the full visible front, rings and ripple area. Double attraction, extended reach, charge pinning, recoil and triple-speed projectile returns remain. A compact weapon/utility manifest appears in pause and as a lower-left overlay: GEAR or M toggles it. Half-opacity equipment icons use teal for good, yellow for at-risk, and a red X for lost or disabled systems. Bullets and player flechettes retain their speed/size increase, and projectile damage retains its 50% boost.
 
+Arcade v1.0.20.0 adds draining cooldown rings with three-digit readouts on HUD icons and system cards, flashing scheduled-wave ETAs, and two-second Diver approach markers. Divers fire one to three homing flechettes during each dive and drop one to three bombs with three-second mortar warnings on return. In pause, choose a Core emergency primary (Main Gun by default); it activates when every other installed primary mount is disabled and returns to standby after repair.
+
 ## Public Playtest
 
 The `main` branch deploys to GitHub Pages:
@@ -25,7 +27,7 @@ The `main` branch deploys to GitHub Pages:
 https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
 ```
 
-Publish each verified gameplay update to Pages by default so PC and phone playtests use the same release. After tests and the Pages build pass, commit and push the relevant changes to `main`, wait for the **Deploy Pages** workflow to succeed, and verify the public build version before reporting deployment complete. The current Arcade build is **v1.0.19.0**. Local edits and builds alone do not update the public site; the visible version identifies the release loaded by each browser.
+Publish each verified gameplay update to Pages by default so PC and phone playtests use the same release. After tests and the Pages build pass, commit and push the relevant changes to `main`, wait for the **Deploy Pages** workflow to succeed, and verify the public build version before reporting deployment complete. The current Arcade build is **v1.0.20.0**. Local edits and builds alone do not update the public site; the visible version identifies the release loaded by each browser.
 
 ## Test
 

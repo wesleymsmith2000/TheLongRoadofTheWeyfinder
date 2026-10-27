@@ -365,7 +365,7 @@ function parseHexColor(color) {
 function drawIncomingMarkers(ctx, markers = [], time = 0) {
   for (const marker of markers) {
     const flash = Math.sin(time * 18) * 0.5 + 0.5;
-    const size = marker.type === 'boss' ? 22 : marker.type === 'enhanced' ? 17 : 13;
+    const size = marker.type === 'boss' ? 22 : ['enhanced', 'diver'].includes(marker.type) ? 17 : 13;
     ctx.save();
     ctx.translate(marker.x, marker.y);
     ctx.globalAlpha = 0.32 + flash * 0.68;
@@ -1731,7 +1731,7 @@ function drawProjectiles(ctx, projectiles, color, imageAssets) {
     if (projectile.weapon === 'ats-grav-rocket' && projectile.targetHint) {
       drawArcLandingMarker(ctx, projectile, projectile.targetHint, '#ff5a54', imageAssets);
     }
-    if (projectile.weapon === 'shadowed-road-mine') {
+    if (projectile.weapon === 'shadowed-road-mine' || projectile.weapon === 'diver-time-bomb') {
       drawShadowedRoadMine(ctx, projectile, imageAssets);
       continue;
     }

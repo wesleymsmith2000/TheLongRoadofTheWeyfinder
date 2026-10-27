@@ -1,5 +1,7 @@
 import { firingGunLoadouts } from './arcadeLoadout.js';
 import { normalizeUtilityLoadouts } from './weaponLoadout.js';
+import { weaponCooldown } from './weaponCooldown.js';
+import { emergencyPrimaryState } from './emergencyWeapon.js';
 
 // Strongest remaining structural path to the core; never infer grid adjacency.
 function supportStrengths(vehicle) {
@@ -34,9 +36,10 @@ export function weaponManifest(game) {
       if (!weaponId) return;
       const cell = cells.get(cellId);
       const integrity = cell ? Math.min(cell.state.structureIntegrity, cell.state.wiringIntegrity, cell.state.deviceIntegrity) : 0;
-      const lost = !cell?.attached || cell.state.destroyed || integrity <= 0.1;
+      const lost = !cell?.attached || cell.state.destroyed || integrity <= 0.1 || cell.state.deviceIntegrity <= 0.15;
       const status = lost ? 'lost' : integrity < 0.5 || (support.get(cellId) ?? 0) < 0.7 ? 'danger' : 'good';
-      result.push({ key: `${cellId}:${kind}:${index}`, cellId, kind, weaponId, integrity, status });
+      const entry = { key: `${cellId}:${kind}:${index}`, cellId, kind, slotIndex: index, weaponId, integrity, status };
+      result.push({ ...entry, cooldown: weaponCooldown(game, entry) });
     });
   }
   for (const loadout of firingGunLoadouts(game)) {
@@ -44,5 +47,13 @@ export function weaponManifest(game) {
     add(loadout.cellId, 'secondary', loadout.secondary);
   }
   for (const loadout of normalizeUtilityLoadouts(game.vehicleDefinition)) add(loadout.cellId, 'utility', loadout.slots);
+  const emergency = emergencyPrimaryState(game);
+  if (emergency.enabled && emergency.cell) {
+    add(emergency.cell.id, 'emergency', [emergency.weaponId]);
+    const entry = result.at(-1);
+    entry.emergency = true;
+    entry.standby = !emergency.active && entry.status !== 'lost';
+    entry.cooldown = weaponCooldown(game, entry);
+  }
   return result;
 }

@@ -5,6 +5,7 @@
   "provenance": "Arcade 114-cell hull with single-cell systems, separate gun hardpoints and shoulder armor.",
   "canonStatus": "CANON",
   "tags": ["player","vehicle","arcade"],
+  "emergencyWeapon": "main.basic",
   "cells": [
     {"id":"armor--2--4","type":"armor","gridX":-2,"gridY":-4},
     {"id":"armor--1--4","type":"armor","gridX":-1,"gridY":-4},

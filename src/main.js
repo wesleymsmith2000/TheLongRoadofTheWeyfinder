@@ -11,6 +11,10 @@ import { BUILD_VERSION } from './core/buildVersion.js';
 import { arcadeLevelProgress } from './core/arcadePacing.js';
 import { weaponManifest } from './core/weaponManifest.js';
 import { createWeaponManifestView } from './ui/weaponManifest.js';
+import { weaponCooldown } from './core/weaponCooldown.js';
+import { createCooldownRing } from './ui/cooldownRing.js';
+import { waveWarnings, formatWaveEta } from './core/waveWarnings.js';
+import { EMERGENCY_PRIMARY_WEAPONS } from './core/emergencyWeapon.js';
 import { arcadeSlotFlags, gunCellInactive, INACTIVE_GUN_HINT } from './core/arcadeLoadout.js';
 import { worldToLocal } from './core/math.js';
 import { CELL_SIZE } from './core/voxelMask.js';
@@ -347,6 +351,9 @@ const manifestToggle = document.querySelector('#manifestToggle');
 const weaponManifestOverlay = document.querySelector('#weaponManifestOverlay');
 const weaponManifestList = document.querySelector('#weaponManifestList');
 const pauseWeaponManifest = document.querySelector('#pauseWeaponManifest');
+const waveWarningPanel = document.querySelector('#waveWarningPanel');
+const emergencyWeaponSelect = document.querySelector('#emergencyWeaponSelect');
+const emergencyWeaponField = document.querySelector('#emergencyWeaponField');
 const pauseLevelNumber = document.querySelector('#pauseLevelNumber');
 const pauseScrapCount = document.querySelector('#pauseScrapCount');
 const pauseDamageDone = document.querySelector('#pauseDamageDone');
@@ -523,6 +530,12 @@ const manifestViewOptions = {
 const updateManifestOverlay = createWeaponManifestView(weaponManifestList, manifestViewOptions);
 const updatePauseManifest = createWeaponManifestView(pauseWeaponManifest, manifestViewOptions);
 let manifestTimer = 0;
+let manifestEntries = [];
+let waveWarningLayoutSignature = '';
+const secondaryCooldownRing = createCooldownRing(document);
+document.querySelector('#secondaryCooldownAnchor').append(secondaryCooldownRing.element);
+const boostCooldownRing = createCooldownRing(document);
+boostButton.append(boostCooldownRing.element);
 let activeShopSection = 'repair';
 let activeWorkshopSection = 'loadout';
 let workshopMergeSignature = '';
@@ -839,6 +852,9 @@ function frame(now) {
     updateShopUi(dt);
     syncPauseUi(mouseInput.aimWorld ?? padAimWorld, dt);
     syncWeaponManifest(dt);
+    syncWaveWarnings();
+    secondaryCooldownRing.update(weaponCooldown(game, { kind: 'secondary', weaponId: game.secondary.selected }));
+    boostCooldownRing.update(weaponCooldown(game, { kind: 'utility', weaponId: 'booster' }));
     boostFill.style.width = `${(game.boost.fuel / game.boost.maxFuel) * 100}%`;
     secondarySelect.value = game.secondary.selected;
     setIconElement(secondaryIcon, weaponIconDescriptor(game.secondary.selected));
@@ -900,6 +916,12 @@ secondarySelect.addEventListener('change', syncSecondarySelects);
 pauseSecondarySelect.addEventListener('change', syncSecondarySelects);
 secondaryAutofire.addEventListener('change', syncSecondaryAutofire);
 pauseSecondaryAutofire.addEventListener('change', syncSecondaryAutofire);
+emergencyWeaponSelect.addEventListener('change', () => {
+  if (game.runMode !== 'arcade' || !game.paused) return;
+  game.vehicleDefinition.emergencyWeapon = emergencyWeaponSelect.value || null;
+  uiDirty.pause = true;
+  manifestTimer = 1;
+});
 targetCellTypeSelect.addEventListener('change', () => { uiDirty.pause = true; });
 shopRepairTab.addEventListener('click', () => setShopSection('repair'));
 shopUpgradeTab.addEventListener('click', () => setShopSection('upgrades'));
@@ -1147,11 +1169,38 @@ function syncWeaponManifest(dt) {
   manifestToggle.setAttribute('aria-expanded', String(manifestVisible));
   weaponManifestOverlay.classList.toggle('hidden', !playing || !manifestVisible || game.paused);
   manifestTimer += dt;
-  if (!playing || (!manifestVisible && !game.paused) || manifestTimer < 0.15) return;
-  manifestTimer = 0;
-  const entries = weaponManifest(game);
+  if (!playing || (!manifestVisible && !game.paused)) return;
+  if (manifestTimer >= 0.15) {
+    manifestTimer = 0;
+    manifestEntries = weaponManifest(game);
+  }
+  const entries = manifestEntries.map(entry => ({ ...entry, cooldown: weaponCooldown(game, entry) }));
   if (manifestVisible && !game.paused) updateManifestOverlay(entries);
   if (game.paused) updatePauseManifest(entries);
+}
+
+function syncWaveWarnings() {
+  const warnings = awaitingLaunch || titleActive || game.paused ? [] : waveWarnings(game);
+  waveWarningPanel.classList.toggle('hidden', warnings.length === 0);
+  if (warnings.length) {
+    const layout = `${window.innerWidth}:${window.innerHeight}:${combatPanel.classList.contains('hidden')}:${game.secondary.selected}`;
+    if (layout !== waveWarningLayoutSignature) {
+      waveWarningLayoutSignature = layout;
+      if (window.matchMedia('(max-width: 700px), (pointer: coarse)').matches) {
+        const top = combatPanel.classList.contains('hidden') ? 104 : combatPanel.getBoundingClientRect().bottom + 8;
+        waveWarningPanel.style.top = `${top}px`;
+      } else waveWarningPanel.style.removeProperty('top');
+    }
+  }
+  for (const kind of ['diver', 'standard']) {
+    const row = document.querySelector(`#${kind}WaveWarning`);
+    const warning = warnings.find(entry => entry.kind === kind);
+    row.hidden = !warning;
+    if (warning) {
+      row.classList.toggle('imminent', warning.eta <= 2);
+      row.textContent = `${warning.text} · ETA ${formatWaveEta(warning.eta)}`;
+    }
+  }
 }
 
 function launchVehicle() {
@@ -1423,6 +1472,10 @@ function syncPauseUi(hoverWorld = null, dt = 0) {
   pauseLevelNumber.textContent = game.level;
   pauseScrapCount.textContent = game.scrap;
   pauseDamageDone.textContent = game.score.damageDone;
+  emergencyWeaponField.hidden = game.runMode !== 'arcade' || Boolean(game.sandbox?.enabled);
+  reconcileSelectOptions(emergencyWeaponSelect, [
+    { value: '', label: 'None' }, ...EMERGENCY_PRIMARY_WEAPONS.map(id => ({ value: id, label: secondaryWeaponLabel(id) })),
+  ], game.vehicleDefinition.emergencyWeapon === undefined ? 'main.basic' : game.vehicleDefinition.emergencyWeapon ?? '');
   if (!saveStatus.textContent) saveStatus.textContent = 'Save exports restore run progress as a checkpoint.';
   renderModuleStatus();
   updatePauseManifest(weaponManifest(game));

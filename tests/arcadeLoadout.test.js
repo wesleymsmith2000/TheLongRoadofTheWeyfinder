@@ -26,6 +26,7 @@ function enemyAt(game, x = 0, y = -80) {
 }
 function emptyGuns() {
   const definition = structuredClone(starter);
+  definition.emergencyWeapon = null;
   for (const loadout of definition.gunLoadouts) { loadout.primary = [null]; loadout.secondary = [null]; }
   definition.modules = definition.modules.map(module => ({ ...module, slots: [] }));
   return definition;

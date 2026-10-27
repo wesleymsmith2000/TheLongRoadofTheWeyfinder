@@ -175,6 +175,7 @@ function stepChargingField(game, field, dt, hooks) {
       game.vehicle.vy -= Math.sin(field.lockedAngle) * field.config.recoilSpeed;
     }
     game.secondary.cooldown = Math.max(game.secondary.cooldown ?? 0, field.config.cooldown);
+    game.secondary.cooldownDuration = game.secondary.cooldown;
     applyWeaponInterlock(game, field.config.postFireGlobalLockoutSeconds, field.sourceWeaponId);
     hooks.onDischarge?.(field);
   }

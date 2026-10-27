@@ -202,6 +202,7 @@ export function fireSecondary(game) {
   if (Number.isFinite(secondary.ammo[secondary.selected])) secondary.ammo[secondary.selected] -= 1;
   secondary.heat += def.heat;
   secondary.cooldown = def.cooldown * heatCooldownScale(secondary);
+  secondary.cooldownDuration = secondary.cooldown;
   if (['rocket', 'cannon', 'sta_missile'].includes(secondary.selected)) {
     emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_WEAPON_FIRE, {
       weapon: secondary.selected,
