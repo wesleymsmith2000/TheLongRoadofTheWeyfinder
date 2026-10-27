@@ -79,10 +79,22 @@ test('Arcade vehicle is connected and reserves defensive weapons outside its con
   const vehicle = createStartingVehicle(arcadeStartingVehicleDefinition);
 
   assert.equal(report.valid, true);
-  assert.equal(vehicle.cells.length, 28);
-  assert.equal(vehicle.connections.length, 45);
-  assert.deepEqual(main.primary.slice(0, 2), ['main.basic', 'tracking_flechette']);
-  assert.deepEqual(main.secondary, ['rocket', 'cannon', 'beam']);
+  assert.equal(vehicle.cells.length, 114);
+  assert.equal(vehicle.connections.length, 206);
+  assert.equal(vehicle.cells.every(cell => cell.attached), true);
+  assert.equal(vehicle.cells.filter(cell => cell.type === 'core').length, 1);
+  assert.equal(vehicle.cells.filter(cell => cell.type === 'engine').length, 2);
+  assert.equal(vehicle.cells.filter(cell => cell.type === 'wheel').length, 4);
+  assert.equal(vehicle.cells.filter(cell => cell.type === 'utility').length, 2);
+  assert.equal(vehicle.cells.filter(cell => cell.type === 'gun').length, 8);
+  for (const cell of vehicle.cells.filter(cell => cell.type !== 'armor')) {
+    const block = [[0, 0], [1, 0], [0, 1], [1, 1]];
+    assert.equal(block.every(([dx, dy]) => vehicle.cells.some(other => other.type === cell.type && other.gridX === cell.gridX + dx && other.gridY === cell.gridY + dy)), false);
+  }
+  assert.deepEqual(main.primary, ['main.basic', null, null, null]);
+  assert.deepEqual(main.secondary, ['rocket', null, null]);
+  assert.equal(loadouts.filter(loadout => loadout.primary.some(Boolean)).length, 2);
+  assert.equal(loadouts.filter(loadout => loadout.secondary.some(Boolean)).length, 3);
   assert.equal(support.primary.every((weapon) => weapon == null), true);
   assert.equal(support.secondary.every((weapon) => weapon == null), true);
   assert.deepEqual(vehicle.modules.find((module) => module.cellId === 'utility')?.slots, ['booster', 'scrap_magnet', 'repulsor_beam', 'tractor_beam']);

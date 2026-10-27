@@ -13,7 +13,7 @@ Open the forwarded Vite preview. Vite starts on port `5173`, or the next open po
 
 ## Arcade Mode
 
-Choose **Arcade Run** on the title screen for the fixed-vehicle forward shooter. The vehicle faces the road, the Main Gun sprays around road-forward, and ordinary enemies recover toward the visible forward edge. Themed Divers stage near that edge, track for ten seconds, then U-turn into a firing dive and loop back for another pass. Primaries and enemy projectile attacks fire at half rate with double damage; explosive radii grow by 50%. Mortar retains target aiming, while secondary damage and cadence stay unchanged. Arcade levels require two cleared Diver waves; waves wait 60?240 seconds when no Divers are alive, with a seeded count of 1?3 plus the zone number and level within that zone. See [Arcade runtime rules](docs/arcade-mode.md) and [Diver content and behavior](docs/arcade-divers.md).
+Choose **Arcade Run** for the fixed-vehicle forward shooter. The 114-cell hull uses single-cell systems and faces road-forward, with Guided AI targeting, seeded Main Gun spray, doubled bullet flight time, reticle-targeted cannon detonations and forward beam fire. Acceleration and braking increase by 50% and top speed doubles. Bosses recover toward reachable forward positions between scripted maneuvers. Arcade travels twice as fast over terrain tiles with four times the edge length; each chunk contains one quarter as many tiles, with unchanged cache image dimensions. Each gun cell holds one primary and one secondary; three cells start active, with two primary and three secondary slots. Each zone boss clear opens one additional slot. Mini Beam is an automatic utility, and fully inactive gun cells show a grey X with a hover explanation. Quiet screens get a single gap Diver after two seconds without visible enemies or scrap; it yields to scheduled waves and never counts toward completion. Scheduled waves still use the 15-second empty-screen limit. Divers use faster movement, tighter visible turns and player-directed tracking spray. Motorcycle wheel loss triggers a spinout and explosion; Stream Divers react to nearby hoppers with fear and, after surviving five seconds, relief. Each level requires two cleared Diver waves, and the progress bar includes those waves and their partial kills. See [Arcade runtime rules](docs/arcade-mode.md) and [Diver content and behavior](docs/arcade-divers.md).
 
 ## Public Playtest
 
@@ -23,7 +23,7 @@ The `main` branch deploys to GitHub Pages:
 https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
 ```
 
-Local edits and builds do not update the public site. A release reaches Pages after its commit is pushed to `main` and the **Deploy Pages** workflow succeeds. Check the visible build version to distinguish releases; the Diver release is **v1.0.14.0** and shows **Arcade Run** on the title screen.
+Local edits and builds do not update the public site. A release reaches Pages after its commit is pushed to `main` and the **Deploy Pages** workflow succeeds. Check the visible build version to distinguish releases; the current local Arcade update is **v1.0.17.0**. Its version tag identifies the build; a local build alone does not establish that this version is deployed.
 
 ## Test
 

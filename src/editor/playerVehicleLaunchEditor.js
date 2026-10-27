@@ -12,6 +12,7 @@ import {
   setGunLoadoutSlot,
 } from '../core/playerVehicleEditor.js';
 import { availablePrimaryWeaponIds, availableSecondaryWeaponIds } from '../core/weaponLoadout.js';
+import { INACTIVE_GUN_HINT } from '../core/arcadeLoadout.js';
 
 const cellColors = {
   armor: '#8fa6ad',
@@ -35,6 +36,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     primaryWeaponIds: null,
     secondaryWeaponIds: null,
     requireFilledLoadout: false,
+    gunSlotFlags: null,
   };
   const gridCount = VEHICLE_EDITOR_GRID_RADIUS * 2 + 1;
   const pad = 22;
@@ -51,6 +53,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
   populateLoadoutSelects();
   for (const select of elements.loadoutSelects ?? []) {
     select.addEventListener('change', () => {
+      if (select.disabled) return;
       const result = setGunLoadoutSlot(
         state.definition,
         state.selectedCellId,
@@ -69,6 +72,12 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     emitChange();
   });
   elements.canvas.addEventListener('click', handleClick);
+  elements.canvas.addEventListener('pointermove', event => {
+    const grid = eventToGrid(event);
+    const cell = grid && cellAt(grid.x, grid.y);
+    elements.canvas.title = cell?.type === 'gun' && inactiveGun(cell.id) ? INACTIVE_GUN_HINT : '';
+  });
+  elements.canvas.addEventListener('pointerleave', () => { elements.canvas.title = ''; });
   render();
 
   return {
@@ -83,6 +92,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     setDefinition(definition, configuration = {}) {
       state.definition = cloneDefinition(definition ?? startingVehicleDefinition);
       state.structureLocked = Boolean(configuration.structureLocked);
+      state.gunSlotFlags = configuration.gunSlotFlags ?? null;
       state.editableGunCellIds = Array.isArray(configuration.editableGunCellIds)
         ? new Set(configuration.editableGunCellIds)
         : null;
@@ -119,7 +129,7 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     if (state.structureLocked) {
       if (cell?.type === 'gun' && canEditGunCell(cell.id)) {
         state.selectedCellId = cell.id;
-        state.message = `Selected ${cell.id}.`;
+        state.message = inactiveGun(cell.id) ? INACTIVE_GUN_HINT : `Selected ${cell.id}.`;
       } else {
         state.message = 'Arcade mode uses a fixed vehicle. Choose weapons from the loadout controls.';
       }
@@ -274,6 +284,16 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(cell.type.toUpperCase().slice(0, 2), center.x, center.y);
+    if (cell.type === 'gun' && inactiveGun(cell.id)) {
+      context.strokeStyle = '#a4a8ab';
+      context.lineWidth = 4;
+      context.beginPath();
+      context.moveTo(center.x - size * 0.3, center.y - size * 0.3);
+      context.lineTo(center.x + size * 0.3, center.y + size * 0.3);
+      context.moveTo(center.x + size * 0.3, center.y - size * 0.3);
+      context.lineTo(center.x - size * 0.3, center.y + size * 0.3);
+      context.stroke();
+    }
     if (cell.type === 'gun') {
       const loadout = normalizeGunLoadouts(state.definition).find((candidate) => candidate.cellId === cell.id);
       const loadedCount = [...(loadout?.primary ?? []), ...(loadout?.secondary ?? [])].filter(Boolean).length;
@@ -340,8 +360,12 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
     const selectedCell = state.definition.cells.find((cell) => cell.id === state.selectedCellId);
     const selectedLoadout = normalizeGunLoadouts(state.definition).find((loadout) => loadout.cellId === state.selectedCellId);
     for (const select of elements.loadoutSelects ?? []) {
-      const enabled = selectedCell?.type === 'gun' && selectedLoadout && canEditGunCell(selectedCell.id);
+      const index = Number(select.dataset.slotIndex);
+      select.closest('label')?.classList.toggle('hidden', Boolean(state.gunSlotFlags && index > 0));
+      const slotActive = !state.gunSlotFlags || state.gunSlotFlags[selectedCell?.id]?.[select.dataset.slotKind]?.[index] === true;
+      const enabled = selectedCell?.type === 'gun' && selectedLoadout && canEditGunCell(selectedCell.id) && slotActive;
       select.disabled = !enabled;
+      select.title = state.gunSlotFlags && !slotActive ? 'Additional slots open after each zone boss clear' : '';
       const value = enabled ? selectedLoadout[select.dataset.slotKind][Number(select.dataset.slotIndex)] ?? '' : '';
       if (value && ![...select.options].some((option) => option.value === value)) {
         select.append(new Option(`${labelForWeapon(value)} (locked)`, value));
@@ -352,6 +376,10 @@ export function createPlayerVehicleLaunchEditor(elements, options) {
 
   function canEditGunCell(cellId) {
     return !state.editableGunCellIds || state.editableGunCellIds.has(cellId);
+  }
+
+  function inactiveGun(cellId) {
+    return state.gunSlotFlags && !state.gunSlotFlags[cellId]?.primary?.[0] && !state.gunSlotFlags[cellId]?.secondary?.[0];
   }
 
   function centerScrollIfNeeded() {

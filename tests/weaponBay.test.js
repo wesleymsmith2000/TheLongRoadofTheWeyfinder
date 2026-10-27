@@ -84,14 +84,14 @@ test('old weapon-bay saves normalize without losing generic equipment inventory'
   assert.deepEqual(normalized.discoveredMerges, []);
 });
 
-test('Arcade support gun unlocks its first primary slot before later slots', () => {
+test('Arcade slots cannot be bought with scrap', () => {
   const game = createGame(1147, { vehicleDefinition: arcadeVehicleDefinition, runMode: 'arcade' });
   game.levelComplete = true;
   game.weaponBay.available = true;
   game.scrap = ARCADE_SLOT_UNLOCK_COST * 2;
   assert.equal(weaponSlotUnlocked(game, 'gun-support', 'primary', 0), false);
   assert.equal(unlockArcadeWeaponSlot(game, 'gun-support', 'secondary', 0).changed, false);
-  assert.equal(unlockArcadeWeaponSlot(game, 'gun-support', 'primary', 0).changed, true);
-  assert.equal(unlockArcadeWeaponSlot(game, 'gun-support', 'secondary', 0).changed, true);
-  assert.equal(game.scrap, 0);
+  assert.equal(unlockArcadeWeaponSlot(game, 'gun-support', 'primary', 0).changed, false);
+  assert.equal(weaponSlotUnlocked(game, 'gun-support', 'primary', 0), false);
+  assert.equal(game.scrap, ARCADE_SLOT_UNLOCK_COST * 2);
 });

@@ -343,7 +343,7 @@ Player/construct definitions may carry per-gun weapon loadouts:
 }
 ```
 
-Current primary ids are `main.basic`, `tracking_flechette`, `mortar`, `blade_launcher`, `mini_beam`, and `repulsor_beam`. Current secondary ids are `rocket`, `cannon`, `beam`, `tractor_beam`, `sta_missile`, and `orb_of_blades`. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`. Secondary ammo capacity uses `ceil((baseCapacity + ammoBonus) * sqrt(N + 1))`, where `N` is the number of mounted copies of that secondary weapon on the player's craft.
+Normal primary ids are `main.basic`, `tracking_flechette`, `mortar`, `blade_launcher`, and `mini_beam`. Secondary gun ids are `rocket`, `cannon`, `beam`, `sta_missile`, `orb_of_blades`, and `vortex_wavelet_beam`. Repulsor and Tractor Beam are utility equipment in `modules` entries with `kind: 'utilitySlots'` and a `slots` array. Arcade also accepts `mini_beam` in these utility slots and removes it from its primary catalog; a functioning utility cell automatically fires it at a live enemy within its upgraded beam length. Normal retains its primary Mini Beam behavior. Arcade uses one primary and one secondary per gun cell, enabled by boss-clear progression; see [Arcade rules](arcade-mode.md) for starter availability and migration. Duplicate installed weapons use the square-root stack multiplier exposed by `src/core/weaponLoadout.js`. Secondary ammo capacity uses `ceil((baseCapacity + ammoBonus) * sqrt(N + 1))`, where `N` is the number of mounted copies of that secondary weapon on the player's craft.
 
 Available equipment is read from player account data rather than hard-coded into the editor. Prototype 0 uses local in-memory account data:
 
@@ -803,6 +803,8 @@ assets/stylesheets/
 ```
 
 Terrain texture sheets can also be selected from the active level music/biome name. The current runtime uses bundled image assets named like `assets/stylesheets/terrain__BiomeA_BiomeB__textures.png` and maps each listed biome to the same scrolling sheet in `src/render/canvasRenderer.js`. Editors should treat these as resource-backed level/background layers now, with a future route runner stitching procedural road segments, turns, scenery, and obstacle layers from level `route` data.
+
+Runtime terrain configuration accepts an optional positive integer `cachePixelSize`. It limits each chunk's square raster cache while world-space `chunkSize` and `tileSize` continue to drive generation, material queries and collision. Arcade uses `tileSize: 128`, `chunkSize: 1024`, and `cachePixelSize: 512`; Normal/Sandbox defaults remain 32-unit tiles in 512-unit chunks. See [Arcade runtime rules](arcade-mode.md).
 
 Prototype terrain ingest now supports first-class content pack entries for:
 

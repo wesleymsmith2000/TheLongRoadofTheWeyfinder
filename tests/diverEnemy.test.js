@@ -14,7 +14,7 @@ import { Rng } from '../src/core/rng.js';
 import { CELL_SIZE } from '../src/core/voxelMask.js';
 import { DEFAULT_LEVEL_MUSIC } from '../src/core/levelMusic.js';
 import { sandboxDefinitionFromEnemy } from '../src/core/sandboxMode.js';
-import { DIVER_CONSTRUCTS, DIVER_VARIANTS, diverLevelContext, validateDiverPack, createDiverEnemy, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from '../src/core/diverEnemy.js';
+import { DIVER_CONSTRUCTS, DIVER_VARIANTS, HOPPER_DIVER_PREY_RANGE, diverLevelContext, validateDiverPack, createDiverEnemy, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from '../src/core/diverEnemy.js';
 import { drawDiverUnderlay, drawDiverOverlay, diverCellVisualOffset } from '../src/render/diverRenderer.js';
 import pack from '../content/enemies/arcade_divers.json' with { type: 'json' };
 
@@ -97,7 +97,7 @@ for (const theme of Object.keys(DIVER_CONSTRUCTS)) {
       }
       assert.equal(cycles, 2);
       for (const phase of ['approach', 'track', 'climb', 'topTurn', 'aim', 'dive', 'bottomTurn', 'return']) assert.ok(phases.has(phase), phase);
-      assert.ok(furthestTurnY < -game.road.halfHeight * 1.6);
+      assert.ok(furthestTurnY < -game.road.halfHeight * 0.88);
     }
   });
 }
@@ -121,7 +121,102 @@ test('tracking has lag and overshoot, with the insect tracking faster than the m
   assert.ok(positions.insect > positions.motorcycle);
 });
 
-test('desktop and mobile staging uses the visible top and Diver U-turns leave the actual view', () => {
+test('tracking Divers aim at the player with broad seeded spread instead of their forward facing', () => {
+  function sample() {
+    const game = fixture(42, 0.8);
+    const enemy = at(game, 'motorcycle', 0, -road.halfHeight * 0.72);
+    enemy.diver.phase = 'track';
+    const offsets = [];
+    for (let i = 0; i < 100; i++) {
+      enemy.diver.fireTimer = 0;
+      stepDiverEnemy(game, enemy, 0);
+      const shot = game.enemyProjectiles.at(-1);
+      const playerAngle = Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x);
+      const offset = angleDelta(playerAngle, shot.angle);
+      offsets.push(offset);
+      assert.ok(Math.abs(offset) <= Math.PI / 6);
+      assert.ok(Math.abs(angleDelta(enemy.visualHeading, shot.angle)) > Math.PI / 2);
+    }
+    assert.ok(offsets.some(offset => offset > 0.3));
+    assert.ok(offsets.some(offset => offset < -0.3));
+    return offsets;
+  }
+  assert.deepEqual(sample(), sample());
+});
+
+test('Diver acceleration rises by 50 percent while motorcycle speed caps rise by 100', () => {
+  const game = fixture();
+  const enemy = at(game, 'motorcycle', 0, -road.halfHeight * 0.72);
+  Object.assign(enemy.diver, { phase: 'dive', roadAngle: 0, speed: 0 });
+  stepDiverEnemy(game, enemy, 0.1);
+  near(enemy.diver.speed, 22.5);
+  for (let i = 0; i < 200; i++) stepDiverEnemy(game, enemy, 0.01);
+  near(enemy.diver.speed, 290);
+  enemy.diver.phase = 'climb'; enemy.diver.speed = 165;
+  enemy.x = 0; enemy.y = -road.halfHeight * 0.88;
+  stepDiverEnemy(game, enemy, 0.01);
+  assert.equal(enemy.diver.phase, 'topTurn');
+  near(enemy.diver.turn.radius, Math.min(road.halfHeight, road.halfWidth * 0.8) * 0.19);
+});
+
+for (const wheelId of ['front-wheel', 'rear-wheel']) {
+  test(`destroying only the motorcycle Diver ${wheelId} triggers roadster spin, panic and explosion`, () => {
+    const game = createGame(17, { runMode: 'arcade' });
+    game.performanceDiagnostics = { disableCollisions: true, freezeTerrainStreaming: true };
+    game.autofire = false; game.enemySpawnQueue = [];
+    const enemy = createDiverEnemy(game.vehicle.x + 45, game.vehicle.y - 60, 'motorcycle');
+    enemy.diver.phase = 'track'; enemy.diver.fireTimer = 0;
+    game.enemies = [enemy];
+    const wheel = enemy.cells.find(cell => cell.id === wheelId);
+    wheel.mask.flat()[0].hp = 0; recalculateCell(wheel);
+    stepGame(game, {}, 0);
+    assert.equal(enemy.carRuntime?.spinout, undefined);
+    game.enemyProjectiles = [];
+    destroy(wheel);
+    stepGame(game, {}, 1 / 60);
+    assert.equal(enemy.carRuntime.spinout.phase, 'spin');
+    near(enemy.collisionRotation, enemy.visualHeading + enemy.renderHeadingOffset);
+    assert.ok(enemy.reactionCueQueue.some(cue => cue.text.includes(String.fromCodePoint(0x1f635)) || cue.text.includes(String.fromCodePoint(0x1f4ab))));
+    const heading = enemy.visualHeading;
+    let panic = false;
+    for (let i = 0; i < 255; i++) {
+      stepGame(game, {}, 1 / 60);
+      panic ||= enemy.reactionCueQueue.some(cue => cue.text.includes(String.fromCodePoint(0x1f623)) || cue.text.includes(String.fromCodePoint(0x1f631)));
+    }
+    assert.ok(panic);
+    assert.notEqual(enemy.visualHeading, heading);
+    assert.equal(enemy.destroyed, true);
+    assert.ok(enemy.explosionStart > 0);
+    assert.equal(game.enemyProjectiles.some(shot => shot.weapon === 'diver-gun'), false);
+  });
+}
+
+test('Stream Divers panic within hopper feeding range and show relief only after surviving five seconds', () => {
+  const game = fixture();
+  const enemy = at(game, 'insect', 0, -road.halfHeight * 0.72);
+  enemy.diver.phase = 'track'; enemy.diver.profile.trackingGain = 0;
+  const hopper = createEnemy(enemy.x + HOPPER_DIVER_PREY_RANGE - 1, enemy.y);
+  hopper.archetypeId = 'hopping_stream_mob.digitized_stream';
+  game.enemies = [enemy, hopper];
+  stepDiverEnemy(game, enemy, 0);
+  assert.ok(enemy.reactionCueQueue.some(cue => cue.text === String.fromCodePoint(0x1f631)));
+  for (let i = 0; i < 49; i++) stepDiverEnemy(game, enemy, 0.1);
+  assert.ok(enemy.reactionCueQueue.some(cue => cue.text === String.fromCodePoint(0x1f628)));
+  assert.equal(enemy.reactionCueQueue.some(cue => cue.text === String.fromCodePoint(0x1f60c)), false);
+  stepDiverEnemy(game, enemy, 0.11);
+  assert.equal(enemy.reactionCueQueue.filter(cue => cue.text === String.fromCodePoint(0x1f60c)).length, 1);
+  stepDiverEnemy(game, enemy, 0.1);
+  assert.equal(enemy.reactionCueQueue.filter(cue => cue.text === String.fromCodePoint(0x1f60c)).length, 1);
+  const eaten = at(game, 'insect', 0, -road.halfHeight * 0.72);
+  eaten.diver.phase = 'track'; game.enemies = [eaten, hopper];
+  stepDiverEnemy(game, eaten, 0);
+  const beam = createProjectile(hopper.x, hopper.y, 0, 0, { weapon: 'hopper-prey-beam', sourceEnemy: hopper, angle: Math.PI, length: HOPPER_DIVER_PREY_RANGE });
+  assert.equal(hitDiverWithHopperBeam(game, beam), true);
+  stepDiverEnemy(game, eaten, 6);
+  assert.equal(eaten.reactionCueQueue.some(cue => cue.text === String.fromCodePoint(0x1f60c)), false);
+});
+
+test('desktop and mobile staging uses the visible top and Diver U-turns begin inside the actual view', () => {
   for (const viewport of [{ width: 1000, height: 700 }, { width: 390, height: 844 }]) {
     const game = fixture();
     configureRoadLaneForViewport(game.road, viewport.width, viewport.height);
@@ -137,10 +232,18 @@ test('desktop and mobile staging uses the visible top and Diver U-turns leave th
     const enemy = at(game, 'motorcycle', 0, -bounds.ahead - 120);
     let cycles = 0;
     let phase = enemy.diver.phase;
+    let visibleTopTurn = false;
+    let visibleBottomTurn = false;
     for (let i = 0; i < 240 * 60; i++) {
       stepDiverEnemy(game, enemy, 1 / 60);
-      if (enemy.diver.phase === 'topTurn') assert.ok(enemy.y < -bounds.ahead);
-      if (enemy.diver.phase === 'bottomTurn') assert.ok(enemy.y > bounds.behind);
+      if (enemy.diver.phase === 'topTurn' && phase !== 'topTurn') {
+        assert.ok(enemy.y > -bounds.ahead);
+        visibleTopTurn = true;
+      }
+      if (enemy.diver.phase === 'bottomTurn' && phase !== 'bottomTurn') {
+        assert.ok(enemy.y < bounds.behind);
+        visibleBottomTurn = true;
+      }
       if (enemy.diver.phase === 'approach' && phase === 'return') cycles++;
       phase = enemy.diver.phase;
       game.enemyProjectiles = [];
@@ -148,6 +251,7 @@ test('desktop and mobile staging uses the visible top and Diver U-turns leave th
       if (cycles === 2) break;
     }
     assert.equal(cycles, 2);
+    assert.ok(visibleTopTurn && visibleBottomTurn);
   }
 });
 

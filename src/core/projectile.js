@@ -6,6 +6,8 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     vy,
     previousX: x,
     previousY: y,
+    startX: options.startX ?? null,
+    startY: options.startY ?? null,
     arcadeForwardLocked: Boolean(options.arcadeForwardLocked),
     homingReference: options.homingReference ?? null,
     angle: options.angle ?? Math.atan2(vy, vx),

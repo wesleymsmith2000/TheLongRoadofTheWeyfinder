@@ -1,5 +1,6 @@
 import { createDiverEnemy, DIVER_VARIANTS, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from './diverEnemy.js';
-import { normalizeRunMode, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias } from './arcadeMode.js';
+import { arcadeObjectVisible, retireArcadeGapDivers, stepArcadeGapDivers } from './arcadePacing.js';
+import { normalizeRunMode, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias, containArcadeBoss } from './arcadeMode.js';
 import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, moduleMuzzlesWorld, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
 import { stepVehicle, typedModulePower, vehicleMaxSpeed } from './physics.js';
 import { applyRocketHullDamage, stepProjectiles } from './projectile.js';
@@ -66,11 +67,14 @@ import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
 import { createCombatEventStats, recordEnemyDefeat } from './combatEvents.js';
 import { getEnemyArchetype, listEnemyArchetypes } from './enemyArchetypeDefinition.js';
 import { createTerrainGenerator } from './terrainGenerator.js';
+import { ARCADE_TERRAIN_CONFIG } from './terrainConfig.js';
 import { sampleTerrain } from './terrainQuery.js';
 import { createTerrainState, updateTerrainStreaming } from './terrainStreaming.js';
 import { createProceduralMusicState, setProceduralMusicBaseTrack, stepProceduralMusic } from './proceduralMusic.js';
 import { normalizeGunLoadouts, utilityModuleCellIds, utilityModuleInstalled } from './weaponLoadout.js';
 import { createWeaponBayState } from './weaponBay.js';
+import { arcadeSlotFlags, firingGunLoadouts, prepareArcadeLoadout } from './arcadeLoadout.js';
+import arcadeStartingVehicleDefinition from '../../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
 import { carrySpatialFields, stepSpatialFields } from './spatialWaveletBeam.js';
 import { createWeaponInterlock, stepWeaponInterlock, weaponFireBlocked } from './weaponInterlock.js';
 import { arcadeProjectileVelocity, forwardSafeInheritedVelocity } from './projectileLaunch.js';
@@ -451,7 +455,9 @@ const MORTAR_ENEMY_MARKER_SPRITE = {
 };
 
 export function createGame(seed = 1147, options = {}) {
-  const vehicleDefinition = options.vehicleDefinition ?? startingVehicleDefinition;
+  const arcade = normalizeRunMode(options.runMode) === 'arcade';
+  const prepared = arcade ? prepareArcadeLoadout(options.vehicleDefinition ?? arcadeStartingVehicleDefinition) : null;
+  const vehicleDefinition = prepared?.definition ?? options.vehicleDefinition ?? startingVehicleDefinition;
   const vehicle = createStartingVehicle(vehicleDefinition);
   const levelDefinition = options.levelDefinition ?? null;
   const navigationDefinition = options.navigationGraph ?? levelDefinition?.navigationGraph ?? null;
@@ -463,8 +469,9 @@ export function createGame(seed = 1147, options = {}) {
       startY: vehicle.y,
       startHeading: vehicle.heading,
     });
-  const road = createRoadFrame(vehicle, { route: terrainRoute });
-  const terrainGenerator = createTerrainGenerator({ seed: options.terrainSeed ?? seed, route: terrainRoute });
+  const arcadeTravel = arcade && !options.sandbox;
+  const road = createRoadFrame(vehicle, { route: terrainRoute, speed: arcadeTravel ? 60 : 30 });
+  const terrainGenerator = createTerrainGenerator({ seed: options.terrainSeed ?? seed, route: terrainRoute, config: arcadeTravel ? ARCADE_TERRAIN_CONFIG : undefined });
   const terrain = createTerrainState(terrainGenerator);
   updateTerrainStreaming(terrain, road);
   terrain.maxGeneratedChunksPerUpdate = options.terrainChunkBudget ?? LIVE_TERRAIN_CHUNK_GENERATION_BUDGET;
@@ -491,8 +498,10 @@ export function createGame(seed = 1147, options = {}) {
       ? authoredLevelTraversal(levelDefinition, road)
       : traversalTargetForTrack(currentMusic, road);
   if (normalizeRunMode(options.runMode) === 'arcade') {
+    vehicle.handlingScale = { acceleration: 1.5, braking: 1.5, maxSpeed: 2 };
     vehicle.heading = road.heading;
     vehicle.primaryFacingHeading = arcadeForwardHeading({ road });
+    vehicle.turretHeading = arcadeForwardHeading({ road });
     vehicle.angularVelocity = 0;
   }
   const game = {
@@ -563,7 +572,7 @@ export function createGame(seed = 1147, options = {}) {
     fps: 60,
     gameOver: false,
     paused: false,
-    targetingMode: 'mixed',
+    targetingMode: arcade ? 'guided' : 'mixed',
     guidedTargetId: null,
     guidedTargetCellType: 'auto',
     targetingAi: createTargetingAiState(options.targetingAi),
@@ -575,6 +584,7 @@ export function createGame(seed = 1147, options = {}) {
   if (sandboxDefinition) {
     for (const enemy of initialSpawns) triggerEnemyEntranceBark(game, enemy, 'warning');
   }
+  for (const id of prepared?.recovered ?? []) game.weaponBay.inventory[id] = (game.weaponBay.inventory[id] ?? 0) + 1;
   resetDiverWaves(game);
   return game;
 }
@@ -638,8 +648,13 @@ export function stepGame(game, input, dt) {
   carryRoadObjects(game, roadDelta);
   slideLooseObjectsAgainstEdgeNudge(game, roadEdgePressure);
   applyRoadTurnDizziness(game, roadDelta.turnAngle);
+  stepArcadeEmptyScreen(game, dt);
   stepEnemySpawner(game, dt);
-  stepDiverWaves(game, dt, enemy => applyEnemyLevelUpgrades(enemy, game.level, game.currentMusic));
+  stepDiverWaves(game, dt, enemy => {
+    retireArcadeGapDivers(game);
+    applyEnemyLevelUpgrades(enemy, game.level, game.currentMusic);
+  });
+  stepArcadeGapDivers(game, dt, enemy => applyEnemyLevelUpgrades(enemy, game.level, game.currentMusic));
   game.terrainSample = sampleTerrain(game.terrain, game.vehicle.x, game.vehicle.y);
   const obstacleInput = applyObstacleContacts(game, input, dt);
   configureBoostFromUpgrades(game);
@@ -651,6 +666,7 @@ export function stepGame(game, input, dt) {
   lockArcadeFacing(game);
   const turretInput = aimInputForTurret(game, input, dt);
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
+  lockArcadeFacing(game);
   stepEnemies(game, dt);
   stepPendingEnemyMortarShells(game, dt);
   stepWeaponInterlock(game, dt);
@@ -688,6 +704,7 @@ export function stepGame(game, input, dt) {
   stepScrapPickups(game, dt);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
   recalculateVehicle(game.vehicle);
+  lockArcadeFacing(game);
   syncBeamProjectiles(game);
   stepRoadCamera(game.camera, game.road, game.vehicle, dt);
   if (!game.performanceDiagnostics?.freezeTerrainStreaming) updateTerrainStreaming(game.terrain, game.camera);
@@ -696,6 +713,7 @@ export function stepGame(game, input, dt) {
   const traversalClear = traversalTargetReached(game);
   if (traversalClear) game.enemySpawnQueue = [];
   const arenaClear = diverWavesCleared(game) && (traversalClear || (shouldCompleteRun(game) && activeCompletionEnemies(game).length === 0 && game.enemySpawnQueue.length === 0));
+  if (arenaClear) retireArcadeGapDivers(game);
   stepVictoryBanner(game, arenaClear, dt);
   if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
   stepProceduralMusic(game, dt);
@@ -719,6 +737,7 @@ function stepPausedGame(game, input, dt) {
   stepSecondaryWeapon(game, { ...input, secondaryFirePressed: false, secondaryAutofire: false }, dt);
   const turretInput = aimInputForTurret(game, { ...input, secondaryFirePressed: false }, dt);
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
+  lockArcadeFacing(game);
   game.playerProjectiles = decayNonBlockingEffects(game.playerProjectiles, dt);
   stepSmokeParticles(game, dt);
 }
@@ -922,6 +941,7 @@ function shouldCompleteRun(game) {
 }
 
 function finishLevel(game) {
+  game.enemies = game.enemies.filter(enemy => !enemy.arcadeGapDiver);
   game.levelComplete = true;
   game.levelTime = game.time - game.levelStartTime;
   game.levelTimes.push(game.levelTime);
@@ -929,7 +949,10 @@ function finishLevel(game) {
   if (!game.sandbox?.enabled) {
     game.levelsCompleted = game.level;
     game.weaponBay.available = true;
-    if (isBossLevel(game.level, game.levelMusic)) game.bossLevelsCompleted += 1;
+    if (isBossLevel(game.level, game.levelMusic)) {
+      game.bossLevelsCompleted += 1;
+      if (game.runMode === 'arcade') game.weaponBay.unlockedSlots = arcadeSlotFlags(game.vehicleDefinition, game.bossLevelsCompleted);
+    }
   }
   emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
 }
@@ -1739,6 +1762,7 @@ function isBoatShapedEnemy(enemy) {
 }
 
 function isCarLikeEnemy(enemy) {
+  if (enemy?.diver?.theme === 'motorcycle') return true;
   if (enemy?.carBehavior) return true;
   const id = `${enemy?.archetypeId ?? ''} ${enemy?.assetId ?? ''} ${enemy?.displayName ?? ''}`.toLowerCase();
   return /(^|[._\-\s])(?:racecar|race_car|race-car|race car|car|roadster)(?:$|[._\-\s])/.test(id);
@@ -1814,9 +1838,40 @@ function stepEnemySpawner(game, dt) {
     if (spawnEntryReady(entry, elapsed, routeDistance)) ready.push(entry);
     else pending.push(entry);
   }
+  if (ready.length) retireArcadeGapDivers(game);
   for (const entry of ready) game.enemies.push(entry.enemy);
   game.enemySpawnQueue = pending;
   stepIncomingMarkers(game, dt);
+}
+
+function stepArcadeEmptyScreen(game, dt) {
+  if (game.runMode !== 'arcade' || game.sandbox?.enabled) return;
+  const height = game.road.viewHeight ?? game.road.halfHeight * 2;
+  const visible = activeEnemies(game).some(enemy => !enemy.arcadeGapDiver && arcadeObjectVisible(game, enemy));
+  game.arcadeEmptyScreenSeconds = visible ? 0 : (game.arcadeEmptyScreenSeconds ?? 0) + dt;
+  if (game.arcadeEmptyScreenSeconds < 15) return;
+  // Pull the next authored wave forward without discarding its composition.
+  const first = game.enemySpawnQueue[0];
+  if (first) {
+    const at = first.at;
+    const distance = first.triggerDistance;
+    for (const entry of game.enemySpawnQueue) {
+      if (entry.at !== at || entry.triggerDistance !== distance) continue;
+      entry.at = game.time - game.levelStartTime;
+      entry.triggerDistance = null;
+      const point = roadOffsetToWorld({ x: clamp(worldToRoadOffset(entry.enemy, game.road).x, -game.road.halfWidth * 0.8, game.road.halfWidth * 0.8), y: -Math.min(game.road.halfHeight, height * 0.4) }, game.road);
+      entry.enemy.x = point.x;
+      entry.enemy.y = point.y;
+    }
+  } else if (game.diverWaves && !game.enemies.some(enemy => enemy.diver && !enemy.arcadeGapDiver && !enemy.destroyed) && !diverWavesCleared(game)) {
+    game.arcadeRushDiverEntry = true;
+  } else if (activeCompletionEnemies(game).length > 0) {
+    const point = roadOffsetToWorld({ x: game.rng.range(-0.6, 0.6) * game.road.halfWidth, y: -game.road.halfHeight * 0.9 }, game.road);
+    const enemy = createEnemy(point.x, point.y);
+    applyEnemyLevelUpgrades(enemy, game.level, game.currentMusic);
+    game.enemies.push(enemy);
+  }
+  game.arcadeEmptyScreenSeconds = 0;
 }
 
 function accelerateNextSpawnWhenArenaEmpty(game) {
@@ -1922,6 +1977,13 @@ function carryRoadObjects(game, delta) {
     if (!object) continue;
     object.x += delta.dx;
     object.y += delta.dy;
+  }
+  if (game.runMode === 'arcade') {
+    for (const projectile of game.playerProjectiles) {
+      if (projectile.weapon !== 'cannon' || !projectile.detonateAtTarget || !Number.isFinite(projectile.startX) || !Number.isFinite(projectile.startY)) continue;
+      projectile.startX += delta.dx;
+      projectile.startY += delta.dy;
+    }
   }
   carrySpatialFields(game.spatialFields, delta.dx, delta.dy);
 }
@@ -2573,6 +2635,7 @@ function stepPlayerGun(game, dt) {
   game.playerFireTimer = Math.max(0, (game.playerFireTimer ?? 0) - dt * fireRateScale);
   game.playerDefensiveFireTimer = Math.max(0, (game.playerDefensiveFireTimer ?? 0) - dt);
   if (weaponFireBlocked(game)) return;
+  if (game.runMode === 'arcade' && !game.gameOver) stepUtilityMiniBeam(game);
   if (fireRateScale <= 0 || (!game.autofire && !game.inputFireHeld) || game.gameOver) return;
   stepUtilityRepulsor(game);
   if (!hasFunctionalGun(game.vehicle)) return;
@@ -2605,6 +2668,26 @@ function stepUtilityRepulsor(game) {
     defensiveWeapons: [{ weaponId: 'repulsor_beam', slotIndex: 0 }],
   }));
   stepDefensivePrimaryWeapons(game, mounts);
+}
+
+function nearestMiniBeamTarget(game, muzzle, length) {
+  return activeEnemies(game).filter(enemy => !enemy.phasedOut && distanceSquared(enemy, muzzle) <= length ** 2)
+    .sort((a, b) => distanceSquared(a, muzzle) - distanceSquared(b, muzzle))[0] ?? null;
+}
+
+function stepUtilityMiniBeam(game) {
+  const def = upgradedPrimaryBaseDefinition(game, 'mini_beam');
+  if (!def) return;
+  def.utility = true;
+  for (const muzzle of moduleMuzzlesWorld(game.vehicle, utilityModuleCellIds(game.vehicleDefinition, 'mini_beam'))) {
+    const key = primaryWeaponCooldownKey(muzzle.cellId, 0, 'mini_beam');
+    if ((game.primaryWeaponCooldowns[key] ?? 0) > 0) continue;
+    const target = nearestMiniBeamTarget(game, muzzle, def.length);
+    if (!target || game.primaryHeat.heat + def.heat > game.primaryHeat.maxHeat) continue;
+    firePrimaryBeam(game, muzzle, def, target);
+    game.primaryHeat.heat += def.heat;
+    game.primaryWeaponCooldowns[key] = def.cooldown * primaryHeatCooldownScale(game.primaryHeat);
+  }
 }
 
 function stepDefensivePrimaryWeapons(game, mounts) {
@@ -2708,7 +2791,7 @@ function firePrimaryBullet(game, muzzle, damage, speed, spread, visualScale = 1,
       radius: 2.25 * visualScale,
       damage,
       impulse: 30,
-      lifetime: 2.2,
+      lifetime: game.runMode === 'arcade' ? 4.4 : 2.2,
       sourceCellId: muzzle.cellId,
     }),
   );
@@ -3001,11 +3084,12 @@ function primaryFiringMounts(game) {
   const muzzles = gunMuzzlesWorld(game.vehicle, game.runMode === 'arcade' ? arcadeForwardHeading(game) : game.vehicle.turretHeading);
   if (muzzles.length === 0) return [];
   const definition = game.vehicleDefinition?.cells ? game.vehicleDefinition : { cells: game.vehicle.cells.map((cell) => ({ id: cell.id, type: cell.type })) };
-  const loadouts = new Map(normalizeGunLoadouts(definition).map((loadout) => [loadout.cellId, loadout]));
+  const loadouts = new Map(firingGunLoadouts({ ...game, vehicleDefinition: definition }).map((loadout) => [loadout.cellId, loadout]));
   return muzzles.map((muzzle) => {
-    const weapons = (loadouts.get(muzzle.cellId)?.primary ?? ['main.basic']).filter(Boolean);
-    const entries = (weapons.length ? weapons : ['main.basic']).map((weaponId, slotIndex) => ({ weaponId, slotIndex }));
-    return { muzzle, weapons: weapons.length ? weapons : ['main.basic'], offensiveWeapons: entries, defensiveWeapons: [] };
+    let slots = loadouts.get(muzzle.cellId)?.primary ?? [];
+    if (game.runMode !== 'arcade') slots = slots.some(Boolean) ? slots.filter(Boolean) : ['main.basic'];
+    const entries = slots.map((weaponId, slotIndex) => ({ weaponId, slotIndex })).filter(entry => entry.weaponId);
+    return { muzzle, weapons: entries.map(entry => entry.weaponId), offensiveWeapons: entries, defensiveWeapons: [] };
   });
 }
 
@@ -3090,6 +3174,7 @@ function stepEnemies(game, dt) {
 }
 
 function shouldKeepEnemyRemnant(game, enemy) {
+  if (enemy.arcadeGapRemove) return false;
   if (!enemy.destroyed) return true;
   if (bossUsesInternalDestruction(enemy) && !enemy.internalDestructionComplete) return true;
   if (enemy.zeppelinWalkerRout && enemy.zeppelinWalkerRout.phase !== 'flee' && !enemy.escaped) return true;
@@ -3120,6 +3205,12 @@ function stepEnemy(game, enemy, dt) {
     return;
   }
   if (enemy.diver) {
+    if (!enemy.diver.gapExit && enemy.diver.theme === 'motorcycle' && (enemy.carRuntime?.spinout || enemy.cells.some(cell => cell.type === 'wheel' && cell.state.destroyed))) {
+      const state = enemy.carRuntime ??= {};
+      if (!state.spinout) startCarSpinout(game, enemy, state);
+      stepActiveCarSpinout(game, enemy, state, dt);
+      return;
+    }
     stepDiverEnemy(game, enemy, dt);
     return;
   }
@@ -3151,6 +3242,7 @@ function stepEnemy(game, enemy, dt) {
   stepEnemyTetherElevation(enemy, dt);
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
+  containArcadeBoss(game, enemy);
   enemy.vx *= Math.pow(0.78, dt);
   enemy.vy *= Math.pow(0.78, dt);
 }
@@ -4461,7 +4553,7 @@ function stepActiveCarSpinout(game, enemy, state, dt) {
   enemy.x += enemy.vx * dt;
   enemy.y += enemy.vy * dt;
   enemy.visualHeading = (enemy.visualHeading ?? 0) + (spinout.spinRate ?? Math.PI * 3.8) * dt;
-  enemy.collisionRotation = enemy.visualHeading - Math.PI / 2;
+  enemy.collisionRotation = enemy.visualHeading + (enemy.diver ? enemy.renderHeadingOffset ?? Math.PI / 2 : -Math.PI / 2);
   if (spinout.phase === 'spin') {
     if (spinout.cueTimer <= 0) {
       triggerEnemyReactionCue(game, enemy, 'carSpinout');
@@ -6745,6 +6837,10 @@ function handleCollisions(game) {
     }
     if (projectile.lifetime <= 0) continue;
     if (projectileReachedDetonationTarget(projectile)) {
+      if (game.runMode === 'arcade' && projectile.weapon === 'cannon' && projectile.targetHint) {
+        projectile.x = projectile.targetHint.x;
+        projectile.y = projectile.targetHint.y;
+      }
       projectile.lifetime = 0;
       detonatePlayerProjectile(game, projectile);
       continue;
@@ -7970,6 +8066,9 @@ function syncBeamProjectiles(game) {
 
 function beamSourceMuzzle(game, projectile) {
   if (!projectile.sourceCellId) return gunMuzzleWorld(game.vehicle);
+  if (game.runMode === 'arcade' && ['mini_beam', 'repulsor_beam', 'tractor_beam'].includes(projectile.weapon)) {
+    return moduleMuzzlesWorld(game.vehicle, utilityModuleCellIds(game.vehicleDefinition, projectile.weapon)).find(muzzle => muzzle.cellId === projectile.sourceCellId) ?? null;
+  }
   return gunMuzzlesWorld(game.vehicle).find((muzzle) => muzzle.cellId === projectile.sourceCellId) ?? null;
 }
 
@@ -8739,6 +8838,7 @@ function lockArcadeFacing(game) {
   if (game.runMode !== 'arcade') return;
   game.vehicle.heading = game.road.heading;
   game.vehicle.primaryFacingHeading = arcadeForwardHeading(game);
+  game.vehicle.turretHeading = arcadeForwardHeading(game);
   game.vehicle.angularVelocity = 0;
 }
 

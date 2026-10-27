@@ -1,4 +1,5 @@
 import { drawDiverUnderlay, drawDiverOverlay, diverCellVisualOffset } from './diverRenderer.js';
+import { firingGunLoadouts, gunCellInactive } from '../core/arcadeLoadout.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE, VOXELS, Roles } from '../core/voxelMask.js';
 import { livePirateBossGunPodCount } from '../core/enemy.js';
 import { cameraViewScale } from '../core/camera.js';
@@ -157,7 +158,7 @@ export class CanvasRenderer {
       drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
       drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
     }
-    drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets, this.cellSpriteCache, game.environmentLighting, this.renderAssets);
+    drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets, this.cellSpriteCache, game.environmentLighting, this.renderAssets, game);
     for (const reticle of Object.values(game.independentAimReticles ?? {})) drawAimReticle(ctx, reticle);
     if (game.showSharedAimReticle !== false) drawAimReticle(ctx, game.aimReticle);
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
@@ -551,7 +552,7 @@ function drawRoadLane(ctx, road) {
   ctx.restore();
 }
 
-function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = null, environmentLighting = 'DAY', renderAssets = null) {
+function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = null, environmentLighting = 'DAY', renderAssets = null, game = null) {
   ctx.save();
   ctx.translate(vehicle.x, vehicle.y);
   const elevation = Math.max(0, vehicle.elevation?.z ?? 0);
@@ -567,8 +568,32 @@ function drawVehicle(ctx, vehicle, boost, time, imageAssets, cellSpriteCache = n
     const posed = applyCellPoseTransform(cell, { x: cell.gridX * CELL_SIZE, y: cell.gridY * CELL_SIZE }, poseTransforms);
     const layerLift = Math.max(0, cellLayer(cell) - baseLayer) * CELL_LAYER_HEIGHT;
     drawCell(ctx, cell, posed.x, posed.y - projectHeight(layerLift + (posed.z ?? 0)), 1, COLORS, posed.rotation, { cellSpriteCache, environmentLighting, imageAssets, renderAssets });
+    if (game?.levelComplete && cell.type === 'gun' && gunCellInactive(game, cell.id)) {
+      ctx.strokeStyle = '#9da4aa';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const inset = CELL_SIZE * 0.3;
+      ctx.moveTo(posed.x - inset, posed.y - inset);
+      ctx.lineTo(posed.x + inset, posed.y + inset);
+      ctx.moveTo(posed.x + inset, posed.y - inset);
+      ctx.lineTo(posed.x - inset, posed.y + inset);
+      ctx.stroke();
+    }
   }
-  drawTurret(ctx, vehicle);
+  if (game?.runMode === 'arcade' && attached.length) {
+    // An explicit nose makes the authored negative-Y forward axis readable.
+    const front = Math.min(...attached.map(cell => cell.gridY)) * CELL_SIZE - CELL_SIZE * 0.7;
+    const center = (Math.min(...attached.map(cell => cell.gridX)) + Math.max(...attached.map(cell => cell.gridX))) * CELL_SIZE * 0.5;
+    ctx.strokeStyle = '#9be5ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(center - CELL_SIZE, front + CELL_SIZE * 0.5);
+    ctx.lineTo(center, front);
+    ctx.lineTo(center + CELL_SIZE, front + CELL_SIZE * 0.5);
+    ctx.stroke();
+  }
+  const primaryCells = game?.runMode === 'arcade' ? new Set(firingGunLoadouts(game).filter(loadout => loadout.primary.some(Boolean)).map(loadout => loadout.cellId)) : null;
+  drawTurret(ctx, vehicle, primaryCells);
   drawComMarker(ctx, vehicle.centerOfMass);
   ctx.restore();
 }
@@ -609,8 +634,8 @@ function drawBoostShield(ctx, boost, time) {
   ctx.restore();
 }
 
-function drawTurret(ctx, vehicle) {
-  const gun = vehicle.cells.find((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed);
+function drawTurret(ctx, vehicle, primaryCells = null) {
+  const gun = vehicle.cells.find((cell) => cell.attached && cell.type === 'gun' && !cell.state.destroyed && (!primaryCells || primaryCells.has(cell.id)));
   if (!gun) return;
   ctx.save();
   const localHeading = (vehicle.primaryFacingHeading ?? vehicle.turretHeading) - vehicle.heading;

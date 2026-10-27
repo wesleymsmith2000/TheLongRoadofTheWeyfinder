@@ -1,4 +1,4 @@
-import { worldToRoadOffset } from './camera.js';
+import { roadOffsetToWorld, worldToRoadOffset } from './camera.js';
 import { clamp } from './math.js';
 import { createProjectile } from './projectile.js';
 
@@ -78,6 +78,32 @@ export function arcadeFrontBiasWeight(enemy) {
   return 1;
 }
 
+export function isArcadeBoss(enemy) {
+  return ['boss', 'roadBossCar', 'pirateBoss', 'zeppelinBoss'].includes(enemy.kind);
+}
+
+function bossLateralLimit(game, enemy) {
+  return Math.max(12, game.road.halfWidth - Math.min(game.road.halfWidth * 0.25, (enemy.radius ?? 0) * 0.35 + 12));
+}
+
+export function containArcadeBoss(game, enemy) {
+  if (game.runMode !== 'arcade' || !isArcadeBoss(enemy)) return;
+  if (arcadeFrontBiasWeight(enemy) === 0 || enemy.arcadeEntryCrossing || enemy.arcadeBehindEntry) {
+    enemy.arcadeBossEnteredLane = false;
+    return;
+  }
+  const position = worldToRoadOffset(enemy, game.road);
+  const limit = bossLateralLimit(game, enemy);
+  if (Math.abs(position.x) <= limit) enemy.arcadeBossEnteredLane = true;
+  if (!enemy.arcadeBossEnteredLane || Math.abs(position.x) <= limit) return;
+  const point = roadOffsetToWorld({ x: clamp(position.x, -limit, limit), y: position.y }, game.road);
+  enemy.x = point.x;
+  enemy.y = point.y;
+  const right = { x: Math.cos(game.road.heading), y: Math.sin(game.road.heading) };
+  const lateral = enemy.vx * right.x + enemy.vy * right.y;
+  if (lateral * position.x > 0) { enemy.vx -= right.x * lateral; enemy.vy -= right.y * lateral; }
+}
+
 export function applyArcadeEnemyFrontBias(game, enemy, dt) {
   if (game.runMode !== 'arcade') return;
   const weight = arcadeFrontBiasWeight(enemy);
@@ -100,11 +126,23 @@ export function applyArcadeEnemyFrontBias(game, enemy, dt) {
     if (position.y > worldToRoadOffset(game.vehicle, game.road).y) return;
     enemy.arcadeBehindEntry = false;
   }
-  if (position.y >= -0.85 * height && position.y <= -0.55 * height) return;
+  const boss = isArcadeBoss(enemy);
+  if (boss) {
+    const limit = bossLateralLimit(game, enemy);
+    const playerX = worldToRoadOffset(game.vehicle, game.road).x;
+    const targetX = clamp(playerX * 0.65 + Math.sin((game.time ?? 0) * 0.55) * limit * 0.2, -limit, limit);
+    const right = { x: Math.cos(game.road.heading), y: Math.sin(game.road.heading) };
+    const lateral = enemy.vx * right.x + enemy.vy * right.y;
+    const desired = clamp((targetX - position.x) * 2.8, -180, 180);
+    const correction = (desired - lateral) * (1 - Math.exp(-8 * dt));
+    enemy.vx += right.x * correction;
+    enemy.vy += right.y * correction;
+  }
+  if (position.y >= -(boss ? 0.9 : 0.85) * height && position.y <= -(boss ? 0.66 : 0.55) * height) return;
   const forward = arcadeForwardVector(game);
   const current = enemy.vx * forward.x + enemy.vy * forward.y;
-  const desired = clamp((position.y + 0.72 * height) * 3.6, -100, 260);
-  const correction = (desired - current) * (1 - Math.exp(-4 * dt)) * weight;
+  const desired = clamp((position.y + (boss ? 0.8 : 0.72) * height) * 3.6, -100, 260);
+  const correction = (desired - current) * (1 - Math.exp(-(boss ? 8 : 4) * dt)) * weight;
   enemy.vx += forward.x * correction;
   enemy.vy += forward.y * correction;
 }

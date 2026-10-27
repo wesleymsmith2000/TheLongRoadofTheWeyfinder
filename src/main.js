@@ -8,6 +8,10 @@ import {
   stepGame,
 } from './core/game.js';
 import { BUILD_VERSION } from './core/buildVersion.js';
+import { arcadeLevelProgress } from './core/arcadePacing.js';
+import { arcadeSlotFlags, gunCellInactive, INACTIVE_GUN_HINT } from './core/arcadeLoadout.js';
+import { worldToLocal } from './core/math.js';
+import { CELL_SIZE } from './core/voxelMask.js';
 import { addCameraShake, configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
 import { CanvasRenderer } from './render/canvasRenderer.js';
 import { createKeyboardInput } from './input/keyboard.js';
@@ -38,7 +42,6 @@ import {
 } from './core/weaponLoadout.js';
 import {
   EQUIPMENT_IDS,
-  ARCADE_SLOT_UNLOCK_COST,
   buildEquipmentWithScrap,
   equipmentConstructionCost,
   equipmentFabricationMode,
@@ -901,6 +904,17 @@ weaponBaySwapButton.addEventListener('click', handleWeaponBaySwap);
 weaponBayBuildButton.addEventListener('click', handleWeaponBayBuild);
 weaponBayUnlockButton.addEventListener('click', handleWeaponBayUnlock);
 weaponBayCanvas.addEventListener('pointerdown', selectWeaponBayGunFromCanvas);
+weaponBayCanvas.addEventListener('pointermove', event => {
+  const hit = weaponBayCellAtPointer(event);
+  weaponBayCanvas.title = hit && gunCellInactive(game, hit.cellId) ? INACTIVE_GUN_HINT : '';
+});
+weaponBayCanvas.addEventListener('pointerleave', () => { weaponBayCanvas.title = ''; });
+canvas.addEventListener('pointermove', event => {
+  if (game.runMode !== 'arcade' || !game.levelComplete) { canvas.title = ''; return; }
+  const point = worldToLocal(screenToWorld({ x: event.clientX, y: event.clientY }, game.camera, viewport()), game.vehicle);
+  const cell = game.vehicle.cells.find(cell => cell.attached && !cell.state.destroyed && cell.type === 'gun' && Math.abs(point.x / CELL_SIZE - cell.gridX) < 0.5 && Math.abs(point.y / CELL_SIZE - cell.gridY) < 0.5);
+  canvas.title = cell && gunCellInactive(game, cell.id) ? INACTIVE_GUN_HINT : '';
+});
 workshopLoadoutTab.addEventListener('click', () => setWorkshopSection('loadout'));
 workshopFabricationTab.addEventListener('click', () => setWorkshopSection('fabrication'));
 workshopMergeTab.addEventListener('click', () => setWorkshopSection('merge'));
@@ -1119,11 +1133,13 @@ function activeVehicleDefinition() {
 }
 
 function createPlayerRunGame(vehicleDefinition, runMode = 'normal') {
-  return createGame(1147, {
+  const next = createGame(1147, {
     vehicleDefinition: vehicleDefinition ?? undefined,
     targetingComputerUnlocks: targetingComputerUnlocks(playerAccount),
     runMode,
   });
+  targetingModeSelect.value = next.targetingMode;
+  return next;
 }
 
 function configureNormalVehicleEditor() {
@@ -1152,12 +1168,12 @@ function startArcadeRun() {
   arcadeVehicleDefinition = structuredClone(arcadeStartingVehicleDefinition);
   vehicleEditor.setDefinition(arcadeVehicleDefinition, {
     structureLocked: true,
-    editableGunCellIds: ['gun-main'],
+    gunSlotFlags: arcadeSlotFlags(arcadeVehicleDefinition),
     selectedCellId: 'gun-main',
-    primaryWeaponIds: PRIMARY_WEAPON_IDS,
+    primaryWeaponIds: PRIMARY_WEAPON_IDS.filter(id => id !== 'mini_beam'),
     secondaryWeaponIds: SECONDARY_WEAPON_IDS,
-    requireFilledLoadout: true,
-    message: 'Arcade vehicle shape is fixed. Choose two primary weapons and three secondary weapons; repulsor and tractor beams are included.',
+    requireFilledLoadout: false,
+    message: 'Three gun cells start active: two primary and three secondary slots. Each zone boss clear opens one more slot. Mini Beam is an automatic utility.',
   });
   game = createPlayerRunGame(arcadeVehicleDefinition, 'arcade');
   awaitingLaunch = true;
@@ -1400,14 +1416,21 @@ async function importSelectedSave() {
       return;
     }
     playerAccount = save.payload.playerAccount ? normalizePrototypePlayerAccountData(save.payload.playerAccount) : playerAccount;
-    playerVehicleDefinition = save.payload.vehicleDefinition ?? playerAccount.savedVehicle;
+    const savedDefinition = save.payload.vehicleDefinition ?? playerAccount.savedVehicle;
+    const savedRunMode = save.payload.runMode ?? (/^(arcade|lite)_starting_vehicle$/.test(savedDefinition?.assetId) ? 'arcade' : 'normal');
+    const savedArcade = ['arcade', 'lite'].includes(savedRunMode);
+    playerVehicleDefinition = savedArcade ? playerAccount.savedVehicle : savedDefinition;
     savePlayerAccount();
     game = createGame(save.payload.seed ?? 1147, {
-      vehicleDefinition: playerVehicleDefinition ?? undefined,
+      vehicleDefinition: savedDefinition ?? undefined,
       levelMusic: game.levelMusic,
       startLevel: save.payload.level,
+      runMode: savedRunMode,
     });
+    activeRunMode = game.runMode;
+    if (game.runMode === 'arcade') arcadeVehicleDefinition = structuredClone(game.vehicleDefinition);
     applySaveStateToGame(game, save);
+    targetingModeSelect.value = game.targetingMode;
     awaitingLaunch = false;
     previous = performance.now();
     refreshRepairTargets();
@@ -2112,6 +2135,7 @@ function renderAchievements() {
 }
 
 function syncProgressHud() {
+  levelProgressFill.parentElement.title = '';
   if (game.sandbox?.enabled) {
     levelName.textContent = `Sandbox: ${game.sandbox.definition.title}`;
     const duration = Math.max(1, game.sandbox.definition.duration ?? LEVEL_TARGET_DURATION);
@@ -2124,6 +2148,14 @@ function syncProgressHud() {
   const elapsed = Math.max(0, game.time - game.levelStartTime);
   const progress = game.levelComplete ? 1 : Math.min(0.985, elapsed / LEVEL_TARGET_DURATION);
   const spawnAdjusted = game.enemySpawnQueue.length === 0 ? Math.max(progress, 0.92) : progress;
+  if (game.runMode === 'arcade') {
+    const arcade = arcadeLevelProgress(game, spawnAdjusted);
+    levelName.textContent += ` · Diver waves ${arcade.wavesCleared}/${arcade.wavesRequired}`;
+    levelProgressFill.style.width = `${arcade.fraction * 100}%`;
+    levelProgressFill.parentElement.title = `Stage progress and required Diver waves: ${arcade.wavesCleared}/${arcade.wavesRequired} cleared`;
+    return;
+  }
+  levelProgressFill.parentElement.title = '';
   levelProgressFill.style.width = `${spawnAdjusted * 100}%`;
 }
 
@@ -3110,7 +3142,7 @@ function refreshWeaponBayUi() {
     allCells,
     selectedCellId,
   );
-  const maxSlots = equipmentSlotCapacity(slotKind);
+  const maxSlots = equipmentSlotCapacity(slotKind, game.runMode);
   const selectedSlot = Math.min(maxSlots - 1, Math.max(0, Number(weaponBaySlotSelect.value) || 0));
   reconcileSelectOptions(
     weaponBaySlotSelect,
@@ -3121,7 +3153,7 @@ function refreshWeaponBayUi() {
     }),
     String(selectedSlot),
   );
-  const catalog = equipmentIdsForSlotKind(slotKind);
+  const catalog = equipmentIdsForSlotKind(slotKind, game.runMode);
   const selectedWeapon = catalog.includes(weaponBayWeaponSelect.value) ? weaponBayWeaponSelect.value : '';
   reconcileSelectOptions(
     weaponBayWeaponSelect,
@@ -3140,8 +3172,8 @@ function refreshWeaponBayUi() {
   weaponBaySwapButton.disabled = !view.unlocked || view.weaponId === desired || (desired && owned <= 0);
   const showUnlock = slotKind !== 'utility' && game.runMode === 'arcade' && !view.unlocked;
   weaponBayUnlockButton.classList.toggle('hidden', !showUnlock);
-  weaponBayUnlockButton.disabled = !showUnlock || game.scrap < ARCADE_SLOT_UNLOCK_COST;
-  weaponBayUnlockButton.textContent = `Unlock Slot (${ARCADE_SLOT_UNLOCK_COST} scrap)`;
+  weaponBayUnlockButton.disabled = true;
+  weaponBayUnlockButton.textContent = 'Opens after a zone boss clear';
   renderWorkshopInventory(weaponBayInventory);
   renderWeaponBayCraft(weaponBayGunSelect.value);
   refreshWorkshopFabricationUi();
@@ -3320,16 +3352,31 @@ function renderWeaponBayCraft(selectedCellId) {
     context.lineWidth = cell.id === selectedCellId ? 3 : 1;
     context.strokeStyle = cell.id === selectedCellId ? '#f7c06a' : '#171a1b';
     context.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+    if (cell.type === 'gun' && gunCellInactive(game, cell.id)) {
+      context.strokeStyle = '#a4a8ab';
+      context.lineWidth = Math.max(2, cellSize * 0.1);
+      context.beginPath();
+      context.moveTo(x + cellSize * 0.25, y + cellSize * 0.25);
+      context.lineTo(x + cellSize * 0.75, y + cellSize * 0.75);
+      context.moveTo(x + cellSize * 0.75, y + cellSize * 0.25);
+      context.lineTo(x + cellSize * 0.25, y + cellSize * 0.75);
+      context.stroke();
+    }
     if (isEquipmentCell) weaponBayHitCells.push({ cellId: cell.id, x, y, size: cellSize });
   }
 }
 
-function selectWeaponBayGunFromCanvas(event) {
+function weaponBayCellAtPointer(event) {
   const bounds = weaponBayCanvas.getBoundingClientRect();
   const x = (event.clientX - bounds.left) * weaponBayCanvas.width / Math.max(1, bounds.width);
   const y = (event.clientY - bounds.top) * weaponBayCanvas.height / Math.max(1, bounds.height);
-  const hit = weaponBayHitCells.find((cell) => x >= cell.x && x <= cell.x + cell.size && y >= cell.y && y <= cell.y + cell.size);
+  return weaponBayHitCells.find((cell) => x >= cell.x && x <= cell.x + cell.size && y >= cell.y && y <= cell.y + cell.size);
+}
+
+function selectWeaponBayGunFromCanvas(event) {
+  const hit = weaponBayCellAtPointer(event);
   if (!hit) return;
+  if (gunCellInactive(game, hit.cellId)) weaponBayStatus.textContent = INACTIVE_GUN_HINT;
   weaponBayGunSelect.value = hit.cellId;
   handleWorkshopCellChange();
   weaponBayGunSelect.focus();

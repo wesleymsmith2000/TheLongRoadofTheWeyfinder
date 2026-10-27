@@ -1,6 +1,7 @@
-import { createCombatProjectile } from './arcadeMode.js';
+import { arcadeForwardHeading, createCombatProjectile } from './arcadeMode.js';
+import { firingGunLoadouts } from './arcadeLoadout.js';
 import { compensatedAimHeading } from './turret.js';
-import { gunMuzzleWorld, moduleMuzzlesWorld } from './vehicle.js';
+import { gunMuzzleWorld, gunMuzzlesWorld, moduleMuzzlesWorld } from './vehicle.js';
 import { CELL_LAYER_HEIGHT, CELL_SIZE } from './voxelMask.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
@@ -10,7 +11,7 @@ import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projecti
 import { hasTargetingComputer, secondaryTargetingReticleKey, targetingReticleForSecondary } from './targetingComputers.js';
 import { activePlayerWaveletField, createSpatialWaveletField } from './spatialWaveletBeam.js';
 import { weaponFireBlocked } from './weaponInterlock.js';
-import { forwardSafeInheritedVelocity } from './projectileLaunch.js';
+import { arcadeProjectileVelocity, forwardSafeInheritedVelocity } from './projectileLaunch.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
 import cannonDefinition from '../../content/weapons/cannon.json' with { type: 'json' };
 import beamDefinition from '../../content/weapons/beam.json' with { type: 'json' };
@@ -106,6 +107,7 @@ export function stepSecondaryWeapon(game, input, dt) {
 
 export function fireSecondary(game) {
   const secondary = game.secondary;
+  if (game.runMode === 'arcade' && !usableSecondaryWeaponIds(game.vehicleDefinition).includes(secondary.selected)) return false;
   const def = upgradedSecondaryDefinition(game, secondary.selected);
   if (!def || weaponFireBlocked(game) || activePlayerWaveletField(game) || secondary.cooldown > 0 || secondary.heat + def.heat > secondary.maxHeat) return false;
   if ((secondary.ammo[secondary.selected] ?? 0) <= 0) return false;
@@ -118,7 +120,9 @@ export function fireSecondary(game) {
     return fireSpatialWavelet(game, muzzle, def, aimReticle);
   }
   const targetHint = (def.targetHint === 'aimReticle' || def.behavior === 'beam') && aimReticle ? { x: aimReticle.x, y: aimReticle.y } : null;
-  const angle =
+  const reticleCannon = game.runMode === 'arcade' && secondary.selected === 'cannon';
+  const forwardLocked = game.runMode === 'arcade' && !['tractor_beam', 'cannon'].includes(secondary.selected);
+  const angle = reticleCannon && targetHint ? Math.atan2(targetHint.y - muzzle.y, targetHint.x - muzzle.x) : forwardLocked ? arcadeForwardHeading(game) :
     targetHint && def.detonateAtTarget
       ? compensatedAimHeading(game.vehicle, targetHint, def.projectileSpeed)
       : def.behavior === 'beam' && targetHint
@@ -136,6 +140,8 @@ export function fireSecondary(game) {
       guidedTargeting: game.targetingMode === 'guided',
       targetingReticleKey,
       behavior: def.behavior,
+      arcadeForwardLocked: forwardLocked && def.behavior === 'beam',
+      sourceCellId: game.runMode === 'arcade' ? muzzle.cellId : undefined,
       angle: launch.angle,
       startX: muzzle.x,
       startY: muzzle.y,
@@ -189,7 +195,7 @@ export function fireSecondary(game) {
       sprite: def.sprite,
       landingMarkerSprite: def.landingMarkerSprite,
       zCollision: def.zCollision || height.zCollision,
-      lifetime: def.behavior === 'beam' ? def.frames / 60 : def.lifetime,
+      lifetime: reticleCannon && targetHint ? Math.max(def.lifetime, Math.hypot(targetHint.x - muzzle.x, targetHint.y - muzzle.y) / Math.max(1, Math.hypot(launch.vx, launch.vy)) + 0.1) : def.behavior === 'beam' ? def.frames / 60 : def.lifetime,
     }),
   );
   if (Number.isFinite(secondary.ammo[secondary.selected])) secondary.ammo[secondary.selected] -= 1;
@@ -207,7 +213,10 @@ export function fireSecondary(game) {
 }
 
 function fireSpatialWavelet(game, muzzle, def, aimReticle) {
-  const target = aimReticle
+  const heading = game.runMode === 'arcade' ? arcadeForwardHeading(game) : game.vehicle.turretHeading;
+  const target = game.runMode === 'arcade'
+    ? { x: muzzle.x + Math.cos(heading) * def.length, y: muzzle.y + Math.sin(heading) * def.length }
+    : aimReticle
     ? { x: aimReticle.x, y: aimReticle.y }
     : { x: muzzle.x + Math.cos(game.vehicle.turretHeading) * def.length, y: muzzle.y + Math.sin(game.vehicle.turretHeading) * def.length };
   const field = createSpatialWaveletField({
@@ -233,14 +242,19 @@ function fireSpatialWavelet(game, muzzle, def, aimReticle) {
 }
 
 function secondaryMuzzleWorld(game, weaponId) {
+  if (game.runMode !== 'arcade') {
+    if (weaponId === 'tractor_beam') return moduleMuzzlesWorld(game.vehicle, utilityModuleCellIds(game.vehicleDefinition, weaponId))[0] ?? gunMuzzleWorld(game.vehicle);
+    return gunMuzzleWorld(game.vehicle);
+  }
   if (weaponId === 'tractor_beam') {
     const utilityMuzzle = moduleMuzzlesWorld(
       game.vehicle,
       utilityModuleCellIds(game.vehicleDefinition, 'tractor_beam'),
     )[0];
-    if (utilityMuzzle) return utilityMuzzle;
+    return utilityMuzzle ?? null;
   }
-  return gunMuzzleWorld(game.vehicle);
+  const cells = new Set(firingGunLoadouts(game).filter(loadout => loadout.secondary.includes(weaponId)).map(loadout => loadout.cellId));
+  return gunMuzzlesWorld(game.vehicle, game.runMode === 'arcade' ? arcadeForwardHeading(game) : game.vehicle.turretHeading).find(muzzle => cells.has(muzzle.cellId)) ?? null;
 }
 
 function playerProjectileHeight(game, def) {
@@ -439,6 +453,7 @@ function arcFlightTime(def) {
 
 function projectileLaunchVelocity(game, angle, def, useVehicleVelocityOnly) {
   if (useVehicleVelocityOnly) return { x: game.vehicle.vx, y: game.vehicle.vy };
+  if (game.runMode === 'arcade') return arcadeProjectileVelocity({ x: game.vehicle.vx, y: game.vehicle.vy }, { x: Math.cos(angle), y: Math.sin(angle) }, def.projectileSpeed);
   return forwardSafeInheritedVelocity(
     { x: game.vehicle.vx, y: game.vehicle.vy },
     { x: Math.cos(angle) * def.projectileSpeed, y: Math.sin(angle) * def.projectileSpeed },

@@ -150,6 +150,7 @@ export function upgradeAvailable(game, id, account = game.account, vehicleDefini
   const upgrade = UPGRADE_DEFINITIONS.find((candidate) => candidate.id === id);
   if (!upgrade) return false;
   const requires = upgrade.requires ?? {};
+  if (game.runMode === 'arcade' && requires.primary === 'mini_beam') return utilitySlotInstalled(game, 'mini_beam', vehicleDefinition);
   if (requires.module && !moduleInstalled(game, requires.module)) return false;
   if (requires.moduleUnlock && !account?.moduleUnlocks?.includes(requires.moduleUnlock)) return false;
   if (requires.utility && !utilitySlotInstalled(game, requires.utility, vehicleDefinition)) return false;

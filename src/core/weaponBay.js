@@ -1,4 +1,5 @@
 import { normalizeRunMode } from './arcadeMode.js';
+import { arcadeSlotFlags } from './arcadeLoadout.js';
 import { SHOP_COSTS, UPGRADE_DEFINITIONS, upgradeCost } from './economy.js';
 import {
   MAX_PRIMARY_SLOTS,
@@ -32,7 +33,7 @@ export function createWeaponBayState(vehicleDefinition, runMode = 'normal') {
   return {
     available: false,
     inventory: Object.fromEntries(EQUIPMENT_IDS.map((id) => [id, 0])),
-    unlockedSlots,
+    unlockedSlots: runMode === 'arcade' ? arcadeSlotFlags(vehicleDefinition) : unlockedSlots,
     discoveredMerges: [],
   };
 }
@@ -72,6 +73,7 @@ export function workshopAccess(game) {
 
 export function weaponSlotUnlocked(game, cellId, slotKind, slotIndex) {
   if (!WEAPON_SLOT_KINDS.includes(slotKind)) return false;
+  if (game.runMode === 'arcade' && slotIndex !== 0) return false;
   return game?.weaponBay?.unlockedSlots?.[cellId]?.[slotKind]?.[slotIndex] === true;
 }
 
@@ -111,7 +113,7 @@ export function swapEquipmentSlot(game, cellId, slotKind, slotIndex, itemId) {
   if (!workshopAccess(game).loadout) return { changed: false, reason: 'Loadout changes are only available in the Workshop after a completed level.' };
   if (slotKind === 'utility') return swapUtilitySlot(game, cellId, slotIndex, itemId);
   if (!weaponSlotUnlocked(game, cellId, slotKind, slotIndex)) return { changed: false, reason: 'Unlock this weapon slot first.' };
-  const catalog = slotKind === 'primary' ? PRIMARY_WEAPON_IDS : SECONDARY_WEAPON_IDS;
+  const catalog = equipmentIdsForSlotKind(slotKind, game.runMode);
   if (itemId != null && !catalog.includes(itemId)) return { changed: false, reason: 'That equipment does not fit this slot.' };
   const loadout = normalizeGunLoadouts(game.vehicleDefinition).find((entry) => entry.cellId === cellId);
   const currentWeapon = loadout?.[slotKind]?.[slotIndex] ?? null;
@@ -142,19 +144,8 @@ export function swapUtilitySlot(game, cellId, slotIndex, utilityId) {
   return { changed: true, removed: currentUtility, installed: utilityId || null, definition: result.definition };
 }
 
-export function unlockArcadeWeaponSlot(game, cellId, slotKind, slotIndex) {
-  if (!weaponBayAvailable(game) || game.runMode !== 'arcade') return { changed: false, reason: 'Slot unlocking is only used by Arcade rest areas.' };
-  if (!WEAPON_SLOT_KINDS.includes(slotKind)) return { changed: false, reason: 'Unknown weapon slot type.' };
-  const flags = game.weaponBay.unlockedSlots?.[cellId]?.[slotKind];
-  if (!flags || !Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= flags.length) return { changed: false, reason: 'Weapon slot is out of range.' };
-  if (flags[slotIndex]) return { changed: false, reason: 'That slot is already unlocked.' };
-  if (cellId === 'gun-support' && countUnlockedSlots(game, cellId) === 0 && (slotKind !== 'primary' || slotIndex !== 0)) {
-    return { changed: false, reason: 'Unlock the support gun primary slot first.' };
-  }
-  if (game.scrap < ARCADE_SLOT_UNLOCK_COST) return { changed: false, reason: `Need ${ARCADE_SLOT_UNLOCK_COST - game.scrap} more scrap.` };
-  game.scrap -= ARCADE_SLOT_UNLOCK_COST;
-  flags[slotIndex] = true;
-  return { changed: true, cost: ARCADE_SLOT_UNLOCK_COST };
+export function unlockArcadeWeaponSlot(game) {
+  return { changed: false, reason: game.runMode === 'arcade' ? 'Additional slots open after each zone boss clear.' : 'Slot unlocking is only used by Arcade rest areas.' };
 }
 
 export function weaponBaySlotView(game, cellId, slotKind, slotIndex) {
@@ -180,10 +171,10 @@ export function equipmentSlotKind(itemId) {
   return null;
 }
 
-export function equipmentIdsForSlotKind(slotKind) {
-  if (slotKind === 'primary') return PRIMARY_WEAPON_IDS;
+export function equipmentIdsForSlotKind(slotKind, runMode = 'normal') {
+  if (slotKind === 'primary') return runMode === 'arcade' ? PRIMARY_WEAPON_IDS.filter(id => id !== 'mini_beam') : PRIMARY_WEAPON_IDS;
   if (slotKind === 'secondary') return SECONDARY_WEAPON_IDS;
-  if (slotKind === 'utility') return UTILITY_EQUIPMENT_IDS;
+  if (slotKind === 'utility') return runMode === 'arcade' ? UTILITY_EQUIPMENT_IDS : UTILITY_EQUIPMENT_IDS.filter(id => id !== 'mini_beam');
   return [];
 }
 
@@ -191,16 +182,12 @@ export function equipmentFabricationMode(itemId) {
   return MERGE_ONLY_EQUIPMENT.has(itemId) ? 'mergeOnly' : equipmentSlotKind(itemId) ? 'scrap' : null;
 }
 
-export function equipmentSlotCapacity(slotKind) {
+export function equipmentSlotCapacity(slotKind, runMode = 'normal') {
+  if (runMode === 'arcade' && WEAPON_SLOT_KINDS.includes(slotKind)) return 1;
   if (slotKind === 'primary') return MAX_PRIMARY_SLOTS;
   if (slotKind === 'secondary') return MAX_SECONDARY_SLOTS;
   if (slotKind === 'utility') return MAX_UTILITY_SLOTS;
   return 0;
-}
-
-function countUnlockedSlots(game, cellId) {
-  const slots = game.weaponBay.unlockedSlots?.[cellId];
-  return [...(slots?.primary ?? []), ...(slots?.secondary ?? [])].filter(Boolean).length;
 }
 
 function normalizeSlotFlags(value, fallback) {

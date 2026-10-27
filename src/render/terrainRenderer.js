@@ -49,9 +49,11 @@ export class TerrainRenderer {
 
   createChunkCache(chunk, config, atlasReady = this.atlasLibrary?.ready() ?? false) {
     const canvas = document.createElement('canvas');
-    canvas.width = chunk.size;
-    canvas.height = chunk.size;
+    const pixels = Math.min(chunk.size, config.cachePixelSize ?? chunk.size);
+    canvas.width = pixels;
+    canvas.height = pixels;
     const ctx = canvas.getContext('2d');
+    ctx.scale(pixels / chunk.size, pixels / chunk.size);
     const tileCount = tilesPerChunk(config);
     ctx.fillStyle = '#17201c';
     ctx.fillRect(0, 0, chunk.size, chunk.size);

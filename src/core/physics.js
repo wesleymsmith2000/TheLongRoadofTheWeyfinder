@@ -9,7 +9,7 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
   const terrain = normalizeTerrainContact(terrainContact);
   const enginePower = typedModulePower(vehicle, 'engine');
   const wheelPower = typedModulePower(vehicle, 'wheel');
-  const engineAcceleration = upgradeMultiplier(upgrades, 'engineAcceleration', 0.08);
+  const engineAcceleration = upgradeMultiplier(upgrades, 'engineAcceleration', 0.08) * (vehicle.handlingScale?.acceleration ?? 1);
   const engineMaxVelocity = upgradeMultiplier(upgrades, 'engineMaxVelocity', 0.08);
   const wheelInertiaCompensation = upgradeMultiplier(upgrades, 'wheelInertiaCompensation', 0.08);
   const propulsion = Math.max(0.25, Math.sqrt(Math.max(0.05, enginePower)));
@@ -31,7 +31,7 @@ export function stepVehicle(vehicle, input, dt, roadHeading = vehicle.heading, u
 
   if (input.brake) {
     const brakeGrip = clamp(terrain.traction, 0.18, 1);
-    const brakeScale = Math.max(0, terrain.brakingScale) * 1.5 * Math.sqrt(Math.max(0.05, wheelPower));
+    const brakeScale = Math.max(0, terrain.brakingScale) * 1.5 * Math.sqrt(Math.max(0.05, wheelPower)) * (vehicle.handlingScale?.braking ?? 1);
     vehicle.vx *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt * brakeScale);
     vehicle.vy *= Math.pow(1 - (1 - 0.04) * brakeGrip, dt * brakeScale);
     vehicle.angularVelocity *= Math.pow(1 - (1 - 0.02) * brakeGrip, dt * brakeScale);
@@ -87,7 +87,7 @@ function applyWheelGrounding(vehicle, accel, wheelPower, inertiaCompensation, dt
   if (speed <= 0.001 || accelMagnitude <= 0.001) return;
   const dot = (vehicle.vx * accel.x + vehicle.vy * accel.y) / (speed * accelMagnitude);
   if (dot >= 0.15) return;
-  const braking = Math.pow(0.04 / (Math.max(1, Math.sqrt(Math.max(1, wheelPower))) * inertiaCompensation), dt);
+  const braking = Math.pow(0.04 / (Math.max(1, Math.sqrt(Math.max(1, wheelPower))) * inertiaCompensation), dt * (vehicle.handlingScale?.braking ?? 1));
   vehicle.vx *= braking;
   vehicle.vy *= braking;
 }
@@ -105,16 +105,16 @@ export function vehicleMaxSpeed(vehicle, upgrades = {}) {
   const wheelPower = typedModulePower(vehicle, 'wheel');
   const massPenalty = Math.sqrt(vehicle.totalMass / 120);
   const engineMaxVelocity = upgradeMultiplier(upgrades, 'engineMaxVelocity', 0.08);
-  return (380 * Math.sqrt(Math.max(0.05, enginePower)) * Math.sqrt(Math.max(0.05, wheelPower)) * engineMaxVelocity) / Math.max(0.8, massPenalty);
+  return (380 * Math.sqrt(Math.max(0.05, enginePower)) * Math.sqrt(Math.max(0.05, wheelPower)) * engineMaxVelocity * (vehicle.handlingScale?.maxSpeed ?? 1)) / Math.max(0.8, massPenalty);
 }
 
 function clampVehicleSpeed(vehicle, enginePower, wheelPower, massPenalty, engineMaxVelocity, terrain, dt) {
   const speed = Math.hypot(vehicle.vx, vehicle.vy);
-  const baseMaxSpeed = (380 * Math.sqrt(Math.max(0.05, enginePower)) * Math.sqrt(Math.max(0.05, wheelPower)) * engineMaxVelocity) / Math.max(0.8, massPenalty);
+  const baseMaxSpeed = (380 * Math.sqrt(Math.max(0.05, enginePower)) * Math.sqrt(Math.max(0.05, wheelPower)) * engineMaxVelocity * (vehicle.handlingScale?.maxSpeed ?? 1)) / Math.max(0.8, massPenalty);
   const maxSpeed = baseMaxSpeed * Math.max(1, vehicle.maxVelocityScale ?? 1);
   if (speed <= maxSpeed) return;
   if ((vehicle.maxVelocityScale ?? 1) <= 1 && vehicle.boostOverspeed) {
-    const brakeScale = 1.5 * Math.sqrt(Math.max(0.05, wheelPower)) * Math.max(0, terrain.brakingScale);
+    const brakeScale = 1.5 * Math.sqrt(Math.max(0.05, wheelPower)) * Math.max(0, terrain.brakingScale) * (vehicle.handlingScale?.braking ?? 1);
     const retention = Math.pow(0.04, dt * brakeScale);
     const nextSpeed = Math.max(baseMaxSpeed, speed * retention);
     vehicle.vx = (vehicle.vx / speed) * nextSpeed;

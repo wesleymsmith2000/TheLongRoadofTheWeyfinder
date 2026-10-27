@@ -90,7 +90,7 @@ test('Arcade launch is axial, ignores sideways/backward velocity, and has a smoo
   near(arcadeProjectileVelocity({ x: step, y: 0 }, { x: 1, y: 0 }, 160).x, 160 + step / 2);
 });
 
-for (const weapon of ['main.basic', 'blade_launcher', 'mini_beam', 'tracking_flechette']) {
+for (const weapon of ['main.basic', 'blade_launcher', 'tracking_flechette']) {
   test(`Arcade ${weapon} fires road-forward regardless of cursor or turret`, () => {
     const game = weaponGame(weapon);
     game.vehicle.turretHeading = 0;
@@ -135,7 +135,17 @@ test('Arcade Main Gun spray is seeded on both sides of road-forward and tightens
   assert.ok(Math.max(...sample(8).map(Math.abs)) < Math.max(...offsets.map(Math.abs)));
 });
 
-for (const weapon of ['main.basic', 'blade_launcher', 'mini_beam', 'tracking_flechette', 'mortar']) {
+test('Arcade Main Gun bullets have twice the Normal flight duration and range', () => {
+  const normal = weaponGame('main.basic', 'normal');
+  const arcade = weaponGame('main.basic');
+  const a = firstShot(arcade, 'main.basic');
+  const n = firstShot(normal, 'main.basic');
+  near(a.maxLifetime, n.maxLifetime * 2);
+  near(a.maxLifetime, 4.4);
+  near(Math.hypot(a.vx, a.vy) * a.maxLifetime, Math.hypot(n.vx, n.vy) * n.maxLifetime * 2);
+});
+
+for (const weapon of ['main.basic', 'blade_launcher', 'tracking_flechette', 'mortar']) {
   test(`Arcade ${weapon} doubles upgraded primary damage and cooldown exactly once`, () => {
     const normal = weaponGame(weapon, 'normal');
     const arcade = weaponGame(weapon);
@@ -245,7 +255,7 @@ test('both teams scale explosive radii once; secondary damage and fire cadence r
       const definition = setGunLoadoutSlot(startingVehicle, 'gun', 'secondary', 0, weapon).definition;
       const game = createGame(1147, { runMode: mode, vehicleDefinition: definition });
       game.autofire = false;
-      stepGame(game, { secondarySelect: weapon, secondaryFirePressed: true }, 1 / 60);
+      stepGame(game, { targetingMode: 'manual', aimWorld: { x: game.vehicle.x + 800, y: game.vehicle.y - 100 }, secondarySelect: weapon, secondaryFirePressed: true }, 1 / 60);
       return game;
     });
     const [normal, arcade] = games;

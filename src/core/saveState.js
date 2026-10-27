@@ -3,6 +3,7 @@ import { hydrateEncounterRuntime, serializeEncounterRuntime } from './encounterR
 import { hydrateNavigationRuntime, serializeNavigationRuntime } from './navigationGraph.js';
 import { hydrateAnimationController, serializeAnimationController } from './animationGraph.js';
 import { normalizeWeaponBayState } from './weaponBay.js';
+import { arcadeSlotFlags, prepareArcadeLoadout } from './arcadeLoadout.js';
 
 export const SAVE_STATE_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const SAVE_STATE_KIND = 'weyfinder.prototype0.save';
@@ -11,6 +12,7 @@ export function createSaveState(game, playerAccount, options = {}) {
   const payload = {
     savedAt: options.savedAt ?? new Date().toISOString(),
     seed: options.seed ?? 1147,
+    runMode: game.runMode ?? 'normal',
     playerAccount: structuredClone(playerAccount),
     vehicleDefinition: structuredClone(game.vehicleDefinition ?? playerAccount?.savedVehicle ?? null),
     level: game.level,
@@ -76,6 +78,12 @@ export function applySaveStateToGame(game, saveState) {
   game.upgrades = isPlainObject(payload.upgrades) ? structuredClone(payload.upgrades) : game.upgrades;
   if (isPlainObject(payload.secondary)) game.secondary = structuredClone(payload.secondary);
   game.weaponBay = normalizeWeaponBayState(payload.weaponBay, game.vehicleDefinition, game.runMode);
+  if (game.runMode === 'arcade') {
+    game.weaponBay.unlockedSlots = arcadeSlotFlags(game.vehicleDefinition, game.bossLevelsCompleted);
+    for (const id of prepareArcadeLoadout(payload.vehicleDefinition ?? game.vehicleDefinition).recovered) {
+      game.weaponBay.inventory[id] = (game.weaponBay.inventory[id] ?? 0) + 1;
+    }
+  }
   game.score = isPlainObject(payload.score) ? structuredClone(payload.score) : game.score;
   game.targetingMode = typeof payload.targetingMode === 'string' ? payload.targetingMode : game.targetingMode;
   game.guidedTargetCellType = typeof payload.guidedTargetCellType === 'string' ? payload.guidedTargetCellType : game.guidedTargetCellType;

@@ -19,6 +19,8 @@ export const DIVER_CONSTRUCTS = { motorcycle, sailboat, insect, walker, ghost, s
 export const DIVER_VARIANTS = pack.variants;
 export const DIVER_MIN_WAVES = 2;
 export const DIVER_WAVE_INTERVAL = [60, 240];
+export const HOPPER_DIVER_PREY_RANGE = CELL_SIZE * 7.5;
+export const DIVER_FEAR_SECONDS = 5;
 const UP = -Math.PI / 2;
 const ZONES = ['TheWeyfindersRoad', 'DigitizedStream', 'PiratesRoad', 'StarlightRoad', 'TwilightCrossroads', 'ShadowedRoad', 'GhostForrest', 'ShadowedDesert', 'FreedomsPass', 'SteppesOfApollonSkoteinos'];
 
@@ -53,6 +55,8 @@ export function validateDiverPack(definition) {
     for (const field of ['trackingSeconds', 'approachSpeed', 'climbSpeed', 'turnSpeed', 'turnRadiusRatio', 'turnRate', 'diveSpeed', 'acceleration', 'trackingGain', 'trackingDamping', 'trackingLag', 'maxTrackingSpeed', 'fireInterval', 'mortarInterval']) {
       if (!Number.isFinite(variant.profile?.[field]) || variant.profile[field] <= 0) errors.push(`${variant.id}.profile.${field} must be positive.`);
     }
+    const spread = variant.profile?.trackingSpreadRadians;
+    if (spread != null && (!Number.isFinite(spread) || spread < 0 || spread > Math.PI)) errors.push(`${variant.id}.profile.trackingSpreadRadians must be between zero and pi.`);
   }
   for (const theme of Object.keys(DIVER_CONSTRUCTS)) if (!ids.has(theme)) errors.push(`Missing Diver variant: ${theme}`);
   return { valid: errors.length === 0, errors };
@@ -86,6 +90,10 @@ export function createDiverEnemy(x, y, theme = 'motorcycle', options = {}) {
 }
 
 export function resetDiverWaves(game) {
+  game.arcadeGapQuietSeconds = 0;
+  game.arcadeGapSpawnCount = 0;
+  game.arcadeEmptyScreenSeconds = 0;
+  game.arcadeRushDiverEntry = false;
   game.diverWaves = game.runMode === 'arcade' && !game.sandbox?.enabled
     ? { level: game.level, wavesSpawned: 0, wavesCleared: 0, waitingForClear: false, nextIn: game.rng.range(...DIVER_WAVE_INTERVAL) }
     : null;
@@ -94,19 +102,21 @@ export function resetDiverWaves(game) {
 export function stepDiverWaves(game, dt, onSpawn = () => {}) {
   const state = game.diverWaves;
   if (!state || game.levelComplete || game.gameOver) return;
-  if (game.enemies.some(e => e.diver && !e.destroyed)) return;
+  if (game.enemies.some(e => e.diver && !e.arcadeGapDiver && !e.destroyed)) return;
   if (state.waitingForClear) {
     state.wavesCleared++;
     state.waitingForClear = false;
     state.nextIn = game.rng.range(...DIVER_WAVE_INTERVAL);
   }
   state.nextIn = Math.max(0, state.nextIn - dt);
+  if (game.arcadeRushDiverEntry) state.nextIn = 0;
   if (state.nextIn > 0) return;
   const context = diverLevelContext(game.level, game.levelMusic);
   const count = 1 + Math.floor(game.rng.next() * 3) + context.zoneNumber + context.zoneLevel;
   for (let i = 0; i < count; i++) {
     const x = count === 1 ? 0 : ((i / (count - 1)) * 2 - 1) * game.road.halfWidth * 0.72;
-    const world = roadOffsetToWorld({ x, y: -arcadePlayBounds(game.road).ahead - 110 - i * CELL_SIZE * 3 }, game.road);
+    const ahead = arcadePlayBounds(game.road).ahead;
+    const world = roadOffsetToWorld({ x, y: game.arcadeRushDiverEntry ? -ahead * 0.72 : -ahead - 110 - i * CELL_SIZE * 3 }, game.road);
     const enemy = createDiverEnemy(world.x, world.y, context.theme, { roadHeading: game.road.heading, phaseOffset: game.rng.range(0, 1) });
     enemy.targetId = `diver:${game.level}:${state.wavesSpawned}:${i}`;
     if (context.zone === 'ShadowedRoad') enemy.palette = { ...enemy.palette, armor: '#444f5c', core: '#9aafbb', gun: '#ff884e' };
@@ -114,11 +124,13 @@ export function stepDiverWaves(game, dt, onSpawn = () => {}) {
     game.enemies.push(enemy);
   }
   state.wavesSpawned++;
+  state.currentWaveSize = count;
+  game.arcadeRushDiverEntry = false;
   state.waitingForClear = true;
 }
 
 export function diverWavesCleared(game) {
-  return !game.diverWaves || (game.diverWaves.wavesSpawned >= DIVER_MIN_WAVES && !game.enemies.some(e => e.diver && !e.destroyed));
+  return !game.diverWaves || (game.diverWaves.wavesSpawned >= DIVER_MIN_WAVES && !game.enemies.some(e => e.diver && !e.arcadeGapDiver && !e.destroyed));
 }
 
 function setPhase(state, phase) {
@@ -154,6 +166,22 @@ function stepTurn(state) {
 // Owns movement and integration; standard lane steering and Arcade front bias
 // must not overwrite this scripted cycle.
 export function stepDiverEnemy(game, enemy, dt) {
+  if (enemy.destroyed) return;
+  if (enemy.arcadeGapDiver && enemy.diver.random) game = { ...game, rng: enemy.diver.random };
+  if (enemy.diver.gapExit) {
+    const state = enemy.diver;
+    state.speed = Math.min(state.profile.climbSpeed, state.speed + state.profile.acceleration * dt);
+    enemy.vx = Math.cos(state.gapExitAngle) * state.speed;
+    enemy.vy = Math.sin(state.gapExitAngle) * state.speed;
+    enemy.x += enemy.vx * dt;
+    enemy.y += enemy.vy * dt;
+    enemy.visualHeading = state.gapExitAngle;
+    enemy.collisionRotation = state.gapExitAngle + Math.PI / 2;
+    const position = worldToRoadOffset(enemy, game.road);
+    const bounds = arcadePlayBounds(game.road);
+    if (Math.abs(position.x) > (game.road.viewWidth ?? game.road.halfWidth * 2) * 0.6 + enemy.radius || position.y < -bounds.ahead - enemy.radius || position.y > bounds.behind + enemy.radius) enemy.arcadeGapRemove = true;
+    return;
+  }
   const state = enemy.diver;
   const profile = state.profile;
   let position = worldToRoadOffset(enemy, game.road);
@@ -164,11 +192,14 @@ export function stepDiverEnemy(game, enemy, dt) {
   const top = -bounds.ahead * 0.72;
   state.phaseAge += dt;
   updateDiverDamageState(enemy, dt);
+  stepDiverHopperFear(game, enemy, dt);
 
   if (state.phase === 'approach') {
     state.roadAngle = UP;
-    position.y = Math.min(top, position.y + profile.approachSpeed * dt);
+    state.speed = Math.min(profile.approachSpeed * speedScale, state.speed + profile.acceleration * speedScale * dt);
+    position.y = Math.min(top, position.y + state.speed * dt);
     if (position.y >= top) {
+      state.speed = 0;
       setPhase(state, 'track');
       state.trackedX = position.x;
       if (state.theme === 'burrower') emitDiverParticles(game, enemy, 'burst', 14);
@@ -177,15 +208,17 @@ export function stepDiverEnemy(game, enemy, dt) {
     state.roadAngle = UP;
     state.trackedX ??= position.x;
     state.trackedX += (clamp(player.x, -game.road.halfWidth * 0.72, game.road.halfWidth * 0.72) - state.trackedX) * (1 - Math.exp(-profile.trackingLag * dt));
-    state.lateralSpeed += ((state.trackedX - position.x) * profile.trackingGain - state.lateralSpeed * profile.trackingDamping) * dt;
+    const lateralAcceleration = (state.trackedX - position.x) * profile.trackingGain - state.lateralSpeed * profile.trackingDamping;
+    state.lateralSpeed += clamp(lateralAcceleration, -profile.acceleration * speedScale, profile.acceleration * speedScale) * dt;
     state.lateralSpeed = clamp(state.lateralSpeed, -profile.maxTrackingSpeed, profile.maxTrackingSpeed);
     position.x += state.lateralSpeed * dt;
     position.y += clamp((top - position.y) * 2, -12, 12) * dt;
     if (state.phaseAge >= profile.trackingSeconds) setPhase(state, 'climb');
   } else if (state.phase === 'climb') {
     state.roadAngle = UP;
-    position.y -= profile.turnSpeed * dt;
-    if (position.y < -bounds.ahead - game.road.halfHeight * 0.45) beginTurn(game, enemy, position, 'topTurn', Math.PI / 2);
+    state.speed = Math.min(profile.turnSpeed * speedScale, state.speed + profile.acceleration * speedScale * dt);
+    position.y -= state.speed * dt;
+    if (position.y < -bounds.ahead * 0.88) beginTurn(game, enemy, position, 'topTurn', Math.PI / 2);
   } else if (state.phase === 'topTurn' || state.phase === 'bottomTurn') {
     if (state.theme === 'sailboat') state.turn.origin.x += state.lateralSpeed * dt * 0.3;
     position = stepTurn(state);
@@ -218,7 +251,7 @@ export function stepDiverEnemy(game, enemy, dt) {
       position.y += Math.cos(state.roadAngle) * wiggle;
       state.slitherPhase = next;
     }
-    if (state.phase === 'dive' && position.y > bounds.behind + game.road.halfHeight * 0.45) {
+    if (state.phase === 'dive' && position.y > bounds.behind * 0.88) {
       beginTurn(game, enemy, position, 'bottomTurn', UP);
     } else if (state.phase === 'return' && position.y < -bounds.ahead - 110) {
       state.speed = 0;
@@ -258,7 +291,10 @@ function stepDiverFire(game, enemy, dt) {
   if (!enemy.cells.some(c => c.type === 'gun' && !c.state.destroyed && c.state.deviceIntegrity > 0.1)) return;
   const damageScale = enemy.combatScale?.damage ?? 1;
   if (state.fireTimer === 0) {
-    const angle = enemy.visualHeading;
+    const spread = state.profile.trackingSpreadRadians ?? Math.PI / 6;
+    const angle = state.phase === 'track'
+      ? Math.atan2(game.vehicle.y - enemy.y, game.vehicle.x - enemy.x) + game.rng.range(-spread, spread)
+      : enemy.visualHeading;
     const offset = CELL_SIZE * 2;
     game.enemyProjectiles.push(createCombatProjectile(game, enemy.x + Math.cos(angle) * offset, enemy.y + Math.sin(angle) * offset, Math.cos(angle) * 180, Math.sin(angle) * 180, {
       team: 'enemy', weapon: 'diver-gun', angle, radius: 1.6, damage: 8 * damageScale,
@@ -301,13 +337,45 @@ function emitDiverParticles(game, enemy, kind, count) {
   if (game.smokeParticles.length > 650) game.smokeParticles.splice(0, game.smokeParticles.length - 650);
 }
 
-export function nearestHopperDiverPrey(game, hopper, range = CELL_SIZE * 7.5) {
+export function nearestHopperDiverPrey(game, hopper, range = HOPPER_DIVER_PREY_RANGE) {
   return game.enemies.reduce((best, enemy) => {
     if (!enemy.diver || enemy.diver.theme !== 'insect' || enemy.destroyed || enemy.phasedOut) return best;
     const distance = Math.hypot(enemy.x - hopper.x, enemy.y - hopper.y);
     if (distance > range) return best;
     return !best || distance < Math.hypot(best.x - hopper.x, best.y - hopper.y) ? enemy : best;
   }, null);
+}
+
+function stepDiverHopperFear(game, enemy, dt) {
+  const state = enemy.diver;
+  if (state.theme !== 'insect' || enemy.destroyed) return;
+  const threatened = game.enemies.some(hopper => !hopper.destroyed && (hopper.kind === 'hopperFrog' || hopper.archetypeId === 'hopping_stream_mob.digitized_stream') &&
+    Math.hypot(enemy.x - hopper.x, enemy.y - hopper.y) <= HOPPER_DIVER_PREY_RANGE);
+  state.hopperFear ??= { elapsed: 0, cueIn: 0, active: false, resolved: false };
+  const fear = state.hopperFear;
+  if (!fear.active) {
+    if (!threatened) { fear.resolved = false; return; }
+    if (fear.resolved) return;
+    fear.active = true;
+    fear.elapsed = 0;
+    fear.cueIn = 0;
+  }
+  fear.elapsed += dt;
+  fear.cueIn -= dt;
+  if (fear.elapsed >= DIVER_FEAR_SECONDS) {
+    addDiverReaction(enemy, String.fromCodePoint(0x1f60c), 1.8);
+    fear.active = false;
+    fear.resolved = true;
+  } else if (fear.cueIn <= 0) {
+    const text = Math.floor(fear.elapsed / 0.65) % 2 === 0 ? String.fromCodePoint(0x1f631) : String.fromCodePoint(0x1f628);
+    addDiverReaction(enemy, text, 0.9);
+    fear.cueIn = 0.65;
+  }
+}
+
+function addDiverReaction(enemy, text, duration) {
+  enemy.reactionCueQueue ??= [];
+  enemy.reactionCueQueue.push({ text, age: 0, lifetime: duration, x: 0, y: -Math.max(CELL_SIZE * 2.8, enemy.radius * 0.34), rise: CELL_SIZE * 1.5, size: CELL_SIZE * 0.92, growth: 2.2 });
 }
 
 export function hitDiverWithHopperBeam(game, beam, onDestroyed = () => {}) {

@@ -8,6 +8,15 @@ export const DEFAULT_TERRAIN_CONFIG = Object.freeze({
   routeFallbackLength: 48000,
 });
 
+// Four times the tile edge and half the tile count per chunk axis. Chunks
+// cover twice the distance, matching Arcade's doubled road travel rate.
+export const ARCADE_TERRAIN_CONFIG = Object.freeze({
+  ...DEFAULT_TERRAIN_CONFIG,
+  tileSize: DEFAULT_TERRAIN_CONFIG.tileSize * 4,
+  chunkSize: DEFAULT_TERRAIN_CONFIG.chunkSize * 2,
+  cachePixelSize: DEFAULT_TERRAIN_CONFIG.chunkSize,
+});
+
 export function normalizeTerrainConfig(config = {}) {
   const normalized = {
     ...DEFAULT_TERRAIN_CONFIG,
@@ -26,6 +35,9 @@ export function normalizeTerrainConfig(config = {}) {
   }
   if (!Number.isInteger(normalized.subcellsPerTile)) {
     throw new Error('terrain config subcellsPerTile must be an integer.');
+  }
+  if (normalized.cachePixelSize != null && (!Number.isInteger(normalized.cachePixelSize) || normalized.cachePixelSize <= 0)) {
+    throw new Error('terrain config cachePixelSize must be a positive integer when provided.');
   }
   return Object.freeze(normalized);
 }
