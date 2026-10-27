@@ -1,6 +1,7 @@
 import { roadOffsetToWorld, worldToRoadOffset } from './camera.js';
 import { clamp } from './math.js';
 import { createProjectile } from './projectile.js';
+import { scaleSpriteDescriptor } from './projectileVisualScale.js';
 
 export function normalizeRunMode(mode = 'normal') {
   return mode === 'lite' ? 'arcade' : mode ?? 'normal';
@@ -39,14 +40,34 @@ export function arcadeEnemyFireRateScale(game) {
   return game.runMode === 'arcade' ? 0.5 : 1;
 }
 
+export function arcadeProjectileDamageScale(game) {
+  return game.runMode === 'arcade' ? 1.5 : 1;
+}
+
+function enlargedArcadeShot(projectile) {
+  const weapon = String(projectile.weapon ?? '');
+  return projectile.behavior !== 'beam' && projectile.behavior !== 'blast' &&
+    (/bullet|^main\.basic$|^diver-gun$|^boss-nodule$/.test(weapon) || (projectile.team === 'player' && /flechette|shrapnel/.test(weapon)));
+}
+
 // All combat spawn paths share this boundary, including bespoke boss attacks.
 // Derived blast visuals use the already scaled payload's radius.
 export function applyArcadeProjectileScaling(game, projectile) {
   if (game.runMode !== 'arcade' || projectile.arcadeScaled) return projectile;
   projectile.arcadeScaled = true;
-  const damageScale = projectile.team === 'player' ? 1 : 2;
+  const damageScale = projectile.arcadeDamageScaled ? 1 : (projectile.team === 'player' ? 1 : 2) * arcadeProjectileDamageScale(game);
   projectile.damage *= damageScale;
   projectile.blastDamage *= damageScale;
+  projectile.arcadeDamageScaled = true;
+  if (enlargedArcadeShot(projectile)) {
+    projectile.radius *= 1.5;
+    projectile.maxRadius *= 1.5;
+    projectile.vx *= 1.5;
+    projectile.vy *= 1.5;
+    projectile.acceleration *= 1.5;
+    projectile.maxSpeed *= 1.5;
+    projectile.sprite = scaleSpriteDescriptor(projectile.sprite, 1.5);
+  }
   projectile.blastRadius = arcadeBlastRadius(game, projectile.blastRadius ?? 0);
   if (projectile.blastOnExpire) {
     projectile.blastOnExpire = {

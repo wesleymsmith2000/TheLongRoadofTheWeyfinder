@@ -64,21 +64,21 @@ test('Arcade cannon reaches and detonates once at an off-axis reticle even beyon
   }
 });
 
-test('Arcade handling gives the same hull 50 percent more acceleration and braking and double top speed', () => {
+test('Arcade handling compounds the two boosts to 2.25 acceleration/braking and fourfold top speed', () => {
   const normal = createGame(42, { vehicleDefinition: starter });
   const arcade = createGame(42, { vehicleDefinition: starter, runMode: 'arcade' });
-  near(vehicleMaxSpeed(arcade.vehicle), vehicleMaxSpeed(normal.vehicle) * 2);
+  near(vehicleMaxSpeed(arcade.vehicle), vehicleMaxSpeed(normal.vehicle) * 4);
   stepVehicle(normal.vehicle, { x: 1 }, 0.01);
   stepVehicle(arcade.vehicle, { x: 1 }, 0.01);
-  near(arcade.vehicle.vx, normal.vehicle.vx * 1.5);
+  near(arcade.vehicle.vx, normal.vehicle.vx * 2.25);
   const coast = structuredClone(normal.vehicle);
   for (const vehicle of [normal.vehicle, arcade.vehicle, coast]) { vehicle.vx = 100; vehicle.vy = 0; }
   stepVehicle(normal.vehicle, { brake: true }, 0.1);
   stepVehicle(arcade.vehicle, { brake: true }, 0.1);
   stepVehicle(coast, {}, 0.1);
-  near(arcade.vehicle.vx / coast.vx, (normal.vehicle.vx / coast.vx) ** 1.5);
+  near(arcade.vehicle.vx / coast.vx, (normal.vehicle.vx / coast.vx) ** 2.25);
   for (const game of [normal, arcade]) { game.vehicle.vx = 100000; stepVehicle(game.vehicle, {}, 0); }
-  near(arcade.vehicle.vx, normal.vehicle.vx * 2);
+  near(arcade.vehicle.vx, normal.vehicle.vx * 4);
 });
 
 test('scrolling carries the Arcade cannon fuse origin along with the shell and locked target', () => {

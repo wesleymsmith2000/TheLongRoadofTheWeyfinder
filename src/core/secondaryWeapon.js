@@ -1,4 +1,5 @@
-import { arcadeForwardHeading, createCombatProjectile } from './arcadeMode.js';
+import { arcadeForwardHeading, arcadeProjectileDamageScale, createCombatProjectile } from './arcadeMode.js';
+import { beamBurstDamage } from './beamDamage.js';
 import { firingGunLoadouts } from './arcadeLoadout.js';
 import { compensatedAimHeading } from './turret.js';
 import { gunMuzzleWorld, gunMuzzlesWorld, moduleMuzzlesWorld } from './vehicle.js';
@@ -9,7 +10,7 @@ import { emitHapticEvent, HAPTIC_EVENTS } from './hapticEvents.js';
 import { normalizeGunLoadouts, usableSecondaryWeaponIds, utilityModuleCellIds } from './weaponLoadout.js';
 import { projectileUpgradeVisualScale, scaleProjectileVisuals } from './projectileVisualScale.js';
 import { hasTargetingComputer, secondaryTargetingReticleKey, targetingReticleForSecondary } from './targetingComputers.js';
-import { activePlayerWaveletField, createSpatialWaveletField } from './spatialWaveletBeam.js';
+import { activePlayerWaveletField, createSpatialWaveletField, pinPlayerWaveletCharge } from './spatialWaveletBeam.js';
 import { weaponFireBlocked } from './weaponInterlock.js';
 import { arcadeProjectileVelocity, forwardSafeInheritedVelocity } from './projectileLaunch.js';
 import rocketDefinition from '../../content/weapons/rocket.json' with { type: 'json' };
@@ -227,6 +228,7 @@ function fireSpatialWavelet(game, muzzle, def, aimReticle) {
     tier: level(game, 'waveletTier'),
     cooldown: def.cooldown,
     frontDamage: def.damage,
+    sourcePosition: game.vehicle,
     sourceCellId: muzzle.cellId,
     sourceWeaponId: def.id,
     team: 'player',
@@ -234,6 +236,7 @@ function fireSpatialWavelet(game, muzzle, def, aimReticle) {
   game.spatialFields ??= [];
   game.spatialFields.push(field);
   game.secondary.waveletCommitment = field.id;
+  pinPlayerWaveletCharge(game);
   if (Number.isFinite(game.secondary.ammo[def.id])) game.secondary.ammo[def.id] -= 1;
   game.secondary.heat += def.heat;
   emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_WEAPON_FIRE, { weapon: def.id, intensity: 0.3, durationMs: 120 });
@@ -304,6 +307,28 @@ function upgradedSecondaryDefinition(game, weapon) {
   const base = SECONDARY_DEFINITIONS[weapon];
   if (!base) return null;
   const visualScale = secondaryProjectileVisualScale(game, weapon);
+  if (weapon === 'vortex_wavelet_beam' && game.runMode === 'arcade') {
+    const effect = structuredClone(base.effect);
+    effect.gameplay.chargePullAcceleration *= 2;
+    effect.gameplay.projectileDeflectionSpeedScale = 3;
+    effect.gameplay.pinSourceDuringCharge = true;
+    effect.gameplay.recoilSpeed = 140;
+    effect.gameplay.pierceEachEnemy = true;
+    effect.visual.showGuides = false;
+    effect.visual.distortionEnabled = true;
+    effect.tiers = effect.tiers.map(tier => ({
+      ...tier, beamWidthPixels: tier.beamWidthPixels * 0.75,
+      maxStrengthPixels: tier.maxStrengthPixels * 3,
+    }));
+    const particleBeam = upgradedSecondaryDefinition({
+      ...game, upgrades: { ...game.upgrades, beamDamage: 10, beamFireTime: 10 },
+    }, 'beam');
+    return {
+      ...base, effect, length: base.length * 1.5,
+      // A single traversed voxel receives at least an entire level-10 beam burst.
+      damage: Math.max(base.damage, beamBurstDamage(particleBeam.damage, particleBeam.frames)) * arcadeProjectileDamageScale(game),
+    };
+  }
   if (weapon === 'cannon') {
     return scaleProjectileVisuals({
       ...base,

@@ -9,6 +9,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     startX: options.startX ?? null,
     startY: options.startY ?? null,
     arcadeForwardLocked: Boolean(options.arcadeForwardLocked),
+    arcadeDamageScaled: Boolean(options.arcadeDamageScaled),
     homingReference: options.homingReference ?? null,
     angle: options.angle ?? Math.atan2(vy, vx),
     spinRate: options.spinRate ?? 0,

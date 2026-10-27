@@ -135,18 +135,18 @@ test('Arcade Main Gun spray is seeded on both sides of road-forward and tightens
   assert.ok(Math.max(...sample(8).map(Math.abs)) < Math.max(...offsets.map(Math.abs)));
 });
 
-test('Arcade Main Gun bullets have twice the Normal flight duration and range', () => {
+test('Arcade Main Gun bullets retain double flight duration and now travel three times the Normal range', () => {
   const normal = weaponGame('main.basic', 'normal');
   const arcade = weaponGame('main.basic');
   const a = firstShot(arcade, 'main.basic');
   const n = firstShot(normal, 'main.basic');
   near(a.maxLifetime, n.maxLifetime * 2);
   near(a.maxLifetime, 4.4);
-  near(Math.hypot(a.vx, a.vy) * a.maxLifetime, Math.hypot(n.vx, n.vy) * n.maxLifetime * 2);
+  near(Math.hypot(a.vx, a.vy) * a.maxLifetime, Math.hypot(n.vx, n.vy) * n.maxLifetime * 3);
 });
 
 for (const weapon of ['main.basic', 'blade_launcher', 'tracking_flechette', 'mortar']) {
-  test(`Arcade ${weapon} doubles upgraded primary damage and cooldown exactly once`, () => {
+  test(`Arcade ${weapon} triples upgraded primary damage and doubles cooldown exactly once`, () => {
     const normal = weaponGame(weapon, 'normal');
     const arcade = weaponGame(weapon);
     for (const game of [normal, arcade]) {
@@ -157,10 +157,10 @@ for (const weapon of ['main.basic', 'blade_launcher', 'tracking_flechette', 'mor
       game.upgrades.miniBeamDamage = 2;
     }
     const a = firstShot(arcade, weapon), n = firstShot(normal, weapon);
-    near(a.damage, n.damage * 2);
+    near(a.damage, n.damage * 3);
     near(Object.values(arcade.primaryWeaponCooldowns)[0], Object.values(normal.primaryWeaponCooldowns)[0] * 2);
     if (weapon === 'mortar') {
-      near(a.blastDamage, n.blastDamage * 2);
+      near(a.blastDamage, n.blastDamage * 3);
       near(a.blastRadius, n.blastRadius * 1.5);
       near(a.vx, (a.targetHint.x - a.previousX) / a.arcFlightTime);
       near(a.vy, (a.targetHint.y - a.previousY) / a.arcFlightTime);
@@ -206,7 +206,7 @@ test('Arcade Flechettes acquire nearest enemy to the moving player after delay, 
   assert.ok(Math.abs(shot.angle) < Math.PI);
 });
 
-test('the utility repulsor retains threat aim, damage and cooldown in Arcade', () => {
+test('the utility repulsor retains threat aim and cooldown with the common Arcade damage boost', () => {
   const games = ['normal', 'arcade'].map(mode => {
     const game = createGame(1147, { runMode: mode });
     game.autofire = true;
@@ -221,23 +221,24 @@ test('the utility repulsor retains threat aim, damage and cooldown in Arcade', (
   const a = arcade.playerProjectiles.find(p => p.weapon === 'repulsor_beam');
   assert.ok(n && a);
   assert.equal(a.arcadeForwardLocked, false);
-  near(a.damage, n.damage);
+  near(a.damage, n.damage * 1.5);
   near(arcade.primaryWeaponCooldowns['utility:0:repulsor_beam'], normal.primaryWeaponCooldowns['utility:0:repulsor_beam']);
   near(arcade.playerDefensiveFireTimer, normal.playerDefensiveFireTimer);
   near(a.angle, Math.atan2(arcade.enemies[0].y - a.y, arcade.enemies[0].x - a.x));
 });
 
-test('both teams scale explosive radii once; secondary damage and fire cadence remain unchanged', () => {
+test('both teams scale explosive radii and the new damage boost exactly once', () => {
   for (const team of ['player', 'enemy']) {
     const game = { runMode: 'arcade' };
     const shot = createCombatProjectile(game, 0, 0, 1, 0, { team, damage: 7, blastDamage: 8, blastRadius: 20, blastOnExpire: { radius: 30, damage: 9 } });
     near(shot.blastRadius, 30);
     near(shot.blastOnExpire.radius, 45);
-    near(shot.damage, team === 'enemy' ? 14 : 7);
-    near(shot.blastOnExpire.damage, team === 'enemy' ? 18 : 9);
+    near(shot.damage, team === 'enemy' ? 21 : 10.5);
+    near(shot.blastDamage, team === 'enemy' ? 24 : 12);
+    near(shot.blastOnExpire.damage, team === 'enemy' ? 27 : 13.5);
     applyArcadeProjectileScaling(game, shot);
     near(shot.blastOnExpire.radius, 45);
-    near(shot.blastOnExpire.damage, team === 'enemy' ? 18 : 9);
+    near(shot.blastOnExpire.damage, team === 'enemy' ? 27 : 13.5);
   }
   const expiryGame = weaponGame('main.basic');
   expiryGame.autofire = false;
@@ -261,13 +262,13 @@ test('both teams scale explosive radii once; secondary damage and fire cadence r
     const [normal, arcade] = games;
     const n = normal.playerProjectiles.find(p => p.weapon === weapon), a = arcade.playerProjectiles.find(p => p.weapon === weapon);
     near(a.blastRadius, n.blastRadius * 1.5);
-    near(a.damage, n.damage);
-    near(a.blastDamage, n.blastDamage);
+    near(a.damage, n.damage * 1.5);
+    near(a.blastDamage, n.blastDamage * 1.5);
     near(arcade.secondary.cooldown, normal.secondary.cooldown);
   }
 });
 
-test('pattern enemies and bespoke bosses halve projectile timer speed and double projectile damage', () => {
+test('pattern enemies and bespoke bosses halve projectile timer speed and triple projectile damage', () => {
   for (const factory of [() => createEnemy(250, 0, undefined, [aimedShot]), () => createRoadBossCarEnemy(250, 0), () => createMortarSkiffEnemy(250, 0)]) {
     const games = ['normal', 'arcade'].map(mode => {
       const game = weaponGame('main.basic', mode);
@@ -298,10 +299,10 @@ test('pattern enemies and bespoke bosses halve projectile timer speed and double
     assert.ok(normal.enemyProjectiles.length > 0);
     for (let i = 0; i < normal.enemyProjectiles.length; i++) {
       const n = normal.enemyProjectiles[i], a = arcade.enemyProjectiles[i];
-      near(a.damage, n.damage * 2);
+      near(a.damage, n.damage * 3);
       if (n.blastOnExpire) {
         near(a.blastOnExpire.radius, n.blastOnExpire.radius * 1.5);
-        near(a.blastOnExpire.damage, n.blastOnExpire.damage * 2);
+        near(a.blastOnExpire.damage, n.blastOnExpire.damage * 3);
       }
     }
   }

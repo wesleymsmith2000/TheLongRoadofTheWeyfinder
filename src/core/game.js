@@ -75,7 +75,8 @@ import { normalizeGunLoadouts, utilityModuleCellIds, utilityModuleInstalled } fr
 import { createWeaponBayState } from './weaponBay.js';
 import { arcadeSlotFlags, firingGunLoadouts, prepareArcadeLoadout } from './arcadeLoadout.js';
 import arcadeStartingVehicleDefinition from '../../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
-import { carrySpatialFields, stepSpatialFields } from './spatialWaveletBeam.js';
+import { carrySpatialFields, pinPlayerWaveletCharge, stepSpatialFields } from './spatialWaveletBeam.js';
+import { beamFrameDamageScale } from './beamDamage.js';
 import { createWeaponInterlock, stepWeaponInterlock, weaponFireBlocked } from './weaponInterlock.js';
 import { arcadeProjectileVelocity, forwardSafeInheritedVelocity } from './projectileLaunch.js';
 import { runtimeWeaponDefinition } from './weaponDefinition.js';
@@ -498,7 +499,7 @@ export function createGame(seed = 1147, options = {}) {
       ? authoredLevelTraversal(levelDefinition, road)
       : traversalTargetForTrack(currentMusic, road);
   if (normalizeRunMode(options.runMode) === 'arcade') {
-    vehicle.handlingScale = { acceleration: 1.5, braking: 1.5, maxSpeed: 2 };
+    vehicle.handlingScale = { acceleration: 2.25, braking: 2.25, maxSpeed: 4 };
     vehicle.heading = road.heading;
     vehicle.primaryFacingHeading = arcadeForwardHeading({ road });
     vehicle.turretHeading = arcadeForwardHeading({ road });
@@ -660,9 +661,12 @@ export function stepGame(game, input, dt) {
   configureBoostFromUpgrades(game);
   game.vehicle.maxVelocityScale = game.boost.driveTime > 0 ? game.boost.maxVelocityFactor : 1;
   lockArcadeFacing(game);
-  stepVehicle(game.vehicle, game.runMode === 'arcade' ? { ...obstacleInput, turn: 0 } : obstacleInput, dt, game.road.heading, game.upgrades, game.terrainSample);
+  const waveletPinned = pinPlayerWaveletCharge(game);
+  const driveInput = waveletPinned ? {} : game.runMode === 'arcade' ? { ...obstacleInput, turn: 0 } : obstacleInput;
+  stepVehicle(game.vehicle, driveInput, dt, game.road.heading, game.upgrades, game.terrainSample);
   lockArcadeFacing(game);
-  stepBoost(game.vehicle, game.boost, input, game.road.heading, dt);
+  stepBoost(game.vehicle, game.boost, waveletPinned ? { dodgePressed: false } : input, game.road.heading, dt);
+  pinPlayerWaveletCharge(game);
   lockArcadeFacing(game);
   const turretInput = aimInputForTurret(game, input, dt);
   stepTurretAim(game.vehicle, activeEnemies(game), turretInput, dt);
@@ -685,7 +689,30 @@ export function stepGame(game, input, dt) {
   lockEnemyStaMissileDescents(game);
   game.enemyProjectiles = stepProjectiles(game.enemyProjectiles, dt);
   syncEnemyBeamProjectiles(game);
-  stepSpatialFields(game, dt, { onEnemyDestroyed: (enemy) => explodeEnemy(game, enemy) });
+  stepSpatialFields(game, dt, {
+    onEnemyDestroyed: (enemy) => explodeEnemy(game, enemy),
+    onProjectileDeflected: (projectile, angle, speed, field) => {
+      const shot = transferDeflectedProjectile(game, projectile, 'player', angle, speed, {
+        sourceWeaponId: field.sourceWeaponId, color: '#9be5ff',
+        lifetime: Math.max(0.5, Math.min(4, projectile.lifetime)),
+      });
+      game.enemyProjectiles = game.enemyProjectiles.filter(incoming => incoming !== projectile);
+      // The blast owns the new trajectory, including missiles with delayed thrust.
+      Object.assign(shot, {
+        behavior: projectile.behavior === 'arc' ? 'arc' : 'ballistic', turnRate: 0, acceleration: 0, delayedAcceleration: false,
+        maxSpeed: speed, targetHint: null, homingReference: null,
+        tracksReticleInHoming: false, tracksReticleInArc: false, tracksHomingTargetHint: false,
+        detonateAtTarget: false, detonateDistance: null, countdown: false,
+        absorbsPlayerProjectiles: false, absorbHp: 0,
+        sourceEnemy: null, sourceCellId: null,
+      });
+    },
+    onDischarge: field => {
+      if (!field.config.pinSourceDuringCharge) return;
+      emitSoundEvent(game, SOUND_EVENTS.PLAYER_BEAM);
+      emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_WEAPON_FIRE, { weapon: field.sourceWeaponId, intensity: 0.8, durationMs: 180 });
+    },
+  });
   stepGroundBeamScorchParticles(game, dt);
   const livePlayerCellsBeforeDamage = countLiveAttachedVehicleCells(game.vehicle);
   const livePlayerVoxelHealthBeforeDamage = countLiveAttachedVehicleVoxelHealth(game.vehicle);
@@ -703,6 +730,7 @@ export function stepGame(game, input, dt) {
   accelerateNextSpawnWhenArenaEmpty(game);
   stepScrapPickups(game, dt);
   containVehicleInRoadFrame(game.vehicle, game.road, dt);
+  pinPlayerWaveletCharge(game);
   recalculateVehicle(game.vehicle);
   lockArcadeFacing(game);
   syncBeamProjectiles(game);
@@ -7082,6 +7110,7 @@ function fractureBladeOnFirstRicochet(game, projectile, targetPoint) {
         behavior: 'homing',
         radius: projectile.radius,
         damage: sharedDamage,
+        arcadeDamageScaled: projectile.arcadeDamageScaled,
         color: projectile.color,
         impulse: projectile.impulse,
         lifetime: projectile.lifetime,
@@ -7135,6 +7164,7 @@ function burstSpentBladeIntoFlechettes(game, projectile) {
         behavior: 'ballistic',
         radius: Math.max(1, (projectile.radius ?? 2) * 0.42),
         damage,
+        arcadeDamageScaled: projectile.arcadeDamageScaled,
         impulse: (projectile.impulse ?? 0) * 0.25,
         lifetime: 0.55,
         angle,
@@ -7184,6 +7214,7 @@ function spawnPlayerDetonationBurst(game, projectile) {
           targetingReticleKey: projectile.targetingReticleKey,
           radius: group.radius ?? 1,
           damage: group.damage ?? projectile.damage,
+          arcadeDamageScaled: group.damage == null && projectile.arcadeDamageScaled,
           color: group.color,
           impulse: group.impulse ?? projectile.impulse * 0.35,
           lifetime: group.lifetime ?? 0.9,
@@ -7276,6 +7307,7 @@ function createEmittedPlayerProjectile(game, source, emitter) {
     targetingReticleKey: source.targetingReticleKey,
     radius: emitter.radius ?? 1,
     damage: emitter.damage ?? source.damage,
+    arcadeDamageScaled: emitter.damage == null && source.arcadeDamageScaled,
     color: emitter.color,
     impulse: emitter.impulse ?? source.impulse * 0.35,
     lifetime: emitter.lifetime ?? 0.9,
@@ -7645,7 +7677,7 @@ function easeOutCubic(t) {
 function spawnEnemyPulseBlast(game, projectile) {
   const payload = projectile.blastOnExpire ?? { radius: CELL_SIZE * 2.55, damage: 9, impulse: 55 };
   const blast = game.runMode === 'arcade' && !projectile.arcadeScaled
-    ? { ...payload, radius: arcadeBlastRadius(game, payload.radius), damage: payload.damage * 2 }
+    ? { ...payload, radius: arcadeBlastRadius(game, payload.radius), damage: payload.damage * 3 }
     : payload;
   const effects = [
     createCombatProjectile(game, projectile.x, projectile.y, 0, 0, {
@@ -8076,9 +8108,7 @@ function beamDamageScale(projectile) {
   const frames = projectile.frames || 9;
   const age = 1 - Math.max(0, projectile.lifetime / projectile.maxLifetime);
   const frame = Math.max(0, Math.min(frames - 1, Math.floor(age * frames)));
-  const centerDistance = Math.abs(frame - (frames - 1) / 2);
-  if (centerDistance <= 1) return 3;
-  return 1 + (1 - centerDistance / ((frames - 1) / 2)) * 2;
+  return beamFrameDamageScale(frame, frames);
 }
 
 function beamHalfWidth(projectile) {
@@ -8141,6 +8171,7 @@ function spawnCannonImpact(game, projectile, enemy) {
         targetingReticleKey: projectile.targetingReticleKey,
         radius: game.rng.range(0.7, 1.1),
         damage: projectile.damage * (projectile.shrapnelDamageScale ?? 1) * game.rng.range(0.2, 0.36),
+        arcadeDamageScaled: projectile.arcadeDamageScaled,
         impulse: projectile.impulse * 0.08,
         pierce: projectile.shrapnelPierce ?? 0,
         pierceDamageScale: projectile.pierceDamageScale,

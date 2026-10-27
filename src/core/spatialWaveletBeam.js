@@ -55,6 +55,8 @@ export function createSpatialWaveletField(options) {
     sourceWeaponId: options.sourceWeaponId ?? 'vortex_wavelet_beam',
     sourceCellId: options.sourceCellId ?? null,
     sourceEnemy: options.sourceEnemy ?? null,
+    sourcePosition: options.sourcePosition ? { x: options.sourcePosition.x, y: options.sourcePosition.y } : null,
+    projectileSpeeds: new WeakMap(),
     shockwaveHitObjects: new WeakSet(),
     pulseHitVoxels: new Set(),
     cancelled: false,
@@ -89,7 +91,7 @@ export function waveletFieldAabb(field, padding = 0) {
 export function stepSpatialFields(game, dt, hooks = {}) {
   game.spatialFields ??= [];
   for (const field of game.spatialFields) {
-    if (field.state === WAVELET_FIELD_STATES.CHARGING) stepChargingField(game, field, dt);
+    if (field.state === WAVELET_FIELD_STATES.CHARGING) stepChargingField(game, field, dt, hooks);
     else if (field.state === WAVELET_FIELD_STATES.DISCHARGING) stepDischargingField(game, field, dt, hooks);
   }
   game.spatialFields = game.spatialFields.filter((field) => field.state !== WAVELET_FIELD_STATES.DONE);
@@ -105,6 +107,7 @@ export function carrySpatialFields(fields, dx, dy) {
     field.lockedOrigin.y += dy;
     field.lockedTarget.x += dx;
     field.lockedTarget.y += dy;
+    if (field.sourcePosition) { field.sourcePosition.x += dx; field.sourcePosition.y += dy; }
     field.captureAabb = waveletFieldAabb(field, field.config.captureHalfWidth);
     field.shockAabb = waveletFieldAabb(field, field.config.shockwaveMaxRadius);
   }
@@ -115,7 +118,20 @@ export function activePlayerWaveletField(game) {
   return id ? game.spatialFields?.find((field) => field.id === id) ?? null : null;
 }
 
-function stepChargingField(game, field, dt) {
+export function pinPlayerWaveletCharge(game) {
+  const field = activePlayerWaveletField(game);
+  if (field?.state !== WAVELET_FIELD_STATES.CHARGING || !field.config.pinSourceDuringCharge ||
+      !field.sourcePosition || !waveletSourceAlive(game, field)) return false;
+  Object.assign(game.vehicle, { x: field.sourcePosition.x, y: field.sourcePosition.y, vx: 0, vy: 0, angularVelocity: 0 });
+  if (game.boost) {
+    game.boost.driveTime = 0;
+    game.boost.driveDirection = null;
+    game.vehicle.maxVelocityScale = 1;
+  }
+  return true;
+}
+
+function stepChargingField(game, field, dt, hooks) {
   if (!waveletSourceAlive(game, field)) {
     field.cancelled = true;
     field.state = WAVELET_FIELD_STATES.DONE;
@@ -125,10 +141,14 @@ function stepChargingField(game, field, dt) {
   const charge = Math.min(1, field.chargeElapsed / field.config.chargeDurationSeconds);
   const ramp = charge ** field.config.chargeRampPower;
   const pulse = 0.35 + 0.65 * Math.sin(Math.PI * 2 * field.config.chargePulseHz * field.chargeElapsed) ** 2;
+  const projectiles = new Set(field.team === 'player' ? game.enemyProjectiles : game.playerProjectiles);
   for (const object of convergenceTargets(game, field)) {
     if (!objectInsideAabb(object, field.captureAabb)) continue;
     const coordinates = waveletBeamCoordinates(field, object.x, object.y);
     if (!insideCapture(field, object, coordinates)) continue;
+    if (projectiles.has(object) && !field.projectileSpeeds.has(object)) {
+      field.projectileSpeeds.set(object, Math.hypot(object.vx, object.vy));
+    }
     const gaussian = Math.exp(-((coordinates.r / field.config.captureHalfWidth) ** 2));
     const envelope = gaussian * pulse * ramp;
     const side = Math.sign(coordinates.p);
@@ -140,6 +160,7 @@ function stepChargingField(game, field, dt) {
     const damping = perpendicularVelocity * field.config.convergenceDamping * gaussian * ramp * dt;
     object.vx -= coordinates.nx * damping;
     object.vy -= coordinates.ny * damping;
+    if (projectiles.has(object)) object.angle = Math.atan2(object.vy, object.vx);
   }
   if (field.chargeElapsed < field.config.chargeDurationSeconds) return;
   field.state = WAVELET_FIELD_STATES.DISCHARGING;
@@ -147,9 +168,20 @@ function stepChargingField(game, field, dt) {
   field.previousPulseElapsed = 0;
   field.previousFrontDistance = 0;
   if (field.team === 'player') {
+    if (field.config.pinSourceDuringCharge) {
+      pinDischargingSource(game, field);
+      game.vehicle.vx -= Math.cos(field.lockedAngle) * field.config.recoilSpeed;
+      game.vehicle.vy -= Math.sin(field.lockedAngle) * field.config.recoilSpeed;
+    }
     game.secondary.cooldown = Math.max(game.secondary.cooldown ?? 0, field.config.cooldown);
     applyWeaponInterlock(game, field.config.postFireGlobalLockoutSeconds, field.sourceWeaponId);
+    hooks.onDischarge?.(field);
   }
+}
+
+function pinDischargingSource(game, field) {
+  if (!field.sourcePosition) return;
+  Object.assign(game.vehicle, { x: field.sourcePosition.x, y: field.sourcePosition.y, vx: 0, vy: 0 });
 }
 
 function stepDischargingField(game, field, dt, hooks) {
@@ -160,7 +192,7 @@ function stepDischargingField(game, field, dt, hooks) {
     damagePlayerWaveletFront(game, field, field.previousFrontDistance, frontDistance, hooks);
   }
   field.previousFrontDistance = frontDistance;
-  applyShockwaveCrossings(game, field);
+  applyShockwaveCrossings(game, field, hooks);
   const finalShockTime = field.length / field.config.frontSpeed
     + field.config.shockwaveLagSeconds
     + field.config.shockwaveMaxRadius / field.config.shockwaveSpeed;
@@ -171,27 +203,29 @@ function damagePlayerWaveletFront(game, field, from, to, hooks) {
   const ux = Math.cos(field.lockedAngle);
   const uy = Math.sin(field.lockedAngle);
   const start = { x: field.lockedOrigin.x + ux * from, y: field.lockedOrigin.y + uy * from };
-  const trace = traceEnemyVoxelBeam(
-    (game.enemies ?? []).filter((enemy) => !enemy.destroyed),
-    start,
-    field.lockedAngle,
-    to - from,
-    field.config.pulseHalfWidth,
-    field.config.frontPierceVoxels,
-    { groundOnly: false },
-  );
-  for (const hit of trace.hits) {
-    const key = `${field.id}:${hit.enemy.id ?? `${hit.enemy.x},${hit.enemy.y}`}:${hit.cell.id}:${hit.voxelIndex?.x}:${hit.voxelIndex?.y}`;
-    if (field.pulseHitVoxels.has(key)) continue;
-    field.pulseHitVoxels.add(key);
-    const result = applyEnemyVoxelDamage(hit.enemy, hit, field.config.frontDamage);
-    if (!result.hit) continue;
-    game.score.damageDone += Math.round(field.config.frontDamage + result.removed * 3);
-    if (result.destroyedNow) hooks.onEnemyDestroyed?.(hit.enemy, field);
+  // Each enemy gets its own pierce budget: a large foreground hull cannot
+  // consume the entire ultimate attack before it reaches the rest of the line.
+  const enemies = (game.enemies ?? []).filter(enemy => !enemy.destroyed);
+  const groups = field.config.pierceEachEnemy ? enemies.map(enemy => [enemy]) : [enemies];
+  for (const group of groups) {
+    const trace = traceEnemyVoxelBeam(
+      group, start, field.lockedAngle, to - from, field.config.pulseHalfWidth,
+      field.config.frontPierceVoxels, { groundOnly: false },
+    );
+    for (const hit of trace.hits) {
+      // Object identity stays stable when an enemy moves or shares an authored id.
+      if (field.pulseHitVoxels.has(hit.voxel)) continue;
+      field.pulseHitVoxels.add(hit.voxel);
+      const result = applyEnemyVoxelDamage(hit.enemy, hit, field.config.frontDamage);
+      if (!result.hit) continue;
+      game.score.damageDone += Math.round(field.config.frontDamage + result.removed * 3);
+      if (result.destroyedNow) hooks.onEnemyDestroyed?.(hit.enemy, field);
+    }
   }
 }
 
-function applyShockwaveCrossings(game, field) {
+function applyShockwaveCrossings(game, field, hooks) {
+  const projectiles = new Set(field.team === 'player' ? game.enemyProjectiles : game.playerProjectiles);
   for (const object of shockwaveTargets(game, field)) {
     if (field.shockwaveHitObjects.has(object)) continue;
     if (!objectInsideAabb(object, field.shockAabb)) continue;
@@ -200,9 +234,21 @@ function applyShockwaveCrossings(game, field) {
     const arrival = coordinates.s / field.config.frontSpeed
       + field.config.shockwaveLagSeconds
       + coordinates.r / field.config.shockwaveSpeed;
-    if (field.previousPulseElapsed >= arrival || field.pulseElapsed < arrival) continue;
+    const previous = waveletBeamCoordinates(field, object.previousX ?? object.x, object.previousY ?? object.y);
+    const previousArrival = previous.s / field.config.frontSpeed
+      + field.config.shockwaveLagSeconds + previous.r / field.config.shockwaveSpeed;
+    if (field.pulseElapsed < arrival || (field.previousPulseElapsed > 0 &&
+        field.previousPulseElapsed >= arrival && field.previousPulseElapsed >= previousArrival)) continue;
     field.shockwaveHitObjects.add(object);
     const side = Math.sign(coordinates.p);
+    if (projectiles.has(object) && field.team === 'player' && field.config.projectileDeflectionSpeedScale > 0 && hooks.onProjectileDeflected) {
+      const capturedSpeed = field.projectileSpeeds.get(object);
+      const normalSpeed = capturedSpeed > 0 ? capturedSpeed : Math.hypot(object.vx, object.vy) || (Number.isFinite(object.maxSpeed) ? object.maxSpeed : 0);
+      // Throw outward and forward; an exactly axial shot returns up the beam.
+      const angle = field.lockedAngle + side * Math.PI / 3;
+      hooks.onProjectileDeflected(object, angle, normalSpeed * field.config.projectileDeflectionSpeedScale, field);
+      continue;
+    }
     if (side === 0) continue;
     const falloff = 1 - coordinates.r / field.config.shockwaveMaxRadius;
     object.vx += side * coordinates.nx * field.config.shockwaveImpulse * Math.max(0.2, falloff);
@@ -260,5 +306,11 @@ function waveletBaseConfig(effect) {
     frontPierceVoxels: gameplay.frontPierceVoxels ?? 24,
     shockwaveDamage: gameplay.shockwaveDamage ?? 0,
     postFireGlobalLockoutSeconds: effect.postFireGlobalLockoutSeconds ?? 0.9,
+    projectileDeflectionSpeedScale: gameplay.projectileDeflectionSpeedScale ?? 0,
+    pinSourceDuringCharge: gameplay.pinSourceDuringCharge ?? false,
+    recoilSpeed: gameplay.recoilSpeed ?? 0,
+    showGuides: effect.visual?.showGuides ?? true,
+    distortionEnabled: effect.visual?.distortionEnabled ?? false,
+    pierceEachEnemy: gameplay.pierceEachEnemy ?? false,
   };
 }

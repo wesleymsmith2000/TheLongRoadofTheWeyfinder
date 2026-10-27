@@ -19,6 +19,7 @@ import { drawDebugOverlay } from '../debug/debugOverlay.js';
 import { createPerformanceDiagnostics } from '../debug/performanceConfig.js';
 import { createTerrainAtlasLibrary } from './terrainAtlas.js';
 import { TerrainRenderer } from './terrainRenderer.js';
+import { drawWaveletDistortion } from './waveletDistortion.js';
 import trackingFlechetteUrl from '../../assets/images/weapons/tracking_flechette.png';
 import orbFlechetteUrl from '../../assets/images/weapons/orb_flechette.png';
 import orbBladeShardUrl from '../../assets/images/weapons/orb_blade_shard.png';
@@ -114,6 +115,7 @@ export class CanvasRenderer {
     this.diagnostics = options.diagnostics ?? createPerformanceDiagnostics();
     this.cellSpriteCache = new Map();
     this.lightBuffer = document.createElement('canvas');
+    this.waveletBuffer = document.createElement('canvas');
     this.pixelRatio = 1;
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -152,16 +154,17 @@ export class CanvasRenderer {
     drawHarpoonPowerups(ctx, game.enemies, game.time);
     for (const enemy of game.enemies) drawEnemy(ctx, enemy, game.time, game, diagnostics, this.cellSpriteCache, this.imageAssets, this.renderAssets);
     drawSmokeParticles(ctx, game.smokeParticles);
-    drawSpatialFields(ctx, game.spatialFields, game.time);
     if (!diagnostics.noProjectileRender) {
       drawHarpoonShots(ctx, game.harpoonShots, game.time, this.imageAssets);
       drawProjectiles(ctx, game.enemyProjectiles, '#ffb25f', this.imageAssets);
       drawProjectiles(ctx, game.playerProjectiles, '#9be5ff', this.imageAssets);
     }
     drawVehicle(ctx, game.vehicle, game.boost, game.time, this.imageAssets, this.cellSpriteCache, game.environmentLighting, this.renderAssets, game);
+    for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
+    drawWaveletDistortion(ctx, this.canvas, this.waveletBuffer, game.spatialFields, game.time);
+    drawSpatialFields(ctx, game.spatialFields, game.time);
     for (const reticle of Object.values(game.independentAimReticles ?? {})) drawAimReticle(ctx, reticle);
     if (game.showSharedAimReticle !== false) drawAimReticle(ctx, game.aimReticle);
-    for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
     ctx.restore();
     if (!diagnostics.disableDynamicLighting) drawDynamicLightingComposite(ctx, game, w, h, this.lightBuffer, diagnostics);
     if (debug.visible) drawDebugOverlay(ctx, game);
@@ -181,25 +184,27 @@ function drawSpatialFields(ctx, fields = [], time = 0) {
     if (field.state === 'CHARGING') {
       const charge = Math.min(1, field.chargeElapsed / config.chargeDurationSeconds);
       const pulse = 0.55 + Math.sin(time * Math.PI * 2 * config.chargePulseHz) ** 2 * 0.45;
-      ctx.globalAlpha = (0.2 + charge * 0.48) * pulse;
-      ctx.strokeStyle = '#6be8ff';
-      ctx.lineWidth = 1.5 + charge * 2;
-      for (const side of [-1, 1]) {
+      if (config.showGuides !== false) {
+        ctx.globalAlpha = (0.2 + charge * 0.48) * pulse;
+        ctx.strokeStyle = '#6be8ff';
+        ctx.lineWidth = 1.5 + charge * 2;
+        for (const side of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(field.lockedOrigin.x + nx * config.captureHalfWidth * side, field.lockedOrigin.y + ny * config.captureHalfWidth * side);
+          ctx.lineTo(
+            field.lockedOrigin.x + ux * field.length + nx * config.captureHalfWidth * side,
+            field.lockedOrigin.y + uy * field.length + ny * config.captureHalfWidth * side,
+          );
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 0.28 + charge * 0.62;
+        ctx.strokeStyle = '#fff7d6';
+        ctx.lineWidth = 1 + charge * 3;
         ctx.beginPath();
-        ctx.moveTo(field.lockedOrigin.x + nx * config.captureHalfWidth * side, field.lockedOrigin.y + ny * config.captureHalfWidth * side);
-        ctx.lineTo(
-          field.lockedOrigin.x + ux * field.length + nx * config.captureHalfWidth * side,
-          field.lockedOrigin.y + uy * field.length + ny * config.captureHalfWidth * side,
-        );
+        ctx.moveTo(field.lockedOrigin.x, field.lockedOrigin.y);
+        ctx.lineTo(field.lockedOrigin.x + ux * field.length, field.lockedOrigin.y + uy * field.length);
         ctx.stroke();
       }
-      ctx.globalAlpha = 0.28 + charge * 0.62;
-      ctx.strokeStyle = '#fff7d6';
-      ctx.lineWidth = 1 + charge * 3;
-      ctx.beginPath();
-      ctx.moveTo(field.lockedOrigin.x, field.lockedOrigin.y);
-      ctx.lineTo(field.lockedOrigin.x + ux * field.length, field.lockedOrigin.y + uy * field.length);
-      ctx.stroke();
       drawWaveletConvergenceStreaks(ctx, field, charge, time, ux, uy, nx, ny);
     } else if (field.state === 'DISCHARGING') {
       const front = Math.min(field.length, field.pulseElapsed * config.frontSpeed);
@@ -230,7 +235,17 @@ function drawWaveletConvergenceStreaks(ctx, field, charge, time, ux, uy, nx, ny)
     ctx.globalAlpha = 0.15 + charge * 0.45;
     ctx.beginPath();
     ctx.moveTo(field.lockedOrigin.x + ux * along + nx * outer * side, field.lockedOrigin.y + uy * along + ny * outer * side);
-    ctx.lineTo(field.lockedOrigin.x + ux * (along + 14) + nx * inner * side, field.lockedOrigin.y + uy * (along + 14) + ny * inner * side);
+    if (field.config.distortionEnabled) {
+      const bend = field.config.maxVisualStrengthPx * charge * side;
+      ctx.quadraticCurveTo(
+        field.lockedOrigin.x + ux * (along + 7 + bend) + nx * outer * side,
+        field.lockedOrigin.y + uy * (along + 7 + bend) + ny * outer * side,
+        field.lockedOrigin.x + ux * (along + 14) + nx * inner * side,
+        field.lockedOrigin.y + uy * (along + 14) + ny * inner * side,
+      );
+    } else {
+      ctx.lineTo(field.lockedOrigin.x + ux * (along + 14) + nx * inner * side, field.lockedOrigin.y + uy * (along + 14) + ny * inner * side);
+    }
     ctx.stroke();
   }
 }

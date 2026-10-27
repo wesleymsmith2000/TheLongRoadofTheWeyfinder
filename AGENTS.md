@@ -11,5 +11,6 @@
 
 - Keep Arcade-only balance and movement rules in runtime mode overrides; normalize legacy `lite` to `arcade` at input boundaries and preserve Normal/Sandbox content balance.
 - Give gameplay releases a distinct visible `BUILD_VERSION` and distinguish local verification from a successful GitHub Pages deployment when reporting completion.
+- After each verified gameplay update, commit and push the relevant changes to `main` and publish to GitHub Pages by default, as requested for PC/phone playtesting. Wait for the Deploy Pages workflow to succeed and verify the public build version before reporting deployment complete. Do not include unrelated local handoffs or assets in release commits.
 - Vehicle body rotation transforms authored local negative Y; projectile headings are measured from positive X. Keep those angle conventions distinct, and use numeric visible-view bounds for Arcade enemy staging rather than the smaller player movement lane.
 - Arcade gun slots are one primary and one secondary per cell, enabled by boss-clear progression. Use the shared Arcade loadout policy for firing and slot UI; empty/locked mounts must never synthesize equipment. Mini Beam belongs to Arcade utility slots while Normal retains its primary catalog entry.

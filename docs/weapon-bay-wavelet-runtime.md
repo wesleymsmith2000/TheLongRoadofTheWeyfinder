@@ -33,6 +33,17 @@ The simulation implementation is split between:
 
 During charge, destroying the source gun cancels the field. Once discharge starts, the field is independent. Locked origins and targets are carried with the road frame.
 
+Arcade applies its ultimate tuning at the secondary-weapon runtime boundary, leaving the shared JSON asset's Normal/Sandbox balance intact. See [Arcade rules](arcade-mode.md) for the current multipliers and damage baseline. Runtime wavelet effects also support these optional fields:
+
+- `effect.gameplay.pinSourceDuringCharge` (default `false`): pins the player to the copied `sourcePosition` supplied to `createSpatialWaveletField`, carried with road scrolling. The game enforces this before movement and after contacts.
+- `effect.gameplay.recoilSpeed` (default `0`): backward velocity added once at discharge when charge pinning is enabled.
+- `effect.gameplay.projectileDeflectionSpeedScale` (default `0`): enables hostile projectile returns at shock crossing through the `onProjectileDeflected(projectile, angle, speed, field)` simulation hook. A positive scale multiplies the projectile's recorded pre-attraction speed. Beam/blast effects and terrain-anchored projectiles are excluded from attraction and deflection.
+- `effect.gameplay.pierceEachEnemy` (default `false`): gives each intersected enemy its own front-pulse pierce budget.
+- `effect.visual.showGuides` (default `true`): controls straight charge boundary/axis guides.
+- `effect.visual.distortionEnabled` (default `false`): enables render-only scene displacement, using the tier's `maxStrengthPixels` and `frequencyMod`.
+
+`onDischarge(field)` fires once at the charge/discharge transition for release sound and haptics. These hooks keep platform effects and projectile ownership integration outside the field simulation. `src/core/beamDamage.js` shares the damage envelope between sustained particle beams and the Arcade wavelet's burst-damage floor.
+
 Sandbox automation can install the weapon without changing canon starter content:
 
 ```js

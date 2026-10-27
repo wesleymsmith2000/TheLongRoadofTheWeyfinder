@@ -272,7 +272,7 @@ test('the dive snapshots the player, accelerates without further steering, and s
   const shot = game.enemyProjectiles.find(p => p.weapon === 'diver-gun');
   near(shot.angle, angle);
   near(shot.vx * Math.sin(angle) - shot.vy * Math.cos(angle), 0);
-  near(shot.damage, 16);
+  near(shot.damage, 24);
 });
 
 test('the sailboat fires an exact-target mortar during tracking and drifts in its turn', () => {
@@ -286,7 +286,7 @@ test('the sailboat fires an exact-target mortar during tracking and drifts in it
   near(shell.vx * 1.7 + shell.x, game.vehicle.x);
   near(shell.vy * 1.7 + shell.y, game.vehicle.y);
   near(shell.blastOnExpire.radius, CELL_SIZE * 7.5);
-  near(shell.blastOnExpire.damage, 24);
+  near(shell.blastOnExpire.damage, 36);
   enemy.diver.phase = 'climb';
   enemy.y = -140;
   enemy.diver.lateralSpeed = 10;
