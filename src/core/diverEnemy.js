@@ -111,6 +111,7 @@ export function stepDiverWaves(game, dt, onSpawn = () => {}) {
     state.nextIn = game.rng.range(...DIVER_WAVE_INTERVAL);
     state.pendingWave = null;
   }
+  if (state.stopAfterRequired && state.wavesSpawned >= DIVER_MIN_WAVES) return;
   state.nextIn = Math.max(0, state.nextIn - dt);
   if (game.arcadeRushDiverEntry) state.nextIn = 0;
   const context = diverLevelContext(game.level, game.levelMusic);

@@ -50,9 +50,11 @@ export function prepareArcadeLoadout(definition) {
   return { definition: next, recovered };
 }
 
-export function arcadeSlotFlags(definition, bossClears = 0) {
+export function arcadeSlotFlags(definition, bossClears = 0, startingSlots = 5) {
   const ids = normalizeGunLoadouts(definition).map(loadout => loadout.cellId);
-  const flags = Object.fromEntries(ids.map((id, index) => [id, { primary: [index < 2], secondary: [index < 3] }]));
+  const flags = Object.fromEntries(ids.map(id => [id, { primary: [false], secondary: [false] }]));
+  const initial = ids.flatMap((id, index) => ['primary', 'secondary'].filter(kind => kind === 'primary' ? index < 2 : index < 3).map(kind => ({ id, kind })));
+  for (const { id, kind } of initial.slice(0, startingSlots)) flags[id][kind][0] = true;
   const pending = ids.flatMap(id => ['primary', 'secondary'].filter(kind => !flags[id][kind][0]).map(kind => ({ id, kind })));
   for (const { id, kind } of pending.slice(0, Math.max(0, bossClears))) flags[id][kind][0] = true;
   return flags;

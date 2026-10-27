@@ -19,6 +19,8 @@ Arcade v1.0.19.0 softens the Wavelet distortion by 25% from v1.0.18.0, adds a te
 
 Arcade v1.0.20.0 adds draining cooldown rings with three-digit readouts on HUD icons and system cards, flashing scheduled-wave ETAs, and two-second Diver approach markers. Divers fire one to three homing flechettes during each dive and drop one to three bombs with three-second mortar warnings on return. In pause, choose a Core emergency primary (Main Gun by default); it activates when every other installed primary mount is disabled and returns to standby after repair.
 
+Arcade v1.0.21.0 adds one Wavelet ammo round at upgrade levels 1, 3, 6, 10, 15 and subsequent triangular counts. Bosses arrive after the two required Diver waves and a final group of one to three Divers, with no further scheduled Diver waves after the boss. A boss-clear notice opens Workshop Loadout at the newly unlocked slot; additional gun cells are fitted when existing slots are exhausted.
+
 ## Public Playtest
 
 The `main` branch deploys to GitHub Pages:
@@ -27,7 +29,7 @@ The `main` branch deploys to GitHub Pages:
 https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
 ```
 
-Publish each verified gameplay update to Pages by default so PC and phone playtests use the same release. After tests and the Pages build pass, commit and push the relevant changes to `main`, wait for the **Deploy Pages** workflow to succeed, and verify the public build version before reporting deployment complete. The current Arcade build is **v1.0.20.0**. Local edits and builds alone do not update the public site; the visible version identifies the release loaded by each browser.
+Publish each verified gameplay update to Pages by default so PC and phone playtests use the same release. After tests and the Pages build pass, commit and push the relevant changes to `main`, wait for the **Deploy Pages** workflow to succeed, and verify the public build version before reporting deployment complete. The current Arcade build is **v1.0.21.0**. Local edits and builds alone do not update the public site; the visible version identifies the release loaded by each browser.
 
 ## Test
 

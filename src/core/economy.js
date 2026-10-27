@@ -400,6 +400,12 @@ export function ammoModuleCost(weapon) {
 }
 
 function applyUpgradeSideEffects(game, id) {
+  if (id === 'waveletTier' && game.runMode === 'arcade') {
+    const current = upgradeLevel(game, id);
+    const added = waveletAmmoBonus(current) - waveletAmmoBonus(current - 1);
+    const capacity = ammoCapacityWithUpgrades(game, 'vortex_wavelet_beam');
+    game.secondary.ammo.vortex_wavelet_beam = Math.min(capacity, (game.secondary.ammo.vortex_wavelet_beam ?? 0) + added);
+  }
   if (id === 'cannonAmmo') growAmmoReserve(game, 'cannon');
   if (id === 'rocketAmmo') growAmmoReserve(game, 'rocket');
   if (id === 'beamAmmo') growAmmoReserve(game, 'beam');
@@ -418,7 +424,13 @@ function growAmmoReserve(game, weapon) {
 }
 
 export function ammoCapacityWithUpgrades(game, weapon) {
-  return secondaryAmmoCapacity(weapon, game.vehicleDefinition, game.secondary?.ammoBonus?.[weapon] ?? 0);
+  const capacity = secondaryAmmoCapacity(weapon, game.vehicleDefinition, game.secondary?.ammoBonus?.[weapon] ?? 0);
+  return capacity + (game.runMode === 'arcade' && weapon === 'vortex_wavelet_beam' ? waveletAmmoBonus(upgradeLevel(game, 'waveletTier')) : 0);
+}
+
+// Extra rounds at triangular upgrade counts: 1, 3, 6, 10, 15, ... .
+export function waveletAmmoBonus(upgrades) {
+  return Math.floor((Math.sqrt(8 * Math.max(0, Math.trunc(upgrades) || 0) + 1) - 1) / 2);
 }
 
 function thickenArmorVoxels(game) {
@@ -474,7 +486,12 @@ export function setSandboxUpgradeLevel(game, id, requestedLevel) {
     game.secondary.ammo[ammoWeapon] = Math.max(0, Math.min(newCapacity, current + Math.max(0, newCapacity - oldCapacity)));
   }
 
+  const waveletCapacity = id === 'waveletTier' && game.runMode === 'arcade' ? ammoCapacityWithUpgrades(game, 'vortex_wavelet_beam') : null;
   game.upgrades[id] = level;
+  if (waveletCapacity != null) {
+    const capacity = ammoCapacityWithUpgrades(game, 'vortex_wavelet_beam');
+    game.secondary.ammo.vortex_wavelet_beam = Math.max(0, Math.min(capacity, game.secondary.ammo.vortex_wavelet_beam + Math.max(0, capacity - waveletCapacity)));
+  }
   return true;
 }
 

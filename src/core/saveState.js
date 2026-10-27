@@ -79,7 +79,7 @@ export function applySaveStateToGame(game, saveState) {
   if (isPlainObject(payload.secondary)) game.secondary = structuredClone(payload.secondary);
   game.weaponBay = normalizeWeaponBayState(payload.weaponBay, game.vehicleDefinition, game.runMode);
   if (game.runMode === 'arcade') {
-    game.weaponBay.unlockedSlots = arcadeSlotFlags(game.vehicleDefinition, game.bossLevelsCompleted);
+    game.weaponBay.unlockedSlots = arcadeSlotFlags(game.vehicleDefinition, game.bossLevelsCompleted, game.weaponBay.arcadeStartingSlots);
     for (const id of prepareArcadeLoadout(payload.vehicleDefinition ?? game.vehicleDefinition).recovered) {
       game.weaponBay.inventory[id] = (game.weaponBay.inventory[id] ?? 0) + 1;
     }

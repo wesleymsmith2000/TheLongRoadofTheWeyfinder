@@ -2,13 +2,13 @@
 
 ## Inter-zone weapon bay
 
-`game.weaponBay` stores spare weapon quantities and per-gun slot unlocks. The bay is enabled when a boss level completes and is disabled when the next level starts.
+`game.weaponBay` stores spare equipment quantities and per-gun slot unlocks. Workshop Loadout, Fabrication and Merge are available after every completed level; live combat disables them. Arcade boss victories unlock one extra weapon slot for free and open Loadout at the rewarded mount, with a visible notice and equipment-setup button. If no locked slots remain, the runtime refits hull armor or adds an explicitly connected gun cell. `weaponBay.arcadeStartingSlots` preserves the initial active slot count (five on the default hull) across save/load, including smaller custom hulls.
 
 Runtime entry points live in `src/core/weaponBay.js`:
 
 - `buildWeaponWithScrap(game, weaponId)` constructs one spare weapon.
 - `swapWeaponSlot(game, cellId, slotKind, slotIndex, weaponId)` installs or removes a weapon.
-- `unlockArcadeWeaponSlot(game, cellId, slotKind, slotIndex)` buys an Arcade slot unlock.
+- `unlockArcadeWeaponSlot(game)` returns the boss-clear requirement; slots cannot be purchased.
 - `weaponConstructionCost(game, weaponId)` combines one gun-cell replacement cost with every level-one upgrade cost for that weapon.
 
 Repulsor and tractor beams are utility modules. Author them under a utility cell:
@@ -24,6 +24,8 @@ Repulsor and tractor beams are utility modules. Author them under a utility cell
 ## Locked convergence wavelet
 
 The player weapon asset is `content/weapons/vortex_wavelet_beam.json`. Its `effect.kind` is `locked_convergence_wavelet` and it always requires an explicit trigger.
+
+In Arcade, `waveletTier` upgrades add ammo at triangular upgrade counts: 1, 3, 6, 10, 15, etc. The bonus is `floor((sqrt(8 * level + 1) - 1) / 2)`, added after the mounted-copy capacity calculation so each milestone grants exactly one round. The paid upgrade grants that new round immediately without refilling spent ammo. Capacity, refill pricing/status and save-loaded upgrades share `ammoCapacityWithUpgrades`; progression continues beyond the last visual tier. Normal retains its authored capacity.
 
 The simulation implementation is split between:
 

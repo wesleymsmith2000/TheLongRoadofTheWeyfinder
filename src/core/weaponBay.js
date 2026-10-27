@@ -32,6 +32,7 @@ export function createWeaponBayState(vehicleDefinition, runMode = 'normal') {
   }
   return {
     available: false,
+    arcadeStartingSlots: Math.min(5, Object.keys(unlockedSlots).length * 2),
     inventory: Object.fromEntries(EQUIPMENT_IDS.map((id) => [id, 0])),
     unlockedSlots: runMode === 'arcade' ? arcadeSlotFlags(vehicleDefinition) : unlockedSlots,
     discoveredMerges: [],
@@ -53,7 +54,7 @@ export function normalizeWeaponBayState(state, vehicleDefinition, runMode = 'nor
     };
   }
   const discoveredMerges = [...new Set((state?.discoveredMerges ?? []).filter((id) => typeof id === 'string'))];
-  return { available: Boolean(state?.available), inventory, unlockedSlots, discoveredMerges };
+  return { available: Boolean(state?.available), arcadeStartingSlots: Math.max(0, Math.min(5, Math.trunc(state?.arcadeStartingSlots ?? fallback.arcadeStartingSlots))), inventory, unlockedSlots, discoveredMerges };
 }
 
 export function weaponBayAvailable(game) {

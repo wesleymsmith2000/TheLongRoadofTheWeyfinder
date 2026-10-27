@@ -1,5 +1,7 @@
 import { createDiverEnemy, DIVER_VARIANTS, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from './diverEnemy.js';
 import { createIncomingMarker, SPAWN_WARNING_LEAD } from './incomingWarning.js';
+import { arcadeBossPending, resetArcadeBossStage, stepArcadeBossStage } from './arcadeBossStage.js';
+import { awardArcadeBossSlot } from './arcadeBossReward.js';
 import { emergencyPrimaryState, functionalPrimaryCell } from './emergencyWeapon.js';
 import { arcadeObjectVisible, retireArcadeGapDivers, stepArcadeGapDivers } from './arcadePacing.js';
 import { normalizeRunMode, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias, containArcadeBoss } from './arcadeMode.js';
@@ -75,7 +77,7 @@ import { createTerrainState, updateTerrainStreaming } from './terrainStreaming.j
 import { createProceduralMusicState, setProceduralMusicBaseTrack, stepProceduralMusic } from './proceduralMusic.js';
 import { normalizeGunLoadouts, utilityModuleCellIds, utilityModuleInstalled } from './weaponLoadout.js';
 import { createWeaponBayState } from './weaponBay.js';
-import { arcadeSlotFlags, firingGunLoadouts, prepareArcadeLoadout } from './arcadeLoadout.js';
+import { firingGunLoadouts, prepareArcadeLoadout } from './arcadeLoadout.js';
 import arcadeStartingVehicleDefinition from '../../content/constructs/lite_starting_vehicle.json' with { type: 'json' };
 import { carrySpatialFields, pinPlayerWaveletCharge, stepSpatialFields } from './spatialWaveletBeam.js';
 import { beamFrameDamageScale } from './beamDamage.js';
@@ -589,6 +591,7 @@ export function createGame(seed = 1147, options = {}) {
   }
   for (const id of prepared?.recovered ?? []) game.weaponBay.inventory[id] = (game.weaponBay.inventory[id] ?? 0) + 1;
   resetDiverWaves(game);
+  resetArcadeBossStage(game, isBossLevel(game.level, game.levelMusic));
   return game;
 }
 
@@ -742,7 +745,7 @@ export function stepGame(game, input, dt) {
   game.gameOver = !game.vehicle.alive;
   const traversalClear = traversalTargetReached(game);
   if (traversalClear) game.enemySpawnQueue = [];
-  const arenaClear = diverWavesCleared(game) && (traversalClear || (shouldCompleteRun(game) && activeCompletionEnemies(game).length === 0 && game.enemySpawnQueue.length === 0));
+  const arenaClear = !arcadeBossPending(game) && diverWavesCleared(game) && (traversalClear || (shouldCompleteRun(game) && activeCompletionEnemies(game).length === 0 && game.enemySpawnQueue.length === 0));
   if (arenaClear) retireArcadeGapDivers(game);
   stepVictoryBanner(game, arenaClear, dt);
   if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
@@ -981,7 +984,7 @@ function finishLevel(game) {
     game.weaponBay.available = true;
     if (isBossLevel(game.level, game.levelMusic)) {
       game.bossLevelsCompleted += 1;
-      if (game.runMode === 'arcade') game.weaponBay.unlockedSlots = arcadeSlotFlags(game.vehicleDefinition, game.bossLevelsCompleted);
+      if (game.runMode === 'arcade') awardArcadeBossSlot(game);
     }
   }
   emitSoundEvent(game, SOUND_EVENTS.STAGE_VICTORY);
@@ -1005,6 +1008,7 @@ function victoryBannerHasPlayed(game) {
 }
 
 export function startNextLevel(game) {
+  game.bossReward = null;
   game.level += 1;
   game.levelComplete = false;
   game.weaponBay.available = false;
@@ -1033,6 +1037,7 @@ export function startNextLevel(game) {
   game.scrapPickups = [];
   startTargetingAiLevel(game);
   resetDiverWaves(game);
+  resetArcadeBossStage(game, isBossLevel(game.level, game.levelMusic));
   return game;
 }
 
@@ -1067,6 +1072,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   resetAiAimReticle(game);
   startTargetingAiLevel(game);
   resetDiverWaves(game);
+  resetArcadeBossStage(game, false);
   return { game, report };
 }
 
@@ -1849,6 +1855,10 @@ function activeCompletionEnemies(game) {
 }
 
 function stepEnemySpawner(game, dt) {
+  stepArcadeBossStage(game, dt, enemy => {
+    retireArcadeGapDivers(game);
+    applyEnemyLevelUpgrades(enemy, game.level, game.currentMusic);
+  });
   const elapsed = game.time - game.levelStartTime;
   const routeDistance = game.road.routeDistance ?? 0;
   const warningDistance = Math.max(game.road.speed ?? 0, game.road.baseSpeed ?? 30) * SPAWN_WARNING_LEAD;

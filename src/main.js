@@ -446,6 +446,9 @@ const shopAmmoSelect = document.querySelector('#shopAmmoSelect');
 const shopRepairTab = document.querySelector('#shopRepairTab');
 const shopUpgradeTab = document.querySelector('#shopUpgradeTab');
 const shopWeaponBayTab = document.querySelector('#shopWeaponBayTab');
+const bossSlotNotice = document.querySelector('#bossSlotNotice');
+const bossSlotNoticeText = document.querySelector('#bossSlotNoticeText');
+const bossSlotEquipButton = document.querySelector('#bossSlotEquipButton');
 const shopRepairAmmoSection = document.querySelector('#shopRepairAmmoSection');
 const shopUpgradesSection = document.querySelector('#shopUpgradesSection');
 const shopWeaponBaySection = document.querySelector('#shopWeaponBaySection');
@@ -926,6 +929,10 @@ targetCellTypeSelect.addEventListener('change', () => { uiDirty.pause = true; })
 shopRepairTab.addEventListener('click', () => setShopSection('repair'));
 shopUpgradeTab.addEventListener('click', () => setShopSection('upgrades'));
 shopWeaponBayTab.addEventListener('click', () => setShopSection('weapons'));
+bossSlotEquipButton.addEventListener('click', () => {
+  openBossRewardLoadout();
+  weaponBayWeaponSelect.focus();
+});
 shopRepairTab.addEventListener('keydown', handleShopTabKeydown);
 shopUpgradeTab.addEventListener('keydown', handleShopTabKeydown);
 shopWeaponBayTab.addEventListener('keydown', handleShopTabKeydown);
@@ -3475,6 +3482,19 @@ function selectWeaponBayGunFromCanvas(event) {
   weaponBayGunSelect.focus();
 }
 
+function openBossRewardLoadout() {
+  const slot = game.bossReward?.unlocked[0];
+  setShopSection('weapons');
+  setWorkshopSection('loadout');
+  if (slot) {
+    weaponBayKindSelect.value = slot.kind;
+    refreshWeaponBayUi(); // Populate options for a gun cell added by this reward.
+    weaponBayGunSelect.value = slot.cellId;
+    weaponBaySlotSelect.value = '0';
+  }
+  refreshWeaponBayUi();
+}
+
 function updateShopUi(dt = 0) {
   shopUpgradesSection.classList.toggle('arcade-upgrades', game.runMode === 'arcade');
   const visible = Boolean(game.levelComplete) && !awaitingLaunch && !titleActive;
@@ -3486,8 +3506,16 @@ function updateShopUi(dt = 0) {
   if (!shopUiWasVisible) {
     shopUiWasVisible = true;
     uiDirty.shop = true;
+    const reward = game.runMode === 'arcade' ? game.bossReward : null;
+    bossSlotNotice.classList.toggle('hidden', !reward?.unlocked.length);
+    if (reward?.unlocked.length) {
+      const slot = reward.unlocked[0];
+      const cellIndex = normalizeGunLoadouts(game.vehicleDefinition).findIndex(entry => entry.cellId === slot.cellId) + 1;
+      bossSlotNoticeText.textContent = `Gun ${cellIndex}: new ${slot.kind === 'primary' ? 'main gun' : 'secondary weapon'} slot.${reward.newCells.length ? ' A new gun cell has been fitted to your hull.' : ''} Select equipment in Loadout, or use Fabrication / Merge to create it. Utility equipment can also be changed in the Workshop.`;
+      openBossRewardLoadout();
+    }
     window.requestAnimationFrame(() => {
-      if (game.levelComplete && !awaitingLaunch && !titleActive) shopRepairTab.focus({ preventScroll: true });
+      if (game.levelComplete && !awaitingLaunch && !titleActive) (reward?.unlocked.length ? bossSlotEquipButton : shopRepairTab).focus({ preventScroll: true });
     });
   }
   const bayAvailable = weaponBayAvailable(game);

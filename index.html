@@ -1260,6 +1260,18 @@
         min-width: 0;
       }
 
+      .boss-slot-notice {
+        padding: 12px;
+        border: 1px solid #68cfc0;
+        border-radius: 8px;
+        background: rgb(23 65 62 / 0.9);
+        font-size: 15px;
+        line-height: 1.4;
+        text-align: left;
+      }
+
+      .boss-slot-notice p { margin: 4px 0 10px; }
+
       .shop-tabs button {
         justify-content: center;
         min-height: 38px;
@@ -2535,6 +2547,11 @@
         <span style="font-size: 18px">Time <span id="levelTime">0.0</span>s</span><br />
         <span style="font-size: 16px">Targeting AI +<span id="targetingAiXpGain">0.0</span> xp</span><br />
         <div class="shop-panel">
+          <div id="bossSlotNotice" class="boss-slot-notice hidden" role="status">
+            <strong>Zone boss defeated — weapon slot unlocked!</strong>
+            <p id="bossSlotNoticeText"></p>
+            <button id="bossSlotEquipButton" type="button">Equip new weapon / equipment</button>
+          </div>
           <div class="shop-summary">
             <span><span class="icon-sprite" data-icon="scrap" aria-hidden="true"></span> Scrap Available</span>
             <strong id="shopScrapAvailable">0</strong>

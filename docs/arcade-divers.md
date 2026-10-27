@@ -37,6 +37,8 @@ Hopper predation uses the beam's actual voxel ray. A connected beam immediately 
 
 ## Runtime-consumed content
 
+From **v1.0.21.0**, campaign boss levels hold their boss outside the active spawn queue until the two required Diver waves and all ordinary escorts are defeated. A final, seeded **one-to-three Diver** group then arrives with a two-second ETA and approach triangles. Defeating this group triggers the boss's normal approach warning and entry. This extra group does not replace either required wave. Boss levels stop scheduling further regular Diver waves once the two required waves have spawned, so no Diver cleanup follows boss victory. The empty-screen watchdog cannot rush the held boss ahead of these phases. Normal and Sandbox scheduling are unchanged.
+
 `content/enemies/arcade_divers.json` is the first-party `0.1` variant pack. Its `variants` entries use:
 
 - `id`: `motorcycle`, `sailboat`, `insect`, `walker`, `ghost`, `snake`, or `burrower`.

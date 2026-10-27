@@ -1,5 +1,6 @@
 import { arcadeObjectVisible } from './arcadePacing.js';
 import { DIVER_MIN_WAVES } from './diverEnemy.js';
+import { diverScheduleFinished } from './arcadeBossStage.js';
 
 export function waveWarnings(game) {
   if (game.gameOver || game.levelComplete || game.victoryBanner) return [];
@@ -16,8 +17,9 @@ export function waveWarnings(game) {
   const result = [];
   if (Number.isFinite(standardEta)) result.push({ kind: 'standard', text: 'HOSTILE VESSELS INBOUND', eta: standardEta });
   const state = game.diverWaves;
+  if (game.arcadeBossStage?.vanguard) result.push({ kind: 'diver', text: 'INTERCEPTORS INBOUND', eta: game.arcadeBossStage.vanguard.nextIn });
   const liveDivers = (game.enemies ?? []).some(enemy => enemy.diver && !enemy.arcadeGapDiver && !enemy.destroyed);
-  if (state && !liveDivers && !state.waitingForClear) {
+  if (state && !diverScheduleFinished(game) && !liveDivers && !state.waitingForClear) {
     const eta = Math.min(state.nextIn, !queue.length && state.wavesSpawned < DIVER_MIN_WAVES ? rushEta : Infinity);
     if (Number.isFinite(eta)) result.push({ kind: 'diver', text: 'INTERCEPTORS INBOUND', eta: Math.max(0, eta) });
   }

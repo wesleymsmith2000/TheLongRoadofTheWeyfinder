@@ -51,6 +51,7 @@ test('each actual boss clear opens exactly one slot, primary before secondary, a
   const game = gameWith(starter, { levelMusic: ['TheWeyfindersRoad_Boss'] });
   const ids = game.vehicleDefinition.gunLoadouts.map(loadout => loadout.cellId);
   for (let boss = 1; boss <= 3; boss++) {
+    game.arcadeBossStage = null; // Isolate completion rewards from the tested boss-arrival director.
     game.enemies = []; game.enemySpawnQueue = []; game.scrapPickups = [];
     game.diverWaves.wavesSpawned = 2;
     game.victoryBanner = { elapsed: 3, minDuration: 3 };
