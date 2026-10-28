@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "0.1",
+  "assetId": "local.level.ghost_forrest_music_trial",
+  "displayName": "GhostForrest Music Trial",
+  "canonStatus": "EXPERIMENTAL",
+  "music": "GhostForrestPathway_1",
+  "tags": ["ghost-forrest", "music-trial", "sandbox"],
+  "background": { "mode": "procedural", "layers": [{ "id": "road", "source": "procedural", "generator": "road_grid", "parallax": 1 }] },
+  "lighting": { "preset": "MOONLIGHT" },
+  "route": {
+    "startHeading": 0,
+    "segments": [
+      { "id": "hollow-entry", "length": 1200, "turnRadians": 0 },
+      { "id": "forest-bend", "length": 1200, "turnRadians": 0.35 },
+      { "id": "hollow-exit", "length": 1200, "turnRadians": -0.35 }
+    ]
+  },
+  "waves": [
+    {
+      "id": "first-ghost",
+      "atDistance": 120,
+      "spawn": [{ "construct": "example.construct.ghost_phaser_sculpted", "count": 1, "spacing": 0, "patterns": ["example.ghost_phase_homing_radial"] }]
+    },
+    {
+      "id": "paired-ghosts",
+      "atDistance": 1500,
+      "spawn": [{ "construct": "example.construct.ghost_phaser_sculpted", "count": 2, "spacing": 180, "laneOffset": -60, "spread": 120, "patterns": ["example.ghost_phase_homing_radial"] }]
+    }
+  ],
+  "obstacles": [],
+  "triggers": []
+}

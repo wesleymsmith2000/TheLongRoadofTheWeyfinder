@@ -6,7 +6,7 @@ import { DEFAULT_LEVEL_MUSIC } from './levelMusic.js';
 import { angleDelta, clamp } from './math.js';
 import { worldToRoadOffset, roadOffsetToWorld } from './camera.js';
 import { createEnemy, harvestEnemyScrap, traceEnemyVoxelRay } from './enemy.js';
-import { createCombatProjectile, arcadeEnemyFireRateScale, arcadePlayBounds } from './arcadeMode.js';
+import { createCombatProjectile, arcadeEnemyFireRateScale, arcadePlayBounds, usesArcadeDirector } from './arcadeMode.js';
 import { CELL_SIZE } from './voxelMask.js';
 import { emitSoundEvent, SOUND_EVENTS } from './soundEvents.js';
 import { createIncomingMarker } from './incomingWarning.js';
@@ -99,7 +99,7 @@ export function resetDiverWaves(game) {
   game.arcadeGapSpawnCount = 0;
   game.arcadeEmptyScreenSeconds = 0;
   game.arcadeRushDiverEntry = false;
-  game.diverWaves = game.runMode === 'arcade' && !game.sandbox?.enabled
+  game.diverWaves = usesArcadeDirector(game)
     ? { level: game.level, wavesSpawned: 0, wavesCleared: 0, waitingForClear: false, nextIn: game.rng.range(...DIVER_WAVE_INTERVAL) }
     : null;
 }

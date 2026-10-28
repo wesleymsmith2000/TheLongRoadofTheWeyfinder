@@ -73,7 +73,7 @@ test('emergency primary choices fire from the core and obey cooldown, interlock,
   disablePrimaryCells(normal);
   assert.equal(emergencyPrimaryState(normal).active, false);
   normal.runMode = 'arcade'; normal.sandbox = { enabled: true };
-  assert.equal(emergencyPrimaryState(normal).enabled, false);
+  assert.equal(emergencyPrimaryState(normal).enabled, true);
 });
 
 test('ordinary cooldowns do not activate emergency mode, and its configured choice survives saves', () => {

@@ -1,6 +1,6 @@
 import { createDiverEnemy, diverLevelContext, diverWavesCleared, DIVER_MIN_WAVES } from './diverEnemy.js';
 import { createIncomingMarker, SPAWN_WARNING_LEAD } from './incomingWarning.js';
-import { arcadePlayBounds } from './arcadeMode.js';
+import { arcadePlayBounds, usesArcadeDirector } from './arcadeMode.js';
 import { roadOffsetToWorld, worldToRoadOffset } from './camera.js';
 import { configureDiverFlavor, diverApproachPoint } from './diverFlavor.js';
 
@@ -8,7 +8,7 @@ const BOSS_KINDS = new Set(['boss', 'roadBossCar', 'pirateBoss', 'zeppelinBoss']
 
 export function resetArcadeBossStage(game, bossLevel) {
   game.arcadeBossStage = null;
-  if (game.runMode !== 'arcade' || game.sandbox?.enabled || !bossLevel) return;
+  if (!usesArcadeDirector(game) || !bossLevel) return;
   const pending = game.enemySpawnQueue.filter(entry => BOSS_KINDS.has(entry.enemy.kind));
   game.enemySpawnQueue = game.enemySpawnQueue.filter(entry => !BOSS_KINDS.has(entry.enemy.kind));
   for (const enemy of game.enemies.filter(enemy => BOSS_KINDS.has(enemy.kind))) pending.push({ enemy, type: enemy.kind });

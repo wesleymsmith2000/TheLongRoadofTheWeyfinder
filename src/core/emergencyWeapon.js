@@ -10,7 +10,7 @@ export function emergencyPrimaryState(game) {
   const configured = game.vehicleDefinition?.emergencyWeapon;
   const weaponId = configured === undefined ? 'main.basic' : configured;
   const cell = game.vehicle?.cells.find(cell => cell.type === 'core');
-  const enabled = game.runMode === 'arcade' && !game.sandbox?.enabled && EMERGENCY_PRIMARY_WEAPONS.includes(weaponId);
+  const enabled = game.runMode === 'arcade' && EMERGENCY_PRIMARY_WEAPONS.includes(weaponId);
   const cells = new Map((game.vehicle?.cells ?? []).map(cell => [cell.id, cell]));
   const normalPrimary = enabled && firingGunLoadouts(game).some(loadout =>
     loadout.primary.some(Boolean) && functionalPrimaryCell(cells.get(loadout.cellId)));

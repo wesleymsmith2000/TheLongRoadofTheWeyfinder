@@ -7,6 +7,11 @@ export function normalizeRunMode(mode = 'normal') {
   return mode === 'lite' ? 'arcade' : mode ?? 'normal';
 }
 
+// Authored tests keep their exact spawn schedule; campaign previews use the live director.
+export function usesArcadeDirector(game) {
+  return game.runMode === 'arcade' && (!game.sandbox?.enabled || game.sandbox.definition?.useLevelSchedule === true);
+}
+
 export function arcadeForwardVector(game) {
   return { x: Math.sin(game.road.heading), y: -Math.cos(game.road.heading) };
 }

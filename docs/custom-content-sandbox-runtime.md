@@ -4,6 +4,13 @@ Version `v1.0.9.3` extends the JSON-first test path for local levels and their d
 The game Sandbox can import one or more JSON files, install/reinstall their local pack,
 select a level, and launch it without adding that content to the bundled campaign.
 
+As of `v1.0.23.0`, choose **Gameplay rules > Normal / Arcade** before starting a test.
+`runLevel(levelId, { runMode: 'arcade' })` preserves custom route-distance spawns, lighting
+and the level's optional `music` track key. Quick/script/custom Arcade tests use live
+Arcade combat and terrain rules while keeping the authored schedule free of ambient Divers.
+`runCampaignLevel(19, { runMode: 'arcade' })` enables the real campaign director with
+Sandbox controls. See [the GhostForrest workflow](./ghost-forrest-music-and-levels.md).
+
 ## Browser API
 
 The game exposes these editor-facing calls:

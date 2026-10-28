@@ -3,7 +3,6 @@ import {
   GUIDED_TARGET_CELL_TYPES,
   LEVEL_TARGET_DURATION,
   TARGETING_MODES,
-  applySandboxDefinitionToGame,
   createGame,
   stepGame,
 } from './core/game.js';
@@ -15,7 +14,7 @@ import { weaponCooldown } from './core/weaponCooldown.js';
 import { createCooldownRing } from './ui/cooldownRing.js';
 import { waveWarnings, formatWaveEta } from './core/waveWarnings.js';
 import { EMERGENCY_PRIMARY_WEAPONS } from './core/emergencyWeapon.js';
-import { arcadeSlotFlags, gunCellInactive, INACTIVE_GUN_HINT } from './core/arcadeLoadout.js';
+import { arcadeSlotFlags, gunCellInactive, gunSlotActive, INACTIVE_GUN_HINT } from './core/arcadeLoadout.js';
 import { worldToLocal } from './core/math.js';
 import { CELL_SIZE } from './core/voxelMask.js';
 import { addCameraShake, configureRoadLaneForViewport, screenToWorld } from './core/camera.js';
@@ -367,6 +366,9 @@ const controlsToggle = document.querySelector('#controlsToggle');
 const controlsPanel = document.querySelector('#controlsPanel');
 const sandboxToggle = document.querySelector('#sandboxToggle');
 const sandboxPanel = document.querySelector('#sandboxPanel');
+const sandboxRunModeSelect = document.querySelector('#sandboxRunModeSelect');
+const sandboxMusicSelect = document.querySelector('#sandboxMusicSelect');
+const sandboxPlayCampaign = document.querySelector('#sandboxPlayCampaign');
 const sandboxEnemySelect = document.querySelector('#sandboxEnemySelect');
 const sandboxCountInput = document.querySelector('#sandboxCountInput');
 const sandboxFrequencyInput = document.querySelector('#sandboxFrequencyInput');
@@ -981,6 +983,11 @@ sandboxRefresh.addEventListener('click', () => {
 });
 sandboxContentInput.addEventListener('change', importSandboxContentFiles);
 sandboxPlayLevel.addEventListener('click', playSelectedSandboxLevel);
+sandboxPlayCampaign.addEventListener('click', () => {
+  startCampaignSandbox(numericInputValue(sandboxLevelInput, 1), sandboxTestOptions());
+});
+sandboxRunModeSelect.addEventListener('change', updateSandboxScriptOptions);
+sandboxMusicSelect.addEventListener('change', updateSandboxScriptOptions);
 sandboxLoadoutToggle.addEventListener('click', toggleSandboxLoadout);
 sandboxApplyUpgrade.addEventListener('click', applySandboxLoadoutUpgrade);
 sandboxRepairVehicle.addEventListener('click', repairSandboxLoadoutVehicle);
@@ -1284,6 +1291,7 @@ function startTitleSandboxRun() {
   titleActive = false;
   closeControlConfig();
   runQuickSandbox();
+  sandboxPanel.classList.remove('hidden');
   syncTitleScreen();
 }
 
@@ -1329,19 +1337,20 @@ function runScriptSandbox() {
 function startSandbox(definition, suppliedRuntime = null) {
   const runtime = suppliedRuntime ?? localSandboxRuntimeOptions();
   try {
+    const report = validateSandboxDefinition(definition);
+    if (!report.valid) throw new Error(report.errors.join(' '));
+    definition = report.definition;
     titleActive = false;
     closeControlConfig();
-    if (game.sandbox?.enabled && !definition.sourceLevelId) {
-      applySandboxDefinitionToGame(game, definition, runtime);
-    } else {
-      game = createGame(1147, {
-        vehicleDefinition: playerVehicleDefinition ?? undefined,
-        sandbox: definition,
-        terrainRoute: definition.route ?? undefined,
-        environmentLighting: definition.lighting ?? undefined,
-        ...runtime,
-      });
-    }
+    activeRunMode = definition.runMode;
+    game = createGame(1147, {
+      vehicleDefinition: definition.runMode === 'arcade' ? arcadeVehicleDefinition : playerVehicleDefinition ?? undefined,
+      sandbox: definition,
+      ...runtime,
+    });
+    targetingModeSelect.value = game.targetingMode;
+    syncSandboxScript(definition);
+    syncInstalledSecondaryControls(true);
     renderer.setContentRegistry(runtime.registry);
     blurActiveControl();
     awaitingLaunch = false;
@@ -1354,10 +1363,28 @@ function startSandbox(definition, suppliedRuntime = null) {
     syncTitleScreen();
     syncLaunchScreen();
     syncMusic(true);
-    sandboxStatus.textContent = `Sandbox running: ${definition.title}`;
+    sandboxStatus.textContent = `${definition.runMode === 'arcade' ? 'Arcade' : 'Normal'} Sandbox running: ${definition.title}`;
   } catch (error) {
     sandboxStatus.textContent = `Sandbox failed: ${error.message}`;
   }
+}
+
+function sandboxTestOptions() {
+  return { runMode: sandboxRunModeSelect.value, music: sandboxMusicSelect.value || null };
+}
+
+function startCampaignSandbox(level, options = {}) {
+  const definition = {
+    ...DEFAULT_SANDBOX_DEFINITION,
+    ...options,
+    level: Math.max(1, Math.trunc(level)),
+    title: `Campaign Level ${Math.max(1, Math.trunc(level))}`,
+    useLevelSchedule: true,
+    completeOnEmpty: true,
+    spawns: [],
+  };
+  startSandbox(definition);
+  return structuredClone(game.sandbox?.definition ?? definition);
 }
 
 async function importSandboxContentFiles() {
@@ -1389,7 +1416,7 @@ function playSelectedSandboxLevel() {
   try {
     const runtime = localSandboxRuntimeOptions();
     const runPackage = instantiateLocalLevel(levelId, { storage: localStorage, registry: runtime.registry, seed: 1147 });
-    const definition = sandboxDefinitionFromLevel(runPackage.definition);
+    const definition = sandboxDefinitionFromLevel(runPackage.definition, { ...sandboxTestOptions(), level: numericInputValue(sandboxLevelInput, 1) });
     syncSandboxScript(definition);
     startSandbox(definition, runtime);
   } catch (error) {
@@ -1398,6 +1425,9 @@ function playSelectedSandboxLevel() {
 }
 
 function refreshSandboxContentOptions() {
+  const music = sandboxMusicSelect.value;
+  sandboxMusicSelect.replaceChildren(new Option('Default / level music', ''), ...Object.keys(MUSIC_URLS).map(track => new Option(track, track)));
+  sandboxMusicSelect.value = music;
   populateSandboxEnemySelect();
   populateSandboxLevelSelect();
 }
@@ -1479,7 +1509,7 @@ function syncPauseUi(hoverWorld = null, dt = 0) {
   pauseLevelNumber.textContent = game.level;
   pauseScrapCount.textContent = game.scrap;
   pauseDamageDone.textContent = game.score.damageDone;
-  emergencyWeaponField.hidden = game.runMode !== 'arcade' || Boolean(game.sandbox?.enabled);
+  emergencyWeaponField.hidden = game.runMode !== 'arcade';
   reconcileSelectOptions(emergencyWeaponSelect, [
     { value: '', label: 'None' }, ...EMERGENCY_PRIMARY_WEAPONS.map(id => ({ value: id, label: secondaryWeaponLabel(id) })),
   ], game.vehicleDefinition.emergencyWeapon === undefined ? 'main.basic' : game.vehicleDefinition.emergencyWeapon ?? '');
@@ -1550,6 +1580,7 @@ function quickSandboxDefinition(options = {}) {
     spread: numericInputValue(sandboxSpreadInput, 72),
     level: numericInputValue(sandboxLevelInput, 1),
     title: 'Sandbox Level',
+    ...sandboxTestOptions(),
     ...options,
   });
 }
@@ -1564,6 +1595,18 @@ function loadSandboxDefinition() {
 
 function syncSandboxScript(definition) {
   sandboxScriptInput.value = `${JSON.stringify(definition, null, 2)}\n`;
+  sandboxRunModeSelect.value = definition.runMode === 'arcade' || definition.runMode === 'lite' ? 'arcade' : 'normal';
+  sandboxMusicSelect.value = definition.music ?? '';
+}
+
+function updateSandboxScriptOptions() {
+  try {
+    const definition = JSON.parse(sandboxScriptInput.value);
+    syncSandboxScript({ ...definition, ...sandboxTestOptions() });
+    sandboxStatus.textContent = 'Rules updated for the next test. Choose a Run or Test button to start.';
+  } catch {
+    sandboxStatus.textContent = 'Fix the script JSON before applying rules to it.';
+  }
 }
 
 function updateSandboxScriptFromQuick() {
@@ -1633,7 +1676,7 @@ function syncSandboxUi() {
   if (!enabled || sandboxPanel.classList.contains('hidden')) return;
   const pending = game.enemySpawnQueue.length;
   const active = game.enemies.filter((enemy) => !enemy.destroyed).length;
-  sandboxStatus.textContent = game.sandbox.lastMessage || `Sandbox active: ${active} active, ${pending} queued.`;
+  sandboxStatus.textContent = `${game.runMode === 'arcade' ? 'Arcade' : 'Normal'} Sandbox: ${game.sandbox.lastMessage || `${active} active, ${pending} queued.`}`;
 }
 
 function syncVictoryBanner() {
@@ -2207,6 +2250,7 @@ function resetControlBindings() {
 }
 
 function refreshAchievementAwards() {
+  if (game.sandbox?.enabled) return;
   const nextAccount = awardAchievements(playerAccount, achievementStatsFromGame(game));
   syncTargetingComputerUnlocks(game, nextAccount);
   if (nextAccount === playerAccount) return;
@@ -2237,10 +2281,15 @@ function renderAchievements() {
 function syncProgressHud() {
   levelProgressFill.parentElement.title = '';
   if (game.sandbox?.enabled) {
-    levelName.textContent = `Sandbox: ${game.sandbox.definition.title}`;
+    levelName.textContent = `${game.runMode === 'arcade' ? 'Arcade ' : ''}Sandbox: ${game.sandbox.definition.title}`;
     const duration = Math.max(1, game.sandbox.definition.duration ?? LEVEL_TARGET_DURATION);
     const elapsed = Math.max(0, game.time - game.levelStartTime);
-    const progress = game.levelComplete ? 1 : Math.min(0.985, elapsed / duration);
+    let progress = game.levelComplete ? 1 : Math.min(0.985, elapsed / duration);
+    if (game.diverWaves) {
+      const arcade = arcadeLevelProgress(game, progress);
+      progress = arcade.fraction;
+      levelName.textContent += ` · Diver waves ${arcade.wavesCleared}/${arcade.wavesRequired}`;
+    }
     levelProgressFill.style.width = `${progress * 100}%`;
     return;
   }
@@ -2325,6 +2374,9 @@ function exposeSandboxApi() {
       startSandbox(definition);
       return definition;
     },
+    runCampaignLevel(level, options = {}) {
+      return startCampaignSandbox(level, options);
+    },
     runLevel(levelId, options = {}) {
       const runtime = localSandboxRuntimeOptions();
       const runPackage = instantiateLocalLevel(levelId, {
@@ -2349,20 +2401,23 @@ function exposeSandboxApi() {
     },
     weapons() {
       return {
-        primary: [...PRIMARY_WEAPON_IDS],
-        secondary: [...SECONDARY_WEAPON_IDS],
+        primary: equipmentIdsForSlotKind('primary', game.runMode),
+        secondary: equipmentIdsForSlotKind('secondary', game.runMode),
+        utility: equipmentIdsForSlotKind('utility', game.runMode),
       };
     },
     equipWeapon(weaponId, options = {}) {
       if (!game.sandbox?.enabled) return { ok: false, error: 'Start a sandbox run before changing its weapons.' };
       const slotKind = options.slotKind ?? (PRIMARY_WEAPON_IDS.includes(weaponId) ? 'primary' : 'secondary');
-      const catalog = slotKind === 'primary' ? PRIMARY_WEAPON_IDS : SECONDARY_WEAPON_IDS;
+      const catalog = equipmentIdsForSlotKind(slotKind, game.runMode);
+      if (!['primary', 'secondary'].includes(slotKind)) return { ok: false, error: 'Use Workshop Loadout for utility equipment.' };
       if (!catalog.includes(weaponId)) return { ok: false, error: `Unknown ${slotKind} weapon "${weaponId}".` };
       const loadouts = normalizeGunLoadouts(game.vehicleDefinition);
       const loadout = loadouts.find((entry) => entry.cellId === options.cellId) ?? loadouts[0];
       if (!loadout) return { ok: false, error: 'The sandbox vehicle has no gun cell.' };
       const requestedSlot = Number.isInteger(options.slotIndex) ? options.slotIndex : loadout[slotKind].findIndex((id) => id == null);
       const slotIndex = requestedSlot >= 0 ? requestedSlot : 0;
+      if (!gunSlotActive(game, loadout.cellId, slotKind, slotIndex)) return { ok: false, error: 'This Arcade weapon slot is locked.' };
       const result = setGunLoadoutSlot(game.vehicleDefinition, loadout.cellId, slotKind, slotIndex, weaponId);
       if (!result.changed) return { ok: false, error: result.reason };
       game.vehicleDefinition = result.definition;

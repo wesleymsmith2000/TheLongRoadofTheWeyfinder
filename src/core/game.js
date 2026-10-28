@@ -1,4 +1,5 @@
-import { createDiverEnemy, DIVER_VARIANTS, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from './diverEnemy.js';
+import { createDiverEnemy, DIVER_VARIANTS, diverLevelContext, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from './diverEnemy.js';
+import { configureDiverFlavor } from './diverFlavor.js';
 import { createIncomingMarker, SPAWN_WARNING_LEAD } from './incomingWarning.js';
 import { arcadeBossPending, resetArcadeBossStage, stepArcadeBossStage } from './arcadeBossStage.js';
 import { awardArcadeBossSlot } from './arcadeBossReward.js';
@@ -6,7 +7,7 @@ import { dislodgeDiverFlies, handleDiverContacts, stepPlayerDiverStatus } from '
 import { releaseDiverBlades, syncDiverOrbitBlades } from './diverAttacks.js';
 import { emergencyPrimaryState, functionalPrimaryCell } from './emergencyWeapon.js';
 import { arcadeObjectVisible, retireArcadeGapDivers, stepArcadeGapDivers } from './arcadePacing.js';
-import { normalizeRunMode, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias, containArcadeBoss } from './arcadeMode.js';
+import { normalizeRunMode, usesArcadeDirector, arcadeForwardHeading, arcadeBlastRadius, arcadeEnemyFireRateScale, createCombatProjectile, applyArcadeProjectileScaling, applyArcadeEnemyFrontBias, containArcadeBoss } from './arcadeMode.js';
 import { applyVehicleDamage, createStartingVehicle, gunMuzzleWorld, gunMuzzlesWorld, hasFunctionalGun, moduleMuzzlesWorld, recalculateVehicle, repairVehicleDamage } from './vehicle.js';
 import { stepVehicle, typedModulePower, vehicleMaxSpeed } from './physics.js';
 import { applyRocketHullDamage, stepProjectiles } from './projectile.js';
@@ -461,7 +462,10 @@ const MORTAR_ENEMY_MARKER_SPRITE = {
 };
 
 export function createGame(seed = 1147, options = {}) {
-  const arcade = normalizeRunMode(options.runMode) === 'arcade';
+  const sandboxDefinition = options.sandbox ? normalizeSandboxDefinition(options.sandbox) : null;
+  const runMode = normalizeRunMode(options.runMode ?? sandboxDefinition?.runMode);
+  if (sandboxDefinition) sandboxDefinition.runMode = runMode;
+  const arcade = runMode === 'arcade';
   const prepared = arcade ? prepareArcadeLoadout(options.vehicleDefinition ?? arcadeStartingVehicleDefinition) : null;
   const vehicleDefinition = prepared?.definition ?? options.vehicleDefinition ?? startingVehicleDefinition;
   const vehicle = createStartingVehicle(vehicleDefinition);
@@ -469,13 +473,14 @@ export function createGame(seed = 1147, options = {}) {
   const navigationDefinition = options.navigationGraph ?? levelDefinition?.navigationGraph ?? null;
   const terrainRoute =
     options.terrainRoute ??
+    sandboxDefinition?.route ??
     levelDefinition?.route ??
     createProceduralRoadRoute(options.terrainSeed ?? seed, {
       startX: vehicle.x,
       startY: vehicle.y,
       startHeading: vehicle.heading,
     });
-  const arcadeTravel = arcade && !options.sandbox;
+  const arcadeTravel = arcade;
   const road = createRoadFrame(vehicle, { route: terrainRoute, speed: arcadeTravel ? 60 : 30 });
   const terrainGenerator = createTerrainGenerator({ seed: options.terrainSeed ?? seed, route: terrainRoute, config: arcadeTravel ? ARCADE_TERRAIN_CONFIG : undefined });
   const terrain = createTerrainState(terrainGenerator);
@@ -483,27 +488,26 @@ export function createGame(seed = 1147, options = {}) {
   terrain.maxGeneratedChunksPerUpdate = options.terrainChunkBudget ?? LIVE_TERRAIN_CHUNK_GENERATION_BUDGET;
   const terrainSample = sampleTerrain(terrain, vehicle.x, vehicle.y);
   const levelMusic = options.levelMusic ?? DEFAULT_LEVEL_MUSIC;
-  const startLevel = Math.max(1, Math.floor(options.startLevel ?? options.level ?? 1));
+  const startLevel = Math.max(1, Math.floor(sandboxDefinition?.level ?? options.startLevel ?? options.level ?? 1));
   const rng = new Rng(seed);
-  const sandboxDefinition = options.sandbox ? normalizeSandboxDefinition(options.sandbox) : null;
   const authoredLevelPlan = levelDefinition ? sandboxDefinitionFromLevel(levelDefinition, { level: startLevel, roadSpeed: road.baseSpeed }) : null;
-  const enemySpawnQueue = sandboxDefinition
+  const enemySpawnQueue = sandboxDefinition && !sandboxDefinition.useLevelSchedule
     ? createSandboxEnemySchedule(road, sandboxDefinition, rng, options)
     : authoredLevelPlan
       ? createSandboxEnemySchedule(road, authoredLevelPlan, rng, options)
       : createLevelEnemySchedule(road, startLevel, levelMusic, rng);
   const initialSpawns = dequeueReadySpawns(enemySpawnQueue, 0, road.routeDistance ?? 0);
   const currentMusic = sandboxDefinition
-    ? options.music ?? 'Sandbox'
+    ? options.music ?? sandboxDefinition.music ?? (sandboxDefinition.useLevelSchedule ? musicForLevel(startLevel, levelMusic) : 'Sandbox')
     : levelDefinition
       ? options.music ?? levelDefinition.music ?? levelDefinition.displayName ?? levelDefinition.assetId
       : musicForLevel(startLevel, levelMusic);
-  const traversal = sandboxDefinition
+  const traversal = sandboxDefinition && !sandboxDefinition.useLevelSchedule
     ? null
     : levelDefinition
       ? authoredLevelTraversal(levelDefinition, road)
       : traversalTargetForTrack(currentMusic, road);
-  if (normalizeRunMode(options.runMode) === 'arcade') {
+  if (arcade) {
     vehicle.handlingScale = { acceleration: 2.25, braking: 2.25, maxSpeed: 4 };
     vehicle.heading = road.heading;
     vehicle.primaryFacingHeading = arcadeForwardHeading({ road });
@@ -512,12 +516,12 @@ export function createGame(seed = 1147, options = {}) {
   }
   const game = {
     seed,
-    runMode: normalizeRunMode(options.runMode),
+    runMode,
     rng,
     levelMusic,
     currentMusic,
     music: createProceduralMusicState({ baseTrack: currentMusic }),
-    environmentLighting: options.environmentLighting ?? options.lighting ?? levelDefinition?.lighting ?? 'DAY',
+    environmentLighting: options.environmentLighting ?? options.lighting ?? sandboxDefinition?.lighting ?? levelDefinition?.lighting ?? 'DAY',
     levelDefinition: levelDefinition ? structuredClone(levelDefinition) : null,
     contentRuntime: levelDefinition ? {
       constructDefinitions: structuredClone(options.constructDefinitions ?? []),
@@ -535,7 +539,7 @@ export function createGame(seed = 1147, options = {}) {
     incomingMarkers: [],
     boost: createBoostState(),
     secondary: createSecondaryState(vehicleDefinition),
-    weaponBay: createWeaponBayState(vehicleDefinition, normalizeRunMode(options.runMode)),
+    weaponBay: createWeaponBayState(vehicleDefinition, runMode),
     upgrades: createUpgradeState(),
     scrap: 0,
     scrapPickups: [],
@@ -589,6 +593,7 @@ export function createGame(seed = 1147, options = {}) {
     sandbox: sandboxDefinition ? createSandboxRuntimeState(sandboxDefinition, [], options) : null,
   };
   if (sandboxDefinition) {
+    configureSandboxDiverSpawns(game, [...initialSpawns, ...enemySpawnQueue.map(entry => entry.enemy)]);
     for (const enemy of initialSpawns) triggerEnemyEntranceBark(game, enemy, 'warning');
   }
   for (const id of prepared?.recovered ?? []) game.weaponBay.inventory[id] = (game.weaponBay.inventory[id] ?? 0) + 1;
@@ -980,7 +985,7 @@ function traversalTargetReached(game) {
 
 function shouldCompleteRun(game) {
   if (!game.sandbox?.enabled) return true;
-  return game.sandbox.definition.completeOnEmpty === true || game.sandbox.completeRequested === true;
+  return game.sandbox.definition.useLevelSchedule === true || game.sandbox.definition.completeOnEmpty === true || game.sandbox.completeRequested === true;
 }
 
 function finishLevel(game) {
@@ -1026,10 +1031,14 @@ export function startNextLevel(game) {
   game.weaponBay.available = false;
   game.levelTime = 0;
   game.levelStartTime = game.time;
-  game.sandbox = null;
+  if (game.sandbox?.definition.useLevelSchedule) {
+    game.sandbox.definition.level = game.level;
+    game.sandbox.definition.title = `Campaign Level ${game.level}`;
+    game.sandbox.events = [];
+  } else game.sandbox = null;
   game.levelDefinition = null;
   game.contentRuntime = null;
-  game.currentMusic = musicForLevel(game.level, game.levelMusic);
+  game.currentMusic = game.sandbox?.definition.music ?? musicForLevel(game.level, game.levelMusic);
   setProceduralMusicBaseTrack(game.music, game.currentMusic);
   game.traversal = traversalTargetForTrack(game.currentMusic, game.road);
   game.enemySpawnQueue = createLevelEnemySchedule(game.road, game.level, game.levelMusic, game.rng);
@@ -1059,7 +1068,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   const sandboxDefinition = report.definition;
   game.sandbox = createSandboxRuntimeState(sandboxDefinition, report.warnings, options);
   game.level = sandboxDefinition.level;
-  game.currentMusic = options.music ?? 'Sandbox';
+  game.currentMusic = options.music ?? sandboxDefinition.music ?? 'Sandbox';
   game.music = createProceduralMusicState({ baseTrack: game.currentMusic });
   game.traversal = null;
   game.levelComplete = false;
@@ -1107,6 +1116,7 @@ export function createSandboxEnemySchedule(road, definition, rng = new Rng(1147)
   return createSandboxSpawnEntries(road, sandboxDefinition.spawns, rng, {
     ...options,
     level: sandboxDefinition.level,
+    music: options.music ?? sandboxDefinition.music,
   }).sort(compareSpawnEntries);
 }
 
@@ -1134,6 +1144,13 @@ function stepSandboxEvents(game) {
   }
 }
 
+function configureSandboxDiverSpawns(game, enemies) {
+  const context = game.sandbox?.definition.music
+    ? diverLevelContext(1, [game.currentMusic])
+    : diverLevelContext(game.level, game.levelMusic);
+  for (const enemy of enemies) if (enemy.diver) configureDiverFlavor(game, enemy, context.zone);
+}
+
 function applySandboxEvent(game, event, elapsed) {
   if (event.type === 'spawn') {
     const entries = createSandboxSpawnEntries(game.road, event.spawns, game.rng, {
@@ -1143,7 +1160,9 @@ function applySandboxEvent(game, event, elapsed) {
       patternDefinitions: game.sandbox?.patternDefinitions,
       voxelModels: game.sandbox?.voxelModels,
       timeOffset: elapsed,
+      music: game.currentMusic,
     });
+    configureSandboxDiverSpawns(game, entries.map(entry => entry.enemy));
     game.enemySpawnQueue.push(...entries);
     game.enemySpawnQueue.sort(compareSpawnEntries);
     game.sandbox.lastMessage = `${event.id}: queued ${entries.length} enemies.`;
@@ -1897,7 +1916,7 @@ function stepEnemySpawner(game, dt) {
 }
 
 function stepArcadeEmptyScreen(game, dt) {
-  if (game.runMode !== 'arcade' || game.sandbox?.enabled) return;
+  if (!usesArcadeDirector(game)) return;
   const height = game.road.viewHeight ?? game.road.halfHeight * 2;
   const visible = activeEnemies(game).some(enemy => !enemy.arcadeGapDiver && arcadeObjectVisible(game, enemy));
   game.arcadeEmptyScreenSeconds = visible ? 0 : (game.arcadeEmptyScreenSeconds ?? 0) + dt;

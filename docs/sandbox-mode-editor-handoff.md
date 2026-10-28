@@ -1,6 +1,24 @@
 # Sandbox Mode Editor Handoff
 
-Runtime checkpoint: `v1.0.5.0`
+Runtime checkpoint: `v1.0.23.0`
+
+## Arcade testing
+
+In **SBOX**, select **Gameplay rules > Arcade** before starting a test. The selector updates the script's `runMode`; Run Quick and Play Custom Level also use that selection. Every Run starts a fresh vehicle with the selected rules. Arcade uses the Arcade hull, loadout policy, Guided AI default, forward firing, movement, larger terrain tiles, doubled road speed and emergency primary. Default/older Sandbox scripts still use Normal.
+
+Quick/script/custom tests keep their authored spawns without ambient Diver waves or automatic boss staging. To test the live director, enter the campaign **Level** number and press **Test Campaign Level**. This includes scheduled/gap Divers, warnings and boss staging. Level transitions retain Sandbox access; these tests do not award account achievements or campaign boss clears. Arcade slots retain starter availability; use Workshop Loadout and the existing Sandbox upgrade/repair/ammo controls for equipment tests.
+
+The **Music / zone preview** selector overrides the test's bundled track; Default uses the custom level's `music`, the campaign level's track, or silence for quick scripts. It also selects zone flavor for explicitly scripted Divers. Campaign enemy composition and scheduled Diver zone still follow the campaign Level number.
+
+```js
+WeyfinderSandbox.quickSpawn('diver.ghost', {
+  runMode: 'arcade', music: 'GhostForrestPathway_1', level: 19
+});
+WeyfinderSandbox.runCampaignLevel(19, { runMode: 'arcade' });
+WeyfinderSandbox.runLevel('local.level.ghost_forrest_music_trial', { runMode: 'arcade' });
+```
+
+See [GhostForrest music and level authoring](./ghost-forrest-music-and-levels.md) for a sample and import steps.
 
 Pages now exposes a first-pass sandbox runner for testing editor-authored enemies, constructs, weapons, and timed events without playing through campaign levels.
 
@@ -51,6 +69,9 @@ window.WeyfinderSandbox.run({
 - `title`: shown in the level HUD as `Sandbox: ...`.
 - `duration`: used only for the sandbox progress bar.
 - `level`: applies runtime enemy level scaling.
+- `runMode`: `normal` (default) or `arcade`; legacy `lite` normalizes to `arcade`.
+- `music`: optional bundled track key without `.mp3`; null selects the default.
+- `useLevelSchedule`: optional boolean, default `false`. When true, use the campaign schedule for `level` instead of initial `spawns`, with the live Arcade director when applicable. Timed `events` still run. Cannot be combined with `sourceLevelId`.
 - `completeOnEmpty`: if `true`, the sandbox can complete when enemies/spawns/scrap are empty. Default is `false` so tests can keep running.
 - `spawns`: initial spawn records.
 - `events`: timed event records, sorted by `at`.

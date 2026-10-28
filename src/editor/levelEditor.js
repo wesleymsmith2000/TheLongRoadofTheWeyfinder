@@ -53,6 +53,7 @@ const fields = Object.fromEntries(
   [
     'assetIdInput',
     'displayNameInput',
+    'musicInput',
     'schemaInput',
     'canonStatusSelect',
     'tagsInput',
@@ -138,6 +139,7 @@ function loadLevel(nextLevel) {
 function syncLevelToFields() {
   fields.assetIdInput.value = level.assetId ?? '';
   fields.displayNameInput.value = level.displayName ?? '';
+  fields.musicInput.value = level.music ?? '';
   fields.schemaInput.value = level.schemaVersion ?? CONTENT_SCHEMA_VERSION;
   fields.canonStatusSelect.value = level.canonStatus ?? 'EXPERIMENTAL';
   fields.tagsInput.value = (level.tags ?? []).join(', ');
@@ -162,6 +164,7 @@ function levelFromFields() {
     schemaVersion: fields.schemaInput.value.trim(),
     assetId: fields.assetIdInput.value.trim(),
     displayName: fields.displayNameInput.value.trim(),
+    music: fields.musicInput.value.trim() || undefined,
     canonStatus: fields.canonStatusSelect.value,
     tags: fields.tagsInput.value
       .split(',')

@@ -2,6 +2,7 @@ import { CONTENT_SCHEMA_VERSION, isPlainObject } from './contentSchema.js';
 import { validateEncounterDefinition } from './encounterDefinition.js';
 import { validateLevelDefinition } from './levelDefinition.js';
 import { normalizeObstacleDefinition } from './obstacleDefinition.js';
+import { normalizeRunMode } from './arcadeMode.js';
 
 export const SANDBOX_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const SANDBOX_EVENT_TYPES = ['spawn', 'clearEnemies', 'setScrap', 'addScrap', 'setTargetingMode', 'message', 'encounter', 'complete'];
@@ -11,6 +12,9 @@ export const DEFAULT_SANDBOX_DEFINITION = Object.freeze({
   title: 'Sandbox Level',
   duration: 300,
   level: 1,
+  runMode: 'normal',
+  music: null,
+  useLevelSchedule: false,
   completeOnEmpty: false,
   spawns: [
     {
@@ -55,6 +59,8 @@ export function sandboxDefinitionFromEnemy(enemyId, options = {}) {
     title: options.title ?? 'Enemy Sandbox',
     duration: positiveNumber(options.duration, DEFAULT_SANDBOX_DEFINITION.duration),
     level: positiveInteger(options.level, 1),
+    runMode: options.runMode,
+    music: options.music,
     spawns: [
       {
         id: 'quick-spawn',
@@ -79,6 +85,9 @@ export function normalizeSandboxDefinition(definition = DEFAULT_SANDBOX_DEFINITI
     title: nonEmptyString(source.title, DEFAULT_SANDBOX_DEFINITION.title),
     duration: positiveNumber(source.duration, DEFAULT_SANDBOX_DEFINITION.duration),
     level: positiveInteger(source.level, 1),
+    runMode: normalizeRunMode(source.runMode),
+    music: nonEmptyString(source.music, null),
+    useLevelSchedule: source.useLevelSchedule === true,
     completeOnEmpty: source.completeOnEmpty === true,
     sourceLevelId: nonEmptyString(source.sourceLevelId, null),
     route: isPlainObject(source.route) ? structuredClone(source.route) : null,
@@ -86,7 +95,7 @@ export function normalizeSandboxDefinition(definition = DEFAULT_SANDBOX_DEFINITI
     spawns: normalizeSpawns(source.spawns),
     events: normalizeEvents(source.events),
   };
-  if (!normalized.sourceLevelId && normalized.spawns.length === 0 && normalized.events.every((event) => event.type !== 'spawn')) {
+  if (!normalized.sourceLevelId && !normalized.useLevelSchedule && normalized.spawns.length === 0 && normalized.events.every((event) => event.type !== 'spawn')) {
     normalized.spawns = structuredClone(DEFAULT_SANDBOX_DEFINITION.spawns);
   }
   return normalized;
@@ -95,7 +104,7 @@ export function normalizeSandboxDefinition(definition = DEFAULT_SANDBOX_DEFINITI
 export function sandboxDefinitionFromLevel(level, options = {}) {
   const report = validateLevelDefinition(level);
   if (!report.valid) throw new Error(`Invalid custom level "${level?.assetId ?? 'unknown'}": ${report.errors.join(' ')}`);
-  const roadSpeed = Math.max(1, positiveNumber(options.roadSpeed, 30));
+  const roadSpeed = Math.max(1, positiveNumber(options.roadSpeed, normalizeRunMode(options.runMode) === 'arcade' ? 60 : 30));
   const routeLength = (level.route?.segments ?? []).reduce((sum, segment) => sum + Math.max(0, segment.length ?? 0), 0);
   const spawns = [];
   for (const wave of level.waves ?? []) {
@@ -139,6 +148,8 @@ export function sandboxDefinitionFromLevel(level, options = {}) {
     sourceLevelId: level.assetId,
     duration: Math.max(30, routeLength / roadSpeed + 10),
     level: positiveInteger(options.level, 1),
+    runMode: options.runMode,
+    music: options.music ?? level.music,
     completeOnEmpty: true,
     route: level.route,
     lighting: level.lighting,
@@ -152,6 +163,10 @@ export function validateSandboxDefinition(definition) {
   const warnings = [];
   if (!isPlainObject(definition)) return { valid: false, errors: ['Sandbox definition must be an object.'], warnings };
   const normalized = normalizeSandboxDefinition(definition);
+  if (!['normal', 'arcade'].includes(normalized.runMode)) errors.push('runMode must be normal or arcade (legacy lite is accepted).');
+  if (definition.music != null && (typeof definition.music !== 'string' || !definition.music.trim())) errors.push('music must be a non-empty track name when provided.');
+  if (definition.useLevelSchedule != null && typeof definition.useLevelSchedule !== 'boolean') errors.push('useLevelSchedule must be a boolean.');
+  if (normalized.useLevelSchedule && normalized.sourceLevelId) errors.push('useLevelSchedule cannot be combined with a custom sourceLevelId.');
   if (!Array.isArray(definition.spawns) && !Array.isArray(definition.events)) warnings.push('Sandbox has no spawns or events; the default spawn will be used.');
   for (const [index, spawn] of normalized.spawns.entries()) validateSpawn(spawn, `spawns[${index}]`, errors);
   for (const [index, event] of normalized.events.entries()) {

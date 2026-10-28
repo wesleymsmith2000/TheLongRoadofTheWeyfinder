@@ -2330,6 +2330,17 @@
     <div id="sandboxPanel" class="sandbox-panel hidden">
       <h2>Sandbox</h2>
       <div class="sandbox-grid">
+        <label class="sandbox-wide" for="sandboxRunModeSelect">
+          Gameplay rules (applied when starting a test)
+          <select id="sandboxRunModeSelect">
+            <option value="normal">Normal</option>
+            <option value="arcade">Arcade</option>
+          </select>
+        </label>
+        <label class="sandbox-wide" for="sandboxMusicSelect">
+          Music / zone preview
+          <select id="sandboxMusicSelect"></select>
+        </label>
         <label for="sandboxEnemySelect">
           Enemy
           <select id="sandboxEnemySelect"></select>
@@ -2367,6 +2378,7 @@
         <button id="sandboxQuickRun" type="button">Run Quick</button>
         <button id="sandboxScriptRun" type="button">Run Script</button>
         <button id="sandboxPlayLevel" type="button">Play Custom Level</button>
+        <button id="sandboxPlayCampaign" type="button">Test Campaign Level</button>
         <button id="sandboxStop" type="button">Stop</button>
         <button id="sandboxRefresh" type="button">Refresh Content</button>
         <button id="sandboxLoadoutToggle" type="button" aria-pressed="false">Loadout</button>

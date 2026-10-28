@@ -23,8 +23,11 @@ test('Arcade terrain tiles have four times the edge length and one quarter the t
     assert.ok(sample.tileY >= 0 && sample.tileY < 8);
   }
   const sandbox = createGame(1147, { runMode: 'arcade', sandbox: { schemaVersion: '0.1', assetId: 'test.arcade_terrain_sandbox', spawns: [] } });
-  assert.equal(sandbox.terrain.generator.config.tileSize, DEFAULT_TERRAIN_CONFIG.tileSize);
-  assert.equal(sandbox.road.baseSpeed, normal.road.baseSpeed);
+  assert.equal(sandbox.terrain.generator.config.tileSize, ARCADE_TERRAIN_CONFIG.tileSize);
+  assert.equal(sandbox.road.baseSpeed, arcade.road.baseSpeed);
+  const normalSandbox = createGame(1147, { sandbox: { spawns: [] } });
+  assert.equal(normalSandbox.terrain.generator.config.tileSize, DEFAULT_TERRAIN_CONFIG.tileSize);
+  assert.equal(normalSandbox.road.baseSpeed, normal.road.baseSpeed);
 });
 
 test('Arcade road distance advances twice as fast with matching chunk cadence and seeded terrain', () => {

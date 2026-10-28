@@ -1,4 +1,5 @@
 import { arcadeObjectVisible } from './arcadePacing.js';
+import { usesArcadeDirector } from './arcadeMode.js';
 import { DIVER_MIN_WAVES } from './diverEnemy.js';
 import { diverScheduleFinished } from './arcadeBossStage.js';
 
@@ -6,7 +7,7 @@ export function waveWarnings(game) {
   if (game.gameOver || game.levelComplete || game.victoryBanner) return [];
   const elapsed = game.time - game.levelStartTime;
   const queue = game.enemySpawnQueue ?? [];
-  const quiet = game.runMode === 'arcade' && !game.sandbox?.enabled &&
+  const quiet = usesArcadeDirector(game) &&
     !(game.enemies ?? []).some(enemy => !enemy.arcadeGapDiver && arcadeObjectVisible(game, enemy));
   const rushEta = quiet ? Math.max(0, 15 - (game.arcadeEmptyScreenSeconds ?? 0)) : Infinity;
   const standardEta = Math.min(...queue.map(entry => {

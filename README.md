@@ -25,13 +25,15 @@ Arcade v1.0.22.0 gives Divers distinct zone behaviors: Stream flies orbit and la
 
 ## Public Playtest
 
+Version **v1.0.23.0** adds **Sandbox > Gameplay rules > Arcade**. Run Quick, Run Script and Play Custom Level use the selected rules; **Test Campaign Level** uses the Level number and the live campaign schedule, including Arcade Divers and boss staging. Starting a test creates a fresh vehicle. Sandbox Loadout still provides upgrades, repairs and ammo. See [Sandbox testing and GhostForrest music/level authoring](docs/ghost-forrest-music-and-levels.md).
+
 The `main` branch deploys to GitHub Pages:
 
 ```text
 https://wesleymsmith2000.github.io/TheLongRoadofTheWeyfinder/
 ```
 
-Publish each verified gameplay update to Pages by default so PC and phone playtests use the same release. After tests and the Pages build pass, commit and push the relevant changes to `main`, wait for the **Deploy Pages** workflow to succeed, and verify the public build version before reporting deployment complete. The current Arcade build is **v1.0.22.0**. Local edits and builds alone do not update the public site; the visible version identifies the release loaded by each browser.
+Publish each verified gameplay update to Pages by default so PC and phone playtests use the same release. After tests and the Pages build pass, commit and push the relevant changes to `main`, wait for the **Deploy Pages** workflow to succeed, and verify the public build version before reporting deployment complete. The current Arcade build is **v1.0.23.0**. Local edits and builds alone do not update the public site; the visible version identifies the release loaded by each browser.
 
 ## Test
 

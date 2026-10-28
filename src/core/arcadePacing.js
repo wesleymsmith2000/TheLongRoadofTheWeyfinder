@@ -1,6 +1,6 @@
 import { clamp } from './math.js';
 import { roadOffsetToWorld, worldToRoadOffset } from './camera.js';
-import { arcadePlayBounds } from './arcadeMode.js';
+import { arcadePlayBounds, usesArcadeDirector } from './arcadeMode.js';
 import { createDiverEnemy, diverLevelContext, diverWavesCleared, DIVER_MIN_WAVES } from './diverEnemy.js';
 import { Rng } from './rng.js';
 import { configureDiverFlavor } from './diverFlavor.js';
@@ -27,7 +27,7 @@ export function retireArcadeGapDivers(game) {
 }
 
 export function stepArcadeGapDivers(game, dt, onSpawn = () => {}) {
-  if (game.runMode !== 'arcade' || game.sandbox?.enabled || game.levelComplete || game.gameOver) return;
+  if (!usesArcadeDirector(game) || game.levelComplete || game.gameOver) return;
   const scheduledEnemies = game.enemies.filter(enemy => !enemy.arcadeGapDiver && !enemy.destroyed);
   const combatFinished = !game.enemySpawnQueue.length && !scheduledEnemies.some(enemy => enemy.countsForCompletion !== false) && diverWavesCleared(game);
   if (game.victoryBanner || combatFinished) {

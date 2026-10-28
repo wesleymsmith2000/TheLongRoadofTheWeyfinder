@@ -105,6 +105,7 @@ function validateMetadata(definition, errors, warnings) {
     errors.push(`Unsupported level schemaVersion "${definition.schemaVersion ?? 'missing'}". Expected 0.x.`);
   }
   if (!isNonEmptyString(definition.assetId)) errors.push('assetId must be a non-empty string.');
+  if (definition.music != null && !isNonEmptyString(definition.music)) errors.push('music must be a non-empty bundled track name when provided.');
   if (definition.canonStatus != null && !CANON_STATUSES.includes(definition.canonStatus)) {
     errors.push(`canonStatus must be one of: ${CANON_STATUSES.join(', ')}.`);
   }

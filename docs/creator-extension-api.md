@@ -1,5 +1,23 @@
 # Creator Extension API
 
+## Sandbox rules and level music (v1.0.23.0)
+
+Sandbox definitions accept `runMode: 'normal' | 'arcade'` (default `normal`, legacy `lite`
+normalizes to `arcade`), optional `music` (a bundled track key without `.mp3`, or null),
+and `useLevelSchedule: boolean` (default false). Arcade Sandbox uses the live Arcade
+vehicle/combat/terrain rules. `useLevelSchedule: true` replaces initial `spawns` with the
+campaign schedule for `level`, enables its Arcade director and boss staging, and cannot
+be combined with `sourceLevelId`. Timed events still run. Authored quick/script/custom
+tests keep ambient Divers disabled. Sandbox tests do not award account achievements.
+
+Level JSON also accepts optional `music: string`, a non-empty bundled track key consumed
+by `createGame({ levelDefinition })` and `sandboxDefinitionFromLevel`. The level editor's
+Music field emits this same property; `runLevel(id, { music })` can override it for testing.
+It is a key in `src/main.js`'s `MUSIC_URLS`, not a resource asset id or a filesystem path,
+so it adds no registry dependency. Importing music resource JSON alone does not wire browser
+playback. Example: `content/levels/ghost_forrest_music_trial.json`. See
+[the authoring workflow](ghost-forrest-music-and-levels.md) and [Sandbox API](sandbox-mode-editor-handoff.md).
+
 This document is the working contract for editor authors, content-pack builders, and future extension developers.
 
 It is descriptive, not a command script. Treat examples here as the architecture target for this repo and for companion editor work.
