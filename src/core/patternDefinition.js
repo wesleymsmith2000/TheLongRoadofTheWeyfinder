@@ -1,9 +1,10 @@
 import { createProjectile } from './projectile.js';
 import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNonEmptyString, isPlainObject, isStringArray } from './contentSchema.js';
 import { validateSpriteDescriptor } from './weaponDefinition.js';
+import { validateHostileAttack } from './hostileAttackDefinition.js';
 
 export const PATTERN_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
-export const PATTERN_EMITTER_KINDS = ['aimed', 'radial', 'sequentialRadial'];
+export const PATTERN_EMITTER_KINDS = ['aimed', 'radial', 'sequentialRadial', 'hostileAttack'];
 
 export function validatePatternDefinition(definition) {
   const errors = [];
@@ -22,8 +23,10 @@ export function validatePatternDefinition(definition) {
   if (definition.tags != null && !isStringArray(definition.tags)) warnings.push('tags should be an array of strings.');
   validateEmitter(definition.emitter, errors, warnings);
 
-  if ((definition.emitter?.count ?? 0) === 0) warnings.push('Pattern emits no projectiles.');
-  if ((definition.emitter?.projectile?.damage ?? 0) <= 0) warnings.push('Pattern projectile has no positive damage.');
+  if (definition.emitter?.kind !== 'hostileAttack') {
+    if ((definition.emitter?.count ?? 0) === 0) warnings.push('Pattern emits no projectiles.');
+    if ((definition.emitter?.projectile?.damage ?? 0) <= 0) warnings.push('Pattern projectile has no positive damage.');
+  }
 
   return { valid: errors.length === 0, errors, warnings };
 }
@@ -142,6 +145,10 @@ function validateEmitter(emitter, errors, warnings) {
   }
   if (!PATTERN_EMITTER_KINDS.includes(emitter.kind)) {
     errors.push(`emitter.kind must be one of: ${PATTERN_EMITTER_KINDS.join(', ')}.`);
+  }
+  if (emitter.kind === 'hostileAttack') {
+    errors.push(...validateHostileAttack(emitter.attack, 'emitter.attack').errors);
+    return;
   }
   validateNumber(emitter.count, 'emitter.count', errors, { min: 0, integer: true });
   validateNumber(emitter.speed, 'emitter.speed', errors, { min: 0 });

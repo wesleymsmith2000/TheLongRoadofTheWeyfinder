@@ -7,6 +7,9 @@ import {
   stepGame,
 } from './core/game.js';
 import { BUILD_VERSION } from './core/buildVersion.js';
+import { startHostileAttack, hostileHazardPoint } from './core/hostileSpatialAttacks.js';
+import hostileSpatialEnemies from '../content/enemies/hostile_spatial_weapons.json' with { type: 'json' };
+import hostileHazardTrial from '../content/levels/hostile_spatial_hazard_trial.json' with { type: 'json' };
 import { arcadeLevelProgress } from './core/arcadePacing.js';
 import { weaponManifest } from './core/weaponManifest.js';
 import { createWeaponManifestView } from './ui/weaponManifest.js';
@@ -369,6 +372,9 @@ const sandboxPanel = document.querySelector('#sandboxPanel');
 const sandboxRunModeSelect = document.querySelector('#sandboxRunModeSelect');
 const sandboxMusicSelect = document.querySelector('#sandboxMusicSelect');
 const sandboxPlayCampaign = document.querySelector('#sandboxPlayCampaign');
+const sandboxAttackSelect = document.querySelector('#sandboxAttackSelect');
+const sandboxFireHazard = document.querySelector('#sandboxFireHazard');
+const sandboxHazardCourse = document.querySelector('#sandboxHazardCourse');
 const sandboxEnemySelect = document.querySelector('#sandboxEnemySelect');
 const sandboxCountInput = document.querySelector('#sandboxCountInput');
 const sandboxFrequencyInput = document.querySelector('#sandboxFrequencyInput');
@@ -986,6 +992,8 @@ sandboxPlayLevel.addEventListener('click', playSelectedSandboxLevel);
 sandboxPlayCampaign.addEventListener('click', () => {
   startCampaignSandbox(numericInputValue(sandboxLevelInput, 1), sandboxTestOptions());
 });
+sandboxFireHazard.addEventListener('click', () => fireSandboxHazard(sandboxAttackSelect.value));
+sandboxHazardCourse.addEventListener('click', () => startSandbox(sandboxDefinitionFromLevel(hostileHazardTrial, sandboxTestOptions())));
 sandboxRunModeSelect.addEventListener('change', updateSandboxScriptOptions);
 sandboxMusicSelect.addEventListener('change', updateSandboxScriptOptions);
 sandboxLoadoutToggle.addEventListener('click', toggleSandboxLoadout);
@@ -1373,6 +1381,17 @@ function sandboxTestOptions() {
   return { runMode: sandboxRunModeSelect.value, music: sandboxMusicSelect.value || null };
 }
 
+function fireSandboxHazard(kind, options = {}) {
+  if (!game.sandbox?.enabled) return { ok: false, error: 'Start a Sandbox run first.' };
+  try {
+    const origin = hostileHazardPoint(game, options.origin ?? { edge: kind === 'gravity_bomb' ? 'ahead' : 'left', margin: 80 });
+    const target = options.target ? hostileHazardPoint(game, options.target) : { x: game.vehicle.x, y: game.vehicle.y };
+    startHostileAttack(game, { ...options.attack, kind }, origin, target);
+    game.sandbox.lastMessage = `${kind === 'gravity_bomb' ? 'Gravity bomb' : 'Hostile Wavelet'} hazard started.`;
+    return { ok: true };
+  } catch (error) { return { ok: false, error: error.message }; }
+}
+
 function startCampaignSandbox(level, options = {}) {
   const definition = {
     ...DEFAULT_SANDBOX_DEFINITION,
@@ -1634,7 +1653,7 @@ function populateSandboxEnemySelect() {
 
 function sandboxEnemyOptions() {
   const byId = new Map();
-  for (const archetype of [...listEnemyArchetypes(), ...localEnemyArchetypes()]) {
+  for (const archetype of [...listEnemyArchetypes(), ...hostileSpatialEnemies.archetypes, ...localEnemyArchetypes()]) {
     if (archetype?.id) byId.set(archetype.id, archetype);
   }
   byId.set('mortar_skiff.prototype0', {
@@ -2377,6 +2396,7 @@ function exposeSandboxApi() {
     runCampaignLevel(level, options = {}) {
       return startCampaignSandbox(level, options);
     },
+    fireHazard: fireSandboxHazard,
     runLevel(levelId, options = {}) {
       const runtime = localSandboxRuntimeOptions();
       const runPackage = instantiateLocalLevel(levelId, {

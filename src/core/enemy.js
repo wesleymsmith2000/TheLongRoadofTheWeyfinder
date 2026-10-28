@@ -4,6 +4,7 @@ import { annotateConstructRuntimeMetadata, instantiateConstruct } from './constr
 import { createPatternState } from './patternDefinition.js';
 import { applyDamage, applyNearestDamage, CELL_LAYER_HEIGHT, CELL_SIZE, Roles, VOXELS } from './voxelMask.js';
 import { clamp } from './math.js';
+import { Rng } from './rng.js';
 import basicTurretDefinition from '../../content/constructs/basic_turret.json' with { type: 'json' };
 import enemyAimedShotDefinition from '../../content/patterns/enemy_aimed_shot.json' with { type: 'json' };
 import enemyRadialBurstDefinition from '../../content/patterns/enemy_radial_burst.json' with { type: 'json' };
@@ -388,7 +389,7 @@ export function createRoadBossCarEnemy(x, y) {
   return enemy;
 }
 
-export function createBossEnemy(x, y, rng) {
+export function createBossEnemy(x, y, rng = new Rng(1147)) {
   const cells = [];
   const connections = [];
   const addCell = (id, type, gridX, gridY) => {
@@ -446,7 +447,7 @@ export function createBossEnemy(x, y, rng) {
     }
   }
 
-  return enlargeEnemyModules({
+  const boss = enlargeEnemyModules({
     assetId: 'boss.octopus.prototype0',
     kind: 'boss',
     x,
@@ -464,6 +465,14 @@ export function createBossEnemy(x, y, rng) {
     destroyed: false,
     explosionStart: null,
   });
+  for (const arm of boss.arms) {
+    const armCells = boss.cells.filter(cell => cell.id.startsWith(`arm-${arm.index}-`));
+    const weak = armCells[Math.floor(rng.next() * armCells.length)];
+    arm.weakCellId = weak.id;
+    weak.bossArmWeakPoint = true;
+    for (const cell of armCells) if (cell !== weak) multiplyCellVoxelHp(cell, 6);
+  }
+  return boss;
 }
 
 export function createZeppelinBossEnemy(x, y) {

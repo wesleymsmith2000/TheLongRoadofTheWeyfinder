@@ -22,7 +22,7 @@ export function waveletRippleHalfWidth(field, along, elapsed) {
 
 export function waveletReleaseContains(field, along, perpendicular, from, to, margin = 0, bands = null) {
   const r = Math.abs(perpendicular);
-  const rippleWidth = waveletRippleHalfWidth(field, along, to);
+  const rippleWidth = field.config.sweptBandsOnly ? -1 : waveletRippleHalfWidth(field, along, to);
   if (rippleWidth >= 0 && r <= rippleWidth + margin) return true;
   // Sweep every visible front/ring between frames, including its drawn stroke.
   for (const band of bands ?? waveletReleaseBands(field, to)) {

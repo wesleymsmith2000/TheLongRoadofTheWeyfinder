@@ -7,6 +7,7 @@ The canonical game repo is the reference implementation. Editors, helper tools, 
 Start here:
 
 - [Creator Extension API](./creator-extension-api.md)
+- [Hostile Wavelet, Gravity Bombs And Octopus Weak Points](./hostile-spatial-weapons.md)
 - [Content Pack Manifest](./content-pack-manifest.md)
 - [Level Editor Main Game Handoff](./level-editor-main-game-handoff.md)
 - [GhostForrest Music, Levels And Arcade Sandbox Testing](./ghost-forrest-music-and-levels.md)

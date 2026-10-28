@@ -395,6 +395,12 @@ function weaponFromFields() {
 
 function patternFromFields() {
   const emitterKind = fields.patternKindSelect.value;
+  if (emitterKind === 'hostileAttack') return {
+    ...baseMetadataFromFields(),
+    initialDelay: readNumber(fields.initialDelayInput),
+    interval: readNumber(fields.intervalInput),
+    emitter: { kind: emitterKind, attack: structuredClone(asset.emitter?.attack ?? { kind: 'hostile_wavelet' }) },
+  };
   const previousProjectile = asset.emitter?.projectile ?? {};
   const projectile = {
     ...previousProjectile,
@@ -580,6 +586,13 @@ function drawWeaponPreview() {
 
 function drawPatternPreview() {
   const emitter = asset.emitter ?? {};
+  if (emitter.kind === 'hostileAttack') {
+    context.fillStyle = '#d5659d'; context.font = '16px sans-serif';
+    context.fillText(emitter.attack?.kind === 'gravity_bomb' ? 'Gravity Bomb' : 'Hostile Wavelet Cannon', 24, 42);
+    context.font = '13px sans-serif'; context.fillStyle = '#c2bbc8';
+    context.fillText('Play this pattern in Sandbox to test its warning, suction and release.', 24, 68);
+    return;
+  }
   const origin = { x: canvas.width / 2, y: canvas.height / 2 };
   context.fillStyle = '#ff8f70';
   context.beginPath();

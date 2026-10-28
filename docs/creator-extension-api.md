@@ -1,5 +1,16 @@
 # Creator Extension API
 
+## Hostile spatial attacks (v1.0.24.0)
+
+Patterns accept `emitter.kind: "hostileAttack"` with `emitter.attack.kind` equal to
+`hostile_wavelet` or `gravity_bomb`. Projectile emitter fields are not required for this kind.
+Level JSON accepts optional `hazards[]` with `atDistance`, `attack`, and road-relative
+`origin`/`target`. Sandbox accepts the same records as `type: "hostileAttack"` events with
+`at` or `atDistance` gates. Offscreen `edge` values are `left`, `right`, `ahead`, `behind`,
+resolved against numeric visible-view bounds with optional `margin`. All modes use the same
+attack definitions. See the defaults, validators and examples in
+[Hostile spatial weapons](hostile-spatial-weapons.md).
+
 ## Sandbox rules and level music (v1.0.23.0)
 
 Sandbox definitions accept `runMode: 'normal' | 'arcade'` (default `normal`, legacy `lite`

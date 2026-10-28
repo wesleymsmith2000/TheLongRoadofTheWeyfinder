@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "0.1", "assetId": "enemy_archetypes.hostile_spatial_weapons",
+  "displayName": "Hostile Spatial Weapon Test Enemies", "canonStatus": "EXPERIMENTAL",
+  "archetypes": [
+    { "id": "hostile_wavelet_cannon.prototype0", "displayName": "Hostile Wavelet Cannon", "runtimeFactory": "createEnemy", "patterns": ["hostile_wavelet_cannon"], "entry": { "kind": "aheadDrift", "speed": 24 }, "palette": { "core": "#bd4879", "gun": "#ed405c", "armor": "#47203e" } },
+    { "id": "gravity_bombard.prototype0", "displayName": "Gravity Bombard", "runtimeFactory": "createEnemy", "patterns": ["gravity_bomb"], "entry": { "kind": "aheadDrift", "speed": 24 }, "palette": { "core": "#ac47b2", "gun": "#e34a82", "armor": "#311b36" } }
+  ]
+}

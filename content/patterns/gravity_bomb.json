@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "0.1", "assetId": "gravity_bomb", "displayName": "Gravity Bomb Mortar",
+  "canonStatus": "EXPERIMENTAL", "initialDelay": 2, "interval": 8,
+  "emitter": { "kind": "hostileAttack", "attack": { "kind": "gravity_bomb", "flightSeconds": 1.5, "chargeSeconds": 3, "radius": 190, "explosionRadius": 250 } }
+}

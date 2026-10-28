@@ -1295,8 +1295,9 @@ test('octopus boss arm destruction drops partial scrap then delays before inking
   game.smokeParticles = [];
   game.enemyProjectiles = [];
   const armCells = boss.cells.filter((cell) => cell.id.startsWith('arm-0-'));
-  for (const voxel of armCells[0].mask.flat()) voxel.hp = 0;
-  recalculateCell(armCells[0]);
+  const weakCell = armCells.find(cell => cell.id === boss.arms[0].weakCellId);
+  for (const voxel of weakCell.mask.flat()) voxel.hp = 0;
+  recalculateCell(weakCell);
   const remainingLiveVoxels = armCells.reduce(
     (sum, cell) => sum + cell.mask.flat().filter((voxel) => voxel.hp > 0).length,
     0,
@@ -1326,8 +1327,9 @@ test('octopus boss plays ouch scared and anger reactions after limb loss', () =>
   game.enemies = [boss];
   game.enemySpawnQueue = [];
   const armCells = boss.cells.filter((cell) => cell.id.startsWith('arm-0-'));
-  for (const voxel of armCells[0].mask.flat()) voxel.hp = 0;
-  recalculateCell(armCells[0]);
+  const weakCell = armCells.find(cell => cell.id === boss.arms[0].weakCellId);
+  for (const voxel of weakCell.mask.flat()) voxel.hp = 0;
+  recalculateCell(weakCell);
 
   stepGame(game, { gunnerEnabled: false }, 1 / 60);
 
@@ -1352,7 +1354,7 @@ test('octopus boss can retreat and clear the fight after all limbs are lost', ()
   game.enemyProjectiles = [];
   game.smokeParticles = [];
   for (const arm of boss.arms) {
-    const cell = boss.cells.find((candidate) => candidate.id.startsWith(`arm-${arm.index}-`));
+    const cell = boss.cells.find(candidate => candidate.id === arm.weakCellId);
     for (const voxel of cell.mask.flat()) voxel.hp = 0;
     recalculateCell(cell);
   }

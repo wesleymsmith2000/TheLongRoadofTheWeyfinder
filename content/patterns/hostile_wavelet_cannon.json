@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "0.1", "assetId": "hostile_wavelet_cannon", "displayName": "Hostile Wavelet Cannon",
+  "canonStatus": "EXPERIMENTAL", "initialDelay": 2, "interval": 10,
+  "emitter": { "kind": "hostileAttack", "attack": { "kind": "hostile_wavelet", "warningSeconds": 2, "chargeSeconds": 3, "length": 1100, "halfWidth": 120 } }
+}

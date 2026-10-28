@@ -2,6 +2,7 @@ import { CANON_STATUSES, CONTENT_SCHEMA_VERSION, isCompatibleSchemaVersion, isNo
 import { LIGHTING_PRESETS } from './renderMaterial.js';
 import { validateObstacleDefinition } from './obstacleDefinition.js';
 import { validateNavigationGraph } from './navigationGraph.js';
+import { validateHostileHazard } from './hostileAttackDefinition.js';
 
 export const LEVEL_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
 export const LEVEL_BACKGROUND_MODES = ['procedural', 'prebaked', 'mixed'];
@@ -42,6 +43,11 @@ export function validateLevelDefinition(definition) {
   validateObstacles(definition.obstacles ?? [], errors, warnings);
   validateWaves(definition.waves ?? [], errors, warnings);
   validateTriggers(definition.triggers ?? [], errors, warnings);
+  if (definition.hazards != null && !Array.isArray(definition.hazards)) errors.push('hazards must be an array.');
+  else for (const [index, hazard] of (definition.hazards ?? []).entries()) {
+    errors.push(...validateHostileHazard(hazard, `hazards[${index}]`).errors);
+    if (!Number.isFinite(hazard?.atDistance)) errors.push(`hazards[${index}].atDistance is required.`);
+  }
   if (definition.navigationGraph != null) {
     const navigationReport = validateNavigationGraph(definition.navigationGraph);
     errors.push(...navigationReport.errors);

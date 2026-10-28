@@ -2341,6 +2341,13 @@
           Music / zone preview
           <select id="sandboxMusicSelect"></select>
         </label>
+        <label class="sandbox-wide" for="sandboxAttackSelect">
+          Offscreen hazard test
+          <select id="sandboxAttackSelect">
+            <option value="hostile_wavelet">Hostile Wavelet Cannon</option>
+            <option value="gravity_bomb">Gravity Bomb</option>
+          </select>
+        </label>
         <label for="sandboxEnemySelect">
           Enemy
           <select id="sandboxEnemySelect"></select>
@@ -2379,6 +2386,8 @@
         <button id="sandboxScriptRun" type="button">Run Script</button>
         <button id="sandboxPlayLevel" type="button">Play Custom Level</button>
         <button id="sandboxPlayCampaign" type="button">Test Campaign Level</button>
+        <button id="sandboxFireHazard" type="button">Add Hazard</button>
+        <button id="sandboxHazardCourse" type="button">Run Hazard Course</button>
         <button id="sandboxStop" type="button">Stop</button>
         <button id="sandboxRefresh" type="button">Refresh Content</button>
         <button id="sandboxLoadoutToggle" type="button" aria-pressed="false">Loadout</button>

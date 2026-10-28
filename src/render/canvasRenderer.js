@@ -21,6 +21,7 @@ import { createTerrainAtlasLibrary } from './terrainAtlas.js';
 import { TerrainRenderer } from './terrainRenderer.js';
 import { drawWaveletDistortion } from './waveletDistortion.js';
 import { drawWaveletCharge } from './waveletCharge.js';
+import { drawHostileAttacks, drawGravityDistortion, drawGravityBombMarkers } from './hostileSpatialAttacks.js';
 import { waveletReleaseBands } from '../core/waveletGeometry.js';
 import trackingFlechetteUrl from '../../assets/images/weapons/tracking_flechette.png';
 import orbFlechetteUrl from '../../assets/images/weapons/orb_flechette.png';
@@ -168,8 +169,12 @@ export class CanvasRenderer {
       ctx.restore();
     }
     for (const piece of game.vehicle.detachedPieces) drawDetachedPiece(ctx, piece);
-    drawWaveletDistortion(ctx, this.canvas, this.waveletBuffer, game.spatialFields, game.time);
+    const hostileWavelets = (game.hostileAttacks ?? []).filter(attack => attack.kind === 'locked_convergence_wavelet');
+    drawWaveletDistortion(ctx, this.canvas, this.waveletBuffer, [...game.spatialFields, ...hostileWavelets], game.time);
+    drawGravityDistortion(ctx, this.canvas, this.waveletBuffer, game.hostileAttacks, game.time);
     drawSpatialFields(ctx, game.spatialFields, game.time);
+    drawGravityBombMarkers(ctx, [...game.enemyProjectiles, ...game.playerProjectiles], game.time);
+    drawHostileAttacks(ctx, game.hostileAttacks, game.time);
     for (const reticle of Object.values(game.independentAimReticles ?? {})) drawAimReticle(ctx, reticle);
     if (game.showSharedAimReticle !== false) drawAimReticle(ctx, game.aimReticle);
     ctx.restore();
@@ -993,6 +998,15 @@ function drawEnemy(ctx, enemy, time, game = null, diagnostics = {}, cellSpriteCa
         posed.rotation + diverKickPose(enemy, cell).rotation,
         { cellSpriteCache, environmentLighting: game?.environmentLighting, imageAssets, renderAssets },
       );
+      if (cell.bossArmWeakPoint) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#ffe277'; ctx.fillStyle = 'rgba(255,218,82,0.2)';
+        ctx.shadowColor = '#ffe277'; ctx.shadowBlur = 9;
+        ctx.lineWidth = 1.4 + Math.sin(time * 5) ** 2;
+        const x = posed.x, y = posed.y - projectHeight(layerLift + (posed.z ?? 0));
+        ctx.fillRect(x - CELL_SIZE * 0.65, y - CELL_SIZE * 0.65, CELL_SIZE * 1.3, CELL_SIZE * 1.3);
+        ctx.strokeRect(x - CELL_SIZE * 0.65, y - CELL_SIZE * 0.65, CELL_SIZE * 1.3, CELL_SIZE * 1.3); ctx.restore();
+      }
     }
   }
   drawDiverOverlay(ctx, enemy, time);

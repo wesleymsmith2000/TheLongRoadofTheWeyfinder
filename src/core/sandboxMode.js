@@ -3,9 +3,10 @@ import { validateEncounterDefinition } from './encounterDefinition.js';
 import { validateLevelDefinition } from './levelDefinition.js';
 import { normalizeObstacleDefinition } from './obstacleDefinition.js';
 import { normalizeRunMode } from './arcadeMode.js';
+import { validateHostileHazard } from './hostileAttackDefinition.js';
 
 export const SANDBOX_SCHEMA_VERSION = CONTENT_SCHEMA_VERSION;
-export const SANDBOX_EVENT_TYPES = ['spawn', 'clearEnemies', 'setScrap', 'addScrap', 'setTargetingMode', 'message', 'encounter', 'complete'];
+export const SANDBOX_EVENT_TYPES = ['spawn', 'clearEnemies', 'setScrap', 'addScrap', 'setTargetingMode', 'message', 'encounter', 'hostileAttack', 'complete'];
 
 export const DEFAULT_SANDBOX_DEFINITION = Object.freeze({
   schemaVersion: SANDBOX_SCHEMA_VERSION,
@@ -95,7 +96,7 @@ export function normalizeSandboxDefinition(definition = DEFAULT_SANDBOX_DEFINITI
     spawns: normalizeSpawns(source.spawns),
     events: normalizeEvents(source.events),
   };
-  if (!normalized.sourceLevelId && !normalized.useLevelSchedule && normalized.spawns.length === 0 && normalized.events.every((event) => event.type !== 'spawn')) {
+  if (!normalized.sourceLevelId && !normalized.useLevelSchedule && normalized.spawns.length === 0 && normalized.events.every((event) => !['spawn', 'hostileAttack'].includes(event.type))) {
     normalized.spawns = structuredClone(DEFAULT_SANDBOX_DEFINITION.spawns);
   }
   return normalized;
@@ -154,7 +155,8 @@ export function sandboxDefinitionFromLevel(level, options = {}) {
     route: level.route,
     lighting: level.lighting,
     spawns,
-    events: [{ id: 'starting-scrap', type: 'setScrap', at: 0, value: positiveNumber(options.startingScrap, 120) }],
+    events: [{ id: 'starting-scrap', type: 'setScrap', at: 0, value: positiveNumber(options.startingScrap, 120) },
+      ...(level.hazards ?? []).map(hazard => ({ ...hazard, type: 'hostileAttack', at: 0 }))],
   });
 }
 
@@ -175,6 +177,7 @@ export function validateSandboxDefinition(definition) {
       for (const [spawnIndex, spawn] of event.spawns.entries()) validateSpawn(spawn, `events[${index}].spawns[${spawnIndex}]`, errors);
     }
     if (event.type === 'encounter') validateEncounterEvent(event, `events[${index}]`, errors);
+    if (event.type === 'hostileAttack') errors.push(...validateHostileHazard(event, `events[${index}]`).errors);
   }
   return { valid: errors.length === 0, errors, warnings, definition: normalized };
 }
@@ -222,6 +225,10 @@ function normalizeEvents(events) {
         id: nonEmptyString(event.id, `event-${index + 1}`),
         type,
         at: positiveNumber(event.at, 0),
+        atDistance: positiveNumber(event.atDistance, null),
+        attack: isPlainObject(event.attack) ? structuredClone(event.attack) : null,
+        origin: isPlainObject(event.origin) ? structuredClone(event.origin) : null,
+        target: isPlainObject(event.target) ? structuredClone(event.target) : null,
         text: nonEmptyString(event.text ?? event.message, ''),
         value: finiteNumber(event.value, 0),
         mode: nonEmptyString(event.mode, null),

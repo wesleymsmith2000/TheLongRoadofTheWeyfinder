@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "0.1", "assetId": "local.level.hostile_spatial_hazard_trial",
+  "displayName": "Pre-boss Gravity and Flame Challenge", "canonStatus": "EXPERIMENTAL",
+  "music": "GhostForrestPathway_1", "background": { "mode": "procedural", "layers": [] },
+  "lighting": { "preset": "MOONLIGHT" },
+  "route": { "startHeading": 0, "segments": [{ "id": "hazard-lane", "length": 2400, "turnRadians": 0 }] },
+  "waves": [], "obstacles": [], "triggers": [],
+  "hazards": [
+    { "id": "left-flame", "atDistance": 120, "attack": { "kind": "hostile_wavelet" }, "origin": { "edge": "left", "margin": 80, "roadY": -120 }, "target": { "laneOffset": 100, "roadY": 120 } },
+    { "id": "gravity-drop", "atDistance": 660, "attack": { "kind": "gravity_bomb" }, "origin": { "edge": "ahead", "margin": 60 }, "target": { "laneOffset": 70, "roadY": 50 } },
+    { "id": "right-flame", "atDistance": 1200, "attack": { "kind": "hostile_wavelet" }, "origin": { "edge": "right", "margin": 80, "roadY": -120 }, "target": { "laneOffset": -100, "roadY": 140 } }
+  ]
+}

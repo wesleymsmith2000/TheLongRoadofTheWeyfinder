@@ -8,7 +8,7 @@ export function waveletDisplacement(field, along, perpendicular, time) {
   if (along < 0 || along > field.length || edge === 0) return 0;
   if (charging) {
     const charge = Math.min(1, field.chargeElapsed / config.chargeDurationSeconds);
-    return Math.sin(along * config.spatialFrequency - time * 12)
+    return Math.sin(along * config.spatialFrequency + (field.originPull ? 1 : -1) * time * 12)
       * config.maxVisualStrengthPx * charge ** 1.3 * edge;
   }
   const age = field.pulseElapsed - along / config.frontSpeed - config.shockwaveLagSeconds;
@@ -19,7 +19,7 @@ export function waveletDisplacement(field, along, perpendicular, time) {
 }
 
 export function drawWaveletDistortion(ctx, canvas, buffer, fields = [], time = 0) {
-  const active = fields.filter(field => field.config.distortionEnabled && field.state !== 'DONE');
+  const active = fields.filter(field => field.config.distortionEnabled && ['CHARGING', 'DISCHARGING'].includes(field.state));
   if (active.length === 0) return;
   if (buffer.width !== canvas.width || buffer.height !== canvas.height) {
     buffer.width = canvas.width;
@@ -49,7 +49,7 @@ export function drawWaveletDistortion(ctx, canvas, buffer, fields = [], time = 0
       ctx.rect(along, perpendicular, length + 0.25, bandWidth + 0.25);
       ctx.clip();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.drawImage(buffer, transform.c * offset, transform.d * offset);
+      ctx.drawImage(buffer, (field.originPull ? transform.a : transform.c) * offset, (field.originPull ? transform.b : transform.d) * offset);
       ctx.restore();
     }
     ctx.restore();

@@ -90,6 +90,7 @@ export function createProjectile(x, y, vx, vy, options = {}) {
     explodeAfterAcceleration: Boolean(options.explodeAfterAcceleration),
     explodeOnExpire: Boolean(options.explodeOnExpire),
     blastOnExpire: options.blastOnExpire ?? null,
+    gravityBomb: options.gravityBomb ? structuredClone(options.gravityBomb) : null,
     readyToExplode: false,
     vanishOffscreen: Boolean(options.vanishOffscreen),
     terrainAnchored: Boolean(options.terrainAnchored),
@@ -146,7 +147,7 @@ export function stepProjectiles(projectiles, dt, targets = []) {
 }
 
 function stepArcProjectile(projectile, dt) {
-  if (projectile.arcLanded) return;
+  if (projectile.arcLanded || dt <= 0) return;
   projectile.arcAge = (projectile.arcAge ?? 0) + dt;
   if (projectile.descentMode === 'direct' && projectile.descentLocked) {
     projectile.directDescentStartZ ??= Math.max(0, projectile.z);

@@ -1,5 +1,9 @@
 import { createDiverEnemy, DIVER_VARIANTS, diverLevelContext, resetDiverWaves, stepDiverWaves, diverWavesCleared, stepDiverEnemy, nearestHopperDiverPrey, hitDiverWithHopperBeam } from './diverEnemy.js';
 import { configureDiverFlavor } from './diverFlavor.js';
+import { startHostileAttack, stepHostileAttacks, carryHostileAttacks, hostileHazardPoint } from './hostileSpatialAttacks.js';
+import hostileWaveletPattern from '../../content/patterns/hostile_wavelet_cannon.json' with { type: 'json' };
+import gravityBombPattern from '../../content/patterns/gravity_bomb.json' with { type: 'json' };
+import hostileSpatialEnemies from '../../content/enemies/hostile_spatial_weapons.json' with { type: 'json' };
 import { createIncomingMarker, SPAWN_WARNING_LEAD } from './incomingWarning.js';
 import { arcadeBossPending, resetArcadeBossStage, stepArcadeBossStage } from './arcadeBossStage.js';
 import { awardArcadeBossSlot } from './arcadeBossReward.js';
@@ -374,6 +378,7 @@ const ROAD_BOSS_DESTRUCTION_CUE_TEXTS = [
 ];
 const ROAD_BOSS_TAUNT_CUE_TEXT = String.fromCodePoint(0x1f61b);
 const RUNTIME_ENEMY_ARCHETYPES = {
+  ...Object.fromEntries(hostileSpatialEnemies.archetypes.map(archetype => [archetype.id, archetype])),
   ...Object.fromEntries(DIVER_VARIANTS.map(variant => [`diver.${variant.id}`, {
     id: `diver.${variant.id}`, displayName: variant.displayName,
     runtimeFactory: 'createDiverEnemy', diverTheme: variant.id, construct: variant.construct,
@@ -549,6 +554,9 @@ export function createGame(seed = 1147, options = {}) {
     harpoonShots: [],
     smokeParticles: [],
     spatialFields: [],
+    hostileAttacks: [],
+    hostileAttackSerial: 0,
+    levelHazards: (levelDefinition?.hazards ?? []).map(hazard => ({ ...structuredClone(hazard), fired: false })),
     soundEvents: [],
     hapticEvents: [],
     animationEvents: [],
@@ -649,6 +657,11 @@ export function stepGame(game, input, dt) {
   }
   if (input.fireTogglePressed) game.autofire = !game.autofire;
   game.inputFireHeld = Boolean(input.fireHeld);
+  for (const hazard of game.levelHazards ?? []) {
+    if (hazard.fired || (game.road.routeDistance ?? 0) < hazard.atDistance) continue;
+    hazard.fired = true;
+    startHostileAttack(game, hazard.attack, hostileHazardPoint(game, hazard.origin), hostileHazardPoint(game, hazard.target));
+  }
   stepSandboxEvents(game);
 
   const encounterPolicy = encounterPausePolicy(game);
@@ -728,9 +741,13 @@ export function stepGame(game, input, dt) {
       emitHapticEvent(game, HAPTIC_EVENTS.PLAYER_WEAPON_FIRE, { weapon: field.sourceWeaponId, intensity: 0.8, durationMs: 180 });
     },
   });
-  stepGroundBeamScorchParticles(game, dt);
   const livePlayerCellsBeforeDamage = countLiveAttachedVehicleCells(game.vehicle);
   const livePlayerVoxelHealthBeforeDamage = countLiveAttachedVehicleVoxelHealth(game.vehicle);
+  stepHostileAttacks(game, dt, {
+    onEnemyDestroyed: enemy => explodeEnemy(game, enemy),
+    onDischarge: () => emitSoundEvent(game, SOUND_EVENTS.ENEMY_MORTAR_FIRE),
+  });
+  stepGroundBeamScorchParticles(game, dt);
   handleEnemyProjectileSpecials(game);
   stepSmokeParticles(game, dt);
   stepRocketContrails(game, dt);
@@ -760,7 +777,10 @@ export function stepGame(game, input, dt) {
   game.gameOver = !game.vehicle.alive;
   const traversalClear = traversalTargetReached(game);
   if (traversalClear) game.enemySpawnQueue = [];
-  const arenaClear = !arcadeBossPending(game) && diverWavesCleared(game) && (traversalClear || (shouldCompleteRun(game) && activeCompletionEnemies(game).length === 0 && game.enemySpawnQueue.length === 0));
+  const hazardsPending = (game.levelHazards ?? []).some(hazard => !hazard.fired) ||
+    (game.sandbox?.events ?? []).some(event => event.type === 'hostileAttack' && !event.fired) ||
+    game.hostileAttacks.length > 0 || [...game.enemyProjectiles, ...game.playerProjectiles].some(shot => shot.gravityBomb && shot.lifetime > 0);
+  const arenaClear = !hazardsPending && !arcadeBossPending(game) && diverWavesCleared(game) && (traversalClear || (shouldCompleteRun(game) && activeCompletionEnemies(game).length === 0 && game.enemySpawnQueue.length === 0));
   if (arenaClear) retireArcadeGapDivers(game);
   stepVictoryBanner(game, arenaClear, dt);
   if (arenaClear && victoryBannerHasPlayed(game) && game.scrapPickups.length === 0) finishLevel(game);
@@ -1050,6 +1070,8 @@ export function startNextLevel(game) {
   game.harpoonShots = [];
   game.smokeParticles = [];
   game.spatialFields = [];
+  game.hostileAttacks = [];
+  game.levelHazards = [];
   game.secondary.waveletCommitment = null;
   game.weaponInterlock = createWeaponInterlock();
   game.soundEvents = [];
@@ -1083,6 +1105,8 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
   game.harpoonShots = [];
   game.smokeParticles = [];
   game.spatialFields = [];
+  game.hostileAttacks = [];
+  game.levelHazards = [];
   game.secondary.waveletCommitment = null;
   game.weaponInterlock = createWeaponInterlock();
   game.scrapPickups = [];
@@ -1098,7 +1122,7 @@ export function applySandboxDefinitionToGame(game, definition, options = {}) {
 }
 
 export function createLevelEnemySchedule(road, level, levelMusic = DEFAULT_LEVEL_MUSIC, rng = new Rng(level * 9973)) {
-  const entries = createLevelEnemies(road, level, levelMusic);
+  const entries = createLevelEnemies(road, level, levelMusic, rng);
   const duration = traversalSecondsForTrack(musicForLevel(level, levelMusic)) || LEVEL_TARGET_DURATION;
   const meanInterval = duration / Math.max(1, entries.length + 1);
   let at = 0;
@@ -1138,7 +1162,7 @@ function stepSandboxEvents(game) {
   if (!game.sandbox?.enabled) return;
   const elapsed = game.time - game.levelStartTime;
   for (const event of game.sandbox.events) {
-    if (event.fired || event.at > elapsed) continue;
+    if (event.fired || (event.atDistance == null ? event.at > elapsed : event.atDistance > (game.road.routeDistance ?? 0))) continue;
     event.fired = true;
     applySandboxEvent(game, event, elapsed);
   }
@@ -1152,7 +1176,10 @@ function configureSandboxDiverSpawns(game, enemies) {
 }
 
 function applySandboxEvent(game, event, elapsed) {
-  if (event.type === 'spawn') {
+  if (event.type === 'hostileAttack') {
+    startHostileAttack(game, event.attack, hostileHazardPoint(game, event.origin), hostileHazardPoint(game, event.target));
+    game.sandbox.lastMessage = `${event.id}: ${event.attack.kind} started.`;
+  } else if (event.type === 'spawn') {
     const entries = createSandboxSpawnEntries(game.road, event.spawns, game.rng, {
       level: game.sandbox?.definition.level ?? game.level,
       enemyArchetypes: game.sandbox?.enemyArchetypes,
@@ -1169,6 +1196,7 @@ function applySandboxEvent(game, event, elapsed) {
   } else if (event.type === 'clearEnemies') {
     game.enemies = [];
     game.enemyProjectiles = [];
+    game.hostileAttacks = [];
     game.incomingMarkers = [];
     game.sandbox.lastMessage = `${event.id}: arena cleared.`;
   } else if (event.type === 'setScrap') {
@@ -1207,7 +1235,7 @@ function createSandboxSpawnEntries(road, spawns, rng, options = {}) {
       const world = roadOffsetToWorld({ x: laneOffset, y: roadY }, road);
       const at = Math.max(0, (options.timeOffset ?? 0) + (spawn.at ?? 0) + index * interval);
       const triggerDistance = spawn.atDistance == null ? null : Math.max(0, spawn.atDistance + index * distanceInterval);
-      for (const enemy of createSandboxEnemies(spawn, world.x, world.y, road, { ...options, spawnIndex: index })) {
+      for (const enemy of createSandboxEnemies(spawn, world.x, world.y, road, { ...options, rng, spawnIndex: index })) {
         entries.push({ at, triggerDistance, enemy, markerShown: false, type: enemy.kind ?? spawn.kind ?? 'standard', sandbox: true, source: spawn.id });
       }
     }
@@ -1226,7 +1254,7 @@ function createSandboxEnemies(spawn, x, y, road, options = {}) {
   const voxelModelId = spawn.voxelModel ?? (spawn.obstacle?.kind !== 'construct' ? spawn.obstacle?.assetRef : null);
   const customVoxelModel = findAssetDefinition(options.voxelModels, voxelModelId);
   const patternIds = spawn.patterns?.length ? spawn.patterns : archetype?.patterns ?? [];
-  const customPatterns = patternIds.map((id) => findAssetDefinition(options.patternDefinitions, id)).filter(Boolean);
+  const customPatterns = patternIds.map((id) => findAssetDefinition(options.patternDefinitions, id) ?? [hostileWaveletPattern, gravityBombPattern].find(pattern => pattern.assetId === id)).filter(Boolean);
   if (spawn.construct && !archetype && !customConstruct) throw new Error(`Sandbox construct "${spawn.construct}" is not loaded.`);
   if (spawn.voxelModel && !customVoxelModel) throw new Error(`Sandbox voxel model "${spawn.voxelModel}" is not loaded.`);
   const enemy = customConstruct
@@ -1234,7 +1262,7 @@ function createSandboxEnemies(spawn, x, y, road, options = {}) {
     : customVoxelModel
       ? createEnemy(spawnPoint.x, spawnPoint.y, obstacleConstructFromVoxelModel(customVoxelModel), [], { moduleScale: 1 })
     : archetype
-      ? createEnemyForArchetype(archetype, spawnPoint.x, spawnPoint.y, kind)
+      ? createEnemyForArchetype(archetype, spawnPoint.x, spawnPoint.y, kind, options.rng)
       : createEnemy(spawnPoint.x, spawnPoint.y);
   if (archetype) applyArchetypeRuntimeMetadata(enemy, archetype);
   enemy.sandboxSource = { archetype: spawn.archetype ?? null, construct: spawn.construct ?? null };
@@ -1345,7 +1373,7 @@ function runtimeArchetype(id) {
 }
 
 function listCanonEnemyArchetypes() {
-  return [...listEnemyArchetypes(), ...Object.values(RUNTIME_ENEMY_ARCHETYPES).filter(archetype => archetype.runtimeFactory === 'createDiverEnemy')];
+  return [...listEnemyArchetypes(), ...hostileSpatialEnemies.archetypes, ...Object.values(RUNTIME_ENEMY_ARCHETYPES).filter(archetype => archetype.runtimeFactory === 'createDiverEnemy')];
 }
 
 function sandboxLaneOffset(spawn, index, count, rng) {
@@ -1381,7 +1409,7 @@ function spawnEntryReady(entry, elapsed, routeDistance) {
   return entry.triggerDistance != null ? routeDistance >= entry.triggerDistance : entry.at <= elapsed;
 }
 
-export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC) {
+export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC, rng = new Rng(level * 9973)) {
   const enemies = [];
   const isBoss = isBossLevel(level, levelMusic);
   const currentMusic = musicForLevel(level, levelMusic);
@@ -1445,7 +1473,7 @@ export function createLevelEnemies(road, level, levelMusic = DEFAULT_LEVEL_MUSIC
       ? createPirateBossEnemy(bossWorld.x, bossWorld.y)
       : usesZeppelinBoss(currentMusic)
       ? createZeppelinBossEnemy(bossWorld.x, bossWorld.y)
-      : createBossEnemy(bossWorld.x, bossWorld.y);
+      : createBossEnemy(bossWorld.x, bossWorld.y, rng);
     if (zoneNameFromTrack(currentMusic) === 'ShadowedRoad' && boss.kind === 'roadBossCar') {
       boss.archetypeId = 'boss.shadowed_road_hotrod.prototype0';
       boss.displayName = 'Shadowed Road Hotrod Boss';
@@ -1605,7 +1633,9 @@ function usesWeyfinderRoadBoss(trackName = '') {
   return /^BossFight_1$/i.test(name) || ((zone === 'TheWeyfindersRoad' || zone === 'ShadowedRoad') && isBossMusic(name));
 }
 
-function createEnemyForArchetype(archetype, x, y, kind) {
+function createEnemyForArchetype(archetype, x, y, kind, rng) {
+  const hostilePattern = [hostileWaveletPattern, gravityBombPattern].find(pattern => archetype.patterns?.includes(pattern.assetId));
+  if (hostilePattern) return createEnemy(x, y, undefined, [hostilePattern]);
   if (archetype.runtimeFactory === 'createDiverEnemy') return createDiverEnemy(x, y, archetype.diverTheme ?? 'motorcycle');
   const runtimeConstruct = RUNTIME_CONSTRUCT_DEFINITIONS.get(archetype.construct) ?? RUNTIME_SCULPTED_CONSTRUCTS[archetype.id];
   if (runtimeConstruct) {
@@ -1622,7 +1652,7 @@ function createEnemyForArchetype(archetype, x, y, kind) {
   if (factory === 'createRoadBossCarEnemy') return createRoadBossCarEnemy(x, y);
   if (factory === 'createPirateBossEnemy') return createPirateBossEnemy(x, y);
   if (factory === 'createZeppelinBossEnemy') return createZeppelinBossEnemy(x, y);
-  if (factory === 'createBossEnemy') return createBossEnemy(x, y);
+  if (factory === 'createBossEnemy') return createBossEnemy(x, y, rng);
   if (factory === 'createPirateShipEnemy') return createPirateShipEnemy(x, y, { kind });
   if (factory === 'createEnhancedPirateShipEnemy') return createEnhancedPirateShipEnemy(x, y);
   if (factory === 'createEnhancedEnemy') return createEnhancedEnemy(x, y);
@@ -2028,6 +2058,7 @@ function carryRoadObjects(game, delta) {
     ...game.playerProjectiles,
     ...game.playerProjectiles.map((projectile) => projectile.detonateAtTarget && projectile.targetHint).filter(Boolean),
     ...game.enemyProjectiles.filter((projectile) => !projectile.terrainAnchored),
+    ...game.enemyProjectiles.filter(projectile => projectile.gravityBomb && projectile.targetHint).map(projectile => projectile.targetHint),
     ...(game.pendingEnemyMortarShells ?? []).flatMap((shell) => [shell.source, shell.target]),
     ...game.smokeParticles,
     ...game.incomingMarkers,
@@ -2047,6 +2078,7 @@ function carryRoadObjects(game, delta) {
     }
   }
   carrySpatialFields(game.spatialFields, delta.dx, delta.dy);
+  carryHostileAttacks(game.hostileAttacks, delta.dx, delta.dy);
 }
 
 function activeEnemyHarpoonPowerup(enemy) {
@@ -3301,6 +3333,7 @@ function stepEnemy(game, enemy, dt) {
   if (enemy.kind === 'pirateBoss') stepPirateBoss(game, enemy, dt);
   if (enemy.kind === 'zeppelinBoss') stepZeppelinBoss(game, enemy, dt);
   if (enemy.kind === 'escapePodBoat') stepEscapePodBoat(game, enemy, dt);
+  stepBossSpatialAttack(game, enemy, dt);
   triggerEnemyEntranceBark(game, enemy, 'active');
   if (enemy.destroyed) return;
   if (enemyCanFire(enemy) && (enemy.patterns?.length ?? 0) > 0 && !walkerUsesElevatedSpecialWeapon(enemy) && !walkerUsesGroundedSpiralMissiles(enemy)) stepEnemyPatterns(game, enemy, dt);
@@ -6045,6 +6078,20 @@ function stepBossArms(game, boss, dt) {
   }
 }
 
+function stepBossSpatialAttack(game, boss, dt) {
+  const kind = boss.kind === 'zeppelinBoss' ? 'hostile_wavelet' :
+    boss.kind === 'pirateBoss' || (boss.kind === 'roadBossCar' && boss.roadBossCar?.variant !== 'shadowedRoad') ? 'gravity_bomb' : null;
+  if (!kind || boss.destroyed || !enemyCanFire(boss) || boss.internalDestruction || boss.zeppelin?.meltdownTimer != null) return;
+  boss.spatialAttackTimer = (boss.spatialAttackTimer ?? 9) - dt * arcadeEnemyFireRateScale(game);
+  if (boss.spatialAttackTimer > 0 || game.hostileAttacks.some(attack => attack.sourceEnemy === boss)) return;
+  const source = boss.kind === 'zeppelinBoss' ? zeppelinCannonSources(boss)[0]
+    : liveEnemyCellWorldCenters(boss, cell => cell.type === 'gun' && !cell.state.destroyed)[0];
+  if (!source) return;
+  const definition = kind === 'hostile_wavelet' ? hostileWaveletPattern : gravityBombPattern;
+  startHostileAttack(game, definition.emitter.attack, source, game.vehicle, { sourceEnemy: boss, sourceCellId: source.cellId });
+  boss.spatialAttackTimer = 12;
+}
+
 function stepBossLaser(game, boss, arm, dt) {
   const laser = arm.laser;
   if (!laser) return false;
@@ -6176,7 +6223,7 @@ function bossArmSource(boss, arm) {
 function detonateBrokenBossArm(game, boss, arm) {
   if (arm.detonated) return true;
   const cells = boss.cells.filter((cell) => cell.id.startsWith(`arm-${arm.index}-`));
-  if (!cells.some((cell) => cell.state.destroyed)) return false;
+  if (arm.weakCellId ? !cells.find(cell => cell.id === arm.weakCellId)?.state.destroyed : !cells.some(cell => cell.state.destroyed)) return false;
   arm.detonated = true;
   const diagnostics = game.performanceDiagnostics ?? {};
   if (!diagnostics.disableArmDetonationFx) {
@@ -6707,6 +6754,15 @@ function stepEnemyPatterns(game, enemy, dt) {
   for (const patternState of enemy.patterns ?? []) {
     patternState.timer -= dt * fireScale;
     if (patternState.timer > 0) continue;
+    if (patternState.definition.emitter.kind === 'hostileAttack') {
+      if (game.hostileAttacks.some(attack => attack.sourceEnemy === enemy)) continue;
+      const source = liveEnemyCellWorldCenters(enemy, cell => cell.type === 'gun' && !cell.state.destroyed)[0];
+      if (!source) continue;
+      startHostileAttack(game, patternState.definition.emitter.attack, source, game.vehicle,
+        { sourceEnemy: enemy, sourceCellId: source.cellId });
+      patternState.timer = patternState.definition.interval;
+      continue;
+    }
     const projectiles = firePattern(patternState, enemy, game.vehicle, game.rng).map((projectile) => applyArcadeProjectileScaling(game, scaleEnemyProjectile(enemy, projectile)));
     game.enemyProjectiles.push(...projectiles);
     if (projectiles.length > 0) {

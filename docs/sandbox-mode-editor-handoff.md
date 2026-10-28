@@ -2,6 +2,12 @@
 
 Runtime checkpoint: `v1.0.23.0`
 
+`v1.0.24.0` adds **Offscreen hazard test > Add Hazard**, **Run Hazard Course**, and the
+Hostile Wavelet Cannon/Gravity Bombard enemies. `WeyfinderSandbox.fireHazard(kind, options)`
+fires a test attack without an enemy source. Timed/distance `hostileAttack` events use inline
+`attack`, `origin`, `target`; `atDistance` takes precedence over `at`. See
+[the hostile spatial attack contract](hostile-spatial-weapons.md).
+
 ## Arcade testing
 
 In **SBOX**, select **Gameplay rules > Arcade** before starting a test. The selector updates the script's `runMode`; Run Quick and Play Custom Level also use that selection. Every Run starts a fresh vehicle with the selected rules. Arcade uses the Arcade hull, loadout policy, Guided AI default, forward firing, movement, larger terrain tiles, doubled road speed and emergency primary. Default/older Sandbox scripts still use Normal.
